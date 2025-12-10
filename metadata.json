@@ -1,0 +1,7 @@
+{
+  "name": " FieldPro Prototype",
+  "description": "A field service management application for technicians and admins.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
