@@ -7,10 +7,10 @@ import JobDetail from './pages/JobDetail';
 import CreateJob from './pages/CreateJob';
 import LoginPage from './pages/LoginPage';
 import UserManagement from './pages/UserManagement';
+import Customers from './pages/Customers';
+import CustomerProfile from './pages/CustomerProfile';
 import { SupabaseDb as MockDb } from './services/supabaseService';
-import { LayoutDashboard, List, Package, LogOut, Users } from 'lucide-react';
-
-
+import { LayoutDashboard, List, Package, LogOut, Users as UsersIcon, Building2 } from 'lucide-react';
 
 const Sidebar = ({ role, onLogout }: { role: UserRole, onLogout: () => void }) => {
   const location = useLocation();
@@ -33,13 +33,18 @@ const Sidebar = ({ role, onLogout }: { role: UserRole, onLogout: () => void }) =
           <List className="w-5 h-5" /> Jobs
         </Link>
         {(role === UserRole.ADMIN || role === UserRole.TECHNICIAN) && (
-          <Link to="/inventory" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${isActive('/inventory')}`}>
-            <Package className="w-5 h-5" /> Inventory
-          </Link>
+          <>
+            <Link to="/customers" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${isActive('/customers')}`}>
+              <Building2 className="w-5 h-5" /> Customers
+            </Link>
+            <Link to="/inventory" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${isActive('/inventory')}`}>
+              <Package className="w-5 h-5" /> Inventory
+            </Link>
+          </>
         )}
         {role === UserRole.ADMIN && (
           <Link to="/users" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${isActive('/users')}`}>
-            <Users className="w-5 h-5" /> Users
+            <UsersIcon className="w-5 h-5" /> Users
           </Link>
         )}
       </nav>
@@ -60,9 +65,14 @@ const MobileNav = ({ role }: { role: UserRole }) => {
         <Link to="/" className="p-2 text-slate-600 hover:text-blue-600"><LayoutDashboard className="w-6 h-6" /></Link>
        )}
        <Link to="/jobs" className="p-2 text-slate-600 hover:text-blue-600"><List className="w-6 h-6" /></Link>
-       <Link to="/inventory" className="p-2 text-slate-600 hover:text-blue-600"><Package className="w-6 h-6" /></Link>
+       {(role === UserRole.ADMIN || role === UserRole.TECHNICIAN) && (
+         <>
+           <Link to="/customers" className="p-2 text-slate-600 hover:text-blue-600"><Building2 className="w-6 h-6" /></Link>
+           <Link to="/inventory" className="p-2 text-slate-600 hover:text-blue-600"><Package className="w-6 h-6" /></Link>
+         </>
+       )}
        {role === UserRole.ADMIN && (
-         <Link to="/users" className="p-2 text-slate-600 hover:text-blue-600"><Users className="w-6 h-6" /></Link>
+         <Link to="/users" className="p-2 text-slate-600 hover:text-blue-600"><UsersIcon className="w-6 h-6" /></Link>
        )}
     </div>
   );
@@ -103,12 +113,10 @@ const InventoryPage = () => {
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  // Simple logout handler
   const handleLogout = () => {
     setCurrentUser(null);
   };
 
-  // If not logged in, show Login Page
   if (!currentUser) {
     return <LoginPage onLogin={setCurrentUser} />;
   }
@@ -122,12 +130,24 @@ export default function App() {
             <Route path="/" element={
                currentUser.role === UserRole.TECHNICIAN 
                  ? <Navigate to="/jobs" /> 
-                 : <Dashboard role={currentUser.role} />
+                 : <Dashboard role={currentUser.role} currentUser={currentUser} />
             } />
             <Route path="/jobs" element={<JobBoard currentUser={currentUser} />} />
             <Route path="/jobs/new" element={<CreateJob currentUser={currentUser} />} />
             <Route path="/jobs/:id" element={<JobDetail currentUserRole={currentUser.role} currentUserId={currentUser.user_id} currentUserName={currentUser.name} />} />
             <Route path="/inventory" element={<InventoryPage />} />
+            
+            {/* Customer Routes */}
+            <Route path="/customers" element={
+              (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.TECHNICIAN)
+                ? <Customers />
+                : <Navigate to="/" />
+            } />
+            <Route path="/customers/:id" element={
+              (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.TECHNICIAN)
+                ? <CustomerProfile currentUserRole={currentUser.role} />
+                : <Navigate to="/" />
+            } />
             
             {/* Protected User Management Route */}
             <Route path="/users" element={
