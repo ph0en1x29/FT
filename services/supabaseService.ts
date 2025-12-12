@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Job, JobStatus, JobPriority, Part, User, UserRole, Customer, JobMedia, SignatureEntry } from '../types';
+import { Job, JobStatus, JobPriority, Part, User, UserRole, Customer, JobMedia, SignatureEntry } from '../types_with_invoice_tracking';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -118,6 +118,7 @@ export const SupabaseDb = {
     return data as Customer;
   },
 
+  // UPDATED: Now includes extra_charges in the query
   getJobs: async (user: User): Promise<Job[]> => {
     let query = supabase
       .from('jobs')
@@ -125,7 +126,9 @@ export const SupabaseDb = {
         *,
         customer:customers(*),
         parts_used:job_parts(*),
-        media:job_media(*)
+        media:job_media(*),
+      extra_charges:extra_charges(*),
+        extra_charges:extra_charges(*)
       `)
       .order('created_at', { ascending: false });
 
@@ -139,6 +142,7 @@ export const SupabaseDb = {
     return data as Job[];
   },
 
+  // UPDATED: Now includes extra_charges in the query
   getJobById: async (jobId: string): Promise<Job | null> => {
     const { data, error } = await supabase
       .from('jobs')
@@ -146,7 +150,9 @@ export const SupabaseDb = {
         *,
         customer:customers(*),
         parts_used:job_parts(*),
-        media:job_media(*)
+        media:job_media(*),
+      extra_charges:extra_charges(*),
+        extra_charges:extra_charges(*)
       `)
       .eq('job_id', jobId)
       .single();
@@ -170,12 +176,15 @@ export const SupabaseDb = {
         assigned_technician_id: jobData.assigned_technician_id || null,
         assigned_technician_name: jobData.assigned_technician_name || null,
         notes: jobData.notes || [],
+        labor_cost: jobData.labor_cost || 150, // Default labor cost
       })
       .select(`
         *,
         customer:customers(*),
         parts_used:job_parts(*),
-        media:job_media(*)
+        media:job_media(*),
+      extra_charges:extra_charges(*),
+        extra_charges:extra_charges(*)
       `)
       .single();
 
@@ -196,7 +205,9 @@ export const SupabaseDb = {
         *,
         customer:customers(*),
         parts_used:job_parts(*),
-        media:job_media(*)
+        media:job_media(*),
+      extra_charges:extra_charges(*),
+        extra_charges:extra_charges(*)
       `)
       .single();
 
@@ -222,7 +233,9 @@ export const SupabaseDb = {
         *,
         customer:customers(*),
         parts_used:job_parts(*),
-        media:job_media(*)
+        media:job_media(*),
+      extra_charges:extra_charges(*),
+        extra_charges:extra_charges(*)
       `)
       .single();
 
@@ -249,7 +262,9 @@ export const SupabaseDb = {
         *,
         customer:customers(*),
         parts_used:job_parts(*),
-        media:job_media(*)
+        media:job_media(*),
+      extra_charges:extra_charges(*),
+        extra_charges:extra_charges(*)
       `)
       .single();
 
@@ -326,11 +341,212 @@ export const SupabaseDb = {
         *,
         customer:customers(*),
         parts_used:job_parts(*),
-        media:job_media(*)
+        media:job_media(*),
+      extra_charges:extra_charges(*),
+        extra_charges:extra_charges(*)
       `)
       .single();
 
     if (error) throw new Error(error.message);
     return data as Job;
   },
+
+  updatePartPrice: async (jobId: string, jobPartId: string, newPrice: number): Promise<Job> => {
+    const { error } = await supabase
+      .from('job_parts')
+      .update({ sell_price_at_time: newPrice })
+      .eq('job_part_id', jobPartId)
+      .eq('job_id', jobId);
+
+    if (error) throw new Error(error.message);
+    
+    return SupabaseDb.getJobById(jobId) as Promise<Job>;
+  },
+
+  removePartFromJob: async (jobId: string, jobPartId: string): Promise<Job> => {
+    // First get the part details to restore stock
+    const { data: jobPart } = await supabase
+      .from('job_parts')
+      .select('part_id, quantity')
+      .eq('job_part_id', jobPartId)
+      .single();
+
+    if (jobPart) {
+      // Restore stock quantity
+      const { data: part } = await supabase
+        .from('parts')
+        .select('stock_quantity')
+        .eq('part_id', jobPart.part_id)
+        .single();
+
+      if (part) {
+        await supabase
+          .from('parts')
+          .update({ stock_quantity: part.stock_quantity + jobPart.quantity })
+          .eq('part_id', jobPart.part_id);
+      }
+    }
+
+    // Delete the job_part record
+    const { error } = await supabase
+      .from('job_parts')
+      .delete()
+      .eq('job_part_id', jobPartId)
+      .eq('job_id', jobId);
+
+    if (error) throw new Error(error.message);
+    
+    return SupabaseDb.getJobById(jobId) as Promise<Job>;
+  },
+
+  // NEW: Update labor cost for a job
+  updateLaborCost: async (jobId: string, laborCost: number): Promise<Job> => {
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ labor_cost: laborCost })
+      .eq('job_id', jobId)
+      .select(`
+        *,
+        customer:customers(*),
+        parts_used:job_parts(*),
+        media:job_media(*),
+      extra_charges:extra_charges(*),
+        extra_charges:extra_charges(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Job;
+  },
+
+  // NEW: Add an extra charge to a job
+  addExtraCharge: async (
+    jobId: string, 
+    charge: { name: string; description: string; amount: number }
+  ): Promise<Job> => {
+    const { error } = await supabase
+      .from('extra_charges')
+      .insert({
+        job_id: jobId,
+        name: charge.name,
+        description: charge.description,
+        amount: charge.amount,
+      });
+
+    if (error) throw new Error(error.message);
+    
+    return SupabaseDb.getJobById(jobId) as Promise<Job>;
+  },
+
+  // NEW: Remove an extra charge from a job
+  removeExtraCharge: async (jobId: string, chargeId: string): Promise<Job> => {
+    const { error } = await supabase
+      .from('extra_charges')
+      .delete()
+      .eq('charge_id', chargeId)
+      .eq('job_id', jobId);
+
+    if (error) throw new Error(error.message);
+    
+    return SupabaseDb.getJobById(jobId) as Promise<Job>;
+  },
+  // Add these methods to your SupabaseDb object in supabaseService.ts
+
+// NEW: Finalize invoice with tracking
+finalizeInvoice: async (jobId: string, accountantId: string, accountantName: string): Promise<Job> => {
+  const { data, error } = await supabase
+    .from('jobs')
+    .update({
+      status: JobStatus.INVOICED,
+      invoiced_by_id: accountantId,
+      invoiced_by_name: accountantName,
+      invoiced_at: new Date().toISOString(),
+    })
+    .eq('job_id', jobId)
+    .select(`
+      *,
+      customer:customers(*),
+      parts_used:job_parts(*),
+      media:job_media(*),
+      extra_charges:extra_charges(*),
+      extra_charges:extra_charges(*)
+    `)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as Job;
+},
+
+// NEW: Send invoice to customer
+sendInvoice: async (jobId: string, method: 'email' | 'whatsapp' | 'both'): Promise<Job> => {
+  // Determine which methods were used
+  const methods: string[] = [];
+  if (method === 'both') {
+    methods.push('email', 'whatsapp');
+  } else {
+    methods.push(method);
+  }
+
+  const { data, error } = await supabase
+    .from('jobs')
+    .update({
+      invoice_sent_at: new Date().toISOString(),
+      invoice_sent_via: methods,
+    })
+    .eq('job_id', jobId)
+    .select(`
+      *,
+      customer:customers(*),
+      parts_used:job_parts(*),
+      media:job_media(*),
+      extra_charges:extra_charges(*),
+      extra_charges:extra_charges(*)
+    `)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as Job;
+},
+
+// NEW: Generate invoice text for sending
+generateInvoiceText: (job: Job): string => {
+  const totalParts = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
+  const laborCost = job.labor_cost || 150;
+  const extraCharges = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
+  const total = totalParts + laborCost + extraCharges;
+
+  let text = `*INVOICE - ${job.title}*\n\n`;
+  text += `Customer: ${job.customer.name}\n`;
+  text += `Address: ${job.customer.address}\n`;
+  text += `Date: ${new Date(job.created_at).toLocaleDateString()}\n\n`;
+  
+  text += `*Services Provided:*\n`;
+  text += `${job.description}\n\n`;
+  
+  if (job.parts_used.length > 0) {
+    text += `*Parts Used:*\n`;
+    job.parts_used.forEach(p => {
+      text += `• ${p.quantity}x ${p.part_name} - $${(p.sell_price_at_time * p.quantity).toFixed(2)}\n`;
+    });
+    text += `\n`;
+  }
+  
+  text += `*Cost Breakdown:*\n`;
+  text += `Labor: $${laborCost.toFixed(2)}\n`;
+  text += `Parts: $${totalParts.toFixed(2)}\n`;
+  
+  if (extraCharges > 0) {
+    text += `Extra Charges: $${extraCharges.toFixed(2)}\n`;
+    if (job.extra_charges) {
+      job.extra_charges.forEach(c => {
+        text += `  • ${c.name}: $${c.amount.toFixed(2)}\n`;
+      });
+    }
+  }
+  
+  text += `\n*TOTAL: $${total.toFixed(2)}*\n\n`;
+  text += `Thank you for your business!`;
+  
+  return text;
+},
 };

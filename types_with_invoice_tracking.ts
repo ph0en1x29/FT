@@ -24,7 +24,7 @@ export interface User {
   name: string;
   role: UserRole;
   email: string;
-  password_hash?: string; // Simulated hash
+  password_hash?: string;
   is_active: boolean;
   avatar?: string;
   created_at?: string;
@@ -70,14 +70,23 @@ export interface JobMedia {
 
 export interface SignatureEntry {
   signed_by_name: string;
-  signed_at: string; // ISO Timestamp
-  signature_url: string; // Data URL
+  signed_at: string;
+  signature_url: string;
+}
+
+export interface ExtraCharge {
+  charge_id: string;
+  job_id: string;
+  name: string;
+  description: string;
+  amount: number;
+  created_at: string;
 }
 
 export interface Job {
   job_id: string;
   customer_id: string;
-  customer: Customer; // Hydrated for ease
+  customer: Customer;
   title: string;
   description: string;
   priority: JobPriority;
@@ -90,10 +99,21 @@ export interface Job {
   completion_time?: string;
   notes: string[];
   
-  // Updated Signatures
+  // Signatures
   technician_signature?: SignatureEntry;
   customer_signature?: SignatureEntry;
 
   parts_used: JobPartUsed[];
   media: JobMedia[];
+  
+  // Pricing
+  labor_cost?: number;
+  extra_charges?: ExtraCharge[];
+  
+  // NEW: Invoice tracking
+  invoiced_by_id?: string;
+  invoiced_by_name?: string;
+  invoiced_at?: string;
+  invoice_sent_at?: string;
+  invoice_sent_via?: string[]; // ['email', 'whatsapp']
 }

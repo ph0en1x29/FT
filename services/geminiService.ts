@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { Job, Customer } from "../types";
+import { Job, Customer } from "../types_with_invoice_tracking";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 

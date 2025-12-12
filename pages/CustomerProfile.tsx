@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Customer, Job, UserRole } from '../types';
+import { Customer, Job, User, UserRole } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { generateCustomerAnalysis } from '../services/geminiService';
 import { 
@@ -9,10 +9,10 @@ import {
 } from 'lucide-react';
 
 interface CustomerProfileProps {
-  currentUserRole: UserRole;
+  currentUser: User;
 }
 
-const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUserRole }) => {
+const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
@@ -37,14 +37,11 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUserRole }) =>
       setCustomer(foundCustomer || null);
 
       // Get all jobs for this customer
-      const currentUser = await MockDb.getCurrentUser();
-      if (currentUser) {
-        const allJobs = await MockDb.getJobs(currentUser);
-        const customerJobs = allJobs.filter(j => j.customer_id === id);
-        setJobs(customerJobs.sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        ));
-      }
+      const allJobs = await MockDb.getJobs(currentUser);
+      const customerJobs = allJobs.filter(j => j.customer_id === id);
+      setJobs(customerJobs.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ));
     } catch (error) {
       console.error('Error loading customer:', error);
     } finally {

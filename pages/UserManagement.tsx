@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { User, UserRole } from '../types';
+import { User, UserRole } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { Plus, Edit2, Search, CheckCircle, XCircle, Shield, Wrench, FileText, User as UserIcon, Lock, X } from 'lucide-react';
 

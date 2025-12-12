@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
-import { Customer, JobPriority, JobStatus, User, UserRole } from '../types';
+import { Customer, JobPriority, JobStatus, User, UserRole } from '../types_with_invoice_tracking';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import { Combobox, ComboboxOption } from '../components/Combobox';
 

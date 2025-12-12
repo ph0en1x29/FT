@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { User, UserRole } from './types';
+import { User, UserRole } from './types_with_invoice_tracking';
 import Dashboard from './pages/Dashboard';
 import JobBoard from './pages/JobBoard';
 import JobDetail from './pages/JobDetail';
@@ -137,7 +137,7 @@ export default function App() {
             <Route path="/jobs/:id" element={<JobDetail currentUserRole={currentUser.role} currentUserId={currentUser.user_id} currentUserName={currentUser.name} />} />
             <Route path="/inventory" element={<InventoryPage />} />
             
-            {/* Customer Routes */}
+            {/* Customer Routes - FIXED: Now passing currentUser instead of currentUserRole */}
             <Route path="/customers" element={
               (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.TECHNICIAN)
                 ? <Customers />
@@ -145,7 +145,7 @@ export default function App() {
             } />
             <Route path="/customers/:id" element={
               (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.TECHNICIAN)
-                ? <CustomerProfile currentUserRole={currentUser.role} />
+                ? <CustomerProfile currentUser={currentUser} />
                 : <Navigate to="/" />
             } />
             

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Job, JobStatus, User } from '../types';
+import { Job, JobStatus, User } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { Briefcase, Calendar, MapPin, User as UserIcon } from 'lucide-react';
 
