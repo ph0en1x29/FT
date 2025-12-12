@@ -8,8 +8,8 @@ export enum JobStatus {
   NEW = 'New',
   ASSIGNED = 'Assigned',
   IN_PROGRESS = 'In Progress',
+  AWAITING_FINALIZATION = 'Awaiting Finalization',
   COMPLETED = 'Completed',
-  INVOICED = 'Invoiced',
 }
 
 export enum JobPriority {

@@ -74,10 +74,12 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
 
   // Calculate stats
   const totalJobs = jobs.length;
-  const completedJobs = jobs.filter(j => j.status === 'Completed' || j.status === 'Invoiced').length;
+  const completedJobs = jobs.filter(j => j.status === 'Completed' || j.status === 'Awaiting Finalization').length;
   const totalRevenue = jobs.reduce((acc, job) => {
     const partsCost = job.parts_used.reduce((sum, p) => sum + (p.sell_price_at_time * p.quantity), 0);
-    return acc + partsCost + 150; // Add base labor
+    const laborCost = job.labor_cost || 150; // Use actual labor cost from job
+    const extraChargesCost = (job.extra_charges || []).reduce((sum, c) => sum + c.amount, 0);
+    return acc + partsCost + laborCost + extraChargesCost;
   }, 0);
   
   const lastService = jobs[0];
@@ -308,7 +310,8 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
                         <p className="text-sm text-slate-500 line-clamp-1">{job.description}</p>
                       </div>
                       <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ml-3 ${
-                        job.status === 'Completed' || job.status === 'Invoiced' ? 'bg-green-100 text-green-700' :
+                        job.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                        job.status === 'Awaiting Finalization' ? 'bg-purple-100 text-purple-700' :
                         job.status === 'In Progress' ? 'bg-amber-100 text-amber-700' :
                         'bg-blue-100 text-blue-700'
                       }`}>

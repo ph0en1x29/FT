@@ -25,8 +25,8 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
       case JobStatus.NEW: return 'bg-blue-100 text-blue-800';
       case JobStatus.ASSIGNED: return 'bg-indigo-100 text-indigo-800';
       case JobStatus.IN_PROGRESS: return 'bg-amber-100 text-amber-800';
+      case JobStatus.AWAITING_FINALIZATION: return 'bg-purple-100 text-purple-800';
       case JobStatus.COMPLETED: return 'bg-green-100 text-green-800';
-      case JobStatus.INVOICED: return 'bg-purple-100 text-purple-800';
       default: return 'bg-slate-100 text-slate-800';
     }
   };

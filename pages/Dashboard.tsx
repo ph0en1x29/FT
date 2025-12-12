@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell 
 } from 'recharts';
@@ -13,6 +14,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadDashboardData();
@@ -38,18 +40,18 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
   // Status distribution
   const statusCounts = {
     [JobStatus.COMPLETED]: jobs.filter(j => j.status === JobStatus.COMPLETED).length,
+    [JobStatus.AWAITING_FINALIZATION]: jobs.filter(j => j.status === JobStatus.AWAITING_FINALIZATION).length,
     [JobStatus.IN_PROGRESS]: jobs.filter(j => j.status === JobStatus.IN_PROGRESS).length,
     [JobStatus.NEW]: jobs.filter(j => j.status === JobStatus.NEW).length,
     [JobStatus.ASSIGNED]: jobs.filter(j => j.status === JobStatus.ASSIGNED).length,
-    [JobStatus.INVOICED]: jobs.filter(j => j.status === JobStatus.INVOICED).length,
   };
 
   const dataStatus = [
     { name: 'Completed', value: statusCounts[JobStatus.COMPLETED], color: '#22c55e' },
+    { name: 'Awaiting Finalization', value: statusCounts[JobStatus.AWAITING_FINALIZATION], color: '#a855f7' },
     { name: 'In Progress', value: statusCounts[JobStatus.IN_PROGRESS], color: '#f59e0b' },
     { name: 'New', value: statusCounts[JobStatus.NEW], color: '#3b82f6' },
     { name: 'Assigned', value: statusCounts[JobStatus.ASSIGNED], color: '#8b5cf6' },
-    { name: 'Invoiced', value: statusCounts[JobStatus.INVOICED], color: '#a855f7' },
   ].filter(item => item.value > 0); // Only show statuses with jobs
 
   // Revenue calculation (parts + labor estimate)
@@ -59,8 +61,8 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
     return acc + partsCost + (job.status !== JobStatus.NEW ? laborRate : 0);
   }, 0);
 
-  // Pending invoices
-  const pendingInvoices = jobs.filter(j => j.status === JobStatus.COMPLETED && !j.customer_signature).length;
+  // Pending finalization (jobs awaiting accountant review)
+  const pendingFinalization = jobs.filter(j => j.status === JobStatus.AWAITING_FINALIZATION).length;
 
   // Average response time (mock calculation based on created vs arrival time)
   const jobsWithArrival = jobs.filter(j => j.arrival_time);
@@ -125,9 +127,9 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
         </div>
         
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <p className="text-slate-500 text-sm">Pending Sign-offs</p>
-          <p className="text-3xl font-bold text-purple-600">{pendingInvoices}</p>
-          <p className="text-xs text-slate-400 mt-1">Awaiting signature</p>
+          <p className="text-slate-500 text-sm">Pending Finalization</p>
+          <p className="text-3xl font-bold text-purple-600">{pendingFinalization}</p>
+          <p className="text-xs text-slate-400 mt-1">Awaiting accountant review</p>
         </div>
         
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
@@ -195,13 +197,18 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
         <h3 className="font-semibold text-slate-700 mb-4">Recent Jobs</h3>
         <div className="space-y-2">
           {jobs.slice(0, 5).map(job => (
-            <div key={job.job_id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <div 
+              key={job.job_id} 
+              onClick={() => navigate(`/jobs/${job.job_id}`)}
+              className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100 hover:border-slate-200 cursor-pointer transition-colors"
+            >
               <div className="flex-1">
-                <p className="font-medium text-slate-800">{job.title}</p>
+                <p className="font-medium text-slate-800 hover:text-blue-600">{job.title}</p>
                 <p className="text-xs text-slate-500">{job.customer.name} • {new Date(job.created_at).toLocaleDateString()}</p>
               </div>
               <span className={`px-2 py-1 rounded text-xs font-medium ${
                 job.status === JobStatus.COMPLETED ? 'bg-green-100 text-green-700' :
+                job.status === JobStatus.AWAITING_FINALIZATION ? 'bg-purple-100 text-purple-700' :
                 job.status === JobStatus.IN_PROGRESS ? 'bg-amber-100 text-amber-700' :
                 'bg-blue-100 text-blue-700'
               }`}>

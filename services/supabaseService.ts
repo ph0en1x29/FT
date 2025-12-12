@@ -127,7 +127,6 @@ export const SupabaseDb = {
         customer:customers(*),
         parts_used:job_parts(*),
         media:job_media(*),
-      extra_charges:extra_charges(*),
         extra_charges:extra_charges(*)
       `)
       .order('created_at', { ascending: false });
@@ -151,7 +150,6 @@ export const SupabaseDb = {
         customer:customers(*),
         parts_used:job_parts(*),
         media:job_media(*),
-      extra_charges:extra_charges(*),
         extra_charges:extra_charges(*)
       `)
       .eq('job_id', jobId)
@@ -183,7 +181,6 @@ export const SupabaseDb = {
         customer:customers(*),
         parts_used:job_parts(*),
         media:job_media(*),
-      extra_charges:extra_charges(*),
         extra_charges:extra_charges(*)
       `)
       .single();
@@ -206,7 +203,6 @@ export const SupabaseDb = {
         customer:customers(*),
         parts_used:job_parts(*),
         media:job_media(*),
-      extra_charges:extra_charges(*),
         extra_charges:extra_charges(*)
       `)
       .single();
@@ -221,7 +217,7 @@ export const SupabaseDb = {
     if (status === JobStatus.IN_PROGRESS) {
       updates.arrival_time = new Date().toISOString();
     }
-    if (status === JobStatus.COMPLETED) {
+    if (status === JobStatus.AWAITING_FINALIZATION) {
       updates.completion_time = new Date().toISOString();
     }
 
@@ -234,7 +230,6 @@ export const SupabaseDb = {
         customer:customers(*),
         parts_used:job_parts(*),
         media:job_media(*),
-      extra_charges:extra_charges(*),
         extra_charges:extra_charges(*)
       `)
       .single();
@@ -263,7 +258,6 @@ export const SupabaseDb = {
         customer:customers(*),
         parts_used:job_parts(*),
         media:job_media(*),
-      extra_charges:extra_charges(*),
         extra_charges:extra_charges(*)
       `)
       .single();
@@ -342,7 +336,6 @@ export const SupabaseDb = {
         customer:customers(*),
         parts_used:job_parts(*),
         media:job_media(*),
-      extra_charges:extra_charges(*),
         extra_charges:extra_charges(*)
       `)
       .single();
@@ -410,7 +403,6 @@ export const SupabaseDb = {
         customer:customers(*),
         parts_used:job_parts(*),
         media:job_media(*),
-      extra_charges:extra_charges(*),
         extra_charges:extra_charges(*)
       `)
       .single();
@@ -450,103 +442,99 @@ export const SupabaseDb = {
     
     return SupabaseDb.getJobById(jobId) as Promise<Job>;
   },
-  // Add these methods to your SupabaseDb object in supabaseService.ts
 
-// NEW: Finalize invoice with tracking
-finalizeInvoice: async (jobId: string, accountantId: string, accountantName: string): Promise<Job> => {
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({
-      status: JobStatus.INVOICED,
-      invoiced_by_id: accountantId,
-      invoiced_by_name: accountantName,
-      invoiced_at: new Date().toISOString(),
-    })
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
+  // Finalize invoice with tracking
+  finalizeInvoice: async (jobId: string, accountantId: string, accountantName: string): Promise<Job> => {
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({
+        status: JobStatus.COMPLETED,
+        invoiced_by_id: accountantId,
+        invoiced_by_name: accountantName,
+        invoiced_at: new Date().toISOString(),
+      })
+      .eq('job_id', jobId)
+      .select(`
+        *,
+        customer:customers(*),
+        parts_used:job_parts(*),
+        media:job_media(*),
+        extra_charges:extra_charges(*)
+      `)
+      .single();
 
-  if (error) throw new Error(error.message);
-  return data as Job;
-},
+    if (error) throw new Error(error.message);
+    return data as Job;
+  },
 
-// NEW: Send invoice to customer
-sendInvoice: async (jobId: string, method: 'email' | 'whatsapp' | 'both'): Promise<Job> => {
-  // Determine which methods were used
-  const methods: string[] = [];
-  if (method === 'both') {
-    methods.push('email', 'whatsapp');
-  } else {
-    methods.push(method);
-  }
-
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({
-      invoice_sent_at: new Date().toISOString(),
-      invoice_sent_via: methods,
-    })
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data as Job;
-},
-
-// NEW: Generate invoice text for sending
-generateInvoiceText: (job: Job): string => {
-  const totalParts = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
-  const laborCost = job.labor_cost || 150;
-  const extraCharges = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
-  const total = totalParts + laborCost + extraCharges;
-
-  let text = `*INVOICE - ${job.title}*\n\n`;
-  text += `Customer: ${job.customer.name}\n`;
-  text += `Address: ${job.customer.address}\n`;
-  text += `Date: ${new Date(job.created_at).toLocaleDateString()}\n\n`;
-  
-  text += `*Services Provided:*\n`;
-  text += `${job.description}\n\n`;
-  
-  if (job.parts_used.length > 0) {
-    text += `*Parts Used:*\n`;
-    job.parts_used.forEach(p => {
-      text += `• ${p.quantity}x ${p.part_name} - $${(p.sell_price_at_time * p.quantity).toFixed(2)}\n`;
-    });
-    text += `\n`;
-  }
-  
-  text += `*Cost Breakdown:*\n`;
-  text += `Labor: $${laborCost.toFixed(2)}\n`;
-  text += `Parts: $${totalParts.toFixed(2)}\n`;
-  
-  if (extraCharges > 0) {
-    text += `Extra Charges: $${extraCharges.toFixed(2)}\n`;
-    if (job.extra_charges) {
-      job.extra_charges.forEach(c => {
-        text += `  • ${c.name}: $${c.amount.toFixed(2)}\n`;
-      });
+  // Send invoice to customer
+  sendInvoice: async (jobId: string, method: 'email' | 'whatsapp' | 'both'): Promise<Job> => {
+    const methods: string[] = [];
+    if (method === 'both') {
+      methods.push('email', 'whatsapp');
+    } else {
+      methods.push(method);
     }
-  }
-  
-  text += `\n*TOTAL: $${total.toFixed(2)}*\n\n`;
-  text += `Thank you for your business!`;
-  
-  return text;
-},
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({
+        invoice_sent_at: new Date().toISOString(),
+        invoice_sent_via: methods,
+      })
+      .eq('job_id', jobId)
+      .select(`
+        *,
+        customer:customers(*),
+        parts_used:job_parts(*),
+        media:job_media(*),
+        extra_charges:extra_charges(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Job;
+  },
+
+  // Generate invoice text for sending
+  generateInvoiceText: (job: Job): string => {
+    const totalParts = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
+    const laborCost = job.labor_cost || 150;
+    const extraCharges = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
+    const total = totalParts + laborCost + extraCharges;
+
+    let text = `*INVOICE - ${job.title}*\n\n`;
+    text += `Customer: ${job.customer.name}\n`;
+    text += `Address: ${job.customer.address}\n`;
+    text += `Date: ${new Date(job.created_at).toLocaleDateString()}\n\n`;
+    
+    text += `*Services Provided:*\n`;
+    text += `${job.description}\n\n`;
+    
+    if (job.parts_used.length > 0) {
+      text += `*Parts Used:*\n`;
+      job.parts_used.forEach(p => {
+        text += `• ${p.quantity}x ${p.part_name} - ${(p.sell_price_at_time * p.quantity).toFixed(2)}\n`;
+      });
+      text += `\n`;
+    }
+    
+    text += `*Cost Breakdown:*\n`;
+    text += `Labor: ${laborCost.toFixed(2)}\n`;
+    text += `Parts: ${totalParts.toFixed(2)}\n`;
+    
+    if (extraCharges > 0) {
+      text += `Extra Charges: ${extraCharges.toFixed(2)}\n`;
+      if (job.extra_charges) {
+        job.extra_charges.forEach(c => {
+          text += `  • ${c.name}: ${c.amount.toFixed(2)}\n`;
+        });
+      }
+    }
+    
+    text += `\n*TOTAL: ${total.toFixed(2)}*\n\n`;
+    text += `Thank you for your business!`;
+    
+    return text;
+  },
 };

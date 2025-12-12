@@ -7,7 +7,7 @@ import { SignaturePad } from '../components/SignaturePad';
 import { Combobox, ComboboxOption } from '../components/Combobox';
 import { 
   ArrowLeft, MapPin, Phone, User as UserIcon, Calendar, 
-  CheckCircle, Plus, Camera, PenTool, Box, DollarSign, BrainCircuit, ShieldCheck, UserCheck, UserPlus, Edit2, Trash2, Save, X, FileText, Mail, MessageSquare, Send, Info
+  CheckCircle, Plus, Camera, PenTool, Box, DollarSign, BrainCircuit, ShieldCheck, UserCheck, UserPlus, Edit2, Trash2, Save, X, FileText, Info, FileDown
 } from 'lucide-react';
 
 interface JobDetailProps {
@@ -48,11 +48,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
   const [chargeDescription, setChargeDescription] = useState('');
   const [chargeAmount, setChargeAmount] = useState<string>('');
 
-  // NEW: Invoice modals and sending
+  // Invoice modals
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
-  const [showSendInvoiceModal, setShowSendInvoiceModal] = useState(false);
-  const [sendMethod, setSendMethod] = useState<'email' | 'whatsapp' | 'both'>('email');
-  const [sendingInvoice, setSendingInvoice] = useState(false);
 
   useEffect(() => {
     loadJob();
@@ -83,8 +80,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
 
   const handleStatusChange = async (newStatus: JobStatus) => {
     if (!job) return;
-    const updated = await MockDb.updateJobStatus(job.job_id, newStatus);
-    setJob({ ...updated } as Job);
+    
+    try {
+      const updated = await MockDb.updateJobStatus(job.job_id, newStatus);
+      setJob({ ...updated } as Job);
+    } catch (error) {
+      alert('Failed to update status: ' + (error as Error).message);
+    }
   };
 
   const handleAssignJob = async () => {
@@ -93,7 +95,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
       if (tech) {
         const updated = await MockDb.assignJob(job.job_id, tech.user_id, tech.name);
         setJob({ ...updated } as Job);
-        alert(`Job assigned to ${tech.name}`);
+        setSelectedTechId('');
       }
   };
 
@@ -241,7 +243,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
     }
   };
 
-  // NEW: Handle invoice finalization
+  // Handle invoice finalization
   const handleFinalizeInvoice = async () => {
     if (!job) return;
     
@@ -249,41 +251,201 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
       const updated = await MockDb.finalizeInvoice(job.job_id, currentUserId, currentUserName);
       setJob({ ...updated } as Job);
       setShowFinalizeModal(false);
-      alert('Invoice finalized successfully!');
     } catch (e) {
-      alert('Could not finalize invoice.');
+      alert('Could not finalize invoice: ' + (e as Error).message);
     }
   };
 
-  // NEW: Handle sending invoice
-  const handleSendInvoice = async () => {
+  // Handle export invoice as PDF (print)
+  const handleExportPDF = () => {
     if (!job) return;
-    setSendingInvoice(true);
     
-    try {
-      const invoiceText = MockDb.generateInvoiceText(job);
-      
-      // Send via WhatsApp
-      if (sendMethod === 'whatsapp' || sendMethod === 'both') {
-        const phone = job.customer.phone.replace(/\D/g, '');
-        const message = encodeURIComponent(invoiceText);
-        window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
-      }
-      
-      // Send via Email
-      if (sendMethod === 'email' || sendMethod === 'both') {
-        alert('Email functionality needs to be implemented on your backend');
-      }
-      
-      const updated = await MockDb.sendInvoice(job.job_id, sendMethod);
-      setJob({ ...updated } as Job);
-      setShowSendInvoiceModal(false);
-      alert('Invoice sent successfully!');
-    } catch (e) {
-      alert('Could not send invoice.');
-    } finally {
-      setSendingInvoice(false);
+    const totalParts = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
+    const labor = job.labor_cost || 150;
+    const extra = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
+    const total = totalParts + labor + extra;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow pop-ups to export the invoice');
+      return;
     }
+
+    const invoiceHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice - ${job.title}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+          .header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 40px; border-bottom: 2px solid #2563eb; padding-bottom: 20px; }
+          .company-name { font-size: 28px; font-weight: bold; color: #1e40af; }
+          .invoice-title { font-size: 24px; color: #64748b; text-align: right; }
+          .invoice-number { font-size: 14px; color: #64748b; margin-top: 5px; }
+          .info-section { display: flex; justify-content: space-between; margin-bottom: 30px; }
+          .info-box { flex: 1; }
+          .info-box h3 { font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px; }
+          .info-box p { font-size: 14px; margin-bottom: 5px; }
+          .info-box .name { font-weight: bold; font-size: 16px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+          th { background: #f1f5f9; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #e2e8f0; }
+          td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+          .text-right { text-align: right; }
+          .totals { margin-left: auto; width: 300px; }
+          .totals-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
+          .totals-row.total { border-top: 2px solid #1e40af; margin-top: 10px; padding-top: 15px; font-size: 18px; font-weight: bold; color: #1e40af; }
+          .description { background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+          .description h3 { font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 10px; }
+          .description p { font-size: 14px; line-height: 1.6; }
+          .signatures { display: flex; gap: 40px; margin-top: 50px; }
+          .signature-box { flex: 1; }
+          .signature-box h4 { font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 10px; }
+          .signature-box img { max-width: 200px; height: 60px; object-fit: contain; border-bottom: 1px solid #ccc; }
+          .signature-box .signed-info { font-size: 12px; color: #64748b; margin-top: 5px; }
+          .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+          @media print {
+            body { padding: 20px; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="company-name">FieldPro</div>
+            <div style="color: #64748b; font-size: 14px; margin-top: 5px;">Field Service Management</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="invoice-title">INVOICE</div>
+            <div class="invoice-number">Job #${job.job_id.slice(0, 8).toUpperCase()}</div>
+            <div class="invoice-number">Date: ${new Date(job.created_at).toLocaleDateString()}</div>
+            ${job.invoiced_at ? `<div class="invoice-number">Invoiced: ${new Date(job.invoiced_at).toLocaleDateString()}</div>` : ''}
+          </div>
+        </div>
+
+        <div class="info-section">
+          <div class="info-box">
+            <h3>Bill To</h3>
+            <p class="name">${job.customer.name}</p>
+            <p>${job.customer.address}</p>
+            <p>${job.customer.phone}</p>
+            <p>${job.customer.email}</p>
+          </div>
+          <div class="info-box">
+            <h3>Job Details</h3>
+            <p><strong>Title:</strong> ${job.title}</p>
+            <p><strong>Priority:</strong> ${job.priority}</p>
+            <p><strong>Status:</strong> ${job.status}</p>
+            ${job.assigned_technician_name ? `<p><strong>Technician:</strong> ${job.assigned_technician_name}</p>` : ''}
+          </div>
+        </div>
+
+        <div class="description">
+          <h3>Service Description</h3>
+          <p>${job.description}</p>
+        </div>
+
+        ${job.parts_used.length > 0 ? `
+          <h3 style="font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 10px;">Parts Used</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th class="text-right">Qty</th>
+                <th class="text-right">Unit Price</th>
+                <th class="text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${job.parts_used.map(p => `
+                <tr>
+                  <td>${p.part_name}</td>
+                  <td class="text-right">${p.quantity}</td>
+                  <td class="text-right">${p.sell_price_at_time.toFixed(2)}</td>
+                  <td class="text-right">${(p.sell_price_at_time * p.quantity).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : ''}
+
+        ${job.extra_charges && job.extra_charges.length > 0 ? `
+          <h3 style="font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 10px;">Extra Charges</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th class="text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${job.extra_charges.map(c => `
+                <tr>
+                  <td>${c.name}${c.description ? ` - ${c.description}` : ''}</td>
+                  <td class="text-right">${c.amount.toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : ''}
+
+        <div class="totals">
+          <div class="totals-row">
+            <span>Labor</span>
+            <span>${labor.toFixed(2)}</span>
+          </div>
+          <div class="totals-row">
+            <span>Parts</span>
+            <span>${totalParts.toFixed(2)}</span>
+          </div>
+          ${extra > 0 ? `
+            <div class="totals-row">
+              <span>Extra Charges</span>
+              <span>${extra.toFixed(2)}</span>
+            </div>
+          ` : ''}
+          <div class="totals-row total">
+            <span>Total</span>
+            <span>${total.toFixed(2)}</span>
+          </div>
+        </div>
+
+        ${(job.technician_signature || job.customer_signature) ? `
+          <div class="signatures">
+            ${job.technician_signature ? `
+              <div class="signature-box">
+                <h4>Technician Signature</h4>
+                <img src="${job.technician_signature.signature_url}" alt="Technician Signature" />
+                <div class="signed-info">${job.technician_signature.signed_by_name}<br/>${new Date(job.technician_signature.signed_at).toLocaleString()}</div>
+              </div>
+            ` : ''}
+            ${job.customer_signature ? `
+              <div class="signature-box">
+                <h4>Customer Signature</h4>
+                <img src="${job.customer_signature.signature_url}" alt="Customer Signature" />
+                <div class="signed-info">${job.customer_signature.signed_by_name}<br/>${new Date(job.customer_signature.signed_at).toLocaleString()}</div>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        <div class="footer">
+          <p>Thank you for your business!</p>
+          <p style="margin-top: 5px;">Generated by FieldPro Service Management</p>
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(invoiceHtml);
+    printWindow.document.close();
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -328,6 +490,23 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
   if (loading) return <div className="p-8 text-center text-slate-500">Loading Job Details...</div>;
   if (!job) return <div className="p-8 text-center text-red-500">Job not found</div>;
 
+  // Normalize status and role for comparison (handle different database formats)
+  const normalizedStatus = (job.status || '').toString().toLowerCase().trim();
+  const normalizedRole = (currentUserRole || '').toString().toLowerCase().trim();
+  
+  const isAdmin = normalizedRole === 'admin';
+  const isTechnician = normalizedRole === 'technician';
+  const isAccountant = normalizedRole === 'accountant';
+  
+  const isNew = normalizedStatus === 'new';
+  const isAssigned = normalizedStatus === 'assigned';
+  const isInProgress = normalizedStatus === 'in progress' || normalizedStatus === 'in_progress';
+  const isAwaitingFinalization = normalizedStatus === 'awaiting finalization' || normalizedStatus === 'awaiting_finalization';
+  const isCompleted = normalizedStatus === 'completed';
+
+  // Check if both signatures are present (required for completion)
+  const hasBothSignatures = !!(job.technician_signature && job.customer_signature);
+
   const totalPartsCost = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
   const laborCost = job.labor_cost || 150; 
   const extraChargesCost = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
@@ -345,12 +524,10 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
       subLabel: t.email
   }));
 
-  // UPDATED: Allow admin/accountant to edit completed jobs
+  // Allow admin/accountant to edit prices until job is finalized (Completed)
   const canEditPrices = 
-    job.status !== JobStatus.INVOICED && 
-    (job.status !== JobStatus.COMPLETED || 
-     currentUserRole === UserRole.ADMIN || 
-     currentUserRole === UserRole.ACCOUNTANT);
+    !isCompleted && 
+    (!isAwaitingFinalization || isAdmin || isAccountant);
 
   const inputClassName = "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/25 placeholder-slate-400 transition-all duration-200";
 
@@ -399,7 +576,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
       {/* Header */}
       <div className="bg-white shadow-sm p-4 sticky top-0 z-10 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full">
+          <button type="button" onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full">
             <ArrowLeft className="w-5 h-5 text-slate-600" />
           </button>
           <div>
@@ -412,37 +589,57 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
           </div>
         </div>
         <div className="flex gap-2">
-           {currentUserRole === UserRole.TECHNICIAN && job.status === JobStatus.ASSIGNED && (
+           {/* Start Job - Technician or Admin */}
+           {(isTechnician || isAdmin) && isAssigned && (
              <button 
-               onClick={() => handleStatusChange(JobStatus.IN_PROGRESS)}
+               type="button"
+               onClick={(e) => { e.preventDefault(); handleStatusChange(JobStatus.IN_PROGRESS); }}
                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-blue-700"
              >
                Start Job
              </button>
            )}
-           {currentUserRole === UserRole.TECHNICIAN && job.status === JobStatus.IN_PROGRESS && (
-             <button 
-               onClick={() => handleStatusChange(JobStatus.COMPLETED)}
-               className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-green-700"
-             >
-               Complete
-             </button>
+           {/* Complete Job - Technician or Admin (requires both signatures) */}
+           {(isTechnician || isAdmin) && isInProgress && (
+             <div className="relative group">
+               <button 
+                 type="button"
+                 onClick={(e) => { e.preventDefault(); handleStatusChange(JobStatus.AWAITING_FINALIZATION); }}
+                 disabled={!hasBothSignatures}
+                 className={`px-4 py-2 rounded-lg text-sm font-semibold shadow ${
+                   hasBothSignatures 
+                     ? 'bg-green-600 text-white hover:bg-green-700' 
+                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                 }`}
+               >
+                 Complete
+               </button>
+               {!hasBothSignatures && (
+                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                   Both signatures required
+                   <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                 </div>
+               )}
+             </div>
            )}
-           {currentUserRole === UserRole.ACCOUNTANT && job.status === JobStatus.COMPLETED && (
+           {/* Finalize Invoice - Accountant or Admin */}
+           {(isAccountant || isAdmin) && isAwaitingFinalization && (
              <button 
-               onClick={() => setShowFinalizeModal(true)}
+               type="button"
+               onClick={(e) => { e.preventDefault(); setShowFinalizeModal(true); }}
                className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-purple-700"
              >
                Finalize Invoice
              </button>
            )}
-           {(currentUserRole === UserRole.ACCOUNTANT || currentUserRole === UserRole.ADMIN) && 
-            job.status === JobStatus.INVOICED && (
+           {/* Export PDF - Accountant or Admin */}
+           {(isAccountant || isAdmin) && (isAwaitingFinalization || isCompleted) && (
              <button 
-               onClick={() => setShowSendInvoiceModal(true)}
-               className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-green-700 flex items-center gap-2"
+               type="button"
+               onClick={(e) => { e.preventDefault(); handleExportPDF(); }}
+               className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-blue-700 flex items-center gap-2"
              >
-               <Send className="w-4 h-4" /> Send Invoice
+               <FileDown className="w-4 h-4" /> Export PDF
              </button>
            )}
         </div>
@@ -483,7 +680,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
             </div>
 
             {/* Admin Assignment Block */}
-            {currentUserRole === UserRole.ADMIN && job.status === JobStatus.NEW && (
+            {isAdmin && isNew && (
                 <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100 mt-4">
                     <h4 className="text-sm font-bold text-yellow-800 mb-2 flex items-center gap-2">
                         <UserPlus className="w-4 h-4" /> Assign Technician
@@ -498,6 +695,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                             />
                         </div>
                         <button 
+                            type="button"
                             onClick={handleAssignJob}
                             disabled={!selectedTechId}
                             className="bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-yellow-700 disabled:opacity-50"
@@ -543,6 +741,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                           />
                         </div>
                         <button
+                          type="button"
                           onClick={() => handleSavePartPrice(p.job_part_id)}
                           className="p-1 text-green-600 hover:bg-green-50 rounded"
                           title="Save"
@@ -550,6 +749,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                           <Save className="w-4 h-4" />
                         </button>
                         <button
+                          type="button"
                           onClick={handleCancelEdit}
                           className="p-1 text-slate-400 hover:bg-slate-100 rounded"
                           title="Cancel"
@@ -565,6 +765,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                         {canEditPrices && (
                           <>
                             <button
+                              type="button"
                               onClick={() => handleStartEditPrice(p.job_part_id, p.sell_price_at_time)}
                               className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                               title="Edit Price"
@@ -572,6 +773,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleRemovePart(p.job_part_id)}
                               className="p-1 text-red-600 hover:bg-red-50 rounded"
                               title="Remove Part"
@@ -590,7 +792,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
             )}
             
             {/* Add new part */}
-            {job.status === JobStatus.IN_PROGRESS && (
+            {isInProgress && (
               <div className="border-t pt-4 mt-4">
                 <p className="text-xs text-slate-500 mb-2">Add New Part</p>
                 <div className="flex gap-2 items-start">
@@ -615,10 +817,11 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                               placeholder="Price"
                               value={selectedPartPrice}
                               onChange={(e) => setSelectedPartPrice(e.target.value)}
+                              autoComplete="off"
                           />
                        </div>
                   </div>
-                  <button onClick={handleAddPart} className="bg-slate-800 text-white px-4 py-2.5 rounded-lg hover:bg-slate-700 shadow-sm">
+                  <button type="button" onClick={handleAddPart} className="bg-slate-800 text-white px-4 py-2.5 rounded-lg hover:bg-slate-700 shadow-sm">
                     <Plus className="w-5 h-5" />
                   </button>
                 </div>
@@ -634,6 +837,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
               </h3>
               {canEditPrices && !showAddCharge && (
                 <button
+                  type="button"
                   onClick={() => setShowAddCharge(true)}
                   className="text-xs bg-green-50 text-green-600 px-3 py-1.5 rounded hover:bg-green-100 flex items-center gap-1"
                 >
@@ -658,6 +862,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                       </span>
                       {canEditPrices && (
                         <button
+                          type="button"
                           onClick={() => handleRemoveExtraCharge(charge.charge_id)}
                           className="p-1 text-red-600 hover:bg-red-50 rounded"
                           title="Remove Charge"
@@ -683,6 +888,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                     placeholder="e.g., Emergency Call-Out Fee"
                     value={chargeName}
                     onChange={(e) => setChargeName(e.target.value)}
+                    autoComplete="off"
                   />
                 </div>
                 <div>
@@ -693,6 +899,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                     placeholder="Optional details..."
                     value={chargeDescription}
                     onChange={(e) => setChargeDescription(e.target.value)}
+                    autoComplete="off"
                   />
                 </div>
                 <div>
@@ -705,17 +912,20 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                       placeholder="0.00"
                       value={chargeAmount}
                       onChange={(e) => setChargeAmount(e.target.value)}
+                      autoComplete="off"
                     />
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={handleAddExtraCharge}
                     className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium"
                   >
                     Add Charge
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       setShowAddCharge(false);
                       setChargeName('');
@@ -732,7 +942,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
           </div>
 
           {/* Photos */}
-          {(currentUserRole === UserRole.TECHNICIAN || currentUserRole === UserRole.ADMIN) && (
+          {(isTechnician || isAdmin) && (
             <div className="bg-white rounded-xl shadow p-5">
               <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <Camera className="w-5 h-5" /> Photos
@@ -741,7 +951,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                 {job.media.map(m => (
                   <img key={m.media_id} src={m.url} alt="Job" className="w-full h-24 object-cover rounded border" />
                 ))}
-                {job.status === JobStatus.IN_PROGRESS && (
+                {isInProgress && (
                   <label className="border-2 border-dashed border-slate-300 rounded flex flex-col items-center justify-center h-24 text-slate-400 cursor-pointer hover:bg-slate-50 transition-colors">
                     <Camera className="w-6 h-6 mb-1" />
                     <span className="text-xs">Add Photo</span>
@@ -753,7 +963,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
           )}
 
            {/* Notes */}
-           {(currentUserRole === UserRole.TECHNICIAN || currentUserRole === UserRole.ADMIN) && (
+           {(isTechnician || isAdmin) && (
              <div className="bg-white rounded-xl shadow p-5">
               <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <PenTool className="w-5 h-5" /> Job Notes
@@ -765,7 +975,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                   </div>
                 ))}
               </div>
-              {job.status === JobStatus.IN_PROGRESS && (
+              {isInProgress && (
                 <div className="flex gap-2">
                   <input 
                     type="text" 
@@ -773,8 +983,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                     className={inputClassName}
                     value={noteInput}
                     onChange={(e) => setNoteInput(e.target.value)}
+                    autoComplete="off"
                   />
-                  <button onClick={handleAddNote} className="bg-slate-800 text-white px-4 rounded-lg text-sm font-medium hover:bg-slate-700">Add</button>
+                  <button type="button" onClick={handleAddNote} className="bg-slate-800 text-white px-4 rounded-lg text-sm font-medium hover:bg-slate-700">Add</button>
                 </div>
               )}
             </div>
@@ -805,6 +1016,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                       />
                     </div>
                     <button
+                      type="button"
                       onClick={handleSaveLabor}
                       className="p-1 text-green-600 hover:bg-green-50 rounded"
                       title="Save"
@@ -812,6 +1024,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                       <Save className="w-3 h-3" />
                     </button>
                     <button
+                      type="button"
                       onClick={handleCancelLaborEdit}
                       className="p-1 text-slate-400 hover:bg-slate-100 rounded"
                       title="Cancel"
@@ -824,6 +1037,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                     <span>${laborCost.toFixed(2)}</span>
                     {canEditPrices && (
                       <button
+                        type="button"
                         onClick={handleStartEditLabor}
                         className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                         title="Edit Labor Cost"
@@ -855,8 +1069,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
             </div>
           </div>
 
-          {/* NEW: Invoice Information */}
-          {job.status === JobStatus.INVOICED && (
+          {/* Invoice Information - shows when job is finalized */}
+          {isCompleted && (
             <div className="bg-purple-50 rounded-xl shadow p-5 border border-purple-100">
               <h3 className="text-sm font-bold text-purple-900 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <Info className="w-4 h-4" /> Invoice Information
@@ -912,12 +1126,23 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
 
           {/* Signatures */}
           <div className="space-y-4">
+            {/* Signature requirement notice for in-progress jobs */}
+            {isInProgress && !hasBothSignatures && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                <strong>Required to complete job:</strong>
+                <ul className="mt-1 ml-4 list-disc">
+                  {!job.technician_signature && <li>Technician signature</li>}
+                  {!job.customer_signature && <li>Customer signature</li>}
+                </ul>
+              </div>
+            )}
+            
             {renderSignatureBlock(
                 "Technician Sign-off",
                 job.technician_signature,
                 () => setShowTechSigPad(true),
                 <ShieldCheck className="w-4 h-4 text-blue-600" />,
-                currentUserRole === UserRole.TECHNICIAN && (job.status === JobStatus.IN_PROGRESS || job.status === JobStatus.COMPLETED)
+                isTechnician && (isInProgress || isAwaitingFinalization)
             )}
 
             {renderSignatureBlock(
@@ -925,7 +1150,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                 job.customer_signature,
                 () => setShowCustSigPad(true),
                 <UserCheck className="w-4 h-4 text-green-600" />,
-                (job.status === JobStatus.IN_PROGRESS || job.status === JobStatus.COMPLETED)
+                (isInProgress || isAwaitingFinalization)
             )}
           </div>
 
@@ -945,6 +1170,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
             )}
             {!aiSummary && (
               <button 
+                type="button"
                 onClick={handleAiSummary}
                 disabled={generatingAi}
                 className="w-full bg-indigo-600 text-white text-xs py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
@@ -1001,100 +1227,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
             
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowFinalizeModal(false)}
                 className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleFinalizeInvoice}
                 className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium"
               >
                 Finalize Invoice
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* NEW: Send Invoice Modal */}
-      {showSendInvoiceModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h4 className="font-bold text-lg mb-4 text-slate-900">Send Invoice to Customer</h4>
-            
-            <div className="mb-4">
-              <p className="text-sm text-slate-600 mb-3">Customer: {job.customer.name}</p>
-              <p className="text-sm text-slate-600 mb-3">Email: {job.customer.email}</p>
-              <p className="text-sm text-slate-600 mb-4">Phone: {job.customer.phone}</p>
-            </div>
-            
-            <div className="mb-6">
-              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Send via:
-              </label>
-              <div className="space-y-2">
-                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-slate-50">
-                  <input
-                    type="radio"
-                    name="sendMethod"
-                    value="email"
-                    checked={sendMethod === 'email'}
-                    onChange={(e) => setSendMethod(e.target.value as any)}
-                    className="w-4 h-4"
-                  />
-                  <Mail className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm">Email</span>
-                </label>
-                
-                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-slate-50">
-                  <input
-                    type="radio"
-                    name="sendMethod"
-                    value="whatsapp"
-                    checked={sendMethod === 'whatsapp'}
-                    onChange={(e) => setSendMethod(e.target.value as any)}
-                    className="w-4 h-4"
-                  />
-                  <MessageSquare className="w-4 h-4 text-green-600" />
-                  <span className="text-sm">WhatsApp</span>
-                </label>
-                
-                <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-slate-50">
-                  <input
-                    type="radio"
-                    name="sendMethod"
-                    value="both"
-                    checked={sendMethod === 'both'}
-                    onChange={(e) => setSendMethod(e.target.value as any)}
-                    className="w-4 h-4"
-                  />
-                  <Send className="w-4 h-4 text-purple-600" />
-                  <span className="text-sm">Both (Email & WhatsApp)</span>
-                </label>
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowSendInvoiceModal(false)}
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-                disabled={sendingInvoice}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSendInvoice}
-                disabled={sendingInvoice}
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {sendingInvoice ? (
-                  'Sending...'
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" /> Send Invoice
-                  </>
-                )}
               </button>
             </div>
           </div>
