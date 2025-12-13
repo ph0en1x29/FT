@@ -5,7 +5,7 @@ import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { generateCustomerAnalysis } from '../services/geminiService';
 import { 
   ArrowLeft, MapPin, Phone, Mail, Calendar, DollarSign, 
-  TrendingUp, AlertCircle, BrainCircuit, Wrench, CheckCircle, Clock
+  TrendingUp, AlertCircle, BrainCircuit, Wrench, CheckCircle, Clock, Trash2
 } from 'lucide-react';
 
 interface CustomerProfileProps {
@@ -21,6 +21,9 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   const [aiAnalysis, setAiAnalysis] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [generatingAI, setGeneratingAI] = useState(false);
+
+  // Check if user is admin
+  const isAdmin = currentUser.role.toString().toLowerCase() === 'admin';
 
   useEffect(() => {
     loadCustomerData();
@@ -61,6 +64,21 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
       setAiAnalysis('Unable to generate analysis at this time.');
     } finally {
       setGeneratingAI(false);
+    }
+  };
+
+  // Handle delete customer (Admin only)
+  const handleDeleteCustomer = async () => {
+    if (!customer) return;
+    
+    const confirmed = confirm(`Are you sure you want to delete customer: "${customer.name}"?\n\nThis action cannot be undone.`);
+    if (!confirmed) return;
+    
+    try {
+      await MockDb.deleteCustomer(customer.customer_id);
+      navigate('/customers');
+    } catch (e) {
+      alert('Could not delete customer: ' + (e as Error).message);
     }
   };
 
@@ -110,11 +128,23 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full">
-          <ArrowLeft className="w-5 h-5 text-slate-600" />
-        </button>
-        <h1 className="text-2xl font-bold text-slate-900">Customer Profile</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full">
+            <ArrowLeft className="w-5 h-5 text-slate-600" />
+          </button>
+          <h1 className="text-2xl font-bold text-slate-900">Customer Profile</h1>
+        </div>
+        {/* Delete Customer - Admin only */}
+        {isAdmin && (
+          <button 
+            type="button"
+            onClick={handleDeleteCustomer}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-red-700 flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" /> Delete Customer
+          </button>
+        )}
       </div>
 
       {/* Customer Info Card */}

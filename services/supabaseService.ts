@@ -537,4 +537,40 @@ export const SupabaseDb = {
     
     return text;
   },
+
+  // Delete job (Admin only, cannot delete if Completed)
+  deleteJob: async (jobId: string): Promise<void> => {
+    // First delete related records
+    await supabase.from('job_parts').delete().eq('job_id', jobId);
+    await supabase.from('job_media').delete().eq('job_id', jobId);
+    await supabase.from('extra_charges').delete().eq('job_id', jobId);
+    
+    // Then delete the job
+    const { error } = await supabase
+      .from('jobs')
+      .delete()
+      .eq('job_id', jobId);
+
+    if (error) throw new Error(error.message);
+  },
+
+  // Delete customer (Admin only)
+  deleteCustomer: async (customerId: string): Promise<void> => {
+    // Check if customer has any jobs
+    const { data: jobs } = await supabase
+      .from('jobs')
+      .select('job_id')
+      .eq('customer_id', customerId);
+    
+    if (jobs && jobs.length > 0) {
+      throw new Error('Cannot delete customer with existing jobs. Delete the jobs first.');
+    }
+
+    const { error } = await supabase
+      .from('customers')
+      .delete()
+      .eq('customer_id', customerId);
+
+    if (error) throw new Error(error.message);
+  },
 };

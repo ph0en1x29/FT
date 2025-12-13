@@ -256,6 +256,21 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
     }
   };
 
+  // Handle delete job (Admin only, not if Completed)
+  const handleDeleteJob = async () => {
+    if (!job) return;
+    
+    const confirmed = confirm(`Are you sure you want to delete this job: "${job.title}"?\n\nThis action cannot be undone.`);
+    if (!confirmed) return;
+    
+    try {
+      await MockDb.deleteJob(job.job_id);
+      navigate('/jobs');
+    } catch (e) {
+      alert('Could not delete job: ' + (e as Error).message);
+    }
+  };
+
   // Handle export invoice as PDF (print)
   const handleExportPDF = () => {
     if (!job) return;
@@ -640,6 +655,16 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-blue-700 flex items-center gap-2"
              >
                <FileDown className="w-4 h-4" /> Export PDF
+             </button>
+           )}
+           {/* Delete Job - Admin only, not if Completed */}
+           {isAdmin && !isCompleted && (
+             <button 
+               type="button"
+               onClick={(e) => { e.preventDefault(); handleDeleteJob(); }}
+               className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-red-700 flex items-center gap-2"
+             >
+               <Trash2 className="w-4 h-4" /> Delete
              </button>
            )}
         </div>
