@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { Customer, JobPriority, JobStatus, JobType, User, UserRole, Forklift } from '../types_with_invoice_tracking';
-import { ArrowLeft, Save, X, Truck, Gauge } from 'lucide-react';
+import { ArrowLeft, Save, X, Truck, Gauge, CalendarCheck } from 'lucide-react';
 import { Combobox, ComboboxOption } from '../components/Combobox';
 
 interface CreateJobProps {
@@ -11,19 +11,25 @@ interface CreateJobProps {
 
 const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [technicians, setTechnicians] = useState<User[]>([]);
   const [forklifts, setForklifts] = useState<Forklift[]>([]);
   
+  // Check for pre-filled data from scheduled service
+  const scheduledServiceId = searchParams.get('scheduled_id');
+  const prefilledForkliftId = searchParams.get('forklift_id');
+  const prefilledServiceType = searchParams.get('service_type');
+  
   const [formData, setFormData] = useState({
     customer_id: '',
-    title: '',
-    description: '',
+    title: prefilledServiceType ? `${prefilledServiceType} - Scheduled Maintenance` : '',
+    description: prefilledServiceType ? `Scheduled ${prefilledServiceType} service` : '',
     priority: JobPriority.MEDIUM,
     job_type: JobType.SERVICE,
     assigned_technician_id: '',
     assignToMe: currentUser.role === UserRole.TECHNICIAN,
-    forklift_id: '',
+    forklift_id: prefilledForkliftId || '',
     hourmeter_reading: '',
   });
 
@@ -56,6 +62,10 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
       // Pre-fill hourmeter with current reading
       if (forklift) {
         setFormData(prev => ({ ...prev, hourmeter_reading: forklift.hourmeter.toString() }));
+        // If forklift has a current customer, pre-fill it
+        if (forklift.current_customer_id && !formData.customer_id) {
+          setFormData(prev => ({ ...prev, customer_id: forklift.current_customer_id! }));
+        }
       }
     } else {
       setSelectedForklift(null);

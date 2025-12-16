@@ -1,13 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Forklift, ForkliftType, ForkliftStatus } from '../types_with_invoice_tracking';
+import { useNavigate } from 'react-router-dom';
+import { Forklift, ForkliftType, ForkliftStatus, Customer, User } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { 
   Plus, Search, Filter, Truck, Edit2, Trash2, X, Save, 
-  Gauge, Calendar, MapPin, CheckCircle, AlertCircle, Clock
+  Gauge, Calendar, MapPin, CheckCircle, AlertCircle, Clock,
+  Building2, Eye, ChevronRight
 } from 'lucide-react';
 
-const Forklifts: React.FC = () => {
+interface ForkliftsProps {
+  currentUser?: User;
+}
+
+const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
+  const navigate = useNavigate();
   const [forklifts, setForklifts] = useState<Forklift[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -15,10 +23,13 @@ const Forklifts: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterMake, setFilterMake] = useState<string>('all');
+  const [filterAssigned, setFilterAssigned] = useState<string>('all');
   
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [editingForklift, setEditingForklift] = useState<Forklift | null>(null);
+  const [assigningForklift, setAssigningForklift] = useState<Forklift | null>(null);
   
   // Form data
   const [formData, setFormData] = useState({
@@ -34,17 +45,31 @@ const Forklifts: React.FC = () => {
     notes: '',
   });
 
+  // Assign form data
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState('');
+  const [rentalNotes, setRentalNotes] = useState('');
+  const [monthlyRentalRate, setMonthlyRentalRate] = useState('');
+
   useEffect(() => {
-    loadForklifts();
+    loadData();
   }, []);
 
-  const loadForklifts = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
+      const [forkliftData, customerData] = await Promise.all([
+        MockDb.getForkliftsWithCustomers(),
+        MockDb.getCustomers()
+      ]);
+      setForklifts(forkliftData);
+      setCustomers(customerData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      // Fallback to basic forklift load
       const data = await MockDb.getForklifts();
       setForklifts(data);
-    } catch (error) {
-      console.error('Error loading forklifts:', error);
     }
     setLoading(false);
   };
@@ -58,26 +83,27 @@ const Forklifts: React.FC = () => {
   // Filtered and searched forklifts
   const filteredForklifts = useMemo(() => {
     return forklifts.filter(forklift => {
-      // Search filter
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch = 
         forklift.serial_number.toLowerCase().includes(searchLower) ||
         forklift.make.toLowerCase().includes(searchLower) ||
         forklift.model.toLowerCase().includes(searchLower) ||
-        (forklift.location || '').toLowerCase().includes(searchLower);
+        (forklift.location || '').toLowerCase().includes(searchLower) ||
+        ((forklift as any).current_customer?.name || '').toLowerCase().includes(searchLower);
 
-      // Type filter
       const matchesType = filterType === 'all' || forklift.type === filterType;
-
-      // Status filter
       const matchesStatus = filterStatus === 'all' || forklift.status === filterStatus;
-
-      // Make filter
       const matchesMake = filterMake === 'all' || forklift.make === filterMake;
+      
+      // Assignment filter
+      const hasCustomer = !!(forklift as any).current_customer_id;
+      const matchesAssigned = filterAssigned === 'all' || 
+        (filterAssigned === 'assigned' && hasCustomer) ||
+        (filterAssigned === 'unassigned' && !hasCustomer);
 
-      return matchesSearch && matchesType && matchesStatus && matchesMake;
+      return matchesSearch && matchesType && matchesStatus && matchesMake && matchesAssigned;
     });
-  }, [forklifts, searchQuery, filterType, filterStatus, filterMake]);
+  }, [forklifts, searchQuery, filterType, filterStatus, filterMake, filterAssigned]);
 
   const resetForm = () => {
     setFormData({
@@ -100,7 +126,8 @@ const Forklifts: React.FC = () => {
     setShowAddModal(true);
   };
 
-  const handleEdit = (forklift: Forklift) => {
+  const handleEdit = (forklift: Forklift, e: React.MouseEvent) => {
+    e.stopPropagation();
     setFormData({
       serial_number: forklift.serial_number,
       make: forklift.make,
@@ -115,6 +142,16 @@ const Forklifts: React.FC = () => {
     });
     setEditingForklift(forklift);
     setShowAddModal(true);
+  };
+
+  const handleAssign = (forklift: Forklift, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setAssigningForklift(forklift);
+    setSelectedCustomerId('');
+    setStartDate(new Date().toISOString().split('T')[0]);
+    setEndDate('');
+    setRentalNotes('');
+    setShowAssignModal(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -132,7 +169,7 @@ const Forklifts: React.FC = () => {
         await MockDb.createForklift(formData);
       }
       
-      await loadForklifts();
+      await loadData();
       setShowAddModal(false);
       resetForm();
       setEditingForklift(null);
@@ -141,12 +178,40 @@ const Forklifts: React.FC = () => {
     }
   };
 
-  const handleDelete = async (forklift: Forklift) => {
+  const handleAssignSubmit = async () => {
+    if (!assigningForklift || !selectedCustomerId || !startDate) {
+      alert('Please select a customer and start date');
+      return;
+    }
+
+    try {
+      await MockDb.assignForkliftToCustomer(
+        assigningForklift.forklift_id,
+        selectedCustomerId,
+        startDate,
+        endDate || undefined,
+        rentalNotes || undefined,
+        currentUser?.user_id,
+        currentUser?.name,
+        monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined
+      );
+      
+      setShowAssignModal(false);
+      setAssigningForklift(null);
+      setMonthlyRentalRate('');
+      await loadData();
+    } catch (error) {
+      alert((error as Error).message);
+    }
+  };
+
+  const handleDelete = async (forklift: Forklift, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!confirm(`Delete forklift ${forklift.serial_number}?\n\nThis cannot be undone.`)) return;
     
     try {
       await MockDb.deleteForklift(forklift.forklift_id);
-      await loadForklifts();
+      await loadData();
     } catch (error) {
       alert((error as Error).message);
     }
@@ -194,6 +259,7 @@ const Forklifts: React.FC = () => {
     );
   }
 
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -220,7 +286,7 @@ const Forklifts: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search by S/N, make, model, location..."
+              placeholder="Search by S/N, make, model, location, customer..."
               className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -254,6 +320,16 @@ const Forklifts: React.FC = () => {
               ))}
             </select>
 
+            <select
+              className="px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              value={filterAssigned}
+              onChange={(e) => setFilterAssigned(e.target.value)}
+            >
+              <option value="all">All Rentals</option>
+              <option value="assigned">Rented</option>
+              <option value="unassigned">Available</option>
+            </select>
+
             {uniqueMakes.length > 0 && (
               <select
                 className="px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -276,95 +352,130 @@ const Forklifts: React.FC = () => {
           <Truck className="w-12 h-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-slate-600 mb-2">No forklifts found</h3>
           <p className="text-sm text-slate-400">
-            {searchQuery || filterType !== 'all' || filterStatus !== 'all' || filterMake !== 'all'
+            {searchQuery || filterType !== 'all' || filterStatus !== 'all' || filterMake !== 'all' || filterAssigned !== 'all'
               ? 'Try adjusting your search or filters'
               : 'Add your first forklift to get started'}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredForklifts.map(forklift => (
-            <div
-              key={forklift.forklift_id}
-              className="bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow overflow-hidden"
-            >
-              {/* Header */}
-              <div className="p-4 border-b border-slate-100">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-bold text-slate-900">{forklift.make} {forklift.model}</h3>
-                    <p className="text-sm text-slate-500 font-mono">{forklift.serial_number}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {getStatusIcon(forklift.status)}
+          {filteredForklifts.map(forklift => {
+            const currentCustomer = (forklift as any).current_customer;
+            
+            return (
+              <div
+                key={forklift.forklift_id}
+                onClick={() => navigate(`/forklifts/${forklift.forklift_id}`)}
+                className="bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-200 transition-all overflow-hidden cursor-pointer group"
+              >
+                {/* Header */}
+                <div className="p-4 border-b border-slate-100">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                        {forklift.make} {forklift.model}
+                      </h3>
+                      <p className="text-sm text-slate-500 font-mono">{forklift.serial_number}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {getStatusIcon(forklift.status)}
+                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Details */}
-              <div className="p-4 space-y-3">
-                <div className="flex gap-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeBadge(forklift.type)}`}>
-                    {forklift.type}
-                  </span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(forklift.status)}`}>
-                    {forklift.status}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Gauge className="w-4 h-4 text-slate-400" />
-                    <span>{forklift.hourmeter.toLocaleString()} hrs</span>
+                {/* Current Customer Badge */}
+                {currentCustomer && (
+                  <div className="px-4 py-2 bg-green-50 border-b border-green-100">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <Building2 className="w-4 h-4" />
+                      <span className="text-sm font-medium truncate">{currentCustomer.name}</span>
+                    </div>
                   </div>
-                  {forklift.year && (
+                )}
+
+                {/* Details */}
+                <div className="p-4 space-y-3">
+                  <div className="flex gap-2 flex-wrap">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeBadge(forklift.type)}`}>
+                      {forklift.type}
+                    </span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(forklift.status)}`}>
+                      {forklift.status}
+                    </span>
+                    {currentCustomer && (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        🔴 Rented
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex items-center gap-2 text-slate-600">
-                      <Calendar className="w-4 h-4 text-slate-400" />
-                      <span>{forklift.year}</span>
+                      <Gauge className="w-4 h-4 text-slate-400" />
+                      <span>{forklift.hourmeter.toLocaleString()} hrs</span>
+                    </div>
+                    {forklift.year && (
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Calendar className="w-4 h-4 text-slate-400" />
+                        <span>{forklift.year}</span>
+                      </div>
+                    )}
+                    {forklift.location && (
+                      <div className="flex items-center gap-2 text-slate-600 col-span-2">
+                        <MapPin className="w-4 h-4 text-slate-400" />
+                        <span className="truncate">{forklift.location}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {forklift.capacity_kg && forklift.capacity_kg > 0 && (
+                    <div className="text-xs text-slate-500">
+                      Capacity: {forklift.capacity_kg.toLocaleString()} kg
                     </div>
                   )}
-                  {forklift.location && (
-                    <div className="flex items-center gap-2 text-slate-600 col-span-2">
-                      <MapPin className="w-4 h-4 text-slate-400" />
-                      <span className="truncate">{forklift.location}</span>
+
+                  {forklift.last_service_date && (
+                    <div className="text-xs text-slate-400">
+                      Last serviced: {new Date(forklift.last_service_date).toLocaleDateString()}
                     </div>
                   )}
                 </div>
 
-                {forklift.capacity_kg && forklift.capacity_kg > 0 && (
-                  <div className="text-xs text-slate-500">
-                    Capacity: {forklift.capacity_kg.toLocaleString()} kg
+                {/* Actions */}
+                <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+                  {!currentCustomer && (
+                    <button
+                      onClick={(e) => handleAssign(forklift, e)}
+                      className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      <Building2 className="w-4 h-4" /> Rent Out
+                    </button>
+                  )}
+                  {currentCustomer && <div />}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => handleEdit(forklift, e)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(forklift, e)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
-
-                {forklift.last_service_date && (
-                  <div className="text-xs text-slate-400">
-                    Last serviced: {new Date(forklift.last_service_date).toLocaleDateString()}
-                  </div>
-                )}
+                </div>
               </div>
-
-              {/* Actions */}
-              <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
-                <button
-                  onClick={() => handleEdit(forklift)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  title="Edit"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(forklift)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
 
       {/* Add/Edit Modal */}
       {showAddModal && (
@@ -383,11 +494,8 @@ const Forklifts: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* Serial Number */}
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                  Serial Number *
-                </label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Serial Number *</label>
                 <input
                   type="text"
                   className={inputClassName}
@@ -398,12 +506,9 @@ const Forklifts: React.FC = () => {
                 />
               </div>
 
-              {/* Make & Model */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                    Make *
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Make *</label>
                   <input
                     type="text"
                     className={inputClassName}
@@ -414,9 +519,7 @@ const Forklifts: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                    Model *
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Model *</label>
                   <input
                     type="text"
                     className={inputClassName}
@@ -428,12 +531,9 @@ const Forklifts: React.FC = () => {
                 </div>
               </div>
 
-              {/* Type & Status */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                    Type *
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type *</label>
                   <select
                     className={inputClassName}
                     value={formData.type}
@@ -445,9 +545,7 @@ const Forklifts: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                    Status
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
                   <select
                     className={inputClassName}
                     value={formData.status}
@@ -460,12 +558,9 @@ const Forklifts: React.FC = () => {
                 </div>
               </div>
 
-              {/* Hourmeter & Year */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                    Hourmeter (hrs)
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Hourmeter (hrs)</label>
                   <input
                     type="number"
                     className={inputClassName}
@@ -475,9 +570,7 @@ const Forklifts: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                    Year
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Year</label>
                   <input
                     type="number"
                     className={inputClassName}
@@ -489,12 +582,9 @@ const Forklifts: React.FC = () => {
                 </div>
               </div>
 
-              {/* Capacity & Location */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                    Capacity (kg)
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Capacity (kg)</label>
                   <input
                     type="number"
                     className={inputClassName}
@@ -505,9 +595,7 @@ const Forklifts: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                    Location
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Location</label>
                   <input
                     type="text"
                     className={inputClassName}
@@ -518,11 +606,8 @@ const Forklifts: React.FC = () => {
                 </div>
               </div>
 
-              {/* Notes */}
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                  Notes
-                </label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes</label>
                 <textarea
                   className={`${inputClassName} h-20 resize-none`}
                   value={formData.notes}
@@ -531,7 +616,6 @@ const Forklifts: React.FC = () => {
                 />
               </div>
 
-              {/* Buttons */}
               <div className="pt-4 flex gap-3">
                 <button
                   type="button"
@@ -549,6 +633,107 @@ const Forklifts: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Rent Out Modal */}
+      {showAssignModal && assigningForklift && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-lg text-slate-800">Rent Forklift to Customer</h3>
+              <button 
+                onClick={() => { setShowAssignModal(false); setAssigningForklift(null); }} 
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm font-medium text-blue-800">
+                  {assigningForklift.make} {assigningForklift.model}
+                </p>
+                <p className="text-xs text-blue-600">{assigningForklift.serial_number}</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Select Customer *</label>
+                <select
+                  className={inputClassName}
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                >
+                  <option value="">-- Select Customer --</option>
+                  {customers.map(c => (
+                    <option key={c.customer_id} value={c.customer_id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Monthly Rental Rate (RM)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className={inputClassName}
+                  value={monthlyRentalRate}
+                  onChange={(e) => setMonthlyRentalRate(e.target.value)}
+                  placeholder="e.g., 2500.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rental Start Date *</label>
+                <input
+                  type="date"
+                  className={inputClassName}
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rental End Date (Optional)</label>
+                <input
+                  type="date"
+                  className={inputClassName}
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+                <p className="text-xs text-slate-400 mt-1">Leave empty for ongoing rental</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes</label>
+                <textarea
+                  className={`${inputClassName} h-20 resize-none`}
+                  value={rentalNotes}
+                  onChange={(e) => setRentalNotes(e.target.value)}
+                  placeholder="Optional notes..."
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setShowAssignModal(false); setAssigningForklift(null); }}
+                  className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAssignSubmit}
+                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm flex items-center justify-center gap-2"
+                >
+                  <Building2 className="w-4 h-4" />
+                  Rent Forklift
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

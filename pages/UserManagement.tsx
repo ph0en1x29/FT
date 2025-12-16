@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, UserRole } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
-import { Plus, Edit2, Search, CheckCircle, XCircle, Shield, Wrench, FileText, User as UserIcon, Lock, X } from 'lucide-react';
+import { Plus, Edit2, Search, CheckCircle, XCircle, Shield, Wrench, FileText, User as UserIcon, Lock, X, Users } from 'lucide-react';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -93,6 +93,8 @@ const UserManagement: React.FC = () => {
     switch (role) {
       case UserRole.ADMIN:
         return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><Shield className="w-3 h-3" /> Admin</span>;
+      case UserRole.SUPERVISOR:
+        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"><Users className="w-3 h-3" /> Supervisor</span>;
       case UserRole.TECHNICIAN:
         return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><Wrench className="w-3 h-3" /> Technician</span>;
       case UserRole.ACCOUNTANT:
@@ -225,6 +227,7 @@ const UserManagement: React.FC = () => {
                     onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
                   >
                     <option value={UserRole.ADMIN}>Admin</option>
+                    <option value={UserRole.SUPERVISOR}>Supervisor</option>
                     <option value={UserRole.TECHNICIAN}>Technician</option>
                     <option value={UserRole.ACCOUNTANT}>Accountant</option>
                   </select>

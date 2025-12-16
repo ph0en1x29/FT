@@ -13,13 +13,11 @@ import {
   CheckCircle, Plus, Camera, PenTool, Box, DollarSign, BrainCircuit, 
   ShieldCheck, UserCheck, UserPlus, Edit2, Trash2, Save, X, FileText, 
   Info, FileDown, Truck, Gauge, ClipboardList, Receipt, Play, Clock, 
-  AlertTriangle, CheckSquare, Square, FileCheck
+  AlertTriangle, CheckSquare, Square, FileCheck, RefreshCw
 } from 'lucide-react';
 
 interface JobDetailProps {
-  currentUserRole: UserRole;
-  currentUserId: string;
-  currentUserName: string;
+  currentUser: User;
 }
 
 // Checklist categories for the condition check
@@ -134,7 +132,11 @@ const CHECKLIST_CATEGORIES = [
   },
 ];
 
-const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, currentUserName }) => {
+const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
+  const currentUserRole = currentUser.role;
+  const currentUserId = currentUser.user_id;
+  const currentUserName = currentUser.name;
+  
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
@@ -183,10 +185,14 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
   const [jobCarriedOutInput, setJobCarriedOutInput] = useState('');
   const [recommendationInput, setRecommendationInput] = useState('');
 
+  // NEW: Job Reassignment Modal
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [reassignTechId, setReassignTechId] = useState('');
+
   useEffect(() => {
     loadJob();
     loadParts();
-    if (currentUserRole === UserRole.ADMIN) {
+    if (currentUserRole === UserRole.ADMIN || currentUserRole === UserRole.SUPERVISOR) {
         loadTechnicians();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -281,6 +287,30 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
         setJob({ ...updated } as Job);
         setSelectedTechId('');
       }
+  };
+
+  // Handle job reassignment
+  const handleReassignJob = async () => {
+    if (!job || !reassignTechId) return;
+    const tech = technicians.find(t => t.user_id === reassignTechId);
+    if (tech) {
+      try {
+        const updated = await MockDb.reassignJob(
+          job.job_id,
+          tech.user_id,
+          tech.name,
+          currentUserId,
+          currentUserName
+        );
+        if (updated) {
+          setJob({ ...updated } as Job);
+          setShowReassignModal(false);
+          setReassignTechId('');
+        }
+      } catch (e) {
+        alert('Failed to reassign job: ' + (e as Error).message);
+      }
+    }
   };
 
   const handleAddNote = async () => {
@@ -599,8 +629,10 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
   const normalizedRole = (currentUserRole || '').toString().toLowerCase().trim();
   
   const isAdmin = normalizedRole === 'admin';
+  const isSupervisor = normalizedRole === 'supervisor';
   const isTechnician = normalizedRole === 'technician';
   const isAccountant = normalizedRole === 'accountant';
+  const canReassign = isAdmin || isSupervisor;
   
   const isNew = normalizedStatus === 'new';
   const isAssigned = normalizedStatus === 'assigned';
@@ -697,12 +729,12 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-           {(isTechnician || isAdmin) && isAssigned && (
+           {(isTechnician || isAdmin || isSupervisor) && isAssigned && (
              <button type="button" onClick={handleOpenStartJobModal} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-blue-700 flex items-center gap-2">
                <Play className="w-4 h-4" /> Start Job
              </button>
            )}
-           {(isTechnician || isAdmin) && isInProgress && (
+           {(isTechnician || isAdmin || isSupervisor) && isInProgress && (
              <div className="relative group">
                <button type="button" onClick={() => handleStatusChange(JobStatus.AWAITING_FINALIZATION)} disabled={!hasBothSignatures}
                  className={`px-4 py-2 rounded-lg text-sm font-semibold shadow ${hasBothSignatures ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
@@ -720,7 +752,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
                Finalize Invoice
              </button>
            )}
-           {(isTechnician || isAdmin) && (isInProgress || isAwaitingFinalization || isCompleted) && (
+           {(isTechnician || isAdmin || isSupervisor) && (isInProgress || isAwaitingFinalization || isCompleted) && (
              <button type="button" onClick={handlePrintServiceReport} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-amber-700 flex items-center gap-2">
                <FileCheck className="w-4 h-4" /> Service Report
              </button>
@@ -905,12 +937,25 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
               <h4 className="text-sm font-semibold text-slate-500 mb-1">Description</h4>
               <p className="text-slate-700">{job.description}</p>
             </div>
-            {isAdmin && isNew && (
+            {(isAdmin || isSupervisor) && isNew && (
                 <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100 mt-4">
                     <h4 className="text-sm font-bold text-yellow-800 mb-2 flex items-center gap-2"><UserPlus className="w-4 h-4" /> Assign Technician</h4>
                     <div className="flex gap-2">
                         <div className="flex-1"><Combobox options={techOptions} value={selectedTechId} onChange={setSelectedTechId} placeholder="Select Technician..." /></div>
                         <button type="button" onClick={handleAssignJob} disabled={!selectedTechId} className="bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-yellow-700 disabled:opacity-50">Assign</button>
+                    </div>
+                </div>
+            )}
+            {canReassign && job.assigned_technician_id && !isCompleted && (
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-4">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2"><UserIcon className="w-4 h-4" /> Assigned Technician</h4>
+                            <p className="text-slate-700 mt-1">{job.assigned_technician_name}</p>
+                        </div>
+                        <button type="button" onClick={() => setShowReassignModal(true)} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-1">
+                            <RefreshCw className="w-3 h-3" /> Reassign
+                        </button>
                     </div>
                 </div>
             )}
@@ -1008,7 +1053,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
           </div>
 
           {/* Photos */}
-          {(isTechnician || isAdmin) && (
+          {(isTechnician || isAdmin || isSupervisor) && (
             <div className="bg-white rounded-xl shadow p-5">
               <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2"><Camera className="w-5 h-5" /> Photos</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
@@ -1037,7 +1082,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
           )}
 
           {/* Notes */}
-          {(isTechnician || isAdmin) && (
+          {(isTechnician || isAdmin || isSupervisor) && (
             <div className="bg-white rounded-xl shadow p-5">
               <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2"><PenTool className="w-5 h-5" /> Job Notes</h3>
               <div className="max-h-40 overflow-y-auto space-y-2 mb-4 text-sm">
@@ -1283,6 +1328,50 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUserRole, currentUserId, c
             <div className="flex gap-3">
               <button type="button" onClick={() => setShowFinalizeModal(false)} className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Cancel</button>
               <button type="button" onClick={handleFinalizeInvoice} className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium">Finalize Invoice</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reassign Job Modal */}
+      {showReassignModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h4 className="font-bold text-lg mb-4 text-slate-900 flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-blue-600" /> Reassign Job
+            </h4>
+            <p className="text-sm text-slate-600 mb-4">
+              Change the technician assigned to this job. The new technician will be notified.
+            </p>
+            <div className="bg-slate-50 rounded-lg p-3 mb-4 text-sm">
+              <div className="text-slate-500">Currently assigned to:</div>
+              <div className="font-medium text-slate-800">{job?.assigned_technician_name || 'Unassigned'}</div>
+            </div>
+            <div className="mb-6">
+              <label className="text-sm font-medium text-slate-700 mb-2 block">New Technician</label>
+              <Combobox 
+                options={techOptions.filter(t => t.id !== job?.assigned_technician_id)} 
+                value={reassignTechId} 
+                onChange={setReassignTechId} 
+                placeholder="Select new technician..." 
+              />
+            </div>
+            <div className="flex gap-3">
+              <button 
+                type="button" 
+                onClick={() => { setShowReassignModal(false); setReassignTechId(''); }} 
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleReassignJob} 
+                disabled={!reassignTechId}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" /> Reassign
+              </button>
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 export enum UserRole {
   ADMIN = 'admin',
+  SUPERVISOR = 'supervisor',
   TECHNICIAN = 'technician',
   ACCOUNTANT = 'accountant',
 }
@@ -135,6 +136,40 @@ export interface Forklift {
   // Customer relationship for rental tracking
   customer_id?: string;
   forklift_no?: string; // Internal forklift number (e.g., FLT 5)
+  // Current rental assignment (denormalized for quick lookup)
+  current_customer_id?: string;
+  current_customer?: Customer; // Populated when fetched with joins
+}
+
+// Rental Status
+export enum RentalStatus {
+  ACTIVE = 'active',
+  ENDED = 'ended',
+  SCHEDULED = 'scheduled',
+}
+
+// Forklift Rental/Assignment
+export interface ForkliftRental {
+  rental_id: string;
+  forklift_id: string;
+  customer_id: string;
+  start_date: string;
+  end_date?: string;
+  status: RentalStatus;
+  rental_location?: string;
+  notes?: string;
+  monthly_rental_rate?: number;
+  currency?: string;
+  created_at: string;
+  created_by_id?: string;
+  created_by_name?: string;
+  updated_at: string;
+  ended_at?: string;
+  ended_by_id?: string;
+  ended_by_name?: string;
+  // Populated relations
+  forklift?: Forklift;
+  customer?: Customer;
 }
 
 export interface User {
@@ -388,14 +423,214 @@ export interface ScheduledService {
   scheduled_id: string;
   forklift_id: string;
   forklift?: Forklift;
-  service_interval_id: string;
+  service_interval_id?: string;
   service_interval?: ServiceInterval;
+  service_type: string;
   due_date: string;
   due_hourmeter?: number;
-  status: 'pending' | 'scheduled' | 'completed' | 'overdue';
+  estimated_hours?: number;
+  status: 'pending' | 'scheduled' | 'completed' | 'overdue' | 'cancelled';
+  priority: string;
   assigned_technician_id?: string;
   assigned_technician_name?: string;
   job_id?: string; // Linked job if created
-  created_at: string;
+  auto_create_job?: boolean;
   notes?: string;
+  created_at: string;
+  created_by_id?: string;
+  created_by_name?: string;
+  updated_at?: string;
+  completed_at?: string;
 }
+
+// Notification System
+export enum NotificationType {
+  JOB_ASSIGNED = 'job_assigned',
+  JOB_PENDING = 'job_pending',
+  SERVICE_DUE = 'service_due',
+  RENTAL_ENDING = 'rental_ending',
+  LOW_STOCK = 'low_stock',
+  JOB_COMPLETED = 'job_completed',
+  JOB_UPDATED = 'job_updated',
+}
+
+export interface Notification {
+  notification_id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  reference_type?: 'job' | 'forklift' | 'rental' | 'inventory';
+  reference_id?: string;
+  is_read: boolean;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  created_at: string;
+  read_at?: string;
+  expires_at?: string;
+}
+
+// Enhanced TechnicianKPI with industry standards
+export interface EnhancedTechnicianKPI extends TechnicianKPI {
+  // Industry Standard KPIs
+  first_time_fix_rate: number; // FTFR - Jobs resolved without return visits (%)
+  mean_time_to_repair: number; // MTTR - Average repair time in hours
+  technician_utilization: number; // Billable hours / Total hours (%)
+  jobs_per_day: number; // Average jobs completed per working day
+  repeat_visit_count: number; // Number of callbacks/return visits
+  
+  // Job Type Breakdown
+  service_jobs: number;
+  repair_jobs: number;
+  checking_jobs: number;
+  accident_jobs: number;
+  
+  // Efficiency Scores (calculated)
+  efficiency_score: number; // Overall efficiency rating 0-100
+  productivity_score: number; // Jobs completed vs capacity
+  quality_score: number; // Based on FTFR and customer satisfaction
+}
+
+// Rental Financial Tracking
+export interface RentalFinancials {
+  rental_id: string;
+  monthly_rental_rate: number;
+  currency: string;
+  total_rental_revenue: number; // Calculated from rate * months
+  total_service_costs: number; // Sum of all service job costs
+  net_profit: number; // Revenue - Costs
+  rental_months: number;
+}
+
+// Customer Financial Summary
+export interface CustomerFinancialSummary {
+  customer_id: string;
+  customer_name: string;
+  total_rental_revenue: number;
+  total_service_revenue: number;
+  total_parts_revenue: number;
+  total_labor_revenue: number;
+  total_extra_charges: number;
+  grand_total: number;
+  active_rentals: number;
+  total_forklifts_rented: number;
+}
+
+// Supervisor Role Permissions
+export interface RolePermissions {
+  canViewDashboard: boolean;
+  canViewAllJobs: boolean;
+  canCreateJobs: boolean;
+  canAssignJobs: boolean;
+  canReassignJobs: boolean;
+  canEditJobs: boolean;
+  canDeleteJobs: boolean;
+  canFinalizeInvoices: boolean;
+  canViewKPI: boolean;
+  canManageUsers: boolean;
+  canManageInventory: boolean;
+  canEditInventory: boolean;
+  canViewCustomers: boolean;
+  canEditCustomers: boolean;
+  canDeleteCustomers: boolean;
+  canViewForklifts: boolean;
+  canEditForklifts: boolean;
+  canManageRentals: boolean;
+  canEditRentalRates: boolean;
+  canViewServiceRecords: boolean;
+  canScheduleMaintenance: boolean;
+}
+
+export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
+  [UserRole.ADMIN]: {
+    canViewDashboard: true,
+    canViewAllJobs: true,
+    canCreateJobs: true,
+    canAssignJobs: true,
+    canReassignJobs: true,
+    canEditJobs: true,
+    canDeleteJobs: true,
+    canFinalizeInvoices: true,
+    canViewKPI: true,
+    canManageUsers: true,
+    canManageInventory: true,
+    canEditInventory: true,
+    canViewCustomers: true,
+    canEditCustomers: true,
+    canDeleteCustomers: true,
+    canViewForklifts: true,
+    canEditForklifts: true,
+    canManageRentals: true,
+    canEditRentalRates: true,
+    canViewServiceRecords: true,
+    canScheduleMaintenance: true,
+  },
+  [UserRole.SUPERVISOR]: {
+    canViewDashboard: true,
+    canViewAllJobs: true,
+    canCreateJobs: true,
+    canAssignJobs: true,
+    canReassignJobs: true,
+    canEditJobs: true,
+    canDeleteJobs: false,
+    canFinalizeInvoices: false,
+    canViewKPI: true,
+    canManageUsers: false,
+    canManageInventory: true,
+    canEditInventory: true,
+    canViewCustomers: true,
+    canEditCustomers: true,
+    canDeleteCustomers: false,
+    canViewForklifts: true,
+    canEditForklifts: true,
+    canManageRentals: true,
+    canEditRentalRates: false,
+    canViewServiceRecords: true,
+    canScheduleMaintenance: true,
+  },
+  [UserRole.TECHNICIAN]: {
+    canViewDashboard: false,
+    canViewAllJobs: false,
+    canCreateJobs: false,
+    canAssignJobs: false,
+    canReassignJobs: false,
+    canEditJobs: true, // Own jobs only
+    canDeleteJobs: false,
+    canFinalizeInvoices: false,
+    canViewKPI: false,
+    canManageUsers: false,
+    canManageInventory: false,
+    canEditInventory: false,
+    canViewCustomers: true,
+    canEditCustomers: false,
+    canDeleteCustomers: false,
+    canViewForklifts: true,
+    canEditForklifts: false,
+    canManageRentals: false,
+    canEditRentalRates: false,
+    canViewServiceRecords: false,
+    canScheduleMaintenance: false,
+  },
+  [UserRole.ACCOUNTANT]: {
+    canViewDashboard: true,
+    canViewAllJobs: true,
+    canCreateJobs: false,
+    canAssignJobs: false,
+    canReassignJobs: false,
+    canEditJobs: true, // For invoice finalization
+    canDeleteJobs: false,
+    canFinalizeInvoices: true,
+    canViewKPI: false,
+    canManageUsers: false,
+    canManageInventory: true,
+    canEditInventory: false,
+    canViewCustomers: true,
+    canEditCustomers: false,
+    canDeleteCustomers: false,
+    canViewForklifts: true,
+    canEditForklifts: false,
+    canManageRentals: false,
+    canEditRentalRates: false,
+    canViewServiceRecords: true,
+    canScheduleMaintenance: false,
+  },
+};

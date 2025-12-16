@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Job, JobStatus, JobPriority, JobType, Part, User, UserRole, Customer, JobMedia, SignatureEntry, Forklift, ForkliftStatus } from '../types_with_invoice_tracking';
+import { Job, JobStatus, JobPriority, JobType, Part, User, UserRole, Customer, JobMedia, SignatureEntry, Forklift, ForkliftStatus, ForkliftRental, RentalStatus, Notification, NotificationType, ScheduledService } from '../types_with_invoice_tracking';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -921,5 +921,825 @@ export const SupabaseDb = {
 
     if (error) throw new Error(error.message);
     return data as Customer;
+  },
+
+  // =====================
+  // FORKLIFT RENTAL OPERATIONS
+  // =====================
+
+  // Get all rentals (with optional filters)
+  getRentals: async (filters?: { forklift_id?: string; customer_id?: string; status?: RentalStatus }): Promise<ForkliftRental[]> => {
+    try {
+      let query = supabase
+        .from('forklift_rentals')
+        .select(`
+          *,
+          forklift:forklifts!forklift_rentals_forklift_id_fkey(*),
+          customer:customers(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (filters?.forklift_id) {
+        query = query.eq('forklift_id', filters.forklift_id);
+      }
+      if (filters?.customer_id) {
+        query = query.eq('customer_id', filters.customer_id);
+      }
+      if (filters?.status) {
+        query = query.eq('status', filters.status);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.warn('Rentals query failed:', error.message);
+        return [];
+      }
+      return data as ForkliftRental[];
+    } catch (e) {
+      console.warn('Rentals not available:', e);
+      return [];
+    }
+  },
+
+  // Get rentals for a specific forklift
+  getForkliftRentals: async (forkliftId: string): Promise<ForkliftRental[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('forklift_rentals')
+        .select(`
+          *,
+          customer:customers(*)
+        `)
+        .eq('forklift_id', forkliftId)
+        .order('start_date', { ascending: false });
+
+      if (error) {
+        console.warn('Forklift rentals query failed:', error.message);
+        return [];
+      }
+      return data as ForkliftRental[];
+    } catch (e) {
+      console.warn('Forklift rentals not available:', e);
+      return [];
+    }
+  },
+
+  // Get rentals for a specific customer
+  getCustomerRentals: async (customerId: string): Promise<ForkliftRental[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('forklift_rentals')
+        .select(`
+          *,
+          forklift:forklifts!forklift_rentals_forklift_id_fkey(*)
+        `)
+        .eq('customer_id', customerId)
+        .order('start_date', { ascending: false });
+
+      if (error) {
+        console.warn('Customer rentals query failed:', error.message);
+        return [];
+      }
+      return data as ForkliftRental[];
+    } catch (e) {
+      console.warn('Customer rentals not available:', e);
+      return [];
+    }
+  },
+
+  // Get active rentals for a customer
+  getCustomerActiveRentals: async (customerId: string): Promise<ForkliftRental[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('forklift_rentals')
+        .select(`
+          *,
+          forklift:forklifts!forklift_rentals_forklift_id_fkey(*)
+        `)
+        .eq('customer_id', customerId)
+        .eq('status', 'active')
+        .order('start_date', { ascending: false });
+
+      if (error) {
+        console.warn('Active rentals query failed:', error.message);
+        return [];
+      }
+      return data as ForkliftRental[];
+    } catch (e) {
+      console.warn('Active rentals not available:', e);
+      return [];
+    }
+  },
+
+  // Assign forklift to customer (create rental)
+  assignForkliftToCustomer: async (
+    forkliftId: string, 
+    customerId: string, 
+    startDate: string, 
+    endDate?: string,
+    notes?: string,
+    createdById?: string,
+    createdByName?: string,
+    monthlyRentalRate?: number
+  ): Promise<ForkliftRental> => {
+    // Check if forklift is already assigned
+    const { data: existingRental } = await supabase
+      .from('forklift_rentals')
+      .select('rental_id')
+      .eq('forklift_id', forkliftId)
+      .eq('status', 'active')
+      .single();
+
+    if (existingRental) {
+      throw new Error('Forklift is already assigned to a customer. End the current rental first.');
+    }
+
+    // Get customer address for location update
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('address')
+      .eq('customer_id', customerId)
+      .single();
+
+    // Create the rental
+    const { data, error } = await supabase
+      .from('forklift_rentals')
+      .insert({
+        forklift_id: forkliftId,
+        customer_id: customerId,
+        start_date: startDate,
+        end_date: endDate || null,
+        status: 'active',
+        notes: notes || null,
+        rental_location: customer?.address || null,
+        created_by_id: createdById || null,
+        created_by_name: createdByName || null,
+        monthly_rental_rate: monthlyRentalRate || 0,
+        currency: 'RM',
+      })
+      .select(`
+        *,
+        forklift:forklifts!forklift_rentals_forklift_id_fkey(*),
+        customer:customers(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    // Update forklift with current customer and location
+    await supabase
+      .from('forklifts')
+      .update({
+        current_customer_id: customerId,
+        location: customer?.address || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('forklift_id', forkliftId);
+
+    return data as ForkliftRental;
+  },
+
+  // End a rental
+  endRental: async (
+    rentalId: string, 
+    endDate?: string,
+    endedById?: string,
+    endedByName?: string
+  ): Promise<ForkliftRental> => {
+    // First get the rental to know which forklift to update
+    const { data: rental } = await supabase
+      .from('forklift_rentals')
+      .select('forklift_id')
+      .eq('rental_id', rentalId)
+      .single();
+
+    // Update the rental status
+    const { data, error } = await supabase
+      .from('forklift_rentals')
+      .update({
+        status: 'ended',
+        end_date: endDate || new Date().toISOString().split('T')[0],
+        ended_at: new Date().toISOString(),
+        ended_by_id: endedById || null,
+        ended_by_name: endedByName || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('rental_id', rentalId)
+      .select(`
+        *,
+        forklift:forklifts!forklift_rentals_forklift_id_fkey(*),
+        customer:customers(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    // Clear the forklift's current customer
+    if (rental?.forklift_id) {
+      await supabase
+        .from('forklifts')
+        .update({
+          current_customer_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('forklift_id', rental.forklift_id);
+    }
+
+    return data as ForkliftRental;
+  },
+
+  // Update rental dates and rate
+  updateRental: async (rentalId: string, updates: { start_date?: string; end_date?: string; notes?: string; monthly_rental_rate?: number }): Promise<ForkliftRental> => {
+    const { data, error } = await supabase
+      .from('forklift_rentals')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('rental_id', rentalId)
+      .select(`
+        *,
+        forklift:forklifts!forklift_rentals_forklift_id_fkey(*),
+        customer:customers(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as ForkliftRental;
+  },
+
+  // Update rental rate only (convenience function)
+  updateRentalRate: async (rentalId: string, monthlyRate: number): Promise<void> => {
+    const { error } = await supabase
+      .from('forklift_rentals')
+      .update({
+        monthly_rental_rate: monthlyRate,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('rental_id', rentalId);
+
+    if (error) throw new Error(error.message);
+  },
+
+  // Get forklift with current customer info
+  getForkliftWithCustomer: async (forkliftId: string): Promise<Forklift | null> => {
+    try {
+      // First try with customer join
+      const { data, error } = await supabase
+        .from('forklifts')
+        .select(`
+          *,
+          current_customer:customers(*)
+        `)
+        .eq('forklift_id', forkliftId)
+        .single();
+
+      if (error) {
+        // Fallback: get forklift without customer join
+        console.warn('Forklift with customer query failed, falling back:', error.message);
+        const { data: basicData, error: basicError } = await supabase
+          .from('forklifts')
+          .select('*')
+          .eq('forklift_id', forkliftId)
+          .single();
+        
+        if (basicError) return null;
+        return basicData as Forklift;
+      }
+      return data as Forklift;
+    } catch (e) {
+      console.error('Error fetching forklift:', e);
+      return null;
+    }
+  },
+
+  // Get forklifts with their current customers (via active rentals)
+  getForkliftsWithCustomers: async (): Promise<Forklift[]> => {
+    try {
+      // Get all forklifts
+      const { data: forklifts, error: forkliftError } = await supabase
+        .from('forklifts')
+        .select('*')
+        .order('serial_number');
+
+      if (forkliftError) throw new Error(forkliftError.message);
+
+      // Get all active rentals with customer info
+      const { data: activeRentals, error: rentalError } = await supabase
+        .from('forklift_rentals')
+        .select(`
+          forklift_id,
+          customer_id,
+          monthly_rental_rate,
+          customer:customers(*)
+        `)
+        .eq('status', 'active');
+
+      if (rentalError) {
+        console.warn('Active rentals query failed:', rentalError.message);
+        return forklifts as Forklift[];
+      }
+
+      // Map active rentals to forklifts
+      const rentalMap = new Map();
+      (activeRentals || []).forEach(rental => {
+        rentalMap.set(rental.forklift_id, {
+          current_customer_id: rental.customer_id,
+          current_customer: rental.customer,
+          monthly_rental_rate: rental.monthly_rental_rate,
+        });
+      });
+
+      // Merge rental info into forklifts
+      const forkliftsWithCustomers = (forklifts || []).map(forklift => {
+        const rentalInfo = rentalMap.get(forklift.forklift_id);
+        if (rentalInfo) {
+          return { ...forklift, ...rentalInfo };
+        }
+        return forklift;
+      });
+
+      return forkliftsWithCustomers as Forklift[];
+    } catch (e) {
+      console.error('Error fetching forklifts:', e);
+      // Ultimate fallback
+      const { data, error } = await supabase
+        .from('forklifts')
+        .select('*')
+        .order('serial_number');
+      
+      if (error) throw new Error(error.message);
+      return data as Forklift[];
+    }
+  },
+
+  // Get service history for a forklift
+  getForkliftServiceHistory: async (forkliftId: string): Promise<Job[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          *,
+          customer:customers(*),
+          parts_used:job_parts(*),
+          media:job_media(*),
+          extra_charges:extra_charges(*)
+        `)
+        .eq('forklift_id', forkliftId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('Forklift service history query failed:', error.message);
+        return [];
+      }
+      return data as Job[];
+    } catch (e) {
+      console.warn('Forklift service history not available:', e);
+      return [];
+    }
+  },
+
+  // =====================
+  // NOTIFICATION OPERATIONS
+  // =====================
+
+  getNotifications: async (userId: string, unreadOnly: boolean = false): Promise<Notification[]> => {
+    try {
+      let query = supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (unreadOnly) {
+        query = query.eq('is_read', false);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.warn('Notifications query failed:', error.message);
+        return [];
+      }
+      return data as Notification[];
+    } catch (e) {
+      console.warn('Notifications not available:', e);
+      return [];
+    }
+  },
+
+  getUnreadNotificationCount: async (userId: string): Promise<number> => {
+    try {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+
+      if (error) return 0;
+      return count || 0;
+    } catch (e) {
+      return 0;
+    }
+  },
+
+  createNotification: async (notification: Partial<Notification>): Promise<Notification | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: notification.user_id,
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+          reference_type: notification.reference_type,
+          reference_id: notification.reference_id,
+          priority: notification.priority || 'normal',
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.warn('Failed to create notification:', error.message);
+        return null;
+      }
+      return data as Notification;
+    } catch (e) {
+      console.warn('Notification creation failed:', e);
+      return null;
+    }
+  },
+
+  markNotificationRead: async (notificationId: string): Promise<void> => {
+    try {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq('notification_id', notificationId);
+    } catch (e) {
+      console.warn('Failed to mark notification read:', e);
+    }
+  },
+
+  markAllNotificationsRead: async (userId: string): Promise<void> => {
+    try {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+    } catch (e) {
+      console.warn('Failed to mark all notifications read:', e);
+    }
+  },
+
+  // Notify technician of new job assignment
+  notifyJobAssignment: async (technicianId: string, job: Job): Promise<void> => {
+    await SupabaseDb.createNotification({
+      user_id: technicianId,
+      type: NotificationType.JOB_ASSIGNED,
+      title: 'New Job Assigned',
+      message: `You have been assigned to: ${job.title} - ${job.customer?.name || 'Unknown Customer'}`,
+      reference_type: 'job',
+      reference_id: job.job_id,
+      priority: job.priority === 'Emergency' ? 'urgent' : job.priority === 'High' ? 'high' : 'normal',
+    });
+  },
+
+  // =====================
+  // SCHEDULED SERVICE OPERATIONS
+  // =====================
+
+  getScheduledServices: async (filters?: { forklift_id?: string; status?: string }): Promise<ScheduledService[]> => {
+    try {
+      let query = supabase
+        .from('scheduled_services')
+        .select(`
+          *,
+          forklift:forklifts(*)
+        `)
+        .order('due_date', { ascending: true });
+
+      if (filters?.forklift_id) {
+        query = query.eq('forklift_id', filters.forklift_id);
+      }
+      if (filters?.status) {
+        query = query.eq('status', filters.status);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.warn('Scheduled services query failed:', error.message);
+        return [];
+      }
+      return data as ScheduledService[];
+    } catch (e) {
+      console.warn('Scheduled services not available:', e);
+      return [];
+    }
+  },
+
+  getUpcomingServices: async (daysAhead: number = 30): Promise<ScheduledService[]> => {
+    try {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + daysAhead);
+
+      const { data, error } = await supabase
+        .from('scheduled_services')
+        .select(`
+          *,
+          forklift:forklifts(*)
+        `)
+        .in('status', ['pending', 'scheduled'])
+        .lte('due_date', futureDate.toISOString().split('T')[0])
+        .order('due_date', { ascending: true });
+
+      if (error) {
+        console.warn('Upcoming services query failed:', error.message);
+        return [];
+      }
+      return data as ScheduledService[];
+    } catch (e) {
+      console.warn('Upcoming services not available:', e);
+      return [];
+    }
+  },
+
+  createScheduledService: async (
+    service: Partial<ScheduledService>,
+    createdById?: string,
+    createdByName?: string
+  ): Promise<ScheduledService | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_services')
+        .insert({
+          forklift_id: service.forklift_id,
+          service_type: service.service_type,
+          due_date: service.due_date,
+          due_hourmeter: service.due_hourmeter,
+          estimated_hours: service.estimated_hours,
+          priority: service.priority || 'Medium',
+          notes: service.notes,
+          auto_create_job: service.auto_create_job ?? true,
+          created_by_id: createdById,
+          created_by_name: createdByName,
+        })
+        .select(`
+          *,
+          forklift:forklifts(*)
+        `)
+        .single();
+
+      if (error) {
+        console.warn('Failed to create scheduled service:', error.message);
+        return null;
+      }
+      return data as ScheduledService;
+    } catch (e) {
+      console.warn('Scheduled service creation failed:', e);
+      return null;
+    }
+  },
+
+  updateScheduledService: async (
+    scheduledId: string,
+    updates: Partial<ScheduledService>
+  ): Promise<ScheduledService | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_services')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('scheduled_id', scheduledId)
+        .select(`
+          *,
+          forklift:forklifts(*)
+        `)
+        .single();
+
+      if (error) {
+        console.warn('Failed to update scheduled service:', error.message);
+        return null;
+      }
+      return data as ScheduledService;
+    } catch (e) {
+      console.warn('Scheduled service update failed:', e);
+      return null;
+    }
+  },
+
+  // Auto-create job from scheduled service
+  createJobFromScheduledService: async (
+    scheduledService: ScheduledService,
+    technicianId: string,
+    technicianName: string,
+    createdById: string,
+    createdByName: string
+  ): Promise<Job | null> => {
+    try {
+      // Get forklift and customer details
+      const forklift = scheduledService.forklift;
+      if (!forklift || !forklift.current_customer_id) {
+        console.warn('No customer associated with forklift');
+        return null;
+      }
+
+      // Create the job
+      const job = await SupabaseDb.createJob({
+        customer_id: forklift.current_customer_id,
+        title: `${scheduledService.service_type} - ${forklift.make} ${forklift.model}`,
+        description: `Scheduled preventive maintenance: ${scheduledService.service_type}. ${scheduledService.notes || ''}`,
+        priority: scheduledService.priority as JobPriority,
+        job_type: JobType.SERVICE,
+        status: JobStatus.ASSIGNED,
+        assigned_technician_id: technicianId,
+        assigned_technician_name: technicianName,
+        forklift_id: forklift.forklift_id,
+        scheduled_date: scheduledService.due_date,
+      }, createdById, createdByName);
+
+      if (job) {
+        // Update scheduled service with job reference
+        await SupabaseDb.updateScheduledService(scheduledService.scheduled_id, {
+          status: 'scheduled',
+          job_id: job.job_id,
+          assigned_technician_id: technicianId,
+          assigned_technician_name: technicianName,
+        });
+
+        // Notify technician
+        await SupabaseDb.notifyJobAssignment(technicianId, job);
+      }
+
+      return job;
+    } catch (e) {
+      console.warn('Failed to create job from scheduled service:', e);
+      return null;
+    }
+  },
+
+  // =====================
+  // RENTAL AMOUNT OPERATIONS
+  // =====================
+
+  updateRentalRate: async (rentalId: string, monthlyRate: number, currency: string = 'RM'): Promise<ForkliftRental | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('forklift_rentals')
+        .update({
+          monthly_rental_rate: monthlyRate,
+          currency: currency,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('rental_id', rentalId)
+        .select(`
+          *,
+          forklift:forklifts!forklift_rentals_forklift_id_fkey(*),
+          customer:customers(*)
+        `)
+        .single();
+
+      if (error) {
+        console.warn('Failed to update rental rate:', error.message);
+        return null;
+      }
+      return data as ForkliftRental;
+    } catch (e) {
+      console.warn('Rental rate update failed:', e);
+      return null;
+    }
+  },
+
+  // Get customer financial summary
+  getCustomerFinancialSummary: async (customerId: string): Promise<any> => {
+    try {
+      // Get all rentals for customer
+      const rentals = await SupabaseDb.getCustomerRentals(customerId);
+      
+      // Get all jobs for customer
+      const { data: jobs } = await supabase
+        .from('jobs')
+        .select(`
+          *,
+          parts_used:job_parts(*),
+          extra_charges:extra_charges(*)
+        `)
+        .eq('customer_id', customerId);
+
+      // Calculate rental revenue
+      let totalRentalRevenue = 0;
+      rentals.forEach(rental => {
+        const rate = (rental as any).monthly_rental_rate || 0;
+        if (rate > 0) {
+          const startDate = new Date(rental.start_date);
+          const endDate = rental.end_date ? new Date(rental.end_date) : new Date();
+          const months = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (30 * 24 * 60 * 60 * 1000)));
+          totalRentalRevenue += rate * months;
+        }
+      });
+
+      // Calculate service revenue
+      let totalServiceRevenue = 0;
+      let totalPartsRevenue = 0;
+      let totalLaborRevenue = 0;
+      let totalExtraCharges = 0;
+
+      (jobs || []).forEach((job: any) => {
+        const partsTotal = (job.parts_used || []).reduce((sum: number, p: any) => 
+          sum + (p.sell_price_at_time * p.quantity), 0);
+        const laborCost = job.labor_cost || 0;
+        const extraCharges = (job.extra_charges || []).reduce((sum: number, c: any) => 
+          sum + c.amount, 0);
+
+        totalPartsRevenue += partsTotal;
+        totalLaborRevenue += laborCost;
+        totalExtraCharges += extraCharges;
+        totalServiceRevenue += partsTotal + laborCost + extraCharges;
+      });
+
+      return {
+        customer_id: customerId,
+        total_rental_revenue: totalRentalRevenue,
+        total_service_revenue: totalServiceRevenue,
+        total_parts_revenue: totalPartsRevenue,
+        total_labor_revenue: totalLaborRevenue,
+        total_extra_charges: totalExtraCharges,
+        grand_total: totalRentalRevenue + totalServiceRevenue,
+        active_rentals: rentals.filter(r => r.status === 'active').length,
+        total_jobs: (jobs || []).length,
+      };
+    } catch (e) {
+      console.warn('Failed to get customer financial summary:', e);
+      return null;
+    }
+  },
+
+  // =====================
+  // JOB REASSIGNMENT
+  // =====================
+
+  reassignJob: async (
+    jobId: string,
+    newTechnicianId: string,
+    newTechnicianName: string,
+    reassignedById: string,
+    reassignedByName: string
+  ): Promise<Job | null> => {
+    try {
+      // Get current job to notify old technician
+      const currentJob = await SupabaseDb.getJobById(jobId);
+      const oldTechnicianId = currentJob?.assigned_technician_id;
+
+      const { data, error } = await supabase
+        .from('jobs')
+        .update({
+          assigned_technician_id: newTechnicianId,
+          assigned_technician_name: newTechnicianName,
+          assigned_at: new Date().toISOString(),
+          assigned_by_id: reassignedById,
+          assigned_by_name: reassignedByName,
+        })
+        .eq('job_id', jobId)
+        .select(`
+          *,
+          customer:customers(*),
+          forklift:forklifts(*),
+          parts_used:job_parts(*),
+          media:job_media(*),
+          extra_charges:extra_charges(*)
+        `)
+        .single();
+
+      if (error) {
+        console.warn('Failed to reassign job:', error.message);
+        return null;
+      }
+
+      const updatedJob = data as Job;
+
+      // Notify new technician
+      await SupabaseDb.notifyJobAssignment(newTechnicianId, updatedJob);
+
+      // Notify old technician of reassignment (if different)
+      if (oldTechnicianId && oldTechnicianId !== newTechnicianId) {
+        await SupabaseDb.createNotification({
+          user_id: oldTechnicianId,
+          type: NotificationType.JOB_UPDATED,
+          title: 'Job Reassigned',
+          message: `Job "${updatedJob.title}" has been reassigned to another technician.`,
+          reference_type: 'job',
+          reference_id: jobId,
+          priority: 'normal',
+        });
+      }
+
+      return updatedJob;
+    } catch (e) {
+      console.warn('Job reassignment failed:', e);
+      return null;
+    }
   },
 };
