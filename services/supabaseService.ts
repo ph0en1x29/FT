@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Job, JobStatus, JobPriority, Part, User, UserRole, Customer, JobMedia, SignatureEntry } from '../types_with_invoice_tracking';
+import { Job, JobStatus, JobPriority, JobType, Part, User, UserRole, Customer, JobMedia, SignatureEntry, Forklift, ForkliftStatus } from '../types_with_invoice_tracking';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -87,15 +87,125 @@ export const SupabaseDb = {
     return data as User;
   },
 
+  // =====================
+  // FORKLIFT/ASSET OPERATIONS
+  // =====================
+
+  getForklifts: async (): Promise<Forklift[]> => {
+    const { data, error } = await supabase
+      .from('forklifts')
+      .select('*')
+      .order('serial_number');
+
+    if (error) throw new Error(error.message);
+    return data as Forklift[];
+  },
+
+  getForkliftById: async (forkliftId: string): Promise<Forklift | null> => {
+    const { data, error } = await supabase
+      .from('forklifts')
+      .select('*')
+      .eq('forklift_id', forkliftId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching forklift:', error);
+      return null;
+    }
+    return data as Forklift;
+  },
+
+  createForklift: async (forkliftData: Partial<Forklift>): Promise<Forklift> => {
+    const { data, error } = await supabase
+      .from('forklifts')
+      .insert({
+        serial_number: forkliftData.serial_number,
+        make: forkliftData.make,
+        model: forkliftData.model,
+        type: forkliftData.type,
+        hourmeter: forkliftData.hourmeter || 0,
+        year: forkliftData.year,
+        capacity_kg: forkliftData.capacity_kg,
+        location: forkliftData.location,
+        status: forkliftData.status || ForkliftStatus.ACTIVE,
+        notes: forkliftData.notes,
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Forklift;
+  },
+
+  updateForklift: async (forkliftId: string, updates: Partial<Forklift>): Promise<Forklift> => {
+    const { data, error } = await supabase
+      .from('forklifts')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('forklift_id', forkliftId)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Forklift;
+  },
+
+  deleteForklift: async (forkliftId: string): Promise<void> => {
+    // Check if forklift has any jobs
+    const { data: jobs } = await supabase
+      .from('jobs')
+      .select('job_id')
+      .eq('forklift_id', forkliftId);
+    
+    if (jobs && jobs.length > 0) {
+      throw new Error('Cannot delete forklift with existing service records. Set status to Inactive instead.');
+    }
+
+    const { error } = await supabase
+      .from('forklifts')
+      .delete()
+      .eq('forklift_id', forkliftId);
+
+    if (error) throw new Error(error.message);
+  },
+
+  // Update forklift hourmeter (when job is completed)
+  updateForkliftHourmeter: async (forkliftId: string, newHourmeter: number): Promise<Forklift> => {
+    const { data, error } = await supabase
+      .from('forklifts')
+      .update({
+        hourmeter: newHourmeter,
+        last_service_date: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('forklift_id', forkliftId)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Forklift;
+  },
+
+  // =====================
+  // PARTS OPERATIONS
+  // =====================
+
   getParts: async (): Promise<Part[]> => {
     const { data, error } = await supabase
       .from('parts')
       .select('*')
+      .order('category')
       .order('part_name');
 
     if (error) throw new Error(error.message);
     return data as Part[];
   },
+
+  // =====================
+  // CUSTOMER OPERATIONS
+  // =====================
 
   getCustomers: async (): Promise<Customer[]> => {
     const { data, error } = await supabase
@@ -118,13 +228,17 @@ export const SupabaseDb = {
     return data as Customer;
   },
 
-  // UPDATED: Now includes extra_charges in the query
+  // =====================
+  // JOB OPERATIONS
+  // =====================
+
   getJobs: async (user: User): Promise<Job[]> => {
     let query = supabase
       .from('jobs')
       .select(`
         *,
         customer:customers(*),
+        forklift:forklifts(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -141,13 +255,13 @@ export const SupabaseDb = {
     return data as Job[];
   },
 
-  // UPDATED: Now includes extra_charges in the query
   getJobById: async (jobId: string): Promise<Job | null> => {
     const { data, error } = await supabase
       .from('jobs')
       .select(`
         *,
         customer:customers(*),
+        forklift:forklifts(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -162,7 +276,7 @@ export const SupabaseDb = {
     return data as Job;
   },
 
-  createJob: async (jobData: Partial<Job>): Promise<Job> => {
+  createJob: async (jobData: Partial<Job>, createdById?: string, createdByName?: string): Promise<Job> => {
     const { data, error } = await supabase
       .from('jobs')
       .insert({
@@ -170,15 +284,22 @@ export const SupabaseDb = {
         title: jobData.title,
         description: jobData.description,
         priority: jobData.priority || JobPriority.MEDIUM,
+        job_type: jobData.job_type || JobType.SERVICE,
         status: jobData.status || JobStatus.NEW,
         assigned_technician_id: jobData.assigned_technician_id || null,
         assigned_technician_name: jobData.assigned_technician_name || null,
+        forklift_id: jobData.forklift_id || null,
+        hourmeter_reading: jobData.hourmeter_reading || null,
         notes: jobData.notes || [],
-        labor_cost: jobData.labor_cost || 150, // Default labor cost
+        labor_cost: jobData.labor_cost || 150,
+        // Audit: Job Creation
+        created_by_id: createdById || null,
+        created_by_name: createdByName || null,
       })
       .select(`
         *,
         customer:customers(*),
+        forklift:forklifts(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -189,18 +310,23 @@ export const SupabaseDb = {
     return data as Job;
   },
 
-  assignJob: async (jobId: string, technicianId: string, technicianName: string): Promise<Job> => {
+  assignJob: async (jobId: string, technicianId: string, technicianName: string, assignedById?: string, assignedByName?: string): Promise<Job> => {
     const { data, error } = await supabase
       .from('jobs')
       .update({
         assigned_technician_id: technicianId,
         assigned_technician_name: technicianName,
         status: JobStatus.ASSIGNED,
+        // Audit: Job Assignment
+        assigned_at: new Date().toISOString(),
+        assigned_by_id: assignedById || null,
+        assigned_by_name: assignedByName || null,
       })
       .eq('job_id', jobId)
       .select(`
         *,
         customer:customers(*),
+        forklift:forklifts(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -211,14 +337,21 @@ export const SupabaseDb = {
     return data as Job;
   },
 
-  updateJobStatus: async (jobId: string, status: JobStatus): Promise<Job> => {
+  updateJobStatus: async (jobId: string, status: JobStatus, completedById?: string, completedByName?: string): Promise<Job> => {
     const updates: any = { status };
+    const now = new Date().toISOString();
 
     if (status === JobStatus.IN_PROGRESS) {
-      updates.arrival_time = new Date().toISOString();
+      updates.arrival_time = now;
+      updates.started_at = now;
     }
     if (status === JobStatus.AWAITING_FINALIZATION) {
-      updates.completion_time = new Date().toISOString();
+      updates.completion_time = now;
+      updates.repair_end_time = now;
+      // Audit: Job Completed (awaiting finalization by accountant)
+      updates.completed_at = now;
+      updates.completed_by_id = completedById || null;
+      updates.completed_by_name = completedByName || null;
     }
 
     const { data, error } = await supabase
@@ -228,6 +361,27 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
+        forklift:forklifts(*),
+        parts_used:job_parts(*),
+        media:job_media(*),
+        extra_charges:extra_charges(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Job;
+  },
+
+  // Update job's hourmeter reading
+  updateJobHourmeter: async (jobId: string, hourmeterReading: number): Promise<Job> => {
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ hourmeter_reading: hourmeterReading })
+      .eq('job_id', jobId)
+      .select(`
+        *,
+        customer:customers(*),
+        forklift:forklifts(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -256,6 +410,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
+        forklift:forklifts(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -301,12 +456,19 @@ export const SupabaseDb = {
     return SupabaseDb.getJobById(jobId) as Promise<Job>;
   },
 
-  addMedia: async (jobId: string, media: Omit<JobMedia, 'media_id' | 'job_id'>): Promise<Job> => {
+  addMedia: async (
+    jobId: string, 
+    media: Omit<JobMedia, 'media_id' | 'job_id'>,
+    uploadedById?: string,
+    uploadedByName?: string
+  ): Promise<Job> => {
     const { error } = await supabase
       .from('job_media')
       .insert({
         job_id: jobId,
         ...media,
+        uploaded_by_id: uploadedById || null,
+        uploaded_by_name: uploadedByName || null,
       });
 
     if (error) throw new Error(error.message);
@@ -334,6 +496,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
+        forklift:forklifts(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -357,7 +520,6 @@ export const SupabaseDb = {
   },
 
   removePartFromJob: async (jobId: string, jobPartId: string): Promise<Job> => {
-    // First get the part details to restore stock
     const { data: jobPart } = await supabase
       .from('job_parts')
       .select('part_id, quantity')
@@ -365,7 +527,6 @@ export const SupabaseDb = {
       .single();
 
     if (jobPart) {
-      // Restore stock quantity
       const { data: part } = await supabase
         .from('parts')
         .select('stock_quantity')
@@ -380,7 +541,6 @@ export const SupabaseDb = {
       }
     }
 
-    // Delete the job_part record
     const { error } = await supabase
       .from('job_parts')
       .delete()
@@ -392,7 +552,6 @@ export const SupabaseDb = {
     return SupabaseDb.getJobById(jobId) as Promise<Job>;
   },
 
-  // NEW: Update labor cost for a job
   updateLaborCost: async (jobId: string, laborCost: number): Promise<Job> => {
     const { data, error } = await supabase
       .from('jobs')
@@ -401,6 +560,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
+        forklift:forklifts(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -411,7 +571,6 @@ export const SupabaseDb = {
     return data as Job;
   },
 
-  // NEW: Add an extra charge to a job
   addExtraCharge: async (
     jobId: string, 
     charge: { name: string; description: string; amount: number }
@@ -430,7 +589,6 @@ export const SupabaseDb = {
     return SupabaseDb.getJobById(jobId) as Promise<Job>;
   },
 
-  // NEW: Remove an extra charge from a job
   removeExtraCharge: async (jobId: string, chargeId: string): Promise<Job> => {
     const { error } = await supabase
       .from('extra_charges')
@@ -443,8 +601,15 @@ export const SupabaseDb = {
     return SupabaseDb.getJobById(jobId) as Promise<Job>;
   },
 
-  // Finalize invoice with tracking
   finalizeInvoice: async (jobId: string, accountantId: string, accountantName: string): Promise<Job> => {
+    // Get job to check for forklift and update hourmeter
+    const job = await SupabaseDb.getJobById(jobId);
+    
+    // If job has a forklift and hourmeter reading, update the forklift's hourmeter
+    if (job && job.forklift_id && job.hourmeter_reading) {
+      await SupabaseDb.updateForkliftHourmeter(job.forklift_id, job.hourmeter_reading);
+    }
+
     const { data, error } = await supabase
       .from('jobs')
       .update({
@@ -457,6 +622,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
+        forklift:forklifts(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -467,7 +633,6 @@ export const SupabaseDb = {
     return data as Job;
   },
 
-  // Send invoice to customer
   sendInvoice: async (jobId: string, method: 'email' | 'whatsapp' | 'both'): Promise<Job> => {
     const methods: string[] = [];
     if (method === 'both') {
@@ -486,6 +651,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
+        forklift:forklifts(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -496,7 +662,6 @@ export const SupabaseDb = {
     return data as Job;
   },
 
-  // Generate invoice text for sending
   generateInvoiceText: (job: Job): string => {
     const totalParts = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
     const laborCost = job.labor_cost || 150;
@@ -506,9 +671,18 @@ export const SupabaseDb = {
     let text = `*INVOICE - ${job.title}*\n\n`;
     text += `Customer: ${job.customer.name}\n`;
     text += `Address: ${job.customer.address}\n`;
-    text += `Date: ${new Date(job.created_at).toLocaleDateString()}\n\n`;
+    text += `Date: ${new Date(job.created_at).toLocaleDateString()}\n`;
     
-    text += `*Services Provided:*\n`;
+    if (job.forklift) {
+      text += `\n*Equipment Serviced:*\n`;
+      text += `${job.forklift.make} ${job.forklift.model}\n`;
+      text += `S/N: ${job.forklift.serial_number}\n`;
+      if (job.hourmeter_reading) {
+        text += `Hourmeter: ${job.hourmeter_reading} hrs\n`;
+      }
+    }
+    
+    text += `\n*Services Provided:*\n`;
     text += `${job.description}\n\n`;
     
     if (job.parts_used.length > 0) {
@@ -538,14 +712,11 @@ export const SupabaseDb = {
     return text;
   },
 
-  // Delete job (Admin only, cannot delete if Completed)
   deleteJob: async (jobId: string): Promise<void> => {
-    // First delete related records
     await supabase.from('job_parts').delete().eq('job_id', jobId);
     await supabase.from('job_media').delete().eq('job_id', jobId);
     await supabase.from('extra_charges').delete().eq('job_id', jobId);
     
-    // Then delete the job
     const { error } = await supabase
       .from('jobs')
       .delete()
@@ -554,9 +725,7 @@ export const SupabaseDb = {
     if (error) throw new Error(error.message);
   },
 
-  // Delete customer (Admin only)
   deleteCustomer: async (customerId: string): Promise<void> => {
-    // Check if customer has any jobs
     const { data: jobs } = await supabase
       .from('jobs')
       .select('job_id')
@@ -572,5 +741,185 @@ export const SupabaseDb = {
       .eq('customer_id', customerId);
 
     if (error) throw new Error(error.message);
+  },
+
+  // =====================
+  // INVENTORY/PARTS CRUD OPERATIONS
+  // =====================
+
+  createPart: async (partData: Partial<Part>): Promise<Part> => {
+    const { data, error } = await supabase
+      .from('parts')
+      .insert({
+        part_name: partData.part_name,
+        part_code: partData.part_code,
+        category: partData.category,
+        cost_price: partData.cost_price || 0,
+        sell_price: partData.sell_price || 0,
+        warranty_months: partData.warranty_months || 0,
+        stock_quantity: partData.stock_quantity || 0,
+        min_stock_level: partData.min_stock_level || 10,
+        supplier: partData.supplier,
+        location: partData.location,
+        last_updated_by: partData.last_updated_by,
+        last_updated_by_name: partData.last_updated_by_name,
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Part;
+  },
+
+  updatePart: async (partId: string, updates: Partial<Part>): Promise<Part> => {
+    const { data, error } = await supabase
+      .from('parts')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('part_id', partId)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Part;
+  },
+
+  deletePart: async (partId: string): Promise<void> => {
+    // Check if part is used in any jobs
+    const { data: jobParts } = await supabase
+      .from('job_parts')
+      .select('job_part_id')
+      .eq('part_id', partId);
+    
+    if (jobParts && jobParts.length > 0) {
+      throw new Error('Cannot delete part that has been used in jobs. Set stock to 0 instead.');
+    }
+
+    const { error } = await supabase
+      .from('parts')
+      .delete()
+      .eq('part_id', partId);
+
+    if (error) throw new Error(error.message);
+  },
+
+  // =====================
+  // JOB CONDITION & CHECKLIST OPERATIONS
+  // =====================
+
+  updateJobConditionChecklist: async (jobId: string, checklist: any): Promise<Job> => {
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ condition_checklist: checklist })
+      .eq('job_id', jobId)
+      .select(`
+        *,
+        customer:customers(*),
+        forklift:forklifts(*),
+        parts_used:job_parts(*),
+        media:job_media(*),
+        extra_charges:extra_charges(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Job;
+  },
+
+  updateJobCarriedOut: async (jobId: string, jobCarriedOut: string, recommendation?: string): Promise<Job> => {
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ 
+        job_carried_out: jobCarriedOut,
+        recommendation: recommendation,
+      })
+      .eq('job_id', jobId)
+      .select(`
+        *,
+        customer:customers(*),
+        forklift:forklifts(*),
+        parts_used:job_parts(*),
+        media:job_media(*),
+        extra_charges:extra_charges(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Job;
+  },
+
+  updateJobRepairTimes: async (jobId: string, startTime?: string, endTime?: string): Promise<Job> => {
+    const updates: any = {};
+    if (startTime) updates.repair_start_time = startTime;
+    if (endTime) updates.repair_end_time = endTime;
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .update(updates)
+      .eq('job_id', jobId)
+      .select(`
+        *,
+        customer:customers(*),
+        forklift:forklifts(*),
+        parts_used:job_parts(*),
+        media:job_media(*),
+        extra_charges:extra_charges(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Job;
+  },
+
+  // Start job with condition check
+  startJobWithCondition: async (
+    jobId: string, 
+    hourmeterReading: number, 
+    checklist: any,
+    startedById?: string,
+    startedByName?: string
+  ): Promise<Job> => {
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({
+        status: JobStatus.IN_PROGRESS,
+        arrival_time: now,
+        repair_start_time: now,
+        hourmeter_reading: hourmeterReading,
+        condition_checklist: checklist,
+        // Audit: Job Started
+        started_at: now,
+        started_by_id: startedById || null,
+        started_by_name: startedByName || null,
+      })
+      .eq('job_id', jobId)
+      .select(`
+        *,
+        customer:customers(*),
+        forklift:forklifts(*),
+        parts_used:job_parts(*),
+        media:job_media(*),
+        extra_charges:extra_charges(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Job;
+  },
+
+  updateCustomer: async (customerId: string, updates: Partial<Customer>): Promise<Customer> => {
+    const { data, error } = await supabase
+      .from('customers')
+      .update(updates)
+      .eq('customer_id', customerId)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as Customer;
   },
 };

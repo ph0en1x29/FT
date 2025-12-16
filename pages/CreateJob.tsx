@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
-import { Customer, JobPriority, JobStatus, User, UserRole } from '../types_with_invoice_tracking';
-import { ArrowLeft, Save, X } from 'lucide-react';
+import { Customer, JobPriority, JobStatus, JobType, User, UserRole, Forklift } from '../types_with_invoice_tracking';
+import { ArrowLeft, Save, X, Truck, Gauge } from 'lucide-react';
 import { Combobox, ComboboxOption } from '../components/Combobox';
 
 interface CreateJobProps {
@@ -13,19 +13,26 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [technicians, setTechnicians] = useState<User[]>([]);
+  const [forklifts, setForklifts] = useState<Forklift[]>([]);
   
   const [formData, setFormData] = useState({
     customer_id: '',
     title: '',
     description: '',
     priority: JobPriority.MEDIUM,
+    job_type: JobType.SERVICE,
     assigned_technician_id: '',
-    assignToMe: currentUser.role === UserRole.TECHNICIAN
+    assignToMe: currentUser.role === UserRole.TECHNICIAN,
+    forklift_id: '',
+    hourmeter_reading: '',
   });
+
+  // Selected forklift details
+  const [selectedForklift, setSelectedForklift] = useState<Forklift | null>(null);
 
   // New Customer Modal State
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
-  const [newCustomerNameQuery, setNewCustomerNameQuery] = useState(''); // To pre-fill modal
+  const [newCustomerNameQuery, setNewCustomerNameQuery] = useState('');
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     phone: '',
@@ -35,10 +42,26 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
 
   useEffect(() => {
     MockDb.getCustomers().then(setCustomers);
+    MockDb.getForklifts().then(setForklifts);
     if (currentUser.role === UserRole.ADMIN) {
         MockDb.getTechnicians().then(setTechnicians);
     }
   }, [currentUser.role]);
+
+  // Update selected forklift when forklift_id changes
+  useEffect(() => {
+    if (formData.forklift_id) {
+      const forklift = forklifts.find(f => f.forklift_id === formData.forklift_id);
+      setSelectedForklift(forklift || null);
+      // Pre-fill hourmeter with current reading
+      if (forklift) {
+        setFormData(prev => ({ ...prev, hourmeter_reading: forklift.hourmeter.toString() }));
+      }
+    } else {
+      setSelectedForklift(null);
+      setFormData(prev => ({ ...prev, hourmeter_reading: '' }));
+    }
+  }, [formData.forklift_id, forklifts]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,16 +82,26 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
         assignedName = tech ? tech.name : '';
         status = JobStatus.ASSIGNED;
     }
+
+    // Parse hourmeter reading
+    const hourmeterReading = formData.hourmeter_reading ? parseInt(formData.hourmeter_reading) : undefined;
     
-    await MockDb.createJob({
-      customer_id: formData.customer_id,
-      title: formData.title,
-      description: formData.description,
-      priority: formData.priority,
-      assigned_technician_id: assignedId,
-      assigned_technician_name: assignedName,
-      status: status
-    });
+    await MockDb.createJob(
+      {
+        customer_id: formData.customer_id,
+        title: formData.title,
+        description: formData.description,
+        priority: formData.priority,
+        job_type: formData.job_type,
+        assigned_technician_id: assignedId,
+        assigned_technician_name: assignedName,
+        status: status,
+        forklift_id: formData.forklift_id || undefined,
+        hourmeter_reading: hourmeterReading,
+      },
+      currentUser.user_id,  // Created by ID
+      currentUser.name      // Created by Name
+    );
     
     navigate('/jobs');
   };
@@ -105,6 +138,15 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
       subLabel: t.email
   }));
 
+  // Forklift options with detailed info for easy search
+  const forkliftOptions: ComboboxOption[] = forklifts
+    .filter(f => f.status === 'Active' || f.status === 'Under Maintenance')
+    .map(f => ({
+      id: f.forklift_id,
+      label: `${f.serial_number} - ${f.make} ${f.model}`,
+      subLabel: `${f.type} | ${f.hourmeter.toLocaleString()} hrs${f.location ? ` | ${f.location}` : ''}`
+    }));
+
   const inputClassName = "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/25 placeholder-slate-400 transition-all duration-200";
 
   return (
@@ -118,7 +160,7 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm space-y-6">
         
-        {/* Replaced with Combobox */}
+        {/* Customer Selection */}
         <Combobox 
             label="Customer"
             options={customerOptions}
@@ -133,6 +175,68 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
             addNewLabel="Create New Customer"
         />
 
+        {/* Forklift Selection */}
+        <div className="bg-amber-50 border border-amber-100 rounded-lg p-4 space-y-4">
+          <div className="flex items-center gap-2 text-amber-800">
+            <Truck className="w-5 h-5" />
+            <span className="font-semibold">Equipment Selection</span>
+          </div>
+          
+          <Combobox 
+              label="Select Forklift"
+              options={forkliftOptions}
+              value={formData.forklift_id}
+              onChange={(val) => setFormData({...formData, forklift_id: val})}
+              placeholder="Search by S/N, make, model..."
+          />
+
+          {/* Show selected forklift info */}
+          {selectedForklift && (
+            <div className="bg-white rounded-lg p-3 border border-amber-200">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-slate-500">Serial Number:</span>
+                  <div className="font-mono font-medium">{selectedForklift.serial_number}</div>
+                </div>
+                <div>
+                  <span className="text-slate-500">Type:</span>
+                  <div className="font-medium">{selectedForklift.type}</div>
+                </div>
+                <div>
+                  <span className="text-slate-500">Make/Model:</span>
+                  <div className="font-medium">{selectedForklift.make} {selectedForklift.model}</div>
+                </div>
+                <div>
+                  <span className="text-slate-500">Current Hourmeter:</span>
+                  <div className="font-medium">{selectedForklift.hourmeter.toLocaleString()} hrs</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Hourmeter Reading Input */}
+          {formData.forklift_id && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                <Gauge className="w-4 h-4" /> Current Hourmeter Reading
+              </label>
+              <input 
+                type="number"
+                className={inputClassName}
+                value={formData.hourmeter_reading}
+                onChange={e => setFormData({...formData, hourmeter_reading: e.target.value})}
+                placeholder="Enter current hourmeter reading"
+                min={selectedForklift?.hourmeter || 0}
+              />
+              {selectedForklift && formData.hourmeter_reading && parseInt(formData.hourmeter_reading) < selectedForklift.hourmeter && (
+                <p className="text-xs text-red-500 mt-1">
+                  ⚠️ Reading is less than current recorded ({selectedForklift.hourmeter} hrs)
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
         <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Job Title</label>
             <input 
@@ -140,7 +244,7 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
                 className={inputClassName}
                 value={formData.title}
                 onChange={e => setFormData({...formData, title: e.target.value})}
-                placeholder="e.g. AC Repair"
+                placeholder="e.g., PM Service, Hydraulic Repair"
                 required
             />
         </div>
@@ -151,12 +255,24 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
                 className={`${inputClassName} h-32 resize-none`}
                 value={formData.description}
                 onChange={e => setFormData({...formData, description: e.target.value})}
-                placeholder="Describe the issue..."
+                placeholder="Describe the issue or service required..."
                 required
             />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Job Type</label>
+                <select 
+                    className={`${inputClassName} appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111827%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:0.7em] bg-[right_1rem_center] bg-no-repeat pr-8`}
+                    value={formData.job_type}
+                    onChange={e => setFormData({...formData, job_type: e.target.value as JobType})}
+                >
+                    {Object.values(JobType).map(t => (
+                        <option key={t} value={t} className="text-[#111827]">{t}</option>
+                    ))}
+                </select>
+            </div>
             <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
                 <select 

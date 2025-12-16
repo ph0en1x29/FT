@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Job, JobStatus, User } from '../types_with_invoice_tracking';
+import { Job, JobStatus, JobType, User } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { Briefcase, Calendar, MapPin, User as UserIcon } from 'lucide-react';
 
@@ -31,6 +31,16 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
     }
   };
 
+  const getJobTypeColor = (type?: JobType) => {
+    switch(type) {
+      case JobType.SERVICE: return 'bg-green-50 text-green-700 border-green-200';
+      case JobType.REPAIR: return 'bg-orange-50 text-orange-700 border-orange-200';
+      case JobType.CHECKING: return 'bg-purple-50 text-purple-700 border-purple-200';
+      case JobType.ACCIDENT: return 'bg-red-50 text-red-700 border-red-200';
+      default: return 'bg-slate-50 text-slate-600 border-slate-200';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -55,9 +65,16 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
             className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition cursor-pointer group"
           >
             <div className="flex justify-between items-start mb-3">
-              <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wide ${getStatusColor(job.status)}`}>
-                {job.status}
-              </span>
+              <div className="flex gap-2 flex-wrap">
+                <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wide ${getStatusColor(job.status)}`}>
+                  {job.status}
+                </span>
+                {job.job_type && (
+                  <span className={`px-2 py-1 rounded text-xs font-medium border ${getJobTypeColor(job.job_type as JobType)}`}>
+                    {job.job_type}
+                  </span>
+                )}
+              </div>
               {job.priority === 'Emergency' && (
                 <span className="text-xs font-bold text-red-600 animate-pulse">EMERGENCY</span>
               )}

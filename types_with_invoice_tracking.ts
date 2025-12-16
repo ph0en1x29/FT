@@ -19,6 +19,124 @@ export enum JobPriority {
   EMERGENCY = 'Emergency',
 }
 
+// Job Type Classification
+export enum JobType {
+  SERVICE = 'Service',
+  REPAIR = 'Repair',
+  CHECKING = 'Checking',
+  ACCIDENT = 'Accident',
+}
+
+// Forklift/Asset types
+export enum ForkliftType {
+  ELECTRIC = 'Electric',
+  DIESEL = 'Diesel',
+  LPG = 'LPG',
+  PETROL = 'Petrol',
+}
+
+export enum ForkliftStatus {
+  ACTIVE = 'Active',
+  MAINTENANCE = 'Under Maintenance',
+  INACTIVE = 'Inactive',
+}
+
+// Forklift Condition Checklist Items
+export interface ForkliftConditionChecklist {
+  // Drive System
+  drive_front_axle?: boolean;
+  drive_rear_axle?: boolean;
+  drive_motor_engine?: boolean;
+  drive_controller_transmission?: boolean;
+  
+  // Hydraulic System
+  hydraulic_pump?: boolean;
+  hydraulic_control_valve?: boolean;
+  hydraulic_hose?: boolean;
+  hydraulic_oil_level?: boolean;
+  
+  // Safety Devices
+  safety_overhead_guard?: boolean;
+  safety_cabin_body?: boolean;
+  safety_backrest?: boolean;
+  safety_seat_belt?: boolean;
+  
+  // Steering System
+  steering_wheel_valve?: boolean;
+  steering_cylinder?: boolean;
+  steering_motor?: boolean;
+  steering_knuckle?: boolean;
+  
+  // Load Handling System
+  load_fork?: boolean;
+  load_mast_roller?: boolean;
+  load_chain_wheel?: boolean;
+  load_cylinder?: boolean;
+  
+  // Lighting
+  lighting_beacon_light?: boolean;
+  lighting_horn?: boolean;
+  lighting_buzzer?: boolean;
+  lighting_rear_view_mirror?: boolean;
+  
+  // Braking System
+  braking_brake_pedal?: boolean;
+  braking_parking_brake?: boolean;
+  braking_fluid_pipe?: boolean;
+  braking_master_pump?: boolean;
+  
+  // Diesel/LPG/Petrol
+  fuel_engine_oil_level?: boolean;
+  fuel_line_leaks?: boolean;
+  fuel_radiator?: boolean;
+  fuel_exhaust_piping?: boolean;
+  
+  // Tyres
+  tyres_front?: boolean;
+  tyres_rear?: boolean;
+  tyres_rim?: boolean;
+  tyres_screw_nut?: boolean;
+  
+  // Electrical System
+  electrical_ignition?: boolean;
+  electrical_battery?: boolean;
+  electrical_wiring?: boolean;
+  electrical_instruments?: boolean;
+  
+  // Transmission
+  transmission_fluid_level?: boolean;
+  transmission_inching_valve?: boolean;
+  transmission_air_cleaner?: boolean;
+  transmission_lpg_regulator?: boolean;
+  
+  // Wheels
+  wheels_drive?: boolean;
+  wheels_load?: boolean;
+  wheels_support?: boolean;
+  wheels_hub_nut?: boolean;
+}
+
+export interface Forklift {
+  forklift_id: string;
+  serial_number: string;
+  make: string;
+  model: string;
+  type: ForkliftType;
+  hourmeter: number;
+  year?: number;
+  capacity_kg?: number;
+  location?: string;
+  status: ForkliftStatus;
+  last_service_date?: string;
+  next_service_due?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  // Customer relationship for rental tracking
+  customer_id?: string;
+  forklift_no?: string; // Internal forklift number (e.g., FLT 5)
+}
+
 export interface User {
   user_id: string;
   name: string;
@@ -37,6 +155,8 @@ export interface Customer {
   email: string;
   address: string;
   notes?: string;
+  contact_person?: string; // Attention person
+  account_number?: string; // A/C No
 }
 
 export interface Part {
@@ -48,6 +168,13 @@ export interface Part {
   sell_price: number;
   warranty_months: number;
   stock_quantity: number;
+  // New fields for inventory tracking
+  last_updated_by?: string;
+  last_updated_by_name?: string;
+  updated_at?: string;
+  min_stock_level?: number;
+  supplier?: string;
+  location?: string;
 }
 
 export interface JobPartUsed {
@@ -66,12 +193,16 @@ export interface JobMedia {
   url: string;
   description?: string;
   created_at: string;
+  uploaded_by_id?: string;
+  uploaded_by_name?: string;
 }
 
 export interface SignatureEntry {
   signed_by_name: string;
   signed_at: string;
   signature_url: string;
+  department?: string;
+  ic_no?: string;
 }
 
 export interface ExtraCharge {
@@ -90,6 +221,7 @@ export interface Job {
   title: string;
   description: string;
   priority: JobPriority;
+  job_type?: JobType; // Service, Repair, Checking, Accident
   status: JobStatus;
   assigned_technician_id: string;
   assigned_technician_name?: string;
@@ -98,6 +230,39 @@ export interface Job {
   arrival_time?: string;
   completion_time?: string;
   notes: string[];
+  
+  // Audit Trail - Job Creation
+  created_by_id?: string;
+  created_by_name?: string;
+  
+  // Audit Trail - Job Started
+  started_at?: string;
+  started_by_id?: string;
+  started_by_name?: string;
+  
+  // Audit Trail - Job Completed
+  completed_at?: string;
+  completed_by_id?: string;
+  completed_by_name?: string;
+  
+  // Audit Trail - Job Assigned
+  assigned_at?: string;
+  assigned_by_id?: string;
+  assigned_by_name?: string;
+  
+  // Forklift reference
+  forklift_id?: string;
+  forklift?: Forklift;
+  hourmeter_reading?: number;
+  
+  // Condition checklist (checked when starting job)
+  condition_checklist?: ForkliftConditionChecklist;
+  job_carried_out?: string; // Description of work done
+  recommendation?: string; // Technician recommendations
+  
+  // Repairing hours
+  repair_start_time?: string;
+  repair_end_time?: string;
   
   // Signatures
   technician_signature?: SignatureEntry;
@@ -110,10 +275,127 @@ export interface Job {
   labor_cost?: number;
   extra_charges?: ExtraCharge[];
   
-  // NEW: Invoice tracking
+  // Invoice tracking
   invoiced_by_id?: string;
   invoiced_by_name?: string;
   invoiced_at?: string;
   invoice_sent_at?: string;
-  invoice_sent_via?: string[]; // ['email', 'whatsapp']
+  invoice_sent_via?: string[];
+  
+  // Quotation tracking
+  quotation_number?: string;
+  quotation_date?: string;
+  quotation_validity?: string;
+  delivery_term?: string;
+  payment_term?: string;
+  
+  // Service report number
+  service_report_number?: string;
+}
+
+// Quotation specific types
+export interface QuotationItem {
+  item_number: number;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  amount: number;
+  brand?: string;
+  model?: string;
+  capacity?: string;
+  voltage?: string;
+  accessory?: string;
+  warranty?: string;
+}
+
+export interface Quotation {
+  quotation_id: string;
+  quotation_number: string;
+  customer_id: string;
+  customer: Customer;
+  date: string;
+  attention: string;
+  reference: string; // RE: line
+  items: QuotationItem[];
+  sub_total: number;
+  tax_rate: number;
+  tax_amount: number;
+  total: number;
+  validity: string;
+  delivery_site?: string;
+  delivery_term: string;
+  payment_term: string;
+  remark?: string;
+  status: 'draft' | 'sent' | 'accepted' | 'rejected';
+  created_by_id: string;
+  created_by_name: string;
+  created_at: string;
+  // Reference to job if converted
+  job_id?: string;
+  forklift_id?: string;
+  forklift?: Forklift;
+}
+
+// Technician KPI types
+export interface TechnicianKPI {
+  technician_id: string;
+  technician_name: string;
+  period_start: string;
+  period_end: string;
+  
+  // Job metrics
+  total_jobs_assigned: number;
+  total_jobs_completed: number;
+  completion_rate: number;
+  
+  // Time metrics (in hours)
+  avg_response_time: number; // Time from assignment to arrival
+  avg_completion_time: number; // Time from arrival to completion
+  total_hours_worked: number;
+  
+  // Quality metrics
+  jobs_with_callbacks: number; // Jobs that needed follow-up
+  customer_satisfaction_avg?: number;
+  
+  // Revenue metrics
+  total_revenue_generated: number;
+  avg_job_value: number;
+  
+  // Parts metrics
+  total_parts_used: number;
+  
+  // Priority breakdown
+  emergency_jobs: number;
+  high_priority_jobs: number;
+  medium_priority_jobs: number;
+  low_priority_jobs: number;
+}
+
+// Predictive Maintenance types
+export interface ServiceInterval {
+  interval_id: string;
+  forklift_type: ForkliftType;
+  service_type: string; // e.g., "PM Service", "Oil Change", "Full Inspection"
+  hourmeter_interval: number; // Every X hours
+  calendar_interval_days?: number; // Or every X days
+  priority: JobPriority;
+  checklist_items?: string[];
+  estimated_duration_hours?: number;
+  is_active: boolean;
+}
+
+export interface ScheduledService {
+  scheduled_id: string;
+  forklift_id: string;
+  forklift?: Forklift;
+  service_interval_id: string;
+  service_interval?: ServiceInterval;
+  due_date: string;
+  due_hourmeter?: number;
+  status: 'pending' | 'scheduled' | 'completed' | 'overdue';
+  assigned_technician_id?: string;
+  assigned_technician_name?: string;
+  job_id?: string; // Linked job if created
+  created_at: string;
+  notes?: string;
 }
