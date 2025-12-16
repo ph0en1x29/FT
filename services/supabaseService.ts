@@ -295,6 +295,10 @@ export const SupabaseDb = {
         // Audit: Job Creation
         created_by_id: createdById || null,
         created_by_name: createdByName || null,
+        // If technician is assigned during creation, set assigned_at
+        assigned_at: jobData.assigned_technician_id ? new Date().toISOString() : null,
+        assigned_by_id: jobData.assigned_technician_id ? createdById : null,
+        assigned_by_name: jobData.assigned_technician_id ? createdByName : null,
       })
       .select(`
         *,
@@ -307,7 +311,15 @@ export const SupabaseDb = {
       .single();
 
     if (error) throw new Error(error.message);
-    return data as Job;
+    
+    const job = data as Job;
+    
+    // Notify technician if one was assigned during job creation
+    if (jobData.assigned_technician_id) {
+      await SupabaseDb.notifyJobAssignment(jobData.assigned_technician_id, job);
+    }
+    
+    return job;
   },
 
   assignJob: async (jobId: string, technicianId: string, technicianName: string, assignedById?: string, assignedByName?: string): Promise<Job> => {
@@ -334,7 +346,13 @@ export const SupabaseDb = {
       .single();
 
     if (error) throw new Error(error.message);
-    return data as Job;
+    
+    const job = data as Job;
+    
+    // Notify the technician of the new assignment
+    await SupabaseDb.notifyJobAssignment(technicianId, job);
+    
+    return job;
   },
 
   updateJobStatus: async (jobId: string, status: JobStatus, completedById?: string, completedByName?: string): Promise<Job> => {
@@ -369,7 +387,15 @@ export const SupabaseDb = {
       .single();
 
     if (error) throw new Error(error.message);
-    return data as Job;
+    
+    const job = data as Job;
+    
+    // Notify accountants when job is pending finalization
+    if (status === JobStatus.AWAITING_FINALIZATION) {
+      await SupabaseDb.notifyPendingFinalization(job);
+    }
+    
+    return job;
   },
 
   // Update job's hourmeter reading
@@ -1168,17 +1194,180 @@ export const SupabaseDb = {
     return data as ForkliftRental;
   },
 
-  // Update rental rate only (convenience function)
-  updateRentalRate: async (rentalId: string, monthlyRate: number): Promise<void> => {
-    const { error } = await supabase
-      .from('forklift_rentals')
-      .update({
-        monthly_rental_rate: monthlyRate,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('rental_id', rentalId);
+  // =====================
+  // BULK RENTAL OPERATIONS
+  // =====================
 
-    if (error) throw new Error(error.message);
+  // Bulk assign multiple forklifts to a customer
+  bulkAssignForkliftsToCustomer: async (
+    forkliftIds: string[],
+    customerId: string,
+    startDate: string,
+    endDate?: string,
+    notes?: string,
+    createdById?: string,
+    createdByName?: string,
+    monthlyRentalRate?: number
+  ): Promise<{ success: ForkliftRental[]; failed: { forkliftId: string; error: string }[] }> => {
+    const results: { success: ForkliftRental[]; failed: { forkliftId: string; error: string }[] } = {
+      success: [],
+      failed: []
+    };
+
+    // Get customer address for location update
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('address')
+      .eq('customer_id', customerId)
+      .single();
+
+    for (const forkliftId of forkliftIds) {
+      try {
+        // Check if forklift is already assigned
+        const { data: existingRental } = await supabase
+          .from('forklift_rentals')
+          .select('rental_id')
+          .eq('forklift_id', forkliftId)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (existingRental) {
+          results.failed.push({
+            forkliftId,
+            error: 'Already rented to another customer'
+          });
+          continue;
+        }
+
+        // Create the rental
+        const { data, error } = await supabase
+          .from('forklift_rentals')
+          .insert({
+            forklift_id: forkliftId,
+            customer_id: customerId,
+            start_date: startDate,
+            end_date: endDate || null,
+            status: 'active',
+            notes: notes || null,
+            rental_location: customer?.address || null,
+            created_by_id: createdById || null,
+            created_by_name: createdByName || null,
+            monthly_rental_rate: monthlyRentalRate || 0,
+            currency: 'RM',
+          })
+          .select(`
+            *,
+            forklift:forklifts!forklift_rentals_forklift_id_fkey(*),
+            customer:customers(*)
+          `)
+          .single();
+
+        if (error) {
+          results.failed.push({
+            forkliftId,
+            error: error.message
+          });
+          continue;
+        }
+
+        // Update forklift with current customer and location
+        await supabase
+          .from('forklifts')
+          .update({
+            current_customer_id: customerId,
+            location: customer?.address || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('forklift_id', forkliftId);
+
+        results.success.push(data as ForkliftRental);
+      } catch (e) {
+        results.failed.push({
+          forkliftId,
+          error: (e as Error).message
+        });
+      }
+    }
+
+    return results;
+  },
+
+  // Bulk end multiple rentals
+  bulkEndRentals: async (
+    forkliftIds: string[],
+    endDate?: string,
+    endedById?: string,
+    endedByName?: string
+  ): Promise<{ success: ForkliftRental[]; failed: { forkliftId: string; error: string }[] }> => {
+    const results: { success: ForkliftRental[]; failed: { forkliftId: string; error: string }[] } = {
+      success: [],
+      failed: []
+    };
+
+    for (const forkliftId of forkliftIds) {
+      try {
+        // Find the active rental for this forklift
+        const { data: activeRental, error: findError } = await supabase
+          .from('forklift_rentals')
+          .select('rental_id')
+          .eq('forklift_id', forkliftId)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (findError || !activeRental) {
+          results.failed.push({
+            forkliftId,
+            error: 'No active rental found'
+          });
+          continue;
+        }
+
+        // Update the rental status
+        const { data, error } = await supabase
+          .from('forklift_rentals')
+          .update({
+            status: 'ended',
+            end_date: endDate || new Date().toISOString().split('T')[0],
+            ended_at: new Date().toISOString(),
+            ended_by_id: endedById || null,
+            ended_by_name: endedByName || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('rental_id', activeRental.rental_id)
+          .select(`
+            *,
+            forklift:forklifts!forklift_rentals_forklift_id_fkey(*),
+            customer:customers(*)
+          `)
+          .single();
+
+        if (error) {
+          results.failed.push({
+            forkliftId,
+            error: error.message
+          });
+          continue;
+        }
+
+        // Clear the forklift's current customer
+        await supabase
+          .from('forklifts')
+          .update({
+            current_customer_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('forklift_id', forkliftId);
+
+        results.success.push(data as ForkliftRental);
+      } catch (e) {
+        results.failed.push({
+          forkliftId,
+          error: (e as Error).message
+        });
+      }
+    }
+
+    return results;
   },
 
   // Get forklift with current customer info
@@ -1404,6 +1593,53 @@ export const SupabaseDb = {
       reference_id: job.job_id,
       priority: job.priority === 'Emergency' ? 'urgent' : job.priority === 'High' ? 'high' : 'normal',
     });
+  },
+
+  // Get all accountants for notifications
+  getAccountants: async (): Promise<User[]> => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('role', UserRole.ACCOUNTANT)
+      .eq('is_active', true);
+
+    if (error) {
+      console.warn('Failed to get accountants:', error.message);
+      return [];
+    }
+    return data as User[];
+  },
+
+  // Notify all accountants of pending finalization
+  notifyPendingFinalization: async (job: Job): Promise<void> => {
+    try {
+      // Get all active accountants
+      const accountants = await SupabaseDb.getAccountants();
+      
+      // Also notify admins
+      const { data: admins } = await supabase
+        .from('users')
+        .select('*')
+        .eq('role', UserRole.ADMIN)
+        .eq('is_active', true);
+
+      const usersToNotify = [...accountants, ...(admins || [])];
+
+      // Create notification for each accountant/admin
+      for (const user of usersToNotify) {
+        await SupabaseDb.createNotification({
+          user_id: user.user_id,
+          type: NotificationType.JOB_PENDING,
+          title: 'Job Pending Finalization',
+          message: `Job "${job.title}" for ${job.customer?.name || 'Unknown Customer'} is ready for invoice finalization.`,
+          reference_type: 'job',
+          reference_id: job.job_id,
+          priority: job.priority === 'Emergency' ? 'urgent' : job.priority === 'High' ? 'high' : 'normal',
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to notify pending finalization:', e);
+    }
   },
 
   // =====================

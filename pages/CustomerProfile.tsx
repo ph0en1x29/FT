@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Customer, Job, User, UserRole, ForkliftRental } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
@@ -6,7 +6,8 @@ import { generateCustomerAnalysis } from '../services/geminiService';
 import { 
   ArrowLeft, MapPin, Phone, Mail, Calendar, DollarSign, 
   TrendingUp, AlertCircle, BrainCircuit, Wrench, CheckCircle, Clock, Trash2,
-  Truck, ChevronRight, Building2, Edit2, X, Save, Receipt
+  Truck, ChevronRight, Building2, Edit2, X, Save, Receipt,
+  Square, CheckSquare, CircleOff, Loader2
 } from 'lucide-react';
 
 interface CustomerProfileProps {
@@ -30,6 +31,22 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   const [editEndDate, setEditEndDate] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [editMonthlyRate, setEditMonthlyRate] = useState('');
+
+  // Multi-select for ending rentals
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedRentalIds, setSelectedRentalIds] = useState<Set<string>>(new Set());
+  const [showBulkEndModal, setShowBulkEndModal] = useState(false);
+  const [bulkEndDate, setBulkEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+
+  // Result modal
+  const [resultModal, setResultModal] = useState<{
+    show: boolean;
+    type: 'success' | 'error' | 'mixed';
+    title: string;
+    message: string;
+    details?: string[];
+  }>({ show: false, type: 'success', title: '', message: '' });
 
   const isAdmin = currentUser.role.toString().toLowerCase() === 'admin';
 
@@ -127,6 +144,94 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
     }
   };
 
+  // Multi-select handlers
+  const activeRentals = useMemo(() => rentals.filter(r => r.status === 'active'), [rentals]);
+  const pastRentals = useMemo(() => rentals.filter(r => r.status !== 'active'), [rentals]);
+
+  const selectedRentals = useMemo(() => {
+    return activeRentals.filter(r => selectedRentalIds.has(r.rental_id));
+  }, [activeRentals, selectedRentalIds]);
+
+  const toggleSelectionMode = () => {
+    if (isSelectionMode) {
+      setSelectedRentalIds(new Set());
+    }
+    setIsSelectionMode(!isSelectionMode);
+  };
+
+  const toggleRentalSelection = (rentalId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newSelected = new Set(selectedRentalIds);
+    if (newSelected.has(rentalId)) {
+      newSelected.delete(rentalId);
+    } else {
+      newSelected.add(rentalId);
+    }
+    setSelectedRentalIds(newSelected);
+  };
+
+  const selectAllActiveRentals = () => {
+    const allIds = new Set(activeRentals.map(r => r.rental_id));
+    setSelectedRentalIds(allIds);
+  };
+
+  const deselectAll = () => {
+    setSelectedRentalIds(new Set());
+  };
+
+  const openBulkEndModal = () => {
+    setBulkEndDate(new Date().toISOString().split('T')[0]);
+    setShowBulkEndModal(true);
+  };
+
+  const handleBulkEndRentals = async () => {
+    if (selectedRentals.length === 0) return;
+
+    setBulkProcessing(true);
+    try {
+      // Get forklift IDs from selected rentals
+      const forkliftIds = selectedRentals.map(r => r.forklift_id);
+      
+      const result = await MockDb.bulkEndRentals(
+        forkliftIds,
+        bulkEndDate || undefined,
+        currentUser.user_id,
+        currentUser.name
+      );
+
+      const details: string[] = [];
+      result.success.forEach(r => {
+        details.push(`✓ ${r.forklift?.serial_number || 'Unknown'} - Rental ended`);
+      });
+      result.failed.forEach(f => {
+        const rental = selectedRentals.find(r => r.forklift_id === f.forkliftId);
+        details.push(`✗ ${rental?.forklift?.serial_number || f.forkliftId} - ${f.error}`);
+      });
+
+      setResultModal({
+        show: true,
+        type: result.failed.length === 0 ? 'success' : result.success.length === 0 ? 'error' : 'mixed',
+        title: result.failed.length === 0 ? 'Rentals Ended Successfully' : 'Bulk End Rental Complete',
+        message: `Successfully ended ${result.success.length} rental(s)${result.failed.length > 0 ? `, ${result.failed.length} failed` : ''}.`,
+        details
+      });
+
+      setShowBulkEndModal(false);
+      setSelectedRentalIds(new Set());
+      setIsSelectionMode(false);
+      await loadCustomerData();
+    } catch (error) {
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Error',
+        message: (error as Error).message
+      });
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-8 text-center text-slate-500">Loading customer profile...</div>;
   }
@@ -181,9 +286,6 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   const topIssues = Object.entries(issueFrequency)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
-
-  const activeRentals = rentals.filter(r => r.status === 'active');
-  const pastRentals = rentals.filter(r => r.status !== 'active');
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -256,77 +358,167 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
       {/* Rented Forklifts Section */}
       {rentals.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <Truck className="w-5 h-5 text-blue-600" /> Rented Forklifts ({rentals.length})
-          </h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              <Truck className="w-5 h-5 text-blue-600" /> Rented Forklifts ({rentals.length})
+            </h3>
+            
+            {activeRentals.length > 1 && (
+              <button
+                onClick={toggleSelectionMode}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  isSelectionMode 
+                    ? 'bg-blue-100 text-blue-700 border border-blue-300' 
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                {isSelectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                {isSelectionMode ? 'Exit Selection' : 'Multi-Select'}
+              </button>
+            )}
+          </div>
+
+          {/* Selection Actions Bar */}
+          {isSelectionMode && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <div className="flex flex-wrap justify-between items-center gap-3">
+                <div className="flex gap-3 text-sm">
+                  <button
+                    onClick={selectAllActiveRentals}
+                    className="text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Select All ({activeRentals.length})
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    onClick={deselectAll}
+                    className="text-slate-600 hover:text-slate-800 font-medium"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+                
+                {selectedRentalIds.size > 0 && (
+                  <button
+                    onClick={openBulkEndModal}
+                    className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-medium shadow-sm"
+                  >
+                    <CircleOff className="w-4 h-4" />
+                    End {selectedRentalIds.size} Rental(s)
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           
           {/* Active Rentals */}
           {activeRentals.length > 0 && (
             <div className="mb-4">
-              <h4 className="text-sm font-semibold text-green-700 mb-2">Active Rentals</h4>
+              <h4 className="text-sm font-semibold text-green-700 mb-2">
+                Active Rentals
+                {isSelectionMode && selectedRentalIds.size > 0 && (
+                  <span className="ml-2 text-blue-600">({selectedRentalIds.size} selected)</span>
+                )}
+              </h4>
               <div className="space-y-3">
-                {activeRentals.map(rental => (
-                  <div 
-                    key={rental.rental_id} 
-                    className="p-4 bg-green-50 border border-green-200 rounded-lg"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div 
-                        className="flex-1 cursor-pointer hover:opacity-80"
-                        onClick={() => rental.forklift && navigate(`/forklifts/${rental.forklift_id}`)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Truck className="w-4 h-4 text-green-600" />
-                          <span className="font-semibold text-slate-800">
-                            {rental.forklift?.make} {rental.forklift?.model}
-                          </span>
-                          <ChevronRight className="w-4 h-4 text-slate-300" />
-                        </div>
-                        <p className="text-sm text-slate-500 font-mono mt-1">
-                          {rental.forklift?.serial_number}
-                        </p>
-                        <div className="flex gap-4 mt-2 text-sm">
-                          <span className="text-slate-600">
-                            <Calendar className="w-3 h-3 inline mr-1" />
-                            From: {new Date(rental.start_date).toLocaleDateString()}
-                          </span>
-                          {rental.end_date && (
-                            <span className="text-slate-600">
-                              <Calendar className="w-3 h-3 inline mr-1" />
-                              Until: {new Date(rental.end_date).toLocaleDateString()}
-                            </span>
+                {activeRentals.map(rental => {
+                  const isSelected = selectedRentalIds.has(rental.rental_id);
+                  
+                  return (
+                    <div 
+                      key={rental.rental_id} 
+                      className={`p-4 rounded-lg transition-all ${
+                        isSelected 
+                          ? 'bg-blue-50 border-2 border-blue-400 shadow-sm' 
+                          : 'bg-green-50 border border-green-200'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-start gap-3 flex-1">
+                          {isSelectionMode && (
+                            <button
+                              onClick={(e) => toggleRentalSelection(rental.rental_id, e)}
+                              className="mt-1"
+                            >
+                              {isSelected ? (
+                                <CheckSquare className="w-5 h-5 text-blue-600" />
+                              ) : (
+                                <Square className="w-5 h-5 text-slate-400" />
+                              )}
+                            </button>
                           )}
+                          <div 
+                            className={`flex-1 ${!isSelectionMode ? 'cursor-pointer hover:opacity-80' : ''}`}
+                            onClick={() => {
+                              if (isSelectionMode) {
+                                const newSelected = new Set(selectedRentalIds);
+                                if (newSelected.has(rental.rental_id)) {
+                                  newSelected.delete(rental.rental_id);
+                                } else {
+                                  newSelected.add(rental.rental_id);
+                                }
+                                setSelectedRentalIds(newSelected);
+                              } else if (rental.forklift) {
+                                navigate(`/forklifts/${rental.forklift_id}`);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Truck className="w-4 h-4 text-green-600" />
+                              <span className="font-semibold text-slate-800">
+                                {rental.forklift?.make} {rental.forklift?.model}
+                              </span>
+                              {!isSelectionMode && <ChevronRight className="w-4 h-4 text-slate-300" />}
+                            </div>
+                            <p className="text-sm text-slate-500 font-mono mt-1">
+                              {rental.forklift?.serial_number}
+                            </p>
+                            <div className="flex gap-4 mt-2 text-sm">
+                              <span className="text-slate-600">
+                                <Calendar className="w-3 h-3 inline mr-1" />
+                                From: {new Date(rental.start_date).toLocaleDateString()}
+                              </span>
+                              {rental.end_date && (
+                                <span className="text-slate-600">
+                                  <Calendar className="w-3 h-3 inline mr-1" />
+                                  Until: {new Date(rental.end_date).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                            {(rental as any).monthly_rental_rate > 0 && (
+                              <div className="mt-2 text-sm font-medium text-green-700">
+                                <DollarSign className="w-3 h-3 inline mr-1" />
+                                RM{((rental as any).monthly_rental_rate || 0).toLocaleString()}/month
+                              </div>
+                            )}
+                            {rental.notes && (
+                              <p className="text-xs text-slate-500 mt-2 italic">{rental.notes}</p>
+                            )}
+                          </div>
                         </div>
-                        {(rental as any).monthly_rental_rate > 0 && (
-                          <div className="mt-2 text-sm font-medium text-green-700">
-                            <DollarSign className="w-3 h-3 inline mr-1" />
-                            RM{((rental as any).monthly_rental_rate || 0).toLocaleString()}/month
+                        {!isSelectionMode && (
+                          <div className="flex gap-2">
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleEditRental(rental)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                                title="Edit Rental & Rate"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleEndRental(rental.rental_id)}
+                              className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
+                            >
+                              End Rental
+                            </button>
                           </div>
                         )}
-                        {rental.notes && (
-                          <p className="text-xs text-slate-500 mt-2 italic">{rental.notes}</p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleEditRental(rental)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                            title="Edit Rental & Rate"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleEndRental(rental.rental_id)}
-                          className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
-                        >
-                          End Rental
-                        </button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -670,6 +862,153 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
                 >
                   <Save className="w-4 h-4" />
                   Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk End Rental Modal */}
+      {showBulkEndModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-red-50 sticky top-0">
+              <h3 className="font-bold text-lg text-red-800">
+                End Rentals ({selectedRentals.length} Forklifts)
+              </h3>
+              <button 
+                onClick={() => setShowBulkEndModal(false)} 
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Selected Rentals Preview */}
+              <div className="bg-slate-50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                <p className="text-xs font-bold text-slate-500 uppercase mb-2">Rentals to End:</p>
+                <div className="space-y-2">
+                  {selectedRentals.map(rental => (
+                    <div key={rental.rental_id} className="text-sm p-2 bg-white rounded border border-slate-200">
+                      <div className="flex items-center gap-2 text-slate-700">
+                        <Truck className="w-3 h-3 text-slate-400" />
+                        <span className="font-medium">{rental.forklift?.serial_number}</span>
+                        <span className="text-slate-400">- {rental.forklift?.make} {rental.forklift?.model}</span>
+                      </div>
+                      {(rental as any).monthly_rental_rate > 0 && (
+                        <div className="text-xs text-green-600 mt-1">
+                          RM{(rental as any).monthly_rental_rate.toLocaleString()}/month
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm text-amber-800">
+                  <strong>⚠️ Warning:</strong> This will end all {selectedRentals.length} rental(s) for this customer. 
+                  The forklifts will become available for new rentals.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rental End Date</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-blue-500"
+                  value={bulkEndDate}
+                  onChange={(e) => setBulkEndDate(e.target.value)}
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkEndModal(false)}
+                  disabled={bulkProcessing}
+                  className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkEndRentals}
+                  disabled={bulkProcessing}
+                  className="flex-1 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkProcessing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CircleOff className="w-4 h-4" />
+                  )}
+                  {bulkProcessing ? 'Processing...' : `End ${selectedRentals.length} Rentals`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Result Modal */}
+      {resultModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className={`px-6 py-4 border-b flex justify-between items-center ${
+              resultModal.type === 'success' ? 'bg-green-50 border-green-100' :
+              resultModal.type === 'error' ? 'bg-red-50 border-red-100' :
+              'bg-amber-50 border-amber-100'
+            }`}>
+              <h3 className={`font-bold text-lg flex items-center gap-2 ${
+                resultModal.type === 'success' ? 'text-green-800' :
+                resultModal.type === 'error' ? 'text-red-800' :
+                'text-amber-800'
+              }`}>
+                {resultModal.type === 'success' && <CheckCircle className="w-5 h-5" />}
+                {resultModal.type === 'error' && <AlertCircle className="w-5 h-5" />}
+                {resultModal.type === 'mixed' && <AlertCircle className="w-5 h-5" />}
+                {resultModal.title}
+              </h3>
+              <button 
+                onClick={() => setResultModal({ ...resultModal, show: false })} 
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-slate-700">{resultModal.message}</p>
+              
+              {resultModal.details && resultModal.details.length > 0 && (
+                <div className="bg-slate-50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                  <div className="space-y-1 text-sm font-mono">
+                    {resultModal.details.map((detail, idx) => (
+                      <p key={idx} className={
+                        detail.startsWith('✓') ? 'text-green-600' :
+                        detail.startsWith('✗') ? 'text-red-600' :
+                        'text-slate-600'
+                      }>
+                        {detail}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setResultModal({ ...resultModal, show: false })}
+                  className={`w-full py-2.5 rounded-lg font-medium shadow-sm ${
+                    resultModal.type === 'success' ? 'bg-green-600 text-white hover:bg-green-700' :
+                    resultModal.type === 'error' ? 'bg-red-600 text-white hover:bg-red-700' :
+                    'bg-amber-600 text-white hover:bg-amber-700'
+                  }`}
+                >
+                  Close
                 </button>
               </div>
             </div>

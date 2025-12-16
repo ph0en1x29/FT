@@ -565,6 +565,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canScheduleMaintenance: true,
   },
   [UserRole.SUPERVISOR]: {
+    // Supervisor has access to everything technician and accountant can see
     canViewDashboard: true,
     canViewAllJobs: true,
     canCreateJobs: true,
@@ -572,7 +573,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canReassignJobs: true,
     canEditJobs: true,
     canDeleteJobs: false,
-    canFinalizeInvoices: false,
+    canFinalizeInvoices: true, // Can finalize like accountant
     canViewKPI: true,
     canManageUsers: false,
     canManageInventory: true,
@@ -598,7 +599,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canFinalizeInvoices: false,
     canViewKPI: false,
     canManageUsers: false,
-    canManageInventory: false,
+    canManageInventory: true, // Can view inventory
     canEditInventory: false,
     canViewCustomers: true,
     canEditCustomers: false,
@@ -607,7 +608,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canEditForklifts: false,
     canManageRentals: false,
     canEditRentalRates: false,
-    canViewServiceRecords: false,
+    canViewServiceRecords: true, // Can view service records
     canScheduleMaintenance: false,
   },
   [UserRole.ACCOUNTANT]: {
@@ -621,16 +622,16 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canFinalizeInvoices: true,
     canViewKPI: false,
     canManageUsers: false,
-    canManageInventory: true,
+    canManageInventory: true, // Can view inventory
     canEditInventory: false,
-    canViewCustomers: true,
+    canViewCustomers: true, // Can view customers
     canEditCustomers: false,
     canDeleteCustomers: false,
-    canViewForklifts: true,
+    canViewForklifts: true, // Can view forklifts
     canEditForklifts: false,
     canManageRentals: false,
     canEditRentalRates: false,
-    canViewServiceRecords: true,
+    canViewServiceRecords: true, // Can view service records
     canScheduleMaintenance: false,
   },
 };

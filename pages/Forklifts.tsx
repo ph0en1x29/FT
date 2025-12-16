@@ -5,7 +5,8 @@ import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { 
   Plus, Search, Filter, Truck, Edit2, Trash2, X, Save, 
   Gauge, Calendar, MapPin, CheckCircle, AlertCircle, Clock,
-  Building2, Eye, ChevronRight
+  Building2, Eye, ChevronRight, Square, CheckSquare, XCircle,
+  CircleOff, Loader2
 } from 'lucide-react';
 
 interface ForkliftsProps {
@@ -31,6 +32,22 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
   const [editingForklift, setEditingForklift] = useState<Forklift | null>(null);
   const [assigningForklift, setAssigningForklift] = useState<Forklift | null>(null);
   
+  // Multi-select states
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedForkliftIds, setSelectedForkliftIds] = useState<Set<string>>(new Set());
+  const [showBulkRentModal, setShowBulkRentModal] = useState(false);
+  const [showBulkEndRentalModal, setShowBulkEndRentalModal] = useState(false);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+
+  // Result modal state
+  const [resultModal, setResultModal] = useState<{
+    show: boolean;
+    type: 'success' | 'error' | 'mixed';
+    title: string;
+    message: string;
+    details?: string[];
+  }>({ show: false, type: 'success', title: '', message: '' });
+
   // Form data
   const [formData, setFormData] = useState({
     serial_number: '',
@@ -51,6 +68,9 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
   const [endDate, setEndDate] = useState('');
   const [rentalNotes, setRentalNotes] = useState('');
   const [monthlyRentalRate, setMonthlyRentalRate] = useState('');
+
+  // Bulk end rental form
+  const [bulkEndDate, setBulkEndDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     loadData();
@@ -105,6 +125,19 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
     });
   }, [forklifts, searchQuery, filterType, filterStatus, filterMake, filterAssigned]);
 
+  // Selection helpers
+  const selectedForklifts = useMemo(() => {
+    return filteredForklifts.filter(f => selectedForkliftIds.has(f.forklift_id));
+  }, [filteredForklifts, selectedForkliftIds]);
+
+  const availableSelectedForklifts = useMemo(() => {
+    return selectedForklifts.filter(f => !(f as any).current_customer_id);
+  }, [selectedForklifts]);
+
+  const rentedSelectedForklifts = useMemo(() => {
+    return selectedForklifts.filter(f => !!(f as any).current_customer_id);
+  }, [selectedForklifts]);
+
   const resetForm = () => {
     setFormData({
       serial_number: '',
@@ -158,7 +191,12 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
     e.preventDefault();
     
     if (!formData.serial_number || !formData.make || !formData.model) {
-      alert('Please fill in Serial Number, Make, and Model');
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Please fill in Serial Number, Make, and Model'
+      });
       return;
     }
 
@@ -174,13 +212,23 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
       resetForm();
       setEditingForklift(null);
     } catch (error) {
-      alert('Error saving forklift: ' + (error as Error).message);
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Error saving forklift: ' + (error as Error).message
+      });
     }
   };
 
   const handleAssignSubmit = async () => {
     if (!assigningForklift || !selectedCustomerId || !startDate) {
-      alert('Please select a customer and start date');
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Please select a customer and start date'
+      });
       return;
     }
 
@@ -196,12 +244,31 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
         monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined
       );
       
+      const customer = customers.find(c => c.customer_id === selectedCustomerId);
+      
       setShowAssignModal(false);
       setAssigningForklift(null);
       setMonthlyRentalRate('');
       await loadData();
+
+      setResultModal({
+        show: true,
+        type: 'success',
+        title: 'Forklift Rented Successfully',
+        message: `${assigningForklift.make} ${assigningForklift.model} (${assigningForklift.serial_number}) has been rented to ${customer?.name || 'customer'}.`,
+        details: [
+          `✓ Rental created successfully`,
+          `✓ Start date: ${new Date(startDate).toLocaleDateString()}`,
+          monthlyRentalRate ? `✓ Monthly rate: RM${parseFloat(monthlyRentalRate).toLocaleString()}` : ''
+        ].filter(Boolean)
+      });
     } catch (error) {
-      alert((error as Error).message);
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Error',
+        message: (error as Error).message
+      });
     }
   };
 
@@ -213,8 +280,183 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
       await MockDb.deleteForklift(forklift.forklift_id);
       await loadData();
     } catch (error) {
-      alert((error as Error).message);
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Error',
+        message: (error as Error).message
+      });
     }
+  };
+
+  // Selection mode handlers
+  const toggleSelectionMode = () => {
+    if (isSelectionMode) {
+      setSelectedForkliftIds(new Set());
+    }
+    setIsSelectionMode(!isSelectionMode);
+  };
+
+  const toggleForkliftSelection = (forkliftId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newSelected = new Set(selectedForkliftIds);
+    if (newSelected.has(forkliftId)) {
+      newSelected.delete(forkliftId);
+    } else {
+      newSelected.add(forkliftId);
+    }
+    setSelectedForkliftIds(newSelected);
+  };
+
+  const selectAllFiltered = () => {
+    const allIds = new Set(filteredForklifts.map(f => f.forklift_id));
+    setSelectedForkliftIds(allIds);
+  };
+
+  const deselectAll = () => {
+    setSelectedForkliftIds(new Set());
+  };
+
+  // Bulk operations
+  const handleBulkRentOut = async () => {
+    if (availableSelectedForklifts.length === 0) {
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'No Forklifts Selected',
+        message: 'No available (unrented) forklifts selected'
+      });
+      return;
+    }
+
+    if (!selectedCustomerId || !startDate) {
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Please select a customer and start date'
+      });
+      return;
+    }
+
+    setBulkProcessing(true);
+    try {
+      const forkliftIds = availableSelectedForklifts.map(f => f.forklift_id);
+      const result = await MockDb.bulkAssignForkliftsToCustomer(
+        forkliftIds,
+        selectedCustomerId,
+        startDate,
+        endDate || undefined,
+        rentalNotes || undefined,
+        currentUser?.user_id,
+        currentUser?.name,
+        monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined
+      );
+
+      const customer = customers.find(c => c.customer_id === selectedCustomerId);
+      const details: string[] = [];
+      
+      result.success.forEach(r => {
+        details.push(`✓ ${r.forklift?.serial_number || 'Unknown'} - Rented successfully`);
+      });
+      result.failed.forEach(f => {
+        const forklift = forklifts.find(fl => fl.forklift_id === f.forkliftId);
+        details.push(`✗ ${forklift?.serial_number || f.forkliftId} - ${f.error}`);
+      });
+
+      setResultModal({
+        show: true,
+        type: result.failed.length === 0 ? 'success' : result.success.length === 0 ? 'error' : 'mixed',
+        title: result.failed.length === 0 ? 'Forklifts Rented Successfully' : 'Bulk Rent Out Complete',
+        message: `Successfully rented out ${result.success.length} forklift(s) to ${customer?.name || 'customer'}${result.failed.length > 0 ? `. ${result.failed.length} failed.` : '.'}`,
+        details
+      });
+
+      setShowBulkRentModal(false);
+      setSelectedForkliftIds(new Set());
+      setIsSelectionMode(false);
+      setSelectedCustomerId('');
+      setMonthlyRentalRate('');
+      setRentalNotes('');
+      await loadData();
+    } catch (error) {
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Error',
+        message: (error as Error).message
+      });
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleBulkEndRental = async () => {
+    if (rentedSelectedForklifts.length === 0) {
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'No Forklifts Selected',
+        message: 'No rented forklifts selected'
+      });
+      return;
+    }
+
+    setBulkProcessing(true);
+    try {
+      const forkliftIds = rentedSelectedForklifts.map(f => f.forklift_id);
+      const result = await MockDb.bulkEndRentals(
+        forkliftIds,
+        bulkEndDate || undefined,
+        currentUser?.user_id,
+        currentUser?.name
+      );
+
+      const details: string[] = [];
+      result.success.forEach(r => {
+        details.push(`✓ ${r.forklift?.serial_number || 'Unknown'} - Rental ended`);
+      });
+      result.failed.forEach(f => {
+        const forklift = forklifts.find(fl => fl.forklift_id === f.forkliftId);
+        details.push(`✗ ${forklift?.serial_number || f.forkliftId} - ${f.error}`);
+      });
+
+      setResultModal({
+        show: true,
+        type: result.failed.length === 0 ? 'success' : result.success.length === 0 ? 'error' : 'mixed',
+        title: result.failed.length === 0 ? 'Rentals Ended Successfully' : 'Bulk End Rental Complete',
+        message: `Successfully ended ${result.success.length} rental(s)${result.failed.length > 0 ? `. ${result.failed.length} failed.` : '.'}`,
+        details
+      });
+
+      setShowBulkEndRentalModal(false);
+      setSelectedForkliftIds(new Set());
+      setIsSelectionMode(false);
+      await loadData();
+    } catch (error) {
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Error',
+        message: (error as Error).message
+      });
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const openBulkRentModal = () => {
+    setSelectedCustomerId('');
+    setStartDate(new Date().toISOString().split('T')[0]);
+    setEndDate('');
+    setRentalNotes('');
+    setMonthlyRentalRate('');
+    setShowBulkRentModal(true);
+  };
+
+  const openBulkEndRentalModal = () => {
+    setBulkEndDate(new Date().toISOString().split('T')[0]);
+    setShowBulkEndRentalModal(true);
   };
 
   const getStatusIcon = (status: ForkliftStatus) => {
@@ -268,15 +510,87 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
           <h1 className="text-2xl font-bold text-slate-900">Forklifts</h1>
           <p className="text-sm text-slate-500 mt-1">
             {filteredForklifts.length} of {forklifts.length} units
+            {isSelectionMode && selectedForkliftIds.size > 0 && (
+              <span className="ml-2 text-blue-600 font-medium">
+                • {selectedForkliftIds.size} selected
+              </span>
+            )}
           </p>
         </div>
-        <button
-          onClick={handleAddNew}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm font-medium"
-        >
-          <Plus className="w-4 h-4" /> Add Forklift
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          {/* Selection Mode Toggle */}
+          <button
+            onClick={toggleSelectionMode}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              isSelectionMode 
+                ? 'bg-blue-100 text-blue-700 border border-blue-300' 
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            {isSelectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+            {isSelectionMode ? 'Exit Selection' : 'Multi-Select'}
+          </button>
+          
+          <button
+            onClick={handleAddNew}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm font-medium"
+          >
+            <Plus className="w-4 h-4" /> Add Forklift
+          </button>
+        </div>
       </div>
+
+      {/* Selection Actions Bar */}
+      {isSelectionMode && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={selectAllFiltered}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Select All ({filteredForklifts.length})
+              </button>
+              <span className="text-slate-300">|</span>
+              <button
+                onClick={deselectAll}
+                className="text-sm text-slate-600 hover:text-slate-800 font-medium"
+              >
+                Deselect All
+              </button>
+            </div>
+            
+            {selectedForkliftIds.size > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <div className="text-sm text-slate-600 mr-2 self-center">
+                  <span className="font-medium">{availableSelectedForklifts.length}</span> available, 
+                  <span className="font-medium ml-1">{rentedSelectedForklifts.length}</span> rented
+                </div>
+                
+                {availableSelectedForklifts.length > 0 && (
+                  <button
+                    onClick={openBulkRentModal}
+                    className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium shadow-sm"
+                  >
+                    <Building2 className="w-4 h-4" />
+                    Rent Out ({availableSelectedForklifts.length})
+                  </button>
+                )}
+                
+                {rentedSelectedForklifts.length > 0 && (
+                  <button
+                    onClick={openBulkEndRentalModal}
+                    className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-medium shadow-sm"
+                  >
+                    <CircleOff className="w-4 h-4" />
+                    End Rental ({rentedSelectedForklifts.length})
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm p-4 space-y-4">
@@ -361,25 +675,58 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredForklifts.map(forklift => {
             const currentCustomer = (forklift as any).current_customer;
+            const isSelected = selectedForkliftIds.has(forklift.forklift_id);
             
             return (
               <div
                 key={forklift.forklift_id}
-                onClick={() => navigate(`/forklifts/${forklift.forklift_id}`)}
-                className="bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-200 transition-all overflow-hidden cursor-pointer group"
+                onClick={() => {
+                  if (isSelectionMode) {
+                    const newSelected = new Set(selectedForkliftIds);
+                    if (newSelected.has(forklift.forklift_id)) {
+                      newSelected.delete(forklift.forklift_id);
+                    } else {
+                      newSelected.add(forklift.forklift_id);
+                    }
+                    setSelectedForkliftIds(newSelected);
+                  } else {
+                    navigate(`/forklifts/${forklift.forklift_id}`);
+                  }
+                }}
+                className={`bg-white rounded-xl shadow-sm border overflow-hidden cursor-pointer group transition-all ${
+                  isSelected 
+                    ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' 
+                    : 'border-slate-100 hover:shadow-md hover:border-blue-200'
+                }`}
               >
                 {/* Header */}
                 <div className="p-4 border-b border-slate-100">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                        {forklift.make} {forklift.model}
-                      </h3>
-                      <p className="text-sm text-slate-500 font-mono">{forklift.serial_number}</p>
+                    <div className="flex items-start gap-3">
+                      {isSelectionMode && (
+                        <button
+                          onClick={(e) => toggleForkliftSelection(forklift.forklift_id, e)}
+                          className="mt-1"
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-5 h-5 text-blue-600" />
+                          ) : (
+                            <Square className="w-5 h-5 text-slate-400" />
+                          )}
+                        </button>
+                      )}
+                      <div>
+                        <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                          {forklift.make} {forklift.model}
+                        </h3>
+                        <p className="text-sm text-slate-500 font-mono">{forklift.serial_number}</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1">
                       {getStatusIcon(forklift.status)}
-                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                      {!isSelectionMode && (
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -443,33 +790,35 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
                 </div>
 
                 {/* Actions */}
-                <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
-                  {!currentCustomer && (
-                    <button
-                      onClick={(e) => handleAssign(forklift, e)}
-                      className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      <Building2 className="w-4 h-4" /> Rent Out
-                    </button>
-                  )}
-                  {currentCustomer && <div />}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={(e) => handleEdit(forklift, e)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Edit"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => handleDelete(forklift, e)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                {!isSelectionMode && (
+                  <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+                    {!currentCustomer && (
+                      <button
+                        onClick={(e) => handleAssign(forklift, e)}
+                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        <Building2 className="w-4 h-4" /> Rent Out
+                      </button>
+                    )}
+                    {currentCustomer && <div />}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => handleEdit(forklift, e)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(forklift, e)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             );
           })}
@@ -637,7 +986,7 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
         </div>
       )}
 
-      {/* Rent Out Modal */}
+      {/* Rent Out Modal (Single) */}
       {showAssignModal && assigningForklift && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
@@ -731,6 +1080,273 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
                 >
                   <Building2 className="w-4 h-4" />
                   Rent Forklift
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Rent Out Modal */}
+      {showBulkRentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-green-50 sticky top-0">
+              <h3 className="font-bold text-lg text-green-800">
+                Bulk Rent Out ({availableSelectedForklifts.length} Forklifts)
+              </h3>
+              <button 
+                onClick={() => setShowBulkRentModal(false)} 
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Selected Forklifts Preview */}
+              <div className="bg-slate-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                <p className="text-xs font-bold text-slate-500 uppercase mb-2">Selected Forklifts:</p>
+                <div className="space-y-1">
+                  {availableSelectedForklifts.map(f => (
+                    <div key={f.forklift_id} className="text-sm text-slate-700 flex items-center gap-2">
+                      <Truck className="w-3 h-3 text-slate-400" />
+                      <span className="font-medium">{f.serial_number}</span>
+                      <span className="text-slate-400">- {f.make} {f.model}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Select Customer *</label>
+                <select
+                  className={inputClassName}
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                >
+                  <option value="">-- Select Customer --</option>
+                  {customers.map(c => (
+                    <option key={c.customer_id} value={c.customer_id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Monthly Rental Rate (RM) - Per Unit</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className={inputClassName}
+                  value={monthlyRentalRate}
+                  onChange={(e) => setMonthlyRentalRate(e.target.value)}
+                  placeholder="e.g., 2500.00 (same for all)"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rental Start Date *</label>
+                <input
+                  type="date"
+                  className={inputClassName}
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rental End Date (Optional)</label>
+                <input
+                  type="date"
+                  className={inputClassName}
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+                <p className="text-xs text-slate-400 mt-1">Leave empty for ongoing rental</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes (Applied to All)</label>
+                <textarea
+                  className={`${inputClassName} h-20 resize-none`}
+                  value={rentalNotes}
+                  onChange={(e) => setRentalNotes(e.target.value)}
+                  placeholder="Optional notes for all rentals..."
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkRentModal(false)}
+                  disabled={bulkProcessing}
+                  className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkRentOut}
+                  disabled={bulkProcessing || !selectedCustomerId || !startDate}
+                  className="flex-1 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkProcessing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Building2 className="w-4 h-4" />
+                  )}
+                  {bulkProcessing ? 'Processing...' : `Rent Out ${availableSelectedForklifts.length} Forklifts`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk End Rental Modal */}
+      {showBulkEndRentalModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-red-50 sticky top-0">
+              <h3 className="font-bold text-lg text-red-800">
+                End Rentals ({rentedSelectedForklifts.length} Forklifts)
+              </h3>
+              <button 
+                onClick={() => setShowBulkEndRentalModal(false)} 
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Selected Forklifts Preview */}
+              <div className="bg-slate-50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                <p className="text-xs font-bold text-slate-500 uppercase mb-2">Rentals to End:</p>
+                <div className="space-y-2">
+                  {rentedSelectedForklifts.map(f => {
+                    const customer = (f as any).current_customer;
+                    return (
+                      <div key={f.forklift_id} className="text-sm p-2 bg-white rounded border border-slate-200">
+                        <div className="flex items-center gap-2 text-slate-700">
+                          <Truck className="w-3 h-3 text-slate-400" />
+                          <span className="font-medium">{f.serial_number}</span>
+                          <span className="text-slate-400">- {f.make} {f.model}</span>
+                        </div>
+                        {customer && (
+                          <div className="flex items-center gap-2 mt-1 text-xs text-green-600">
+                            <Building2 className="w-3 h-3" />
+                            <span>{customer.name}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm text-amber-800">
+                  <strong>⚠️ Warning:</strong> This will end all {rentedSelectedForklifts.length} rental(s). 
+                  The forklifts will become available for new rentals.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rental End Date</label>
+                <input
+                  type="date"
+                  className={inputClassName}
+                  value={bulkEndDate}
+                  onChange={(e) => setBulkEndDate(e.target.value)}
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkEndRentalModal(false)}
+                  disabled={bulkProcessing}
+                  className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkEndRental}
+                  disabled={bulkProcessing}
+                  className="flex-1 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkProcessing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CircleOff className="w-4 h-4" />
+                  )}
+                  {bulkProcessing ? 'Processing...' : `End ${rentedSelectedForklifts.length} Rentals`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Result Modal */}
+      {resultModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className={`px-6 py-4 border-b flex justify-between items-center ${
+              resultModal.type === 'success' ? 'bg-green-50 border-green-100' :
+              resultModal.type === 'error' ? 'bg-red-50 border-red-100' :
+              'bg-amber-50 border-amber-100'
+            }`}>
+              <h3 className={`font-bold text-lg flex items-center gap-2 ${
+                resultModal.type === 'success' ? 'text-green-800' :
+                resultModal.type === 'error' ? 'text-red-800' :
+                'text-amber-800'
+              }`}>
+                {resultModal.type === 'success' && <CheckCircle className="w-5 h-5" />}
+                {resultModal.type === 'error' && <AlertCircle className="w-5 h-5" />}
+                {resultModal.type === 'mixed' && <AlertCircle className="w-5 h-5" />}
+                {resultModal.title}
+              </h3>
+              <button 
+                onClick={() => setResultModal({ ...resultModal, show: false })} 
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-slate-700">{resultModal.message}</p>
+              
+              {resultModal.details && resultModal.details.length > 0 && (
+                <div className="bg-slate-50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                  <div className="space-y-1 text-sm font-mono">
+                    {resultModal.details.map((detail, idx) => (
+                      <p key={idx} className={
+                        detail.startsWith('✓') ? 'text-green-600' :
+                        detail.startsWith('✗') ? 'text-red-600' :
+                        'text-slate-600'
+                      }>
+                        {detail}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setResultModal({ ...resultModal, show: false })}
+                  className={`w-full py-2.5 rounded-lg font-medium shadow-sm ${
+                    resultModal.type === 'success' ? 'bg-green-600 text-white hover:bg-green-700' :
+                    resultModal.type === 'error' ? 'bg-red-600 text-white hover:bg-red-700' :
+                    'bg-amber-600 text-white hover:bg-amber-700'
+                  }`}
+                >
+                  Close
                 </button>
               </div>
             </div>
