@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Customer, Job, User, UserRole, ForkliftRental } from '../types_with_invoice_tracking';
+import { Customer, Job, User, UserRole, ForkliftRental, Forklift } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { generateCustomerAnalysis } from '../services/geminiService';
 import { 
   ArrowLeft, MapPin, Phone, Mail, Calendar, DollarSign, 
   TrendingUp, AlertCircle, BrainCircuit, Wrench, CheckCircle, Clock, Trash2,
-  Truck, ChevronRight, Building2, Edit2, X, Save, Receipt,
-  Square, CheckSquare, CircleOff, Loader2
+  Truck, ChevronRight, Building2, Edit2, X, Save, Receipt, Plus,
+  Square, CheckSquare, CircleOff, Loader2, Search
 } from 'lucide-react';
 
 interface CustomerProfileProps {
@@ -48,6 +48,17 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
     details?: string[];
   }>({ show: false, type: 'success', title: '', message: '' });
 
+  // Rent forklift modal states
+  const [showRentModal, setShowRentModal] = useState(false);
+  const [availableForklifts, setAvailableForklifts] = useState<Forklift[]>([]);
+  const [selectedForkliftIds, setSelectedForkliftIds] = useState<Set<string>>(new Set());
+  const [rentStartDate, setRentStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [rentEndDate, setRentEndDate] = useState('');
+  const [rentNotes, setRentNotes] = useState('');
+  const [rentMonthlyRate, setRentMonthlyRate] = useState('');
+  const [forkliftSearchQuery, setForkliftSearchQuery] = useState('');
+  const [rentProcessing, setRentProcessing] = useState(false);
+
   const isAdmin = currentUser.role.toString().toLowerCase() === 'admin';
 
   useEffect(() => {
@@ -76,6 +87,133 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
       console.error('Error loading customer:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAvailableForklifts = async () => {
+    try {
+      const forkliftsWithCustomers = await MockDb.getForkliftsWithCustomers();
+      // Filter to only show forklifts without active rentals
+      const available = forkliftsWithCustomers.filter(f => !(f as any).current_customer_id);
+      setAvailableForklifts(available);
+    } catch (error) {
+      console.error('Error loading available forklifts:', error);
+    }
+  };
+
+  const openRentModal = async () => {
+    await loadAvailableForklifts();
+    setSelectedForkliftIds(new Set());
+    setRentStartDate(new Date().toISOString().split('T')[0]);
+    setRentEndDate('');
+    setRentNotes('');
+    setRentMonthlyRate('');
+    setForkliftSearchQuery('');
+    setShowRentModal(true);
+  };
+
+  const filteredAvailableForklifts = useMemo(() => {
+    if (!forkliftSearchQuery) return availableForklifts;
+    const query = forkliftSearchQuery.toLowerCase();
+    return availableForklifts.filter(f => 
+      f.serial_number.toLowerCase().includes(query) ||
+      f.make.toLowerCase().includes(query) ||
+      f.model.toLowerCase().includes(query)
+    );
+  }, [availableForklifts, forkliftSearchQuery]);
+
+  const toggleForkliftForRent = (forkliftId: string) => {
+    const newSelected = new Set(selectedForkliftIds);
+    if (newSelected.has(forkliftId)) {
+      newSelected.delete(forkliftId);
+    } else {
+      newSelected.add(forkliftId);
+    }
+    setSelectedForkliftIds(newSelected);
+  };
+
+  const handleRentForklifts = async () => {
+    if (!customer || selectedForkliftIds.size === 0 || !rentStartDate) {
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Please select at least one forklift and a start date'
+      });
+      return;
+    }
+
+    setRentProcessing(true);
+    try {
+      const forkliftIds = Array.from(selectedForkliftIds);
+      
+      if (forkliftIds.length === 1) {
+        // Single forklift
+        await MockDb.assignForkliftToCustomer(
+          forkliftIds[0],
+          customer.customer_id,
+          rentStartDate,
+          rentEndDate || undefined,
+          rentNotes || undefined,
+          currentUser.user_id,
+          currentUser.name,
+          rentMonthlyRate ? parseFloat(rentMonthlyRate) : undefined
+        );
+        
+        const forklift = availableForklifts.find(f => f.forklift_id === forkliftIds[0]);
+        setResultModal({
+          show: true,
+          type: 'success',
+          title: 'Forklift Rented Successfully',
+          message: `${forklift?.make} ${forklift?.model} (${forklift?.serial_number}) has been rented to ${customer.name}.`,
+          details: [
+            `✓ Rental created successfully`,
+            `✓ Start date: ${new Date(rentStartDate).toLocaleDateString()}`,
+            rentMonthlyRate ? `✓ Monthly rate: RM${parseFloat(rentMonthlyRate).toLocaleString()}` : ''
+          ].filter(Boolean)
+        });
+      } else {
+        // Multiple forklifts
+        const result = await MockDb.bulkAssignForkliftsToCustomer(
+          forkliftIds,
+          customer.customer_id,
+          rentStartDate,
+          rentEndDate || undefined,
+          rentNotes || undefined,
+          currentUser.user_id,
+          currentUser.name,
+          rentMonthlyRate ? parseFloat(rentMonthlyRate) : undefined
+        );
+
+        const details: string[] = [];
+        result.success.forEach(r => {
+          details.push(`✓ ${r.forklift?.serial_number || 'Unknown'} - Rented successfully`);
+        });
+        result.failed.forEach(f => {
+          const forklift = availableForklifts.find(fl => fl.forklift_id === f.forkliftId);
+          details.push(`✗ ${forklift?.serial_number || f.forkliftId} - ${f.error}`);
+        });
+
+        setResultModal({
+          show: true,
+          type: result.failed.length === 0 ? 'success' : result.success.length === 0 ? 'error' : 'mixed',
+          title: result.failed.length === 0 ? 'Forklifts Rented Successfully' : 'Bulk Rental Complete',
+          message: `Successfully rented ${result.success.length} forklift(s) to ${customer.name}${result.failed.length > 0 ? `. ${result.failed.length} failed.` : '.'}`,
+          details
+        });
+      }
+
+      setShowRentModal(false);
+      await loadCustomerData();
+    } catch (error) {
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Error',
+        message: (error as Error).message
+      });
+    } finally {
+      setRentProcessing(false);
     }
   };
 
@@ -356,12 +494,20 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
 
 
       {/* Rented Forklifts Section */}
-      {rentals.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-              <Truck className="w-5 h-5 text-blue-600" /> Rented Forklifts ({rentals.length})
-            </h3>
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <Truck className="w-5 h-5 text-blue-600" /> Rented Forklifts ({rentals.length})
+          </h3>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={openRentModal}
+              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Rent Forklift
+            </button>
             
             {activeRentals.length > 1 && (
               <button
@@ -377,6 +523,7 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
               </button>
             )}
           </div>
+        </div>
 
           {/* Selection Actions Bar */}
           {isSelectionMode && (
@@ -552,8 +699,15 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
               </div>
             </div>
           )}
+
+          {/* Empty state when no rentals */}
+          {rentals.length === 0 && (
+            <div className="text-center py-8 text-slate-400">
+              <Truck className="w-12 h-12 mx-auto mb-3 opacity-20" />
+              <p className="mb-4">No forklifts rented to this customer yet</p>
+            </div>
+          )}
         </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Stats */}
@@ -947,6 +1101,174 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
                   {bulkProcessing ? 'Processing...' : `End ${selectedRentals.length} Rentals`}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rent Forklift Modal */}
+      {showRentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-green-50 flex-shrink-0">
+              <h3 className="font-bold text-lg text-green-800 flex items-center gap-2">
+                <Plus className="w-5 h-5" />
+                Rent Forklift to {customer?.name}
+              </h3>
+              <button 
+                onClick={() => setShowRentModal(false)} 
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search by serial number, make, model..."
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  value={forkliftSearchQuery}
+                  onChange={(e) => setForkliftSearchQuery(e.target.value)}
+                />
+              </div>
+
+              {/* Available Forklifts */}
+              <div className="bg-slate-50 rounded-lg p-3 max-h-64 overflow-y-auto">
+                <p className="text-xs font-bold text-slate-500 uppercase mb-2">
+                  Available Forklifts ({filteredAvailableForklifts.length})
+                  {selectedForkliftIds.size > 0 && (
+                    <span className="ml-2 text-green-600">• {selectedForkliftIds.size} selected</span>
+                  )}
+                </p>
+                {filteredAvailableForklifts.length === 0 ? (
+                  <div className="text-center py-6 text-slate-400">
+                    <Truck className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No available forklifts found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredAvailableForklifts.map(forklift => {
+                      const isSelected = selectedForkliftIds.has(forklift.forklift_id);
+                      return (
+                        <div 
+                          key={forklift.forklift_id}
+                          onClick={() => toggleForkliftForRent(forklift.forklift_id)}
+                          className={`p-3 rounded-lg cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'bg-green-100 border-2 border-green-400' 
+                              : 'bg-white border border-slate-200 hover:border-green-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isSelected ? (
+                              <CheckSquare className="w-5 h-5 text-green-600 flex-shrink-0" />
+                            ) : (
+                              <Square className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                            )}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-slate-800">
+                                  {forklift.make} {forklift.model}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                  forklift.type === 'Electric' ? 'bg-blue-100 text-blue-700' :
+                                  forklift.type === 'Diesel' ? 'bg-slate-100 text-slate-700' :
+                                  'bg-purple-100 text-purple-700'
+                                }`}>
+                                  {forklift.type}
+                                </span>
+                              </div>
+                              <p className="text-sm text-slate-500 font-mono">{forklift.serial_number}</p>
+                              {forklift.location && (
+                                <p className="text-xs text-slate-400 mt-1">📍 {forklift.location}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Rental Details */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Start Date *</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-green-500"
+                    value={rentStartDate}
+                    onChange={(e) => setRentStartDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">End Date (Optional)</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-green-500"
+                    value={rentEndDate}
+                    onChange={(e) => setRentEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {isAdmin && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                    <Receipt className="w-3 h-3 inline mr-1" />
+                    Monthly Rental Rate (RM)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">RM</span>
+                    <input
+                      type="number"
+                      className="w-full pl-10 pr-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-green-500"
+                      value={rentMonthlyRate}
+                      onChange={(e) => setRentMonthlyRate(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes (Optional)</label>
+                <textarea
+                  className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-green-500 h-20 resize-none"
+                  value={rentNotes}
+                  onChange={(e) => setRentNotes(e.target.value)}
+                  placeholder="Optional rental notes..."
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-100 flex gap-3 flex-shrink-0 bg-slate-50">
+              <button
+                type="button"
+                onClick={() => setShowRentModal(false)}
+                disabled={rentProcessing}
+                className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 font-medium disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRentForklifts}
+                disabled={rentProcessing || selectedForkliftIds.size === 0}
+                className="flex-1 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {rentProcessing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+                {rentProcessing ? 'Processing...' : `Rent ${selectedForkliftIds.size || ''} Forklift${selectedForkliftIds.size !== 1 ? 's' : ''}`}
+              </button>
             </div>
           </div>
         </div>
