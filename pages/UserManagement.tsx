@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, UserRole } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
-import { Plus, Edit2, Search, CheckCircle, XCircle, Shield, Wrench, FileText, User as UserIcon, Lock, X, Users } from 'lucide-react';
+import { Plus, Edit2, Search, CheckCircle, XCircle, Shield, Wrench, FileText, User as UserIcon, Lock, X, Users, AlertTriangle } from 'lucide-react';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -10,6 +10,13 @@ const UserManagement: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  
+  // Confirmation Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    user: User | null;
+    action: 'activate' | 'deactivate';
+  }>({ isOpen: false, user: null, action: 'deactivate' });
   
   // Form State
   const [formData, setFormData] = useState({
@@ -38,7 +45,7 @@ const UserManagement: React.FC = () => {
         name: user.name,
         email: user.email,
         role: user.role,
-        password: '', // Leave blank unless resetting
+        password: '',
         is_active: user.is_active
       });
     } else {
@@ -58,7 +65,6 @@ const UserManagement: React.FC = () => {
     e.preventDefault();
     try {
       if (editingUser) {
-        // Update
         await MockDb.updateUser(editingUser.user_id, {
           name: formData.name,
           role: formData.role,
@@ -66,7 +72,6 @@ const UserManagement: React.FC = () => {
           ...(formData.password ? { password: formData.password } : {})
         });
       } else {
-        // Create
         if (!formData.password) return alert("Password is required for new users");
         await MockDb.createUser({
           name: formData.name,
@@ -83,10 +88,26 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleToggleStatus = async (user: User) => {
-    if (!confirm(`Are you sure you want to ${user.is_active ? 'deactivate' : 'activate'} this user?`)) return;
-    await MockDb.updateUser(user.user_id, { is_active: !user.is_active });
-    loadUsers();
+  const openConfirmModal = (user: User) => {
+    setConfirmModal({
+      isOpen: true,
+      user,
+      action: user.is_active ? 'deactivate' : 'activate'
+    });
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!confirmModal.user) return;
+    try {
+      await MockDb.updateUser(confirmModal.user.user_id, { 
+        is_active: !confirmModal.user.is_active 
+      });
+      loadUsers();
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setConfirmModal({ isOpen: false, user: null, action: 'deactivate' });
+    }
   };
 
   const getRoleBadge = (role: UserRole) => {
@@ -102,7 +123,6 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  // Input styles
   const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900";
 
   return (
@@ -168,7 +188,7 @@ const UserManagement: React.FC = () => {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button 
-                          onClick={() => handleToggleStatus(user)}
+                          onClick={() => openConfirmModal(user)}
                           className={`${user.is_active ? 'text-slate-400 hover:text-red-600' : 'text-slate-400 hover:text-green-600'} p-1 rounded`}
                           title={user.is_active ? "Deactivate" : "Activate"}
                         >
@@ -278,6 +298,57 @@ const UserManagement: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmModal.isOpen && confirmModal.user && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-6">
+              <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-4 ${
+                confirmModal.action === 'deactivate' ? 'bg-red-100' : 'bg-green-100'
+              }`}>
+                {confirmModal.action === 'deactivate' ? (
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                ) : (
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                )}
+              </div>
+              
+              <h3 className="text-lg font-semibold text-slate-800 text-center mb-2">
+                {confirmModal.action === 'deactivate' ? 'Deactivate User?' : 'Activate User?'}
+              </h3>
+              
+              <p className="text-slate-600 text-center mb-6">
+                Are you sure you want to {confirmModal.action} <span className="font-medium">{confirmModal.user.name}</span>?
+                {confirmModal.action === 'deactivate' && (
+                  <span className="block text-sm text-slate-500 mt-1">
+                    They will no longer be able to sign in.
+                  </span>
+                )}
+              </p>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setConfirmModal({ isOpen: false, user: null, action: 'deactivate' })}
+                  className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleConfirmToggle}
+                  className={`flex-1 py-2.5 text-white rounded-lg font-medium shadow-sm ${
+                    confirmModal.action === 'deactivate' 
+                      ? 'bg-red-600 hover:bg-red-700' 
+                      : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                >
+                  {confirmModal.action === 'deactivate' ? 'Deactivate' : 'Activate'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

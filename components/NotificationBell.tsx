@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Notification, NotificationType, User } from '../types_with_invoice_tracking';
+import { Notification, NotificationType, User, ROLE_PERMISSIONS } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { 
   Bell, BellRing, Check, CheckCheck, Clock, 
-  AlertTriangle, Wrench, Truck, Package, X 
+  AlertTriangle, Wrench, Truck, Package, X, CalendarDays, CalendarCheck, CalendarX,
+  ChevronRight
 } from 'lucide-react';
 
 interface NotificationBellProps {
@@ -78,6 +79,15 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
       navigate(`/jobs/${notification.reference_id}`);
     } else if (notification.reference_type === 'forklift' && notification.reference_id) {
       navigate(`/forklifts/${notification.reference_id}`);
+    } else if (notification.reference_type === 'leave') {
+      // For leave requests (to approve), go to HR dashboard if user has permission
+      // For leave approved/rejected notifications, go to My Leave page
+      const canApproveLeave = ROLE_PERMISSIONS[currentUser.role]?.canApproveLeave;
+      if (notification.type === NotificationType.LEAVE_REQUEST && canApproveLeave) {
+        navigate('/hr');
+      } else {
+        navigate('/my-leave');
+      }
     }
     setIsOpen(false);
   };
@@ -94,6 +104,12 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
         return <Truck className="w-4 h-4 text-purple-500" />;
       case NotificationType.LOW_STOCK:
         return <Package className="w-4 h-4 text-red-500" />;
+      case NotificationType.LEAVE_REQUEST:
+        return <CalendarDays className="w-4 h-4 text-amber-500" />;
+      case NotificationType.LEAVE_APPROVED:
+        return <CalendarCheck className="w-4 h-4 text-green-500" />;
+      case NotificationType.LEAVE_REJECTED:
+        return <CalendarX className="w-4 h-4 text-red-500" />;
       default:
         return <Bell className="w-4 h-4 text-slate-500" />;
     }
@@ -184,9 +200,16 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
                       <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
                         {notification.message}
                       </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {formatTime(notification.created_at)}
-                      </p>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-xs text-slate-400">
+                          {formatTime(notification.created_at)}
+                        </p>
+                        {notification.reference_type && (
+                          <span className="text-xs text-blue-600 flex items-center gap-0.5">
+                            View <ChevronRight className="w-3 h-3" />
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {!notification.is_read && (
                       <button

@@ -23,6 +23,30 @@
         }
       }
     </script>
+    <style>
+      /* Custom scrollbar for sidebar */
+      .sidebar-scroll::-webkit-scrollbar {
+        width: 4px;
+      }
+      .sidebar-scroll::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .sidebar-scroll::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 4px;
+      }
+      .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+      /* Hide scrollbar when not hovering */
+      .sidebar-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: transparent transparent;
+      }
+      .sidebar-scroll:hover {
+        scrollbar-color: #475569 transparent;
+      }
+    </style>
     <!-- You can leave the importmap or remove it; Vite will use node_modules anyway -->
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased">
