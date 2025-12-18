@@ -942,8 +942,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canEditRentalRates: false,
     canViewServiceRecords: true,
     canScheduleMaintenance: false,
-    // HR Permissions - Accountant can view HR for payroll purposes
-    canViewHR: true,
+    // HR Permissions - Accountant cannot view HR
+    canViewHR: false,
     canManageEmployees: false,
     canApproveLeave: false,
     canViewOwnProfile: true,
