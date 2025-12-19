@@ -269,7 +269,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -299,7 +299,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -342,7 +342,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -377,7 +377,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -418,7 +418,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -446,7 +446,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -475,7 +475,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -564,7 +564,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -652,7 +652,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -714,7 +714,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -743,7 +743,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -937,7 +937,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -960,7 +960,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -994,7 +994,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -1056,7 +1056,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -1095,7 +1095,7 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts(*),
+        forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
         media:job_media(*),
         extra_charges:extra_charges(*)
@@ -1836,7 +1836,7 @@ export const SupabaseDb = {
         .from('scheduled_services')
         .select(`
           *,
-          forklift:forklifts(*)
+          forklift:forklifts!forklift_id(*)
         `)
         .order('due_date', { ascending: true });
 
@@ -1868,7 +1868,7 @@ export const SupabaseDb = {
         .from('scheduled_services')
         .select(`
           *,
-          forklift:forklifts(*)
+          forklift:forklifts!forklift_id(*)
         `)
         .in('status', ['pending', 'scheduled'])
         .lte('due_date', futureDate.toISOString().split('T')[0])
@@ -1907,7 +1907,7 @@ export const SupabaseDb = {
         })
         .select(`
           *,
-          forklift:forklifts(*)
+          forklift:forklifts!forklift_id(*)
         `)
         .single();
 
@@ -1936,7 +1936,7 @@ export const SupabaseDb = {
         .eq('scheduled_id', scheduledId)
         .select(`
           *,
-          forklift:forklifts(*)
+          forklift:forklifts!forklift_id(*)
         `)
         .single();
 
@@ -2126,7 +2126,7 @@ export const SupabaseDb = {
         .select(`
           *,
           customer:customers(*),
-          forklift:forklifts(*),
+          forklift:forklifts!forklift_id(*),
           parts_used:job_parts(*),
           media:job_media(*),
           extra_charges:extra_charges(*)
