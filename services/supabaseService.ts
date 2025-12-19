@@ -272,6 +272,7 @@ export const SupabaseDb = {
         media:job_media(*),
         extra_charges:extra_charges(*)
       `)
+      .is('deleted_at', null) // Filter out soft-deleted jobs
       .order('created_at', { ascending: false });
 
     if (user.role === UserRole.TECHNICIAN) {
@@ -296,6 +297,7 @@ export const SupabaseDb = {
         extra_charges:extra_charges(*)
       `)
       .eq('job_id', jobId)
+      .is('deleted_at', null) // Exclude soft-deleted jobs
       .single();
 
     if (error) {
@@ -767,7 +769,34 @@ export const SupabaseDb = {
     return text;
   },
 
-  deleteJob: async (jobId: string): Promise<void> => {
+  // Soft delete job (recommended for enterprise - preserves audit trail)
+  deleteJob: async (jobId: string, deletedById?: string, deletedByName?: string): Promise<void> => {
+    const now = new Date().toISOString();
+    
+    // Use soft delete - sets deleted_at timestamp instead of hard delete
+    // This preserves audit history and allows recovery if needed
+    // Note: We don't change status as it has a check constraint
+    const { error } = await supabase
+      .from('jobs')
+      .update({
+        deleted_at: now,
+        deleted_by: deletedById || null,
+      })
+      .eq('job_id', jobId);
+
+    if (error) throw new Error(error.message);
+  },
+
+  // Hard delete job (admin only - use with caution)
+  // This permanently removes the job and related data
+  hardDeleteJob: async (jobId: string): Promise<void> => {
+    // Delete related records first (in order to avoid FK constraints)
+    await supabase.from('job_inventory_usage').delete().eq('job_id', jobId);
+    await supabase.from('job_invoice_extra_charges').delete().eq('job_id', jobId);
+    await supabase.from('job_invoices').delete().eq('job_id', jobId);
+    await supabase.from('job_service_records').delete().eq('job_id', jobId);
+    await supabase.from('job_status_history').delete().eq('job_id', jobId);
+    await supabase.from('job_audit_log').delete().eq('job_id', jobId);
     await supabase.from('job_parts').delete().eq('job_id', jobId);
     await supabase.from('job_media').delete().eq('job_id', jobId);
     await supabase.from('extra_charges').delete().eq('job_id', jobId);
@@ -885,6 +914,7 @@ export const SupabaseDb = {
   },
 
   updateJobCarriedOut: async (jobId: string, jobCarriedOut: string, recommendation?: string): Promise<Job> => {
+    // Update jobs table
     const { data, error } = await supabase
       .from('jobs')
       .update({ 
@@ -903,7 +933,80 @@ export const SupabaseDb = {
       .single();
 
     if (error) throw new Error(error.message);
+    
+    // Also sync to job_service_records (required by completion validation)
+    await supabase
+      .from('job_service_records')
+      .update({
+        job_carried_out: jobCarriedOut,
+        recommendation: recommendation,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('job_id', jobId);
+    
     return data as Job;
+  },
+
+  // Update condition checklist (for editing after job started)
+  updateConditionChecklist: async (jobId: string, checklist: any, userId?: string): Promise<Job> => {
+    // Update jobs table
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ 
+        condition_checklist: checklist,
+      })
+      .eq('job_id', jobId)
+      .select(`
+        *,
+        customer:customers(*),
+        forklift:forklifts(*),
+        parts_used:job_parts(*),
+        media:job_media(*),
+        extra_charges:extra_charges(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+    
+    // Also sync to job_service_records
+    await supabase
+      .from('job_service_records')
+      .update({
+        checklist_data: checklist,
+        updated_at: new Date().toISOString(),
+        updated_by: userId || null,
+      })
+      .eq('job_id', jobId);
+    
+    return data as Job;
+  },
+
+  // Set no parts used flag
+  setNoPartsUsed: async (jobId: string, noPartsUsed: boolean): Promise<void> => {
+    const { error } = await supabase
+      .from('job_service_records')
+      .update({
+        no_parts_used: noPartsUsed,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('job_id', jobId);
+
+    if (error) throw new Error(error.message);
+  },
+
+  // Get job service record (for loading no_parts_used flag etc)
+  getJobServiceRecord: async (jobId: string): Promise<any> => {
+    const { data, error } = await supabase
+      .from('job_service_records')
+      .select('*')
+      .eq('job_id', jobId)
+      .single();
+
+    if (error) {
+      console.warn('No service record found:', error.message);
+      return null;
+    }
+    return data;
   },
 
   updateJobRepairTimes: async (jobId: string, startTime?: string, endTime?: string): Promise<Job> => {
@@ -938,6 +1041,8 @@ export const SupabaseDb = {
     startedByName?: string
   ): Promise<Job> => {
     const now = new Date().toISOString();
+    
+    // Update jobs table
     const { data, error } = await supabase
       .from('jobs')
       .update({
@@ -963,6 +1068,21 @@ export const SupabaseDb = {
       .single();
 
     if (error) throw new Error(error.message);
+    
+    // Also update job_service_records with started_at (required by completion validation)
+    await supabase
+      .from('job_service_records')
+      .update({
+        started_at: now,
+        repair_start_time: now,
+        hourmeter_reading: hourmeterReading,
+        checklist_data: checklist,
+        technician_id: startedById || null,
+        updated_at: now,
+        updated_by: startedById || null,
+      })
+      .eq('job_id', jobId);
+    
     return data as Job;
   },
 

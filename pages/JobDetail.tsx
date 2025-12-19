@@ -185,6 +185,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [jobCarriedOutInput, setJobCarriedOutInput] = useState('');
   const [recommendationInput, setRecommendationInput] = useState('');
 
+  // NEW: Condition Checklist editing
+  const [editingChecklist, setEditingChecklist] = useState(false);
+  const [checklistEditData, setChecklistEditData] = useState<ForkliftConditionChecklist>({});
+
+  // NEW: No parts used flag
+  const [noPartsUsed, setNoPartsUsed] = useState(false);
+
   // NEW: Job Reassignment Modal
   const [showReassignModal, setShowReassignModal] = useState(false);
   const [reassignTechId, setReassignTechId] = useState('');
@@ -203,6 +210,15 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     setLoading(true);
     const data = await MockDb.getJobById(id);
     setJob(data ? { ...data } : null);
+    
+    // Load service record to get no_parts_used flag
+    if (data) {
+      const serviceRecord = await MockDb.getJobServiceRecord(id);
+      if (serviceRecord) {
+        setNoPartsUsed(serviceRecord.no_parts_used || false);
+      }
+    }
+    
     setLoading(false);
   };
 
@@ -518,6 +534,48 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     setRecommendationInput('');
   };
 
+  // Handle Condition Checklist editing
+  const handleStartEditChecklist = () => {
+    if (!job) return;
+    setEditingChecklist(true);
+    setChecklistEditData(job.condition_checklist || {});
+  };
+
+  const handleSaveChecklist = async () => {
+    if (!job) return;
+    try {
+      const updated = await MockDb.updateConditionChecklist(job.job_id, checklistEditData, currentUserId);
+      setJob({ ...updated } as Job);
+      setEditingChecklist(false);
+    } catch (e) {
+      alert('Could not save checklist: ' + (e as Error).message);
+    }
+  };
+
+  const handleCancelChecklistEdit = () => {
+    setEditingChecklist(false);
+    setChecklistEditData({});
+  };
+
+  const toggleChecklistItem = (key: string) => {
+    setChecklistEditData(prev => ({
+      ...prev,
+      [key]: !prev[key as keyof ForkliftConditionChecklist]
+    }));
+  };
+
+  // Handle no parts used toggle
+  const handleToggleNoPartsUsed = async () => {
+    if (!job) return;
+    const newValue = !noPartsUsed;
+    try {
+      await MockDb.setNoPartsUsed(job.job_id, newValue);
+      setNoPartsUsed(newValue);
+    } catch (e) {
+      alert('Could not update: ' + (e as Error).message);
+    }
+  };
+
   // Handle invoice finalization
   const handleFinalizeInvoice = async () => {
     if (!job) return;
@@ -535,11 +593,11 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const handleDeleteJob = async () => {
     if (!job) return;
     
-    const confirmed = confirm(`Are you sure you want to delete this job: "${job.title}"?\n\nThis action cannot be undone.`);
+    const confirmed = confirm(`Are you sure you want to delete this job: "${job.title}"?\n\nThe job will be archived and can be recovered by an admin if needed.`);
     if (!confirmed) return;
     
     try {
-      await MockDb.deleteJob(job.job_id);
+      await MockDb.deleteJob(job.job_id, currentUserId, currentUserName);
       navigate('/jobs');
     } catch (e) {
       alert('Could not delete job: ' + (e as Error).message);
@@ -853,25 +911,64 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
           {/* Condition Checklist Display */}
           {job.condition_checklist && Object.keys(job.condition_checklist).length > 0 && (
             <div className="bg-white rounded-xl shadow p-5">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                <ClipboardList className="w-5 h-5" /> Condition Checklist
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                {CHECKLIST_CATEGORIES.map(cat => {
-                  const checkedItems = cat.items.filter(item => job.condition_checklist?.[item.key as keyof ForkliftConditionChecklist]);
-                  if (checkedItems.length === 0) return null;
-                  return (
-                    <div key={cat.name} className="bg-slate-50 p-2 rounded">
-                      <div className="font-medium text-slate-700 text-xs mb-1">{cat.name}</div>
-                      {checkedItems.map(item => (
-                        <div key={item.key} className="flex items-center gap-1 text-green-600 text-xs">
-                          <CheckCircle className="w-3 h-3" /> {item.label}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5" /> Condition Checklist
+                </h3>
+                {(isInProgress || isAwaitingFinalization) && !editingChecklist && (
+                  <button type="button" onClick={handleStartEditChecklist} className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-100 flex items-center gap-1">
+                    <Edit2 className="w-3 h-3" /> Edit
+                  </button>
+                )}
               </div>
+              
+              {editingChecklist ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {CHECKLIST_CATEGORIES.map(cat => (
+                      <div key={cat.name} className="bg-slate-50 p-3 rounded-lg">
+                        <div className="font-medium text-slate-700 text-sm mb-2">{cat.name}</div>
+                        <div className="space-y-1">
+                          {cat.items.map(item => (
+                            <label key={item.key} className="flex items-center gap-2 cursor-pointer text-sm">
+                              <input
+                                type="checkbox"
+                                checked={!!checklistEditData[item.key as keyof ForkliftConditionChecklist]}
+                                onChange={() => toggleChecklistItem(item.key)}
+                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className={checklistEditData[item.key as keyof ForkliftConditionChecklist] ? 'text-green-600' : 'text-slate-600'}>
+                                {item.label}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleSaveChecklist} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">Save</button>
+                    <button type="button" onClick={handleCancelChecklistEdit} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                  {CHECKLIST_CATEGORIES.map(cat => {
+                    const checkedItems = cat.items.filter(item => job.condition_checklist?.[item.key as keyof ForkliftConditionChecklist]);
+                    if (checkedItems.length === 0) return null;
+                    return (
+                      <div key={cat.name} className="bg-slate-50 p-2 rounded">
+                        <div className="font-medium text-slate-700 text-xs mb-1">{cat.name}</div>
+                        {checkedItems.map(item => (
+                          <div key={item.key} className="flex items-center gap-1 text-green-600 text-xs">
+                            <CheckCircle className="w-3 h-3" /> {item.label}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -995,7 +1092,26 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                   </div>
                 ))}
               </div>
-            ) : (<p className="text-slate-400 italic mb-4">No parts added yet.</p>)}
+            ) : (
+              <div className="mb-4">
+                <p className="text-slate-400 italic mb-3">No parts added yet.</p>
+                {/* No parts used checkbox */}
+                {(isInProgress || isAwaitingFinalization) && (
+                  <label className="flex items-center gap-2 cursor-pointer text-sm bg-amber-50 p-3 rounded-lg border border-amber-200">
+                    <input
+                      type="checkbox"
+                      checked={noPartsUsed}
+                      onChange={handleToggleNoPartsUsed}
+                      className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className={noPartsUsed ? 'text-amber-700 font-medium' : 'text-slate-600'}>
+                      No parts were used for this job
+                    </span>
+                    {noPartsUsed && <CheckCircle className="w-4 h-4 text-amber-600 ml-auto" />}
+                  </label>
+                )}
+              </div>
+            )}
             {isInProgress && (
               <div className="border-t pt-4 mt-4">
                 <p className="text-xs text-slate-500 mb-2">Add New Part</p>
