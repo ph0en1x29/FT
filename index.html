@@ -127,127 +127,160 @@
       /* ========================================
          AUTO-ADAPTING OVERRIDES
          These make Tailwind classes theme-aware
+         Using html[data-theme] for higher specificity
          ======================================== */
       
       /* Fix white backgrounds - the #1 dark mode issue */
-      [data-theme="dark"] .bg-white { background-color: var(--surface) !important; }
-      [data-theme="dark"] .bg-slate-50 { background-color: var(--surface-2) !important; }
-      [data-theme="dark"] .bg-slate-100 { background-color: var(--surface-3) !important; }
-      [data-theme="dark"] .bg-gray-50 { background-color: var(--surface-2) !important; }
-      [data-theme="dark"] .bg-gray-100 { background-color: var(--surface-3) !important; }
+      html[data-theme="dark"] .bg-white { background-color: var(--surface) !important; }
+      html[data-theme="dark"] .bg-slate-50 { background-color: var(--surface-2) !important; }
+      html[data-theme="dark"] .bg-slate-100 { background-color: var(--surface-3) !important; }
+      html[data-theme="dark"] .bg-gray-50 { background-color: var(--surface-2) !important; }
+      html[data-theme="dark"] .bg-gray-100 { background-color: var(--surface-3) !important; }
+      
+      /* Fix gradient backgrounds */
+      html[data-theme="dark"] .from-blue-50,
+      html[data-theme="dark"] .from-purple-50,
+      html[data-theme="dark"] .from-green-50,
+      html[data-theme="dark"] .from-pink-50 {
+        --tw-gradient-from: var(--surface) !important;
+      }
+      html[data-theme="dark"] .to-indigo-50,
+      html[data-theme="dark"] .to-pink-50,
+      html[data-theme="dark"] .to-blue-50 {
+        --tw-gradient-to: var(--surface) !important;
+      }
       
       /* Fix text colors */
-      [data-theme="dark"] .text-slate-900 { color: var(--text) !important; }
-      [data-theme="dark"] .text-slate-800 { color: var(--text) !important; }
-      [data-theme="dark"] .text-slate-700 { color: var(--text-secondary) !important; }
-      [data-theme="dark"] .text-slate-600 { color: var(--muted) !important; }
-      [data-theme="dark"] .text-slate-500 { color: var(--muted) !important; }
-      [data-theme="dark"] .text-gray-900 { color: var(--text) !important; }
-      [data-theme="dark"] .text-gray-800 { color: var(--text) !important; }
-      [data-theme="dark"] .text-gray-700 { color: var(--text-secondary) !important; }
-      [data-theme="dark"] .text-gray-600 { color: var(--muted) !important; }
-      [data-theme="dark"] .text-gray-500 { color: var(--muted) !important; }
+      html[data-theme="dark"] .text-slate-900 { color: var(--text) !important; }
+      html[data-theme="dark"] .text-slate-800 { color: var(--text) !important; }
+      html[data-theme="dark"] .text-slate-700 { color: var(--text-secondary) !important; }
+      html[data-theme="dark"] .text-slate-600 { color: var(--muted) !important; }
+      html[data-theme="dark"] .text-slate-500 { color: var(--muted) !important; }
+      html[data-theme="dark"] .text-slate-400 { color: #708599 !important; }
+      html[data-theme="dark"] .text-gray-900 { color: var(--text) !important; }
+      html[data-theme="dark"] .text-gray-800 { color: var(--text) !important; }
+      html[data-theme="dark"] .text-gray-700 { color: var(--text-secondary) !important; }
+      html[data-theme="dark"] .text-gray-600 { color: var(--muted) !important; }
+      html[data-theme="dark"] .text-gray-500 { color: var(--muted) !important; }
       
       /* Fix borders */
-      [data-theme="dark"] .border-slate-200 { border-color: var(--border) !important; }
-      [data-theme="dark"] .border-slate-300 { border-color: var(--border) !important; }
-      [data-theme="dark"] .border-slate-100 { border-color: var(--border-muted) !important; }
-      [data-theme="dark"] .border-gray-200 { border-color: var(--border) !important; }
-      [data-theme="dark"] .border-gray-300 { border-color: var(--border) !important; }
-      [data-theme="dark"] .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--border) !important; }
-      [data-theme="dark"] .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--border) !important; }
+      html[data-theme="dark"] .border-slate-200 { border-color: var(--border) !important; }
+      html[data-theme="dark"] .border-slate-300 { border-color: var(--border) !important; }
+      html[data-theme="dark"] .border-slate-100 { border-color: var(--border-muted) !important; }
+      html[data-theme="dark"] .border-gray-200 { border-color: var(--border) !important; }
+      html[data-theme="dark"] .border-gray-300 { border-color: var(--border) !important; }
+      html[data-theme="dark"] .border-blue-100 { border-color: rgba(59, 130, 246, 0.2) !important; }
+      html[data-theme="dark"] .border-green-100 { border-color: rgba(34, 197, 94, 0.2) !important; }
+      html[data-theme="dark"] .border-green-200 { border-color: rgba(34, 197, 94, 0.25) !important; }
+      html[data-theme="dark"] .border-purple-100 { border-color: rgba(168, 85, 247, 0.2) !important; }
+      html[data-theme="dark"] .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--border) !important; }
+      html[data-theme="dark"] .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--border) !important; }
       
       /* Fix hover states */
-      [data-theme="dark"] .hover\:bg-slate-50:hover { background-color: var(--surface-2) !important; }
-      [data-theme="dark"] .hover\:bg-slate-100:hover { background-color: var(--surface-3) !important; }
-      [data-theme="dark"] .hover\:bg-gray-50:hover { background-color: var(--surface-2) !important; }
-      [data-theme="dark"] .hover\:bg-gray-100:hover { background-color: var(--surface-3) !important; }
+      html[data-theme="dark"] .hover\:bg-slate-50:hover { background-color: var(--surface-2) !important; }
+      html[data-theme="dark"] .hover\:bg-slate-100:hover { background-color: var(--surface-3) !important; }
+      html[data-theme="dark"] .hover\:bg-slate-200:hover { background-color: var(--surface-3) !important; }
+      html[data-theme="dark"] .hover\:bg-gray-50:hover { background-color: var(--surface-2) !important; }
+      html[data-theme="dark"] .hover\:bg-gray-100:hover { background-color: var(--surface-3) !important; }
+      html[data-theme="dark"] .hover\:bg-green-50:hover { background-color: rgba(34, 197, 94, 0.2) !important; }
+      html[data-theme="dark"] .hover\:bg-blue-50:hover { background-color: rgba(59, 130, 246, 0.2) !important; }
+      html[data-theme="dark"] .hover\:bg-red-50:hover { background-color: rgba(239, 68, 68, 0.2) !important; }
+      html[data-theme="dark"] .hover\:border-blue-300:hover { border-color: rgba(59, 130, 246, 0.5) !important; }
+      html[data-theme="dark"] .hover\:bg-green-200:hover { background-color: rgba(34, 197, 94, 0.2) !important; }
+      html[data-theme="dark"] .hover\:bg-red-200:hover { background-color: rgba(239, 68, 68, 0.2) !important; }
       
       /* Fix ring colors for focus states */
-      [data-theme="dark"] .ring-slate-200 { --tw-ring-color: var(--border) !important; }
-      [data-theme="dark"] .focus\:ring-slate-200:focus { --tw-ring-color: var(--border) !important; }
+      html[data-theme="dark"] .ring-slate-200 { --tw-ring-color: var(--border) !important; }
+      html[data-theme="dark"] .focus\:ring-slate-200:focus { --tw-ring-color: var(--border) !important; }
       
       /* ========================================
          BADGE OVERRIDES - Muted backgrounds
          ======================================== */
       /* Green/Success badges */
-      [data-theme="dark"] .bg-green-100 { background-color: var(--badge-success-bg) !important; }
-      [data-theme="dark"] .bg-green-50 { background-color: var(--badge-success-bg) !important; }
-      [data-theme="dark"] .text-green-800 { color: var(--badge-success-text) !important; }
-      [data-theme="dark"] .text-green-700 { color: var(--badge-success-text) !important; }
-      [data-theme="dark"] .text-green-600 { color: #6ee7a0 !important; }
-      [data-theme="dark"] .border-green-200 { border-color: var(--badge-success-border) !important; }
+      html[data-theme="dark"] .bg-green-100 { background-color: var(--badge-success-bg) !important; }
+      html[data-theme="dark"] .text-green-800 { color: var(--badge-success-text) !important; }
+      html[data-theme="dark"] .text-green-700 { color: var(--badge-success-text) !important; }
+      html[data-theme="dark"] .text-green-600 { color: #6ee7a0 !important; }
+      html[data-theme="dark"] .border-green-200 { border-color: var(--badge-success-border) !important; }
       
       /* Blue badges */
-      [data-theme="dark"] .bg-blue-100 { background-color: var(--badge-blue-bg) !important; }
-      [data-theme="dark"] .bg-blue-50 { background-color: var(--badge-blue-bg) !important; }
-      [data-theme="dark"] .text-blue-800 { color: var(--badge-blue-text) !important; }
-      [data-theme="dark"] .text-blue-700 { color: var(--badge-blue-text) !important; }
-      [data-theme="dark"] .text-blue-600 { color: #60a5fa !important; }
-      [data-theme="dark"] .border-blue-200 { border-color: var(--badge-blue-border) !important; }
+      html[data-theme="dark"] .bg-blue-100 { background-color: var(--badge-blue-bg) !important; }
+      html[data-theme="dark"] .text-blue-800 { color: var(--badge-blue-text) !important; }
+      html[data-theme="dark"] .text-blue-700 { color: var(--badge-blue-text) !important; }
+      html[data-theme="dark"] .text-blue-600 { color: #60a5fa !important; }
+      html[data-theme="dark"] .border-blue-200 { border-color: var(--badge-blue-border) !important; }
       
       /* Amber/Yellow/Warning badges */
-      [data-theme="dark"] .bg-amber-100 { background-color: var(--badge-warning-bg) !important; }
-      [data-theme="dark"] .bg-amber-50 { background-color: var(--badge-warning-bg) !important; }
-      [data-theme="dark"] .bg-yellow-100 { background-color: var(--badge-warning-bg) !important; }
-      [data-theme="dark"] .bg-yellow-50 { background-color: var(--badge-warning-bg) !important; }
-      [data-theme="dark"] .text-amber-800 { color: var(--badge-warning-text) !important; }
-      [data-theme="dark"] .text-amber-700 { color: var(--badge-warning-text) !important; }
-      [data-theme="dark"] .text-amber-600 { color: #fbbf24 !important; }
-      [data-theme="dark"] .text-yellow-800 { color: var(--badge-warning-text) !important; }
-      [data-theme="dark"] .text-yellow-700 { color: var(--badge-warning-text) !important; }
-      [data-theme="dark"] .border-amber-200 { border-color: var(--badge-warning-border) !important; }
-      [data-theme="dark"] .border-yellow-200 { border-color: var(--badge-warning-border) !important; }
+      html[data-theme="dark"] .bg-amber-100 { background-color: var(--badge-warning-bg) !important; }
+      html[data-theme="dark"] .bg-yellow-100 { background-color: var(--badge-warning-bg) !important; }
+      html[data-theme="dark"] .text-amber-800 { color: var(--badge-warning-text) !important; }
+      html[data-theme="dark"] .text-amber-700 { color: var(--badge-warning-text) !important; }
+      html[data-theme="dark"] .text-amber-600 { color: #fbbf24 !important; }
+      html[data-theme="dark"] .text-yellow-800 { color: var(--badge-warning-text) !important; }
+      html[data-theme="dark"] .text-yellow-700 { color: var(--badge-warning-text) !important; }
+      html[data-theme="dark"] .border-amber-200 { border-color: var(--badge-warning-border) !important; }
+      html[data-theme="dark"] .border-yellow-200 { border-color: var(--badge-warning-border) !important; }
       
       /* Red/Danger badges */
-      [data-theme="dark"] .bg-red-100 { background-color: var(--badge-danger-bg) !important; }
-      [data-theme="dark"] .bg-red-50 { background-color: var(--badge-danger-bg) !important; }
-      [data-theme="dark"] .text-red-800 { color: var(--badge-danger-text) !important; }
-      [data-theme="dark"] .text-red-700 { color: var(--badge-danger-text) !important; }
-      [data-theme="dark"] .text-red-600 { color: #f87171 !important; }
-      [data-theme="dark"] .border-red-200 { border-color: var(--badge-danger-border) !important; }
+      html[data-theme="dark"] .bg-red-100 { background-color: var(--badge-danger-bg) !important; }
+      html[data-theme="dark"] .text-red-800 { color: var(--badge-danger-text) !important; }
+      html[data-theme="dark"] .text-red-700 { color: var(--badge-danger-text) !important; }
+      html[data-theme="dark"] .text-red-600 { color: #f87171 !important; }
+      html[data-theme="dark"] .border-red-200 { border-color: var(--badge-danger-border) !important; }
       
       /* Purple badges */
-      [data-theme="dark"] .bg-purple-100 { background-color: var(--badge-purple-bg) !important; }
-      [data-theme="dark"] .bg-purple-50 { background-color: var(--badge-purple-bg) !important; }
-      [data-theme="dark"] .text-purple-800 { color: var(--badge-purple-text) !important; }
-      [data-theme="dark"] .text-purple-700 { color: var(--badge-purple-text) !important; }
-      [data-theme="dark"] .text-purple-600 { color: #c084fc !important; }
-      [data-theme="dark"] .border-purple-200 { border-color: var(--badge-purple-border) !important; }
+      html[data-theme="dark"] .bg-purple-100 { background-color: var(--badge-purple-bg) !important; }
+      html[data-theme="dark"] .text-purple-800 { color: var(--badge-purple-text) !important; }
+      html[data-theme="dark"] .text-purple-700 { color: var(--badge-purple-text) !important; }
+      html[data-theme="dark"] .text-purple-600 { color: #c084fc !important; }
+      html[data-theme="dark"] .border-purple-200 { border-color: var(--badge-purple-border) !important; }
       
       /* Orange badges */
-      [data-theme="dark"] .bg-orange-100 { background-color: var(--badge-orange-bg) !important; }
-      [data-theme="dark"] .bg-orange-50 { background-color: var(--badge-orange-bg) !important; }
-      [data-theme="dark"] .text-orange-800 { color: var(--badge-orange-text) !important; }
-      [data-theme="dark"] .text-orange-700 { color: var(--badge-orange-text) !important; }
-      [data-theme="dark"] .text-orange-600 { color: #fb923c !important; }
-      [data-theme="dark"] .border-orange-200 { border-color: var(--badge-orange-border) !important; }
+      html[data-theme="dark"] .bg-orange-100 { background-color: var(--badge-orange-bg) !important; }
+      html[data-theme="dark"] .text-orange-800 { color: var(--badge-orange-text) !important; }
+      html[data-theme="dark"] .text-orange-700 { color: var(--badge-orange-text) !important; }
+      html[data-theme="dark"] .text-orange-600 { color: #fb923c !important; }
+      html[data-theme="dark"] .border-orange-200 { border-color: var(--badge-orange-border) !important; }
       
       /* Indigo badges */
-      [data-theme="dark"] .bg-indigo-100 { background-color: var(--badge-info-bg) !important; }
-      [data-theme="dark"] .bg-indigo-50 { background-color: var(--badge-info-bg) !important; }
-      [data-theme="dark"] .text-indigo-800 { color: var(--badge-info-text) !important; }
-      [data-theme="dark"] .text-indigo-700 { color: var(--badge-info-text) !important; }
-      [data-theme="dark"] .text-indigo-600 { color: #818cf8 !important; }
-      [data-theme="dark"] .border-indigo-200 { border-color: var(--badge-info-border) !important; }
+      html[data-theme="dark"] .bg-indigo-100 { background-color: var(--badge-info-bg) !important; }
+      html[data-theme="dark"] .text-indigo-800 { color: var(--badge-info-text) !important; }
+      html[data-theme="dark"] .text-indigo-700 { color: var(--badge-info-text) !important; }
+      html[data-theme="dark"] .text-indigo-600 { color: #818cf8 !important; }
+      html[data-theme="dark"] .border-indigo-200 { border-color: var(--badge-info-border) !important; }
+      
+      /* ========================================
+         CARD BACKGROUND OVERRIDES (-50 variants)
+         These are used for card/container backgrounds
+         Need visible tinted colors, not white
+         ======================================== */
+      html[data-theme="dark"] .bg-green-50 { background-color: rgba(34, 197, 94, 0.15) !important; }
+      html[data-theme="dark"] .bg-blue-50 { background-color: rgba(59, 130, 246, 0.15) !important; }
+      html[data-theme="dark"] .bg-amber-50 { background-color: rgba(245, 158, 11, 0.15) !important; }
+      html[data-theme="dark"] .bg-yellow-50 { background-color: rgba(234, 179, 8, 0.15) !important; }
+      html[data-theme="dark"] .bg-red-50 { background-color: rgba(239, 68, 68, 0.15) !important; }
+      html[data-theme="dark"] .bg-purple-50 { background-color: rgba(168, 85, 247, 0.15) !important; }
+      html[data-theme="dark"] .bg-orange-50 { background-color: rgba(249, 115, 22, 0.15) !important; }
+      html[data-theme="dark"] .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.15) !important; }
+      html[data-theme="dark"] .bg-pink-50 { background-color: rgba(236, 72, 153, 0.15) !important; }
       
       /* ========================================
          INPUT & FORM OVERRIDES
          ======================================== */
-      [data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
-      [data-theme="dark"] select,
-      [data-theme="dark"] textarea {
+      html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+      html[data-theme="dark"] select,
+      html[data-theme="dark"] textarea {
         background-color: var(--surface-2) !important;
         border-color: var(--border) !important;
         color: var(--text) !important;
       }
-      [data-theme="dark"] input::placeholder,
-      [data-theme="dark"] textarea::placeholder {
+      html[data-theme="dark"] input::placeholder,
+      html[data-theme="dark"] textarea::placeholder {
         color: var(--muted) !important;
       }
-      [data-theme="dark"] input:focus,
-      [data-theme="dark"] select:focus,
-      [data-theme="dark"] textarea:focus {
+      html[data-theme="dark"] input:focus,
+      html[data-theme="dark"] select:focus,
+      html[data-theme="dark"] textarea:focus {
         border-color: #3b82f6 !important;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
       }
@@ -354,11 +387,11 @@
       }
       
       /* Shadow overrides for dark mode */
-      [data-theme="dark"] .shadow-sm { box-shadow: var(--shadow-sm) !important; }
-      [data-theme="dark"] .shadow { box-shadow: var(--shadow) !important; }
-      [data-theme="dark"] .shadow-lg { box-shadow: var(--shadow-lg) !important; }
-      [data-theme="dark"] .shadow-md { box-shadow: var(--shadow) !important; }
-      [data-theme="dark"] .shadow-xl { box-shadow: var(--shadow-lg) !important; }
+      html[data-theme="dark"] .shadow-sm { box-shadow: var(--shadow-sm) !important; }
+      html[data-theme="dark"] .shadow { box-shadow: var(--shadow) !important; }
+      html[data-theme="dark"] .shadow-lg { box-shadow: var(--shadow-lg) !important; }
+      html[data-theme="dark"] .shadow-md { box-shadow: var(--shadow) !important; }
+      html[data-theme="dark"] .shadow-xl { box-shadow: var(--shadow-lg) !important; }
 
       /* Custom scrollbar */
       .sidebar-scroll::-webkit-scrollbar,
@@ -386,18 +419,18 @@
       }
       
       /* Dark mode scrollbar - subtle but visible */
-      [data-theme="dark"] ::-webkit-scrollbar {
+      html[data-theme="dark"] ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
       }
-      [data-theme="dark"] ::-webkit-scrollbar-track {
+      html[data-theme="dark"] ::-webkit-scrollbar-track {
         background: var(--bg);
       }
-      [data-theme="dark"] ::-webkit-scrollbar-thumb {
+      html[data-theme="dark"] ::-webkit-scrollbar-thumb {
         background: var(--border);
         border-radius: 4px;
       }
-      [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+      html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
         background: #2a4a6e;
       }
 

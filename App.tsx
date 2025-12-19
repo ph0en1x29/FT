@@ -117,6 +117,15 @@ const sidebarStyles = `
     color: #cbd5e1;
     background: rgba(255, 255, 255, 0.04);
   }
+  .sidebar-nav-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .sidebar-nav-scroll::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
 `;
 
 interface SidebarProps {
@@ -190,7 +199,7 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
 
   return (
     <aside
-      className={`sidebar-glass fixed left-0 top-0 h-screen z-50 hidden md:flex flex-col transition-all duration-300 ${
+      className={`sidebar-glass fixed left-0 top-0 h-screen z-50 hidden md:flex flex-col overflow-hidden transition-all duration-300 ${
         isCollapsed ? 'w-[72px] sidebar-collapsed' : 'w-64'
       }`}
     >
@@ -232,8 +241,8 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-3 flex flex-col">
+      {/* Navigation - scrollable middle section */}
+      <nav className="flex-1 px-3 py-3 overflow-y-auto overflow-x-hidden sidebar-nav-scroll">
         {/* Primary Items */}
         <div className="space-y-1">
           {canViewDashboard && <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />}
@@ -302,12 +311,10 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
           </div>
         )}
 
-        {/* Spacer */}
-        <div className="flex-1" />
       </nav>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-slate-700/50">
+      {/* Footer - pinned at bottom */}
+      <div className="flex-shrink-0 p-3 border-t border-slate-700/50">
         <div className="space-y-0.5">
           <NavItem to="/my-leave" icon={CalendarDays} label="My Leave" />
           {canViewOwnProfile && (
