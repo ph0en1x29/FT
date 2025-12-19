@@ -189,49 +189,103 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
         )}
       </div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats - Industry Standard Color Mapping */}
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        {/* Active - Green (work happening) */}
         <button
           onClick={() => { setStatusFilter('all'); setDateFilter('unfinished'); }}
-          className={`p-3 rounded-lg text-center transition ${statusFilter === 'all' && dateFilter === 'unfinished' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+          className={`p-3 rounded-lg text-center transition-all ${
+            statusFilter === 'all' && dateFilter === 'unfinished' 
+              ? 'text-white shadow-lg scale-[1.02] ring-2' 
+              : 'bg-green-50 hover:bg-green-100 text-green-700 border border-green-200'
+          }`}
+          style={statusFilter === 'all' && dateFilter === 'unfinished' ? {
+            backgroundColor: '#16A34A',
+            '--tw-ring-color': '#86EFAC'
+          } as React.CSSProperties : {}}
         >
           <div className="text-2xl font-bold">{statusCounts.total - statusCounts.completed}</div>
-          <div className="text-xs opacity-70">Active</div>
+          <div className="text-xs opacity-80">Active</div>
         </button>
+        
+        {/* New - Slate/Gray (unassigned) */}
         <button
           onClick={() => setStatusFilter(JobStatus.NEW)}
-          className={`p-3 rounded-lg text-center transition ${statusFilter === JobStatus.NEW ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+          className={`p-3 rounded-lg text-center transition-all ${
+            statusFilter === JobStatus.NEW 
+              ? 'text-white shadow-lg scale-[1.02]' 
+              : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200'
+          }`}
+          style={statusFilter === JobStatus.NEW ? {
+            backgroundColor: '#475569'
+          } : {}}
         >
           <div className="text-2xl font-bold">{statusCounts.new}</div>
-          <div className="text-xs opacity-70">New</div>
+          <div className="text-xs opacity-80">New</div>
         </button>
+        
+        {/* Assigned - Cyan (queued/allocated) */}
         <button
           onClick={() => setStatusFilter(JobStatus.ASSIGNED)}
-          className={`p-3 rounded-lg text-center transition ${statusFilter === JobStatus.ASSIGNED ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+          className={`p-3 rounded-lg text-center transition-all ${
+            statusFilter === JobStatus.ASSIGNED 
+              ? 'text-white shadow-lg scale-[1.02]' 
+              : 'bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200'
+          }`}
+          style={statusFilter === JobStatus.ASSIGNED ? {
+            backgroundColor: '#0891B2'
+          } : {}}
         >
           <div className="text-2xl font-bold">{statusCounts.assigned}</div>
-          <div className="text-xs opacity-70">Assigned</div>
+          <div className="text-xs opacity-80">Assigned</div>
         </button>
+        
+        {/* In Progress - Bright Green (work happening now) */}
         <button
           onClick={() => setStatusFilter(JobStatus.IN_PROGRESS)}
-          className={`p-3 rounded-lg text-center transition ${statusFilter === JobStatus.IN_PROGRESS ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+          className={`p-3 rounded-lg text-center transition-all ${
+            statusFilter === JobStatus.IN_PROGRESS 
+              ? 'text-white shadow-lg scale-[1.02]' 
+              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
+          }`}
+          style={statusFilter === JobStatus.IN_PROGRESS ? {
+            backgroundColor: '#22C55E'
+          } : {}}
         >
           <div className="text-2xl font-bold">{statusCounts.inProgress}</div>
-          <div className="text-xs opacity-70">In Progress</div>
+          <div className="text-xs opacity-80">In Progress</div>
         </button>
+        
+        {/* Awaiting - Amber (needs attention) */}
         <button
           onClick={() => setStatusFilter(JobStatus.AWAITING_FINALIZATION)}
-          className={`p-3 rounded-lg text-center transition ${statusFilter === JobStatus.AWAITING_FINALIZATION ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+          className={`p-3 rounded-lg text-center transition-all ${
+            statusFilter === JobStatus.AWAITING_FINALIZATION 
+              ? 'text-white shadow-lg scale-[1.02]' 
+              : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200'
+          }`}
+          style={statusFilter === JobStatus.AWAITING_FINALIZATION ? {
+            backgroundColor: '#D97706'
+          } : {}}
         >
           <div className="text-2xl font-bold">{statusCounts.awaiting}</div>
-          <div className="text-xs opacity-70">Awaiting</div>
+          <div className="text-xs opacity-80">Awaiting</div>
         </button>
+        
+        {/* Completed - Dark Green (finished/settled) */}
         <button
           onClick={() => { setStatusFilter(JobStatus.COMPLETED); setDateFilter('all'); }}
-          className={`p-3 rounded-lg text-center transition ${statusFilter === JobStatus.COMPLETED ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+          className={`p-3 rounded-lg text-center transition-all ${
+            statusFilter === JobStatus.COMPLETED 
+              ? 'text-white shadow-lg scale-[1.02]' 
+              : 'bg-green-100 hover:bg-green-200 text-green-800 border border-green-300'
+          }`}
+          style={statusFilter === JobStatus.COMPLETED ? {
+            backgroundColor: '#166534'
+          } : {}}
         >
           <div className="text-2xl font-bold">{statusCounts.completed}</div>
-          <div className="text-xs opacity-70">Completed</div>
+          <div className="text-xs opacity-80">Completed</div>
         </button>
       </div>
 
@@ -240,18 +294,18 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted" />
             <input
               type="text"
               placeholder="Search jobs, customers, forklifts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-theme focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-theme bg-theme-surface text-theme focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-muted hover:text-theme"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -263,7 +317,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-              className="appearance-none pl-4 pr-10 py-2.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-theme focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer min-w-[160px]"
+              className="appearance-none pl-4 pr-10 py-2.5 rounded-lg border border-theme bg-theme-surface text-theme focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer min-w-[160px]"
             >
               <option value="unfinished">🔄 Unfinished</option>
               <option value="today">📅 Today</option>
@@ -272,13 +326,13 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
               <option value="all">📋 All Jobs</option>
               <option value="custom">🔍 Custom Range</option>
             </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none" />
           </div>
 
           {/* Toggle Filters Button */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-4 py-2.5 rounded-lg border transition flex items-center gap-2 ${showFilters ? 'bg-blue-50 border-blue-200 text-blue-600' : 'border-slate-200 dark:border-slate-600 text-theme-muted hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+            className={`px-4 py-2.5 rounded-lg border transition flex items-center gap-2 ${showFilters ? 'bg-blue-50 border-blue-200 text-blue-600' : 'border-theme text-theme-muted hover:bg-theme-surface-2'}`}
           >
             <Filter className="w-4 h-4" />
             <span className="hidden sm:inline">Filters</span>
@@ -298,14 +352,14 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
 
         {/* Custom Date Range */}
         {dateFilter === 'custom' && (
-          <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+          <div className="flex flex-wrap gap-3 pt-2 border-t border-theme-muted">
             <div className="flex items-center gap-2">
               <label className="text-sm text-theme-muted">From:</label>
               <input
                 type="date"
                 value={customDateFrom}
                 onChange={(e) => setCustomDateFrom(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-theme text-sm"
+                className="px-3 py-1.5 rounded-lg border border-theme bg-theme-surface text-theme text-sm"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -314,7 +368,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
                 type="date"
                 value={customDateTo}
                 onChange={(e) => setCustomDateTo(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-theme text-sm"
+                className="px-3 py-1.5 rounded-lg border border-theme bg-theme-surface text-theme text-sm"
               />
             </div>
           </div>
@@ -322,13 +376,13 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
 
         {/* Additional Filters (expandable) */}
         {showFilters && (
-          <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+          <div className="flex flex-wrap gap-3 pt-2 border-t border-theme-muted">
             <div className="flex items-center gap-2">
               <label className="text-sm text-theme-muted">Status:</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-theme text-sm"
+                className="px-3 py-1.5 rounded-lg border border-theme bg-theme-surface text-theme text-sm"
               >
                 <option value="all">All Statuses</option>
                 <option value={JobStatus.NEW}>New</option>
@@ -354,7 +408,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
           <p>Loading jobs...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredJobs.map(job => (
             <div 
               key={job.job_id} 

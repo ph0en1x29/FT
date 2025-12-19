@@ -528,7 +528,7 @@ export default function App() {
           isCollapsed={sidebarCollapsed}
           setIsCollapsed={setSidebarCollapsed}
         />
-        <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64'} p-4 md:p-8 pb-20 md:pb-8 max-w-7xl mx-auto w-full`}>
+        <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64'} p-4 md:p-6 lg:p-8 pb-20 md:pb-8`}>
           <TopHeader currentUser={currentUser} isDark={isDarkTheme} onToggleTheme={toggleTheme} />
           <Routes>
             <Route path="/" element={

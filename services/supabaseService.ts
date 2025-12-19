@@ -262,6 +262,8 @@ export const SupabaseDb = {
   // =====================
 
   getJobs: async (user: User): Promise<Job[]> => {
+    console.log('[getJobs] Fetching jobs for user:', user.user_id, user.role, user.name);
+    
     let query = supabase
       .from('jobs')
       .select(`
@@ -276,12 +278,18 @@ export const SupabaseDb = {
       .order('created_at', { ascending: false });
 
     if (user.role === UserRole.TECHNICIAN) {
+      console.log('[getJobs] Filtering for technician:', user.user_id);
       query = query.eq('assigned_technician_id', user.user_id);
     }
 
     const { data, error } = await query;
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error('[getJobs] Error fetching jobs:', error);
+      throw new Error(error.message);
+    }
+    
+    console.log('[getJobs] Found jobs:', data?.length || 0);
     return data as Job[];
   },
 
@@ -538,14 +546,17 @@ export const SupabaseDb = {
     signerName: string,
     signatureDataUrl: string
   ): Promise<Job> => {
+    const now = new Date().toISOString();
     const signatureEntry: SignatureEntry = {
       signed_by_name: signerName,
-      signed_at: new Date().toISOString(),
+      signed_at: now,
       signature_url: signatureDataUrl,
     };
 
     const field = type === 'technician' ? 'technician_signature' : 'customer_signature';
+    const timestampField = type === 'technician' ? 'technician_signature_at' : 'customer_signature_at';
 
+    // Update jobs table (for UI display / backward compatibility)
     const { data, error } = await supabase
       .from('jobs')
       .update({ [field]: signatureEntry })
@@ -561,6 +572,30 @@ export const SupabaseDb = {
       .single();
 
     if (error) throw new Error(error.message);
+
+    // IMPORTANT: Also update job_service_records table (for validation trigger)
+    const { error: serviceRecordError } = await supabase
+      .from('job_service_records')
+      .update({ 
+        [field]: signatureEntry,
+        [timestampField]: now,
+        updated_at: now
+      })
+      .eq('job_id', jobId);
+
+    // If service record doesn't exist, create one with the signature
+    if (serviceRecordError) {
+      // Try to upsert - create if not exists
+      await supabase
+        .from('job_service_records')
+        .upsert({
+          job_id: jobId,
+          [field]: signatureEntry,
+          [timestampField]: now,
+          updated_at: now
+        }, { onConflict: 'job_id' });
+    }
+
     return data as Job;
   },
 
