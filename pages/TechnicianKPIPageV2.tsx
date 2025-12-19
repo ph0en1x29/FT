@@ -287,13 +287,13 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Technician KPI Dashboard</h1>
-          <p className="text-slate-500 text-sm">Performance metrics and industry benchmarks</p>
+          <h1 className="text-2xl font-bold text-theme">Technician KPI Dashboard</h1>
+          <p className="text-theme-muted text-sm">Performance metrics and industry benchmarks</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="px-3 py-2 border border-slate-300 rounded-lg text-sm flex items-center gap-2 hover:bg-slate-50"
+            className="px-3 py-2 border border-theme rounded-lg text-sm flex items-center gap-2 hover:bg-theme-surface-2 text-theme-muted theme-transition"
           >
             <Filter className="w-4 h-4" />
             Filters
@@ -310,11 +310,11 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
 
       {/* Filters */}
       {showFilters && (
-        <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-200">
+        <div className="card-theme rounded-xl p-4 theme-transition">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-slate-700">Period:</span>
-              <div className="flex rounded-lg border border-slate-300 overflow-hidden">
+              <span className="text-sm font-medium text-theme">Period:</span>
+              <div className="flex rounded-lg border border-theme overflow-hidden">
                 {(['7d', '30d', '90d', '365d', 'custom'] as const).map(range => (
                   <button
                     key={range}
@@ -322,7 +322,7 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
                     className={`px-3 py-1.5 text-sm ${
                       dateRange === range
                         ? 'bg-blue-600 text-white'
-                        : 'bg-white text-slate-600 hover:bg-slate-50'
+                        : 'bg-theme-surface text-theme-muted hover:bg-theme-surface-2'
                     }`}
                   >
                     {range === 'custom' ? 'Custom' : range}
@@ -336,7 +336,7 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm"
+                  className="px-3 py-1.5 bg-theme-surface border border-theme rounded-lg text-sm text-theme theme-transition"
                 />
                 <span className="text-slate-400">to</span>
                 <input
@@ -353,22 +353,22 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
 
       {/* Team Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-3">
-        <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-200 overflow-hidden">
-          <div className="flex items-center gap-2 text-slate-500 text-xs mb-1">
+        <div className="card-theme rounded-xl p-4 overflow-hidden theme-transition">
+          <div className="flex items-center gap-2 text-theme-muted text-xs mb-1">
             <Users className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">Total Jobs</span>
           </div>
-          <p className="text-2xl font-bold text-slate-900">{teamTotals.totalJobs}</p>
+          <p className="text-2xl font-bold text-theme">{teamTotals.totalJobs}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-200 overflow-hidden">
-          <div className="flex items-center gap-2 text-slate-500 text-xs mb-1">
+        <div className="card-theme rounded-xl p-4 overflow-hidden theme-transition">
+          <div className="flex items-center gap-2 text-theme-muted text-xs mb-1">
             <CheckCircle className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">Completed</span>
           </div>
           <p className="text-2xl font-bold text-green-600">{teamTotals.totalCompleted}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-200 overflow-hidden">
-          <div className="flex items-center gap-2 text-slate-500 text-xs mb-1">
+        <div className="card-theme rounded-xl p-4 overflow-hidden theme-transition">
+          <div className="flex items-center gap-2 text-theme-muted text-xs mb-1">
             <DollarSign className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">Revenue</span>
           </div>
@@ -376,8 +376,8 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
             RM{teamTotals.totalRevenue.toLocaleString()}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-200 overflow-hidden">
-          <div className="flex items-center gap-2 text-slate-500 text-xs mb-1">
+        <div className="card-theme rounded-xl p-4 overflow-hidden theme-transition">
+          <div className="flex items-center gap-2 text-theme-muted text-xs mb-1">
             <Target className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">Avg FTFR</span>
           </div>
@@ -385,8 +385,8 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
             {teamTotals.avgFTFR.toFixed(1)}%
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-200 overflow-hidden">
-          <div className="flex items-center gap-2 text-slate-500 text-xs mb-1">
+        <div className="card-theme rounded-xl p-4 overflow-hidden theme-transition">
+          <div className="flex items-center gap-2 text-theme-muted text-xs mb-1">
             <Clock className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">Avg Response</span>
           </div>
@@ -394,8 +394,8 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
             {teamTotals.avgResponseTime.toFixed(1)}h
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-200 overflow-hidden">
-          <div className="flex items-center gap-2 text-slate-500 text-xs mb-1">
+        <div className="card-theme rounded-xl p-4 overflow-hidden theme-transition">
+          <div className="flex items-center gap-2 text-theme-muted text-xs mb-1">
             <Gauge className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">Utilization</span>
           </div>
@@ -403,8 +403,8 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
             {teamTotals.avgUtilization.toFixed(1)}%
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-200 overflow-hidden">
-          <div className="flex items-center gap-2 text-slate-500 text-xs mb-1">
+        <div className="card-theme rounded-xl p-4 overflow-hidden theme-transition">
+          <div className="flex items-center gap-2 text-theme-muted text-xs mb-1">
             <Zap className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">Jobs/Day</span>
           </div>
@@ -415,9 +415,9 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
       </div>
 
       {/* Industry Benchmarks Legend */}
-      <div className="bg-slate-50 rounded-lg p-3 flex flex-wrap gap-4 text-xs">
-        <span className="font-medium text-slate-600">Industry Benchmarks:</span>
-        <span className="text-slate-500">FTFR: {BENCHMARKS.first_time_fix_rate}%</span>
+      <div className="bg-theme-surface-2 rounded-lg p-3 flex flex-wrap gap-4 text-xs theme-transition">
+        <span className="font-medium text-theme">Industry Benchmarks:</span>
+        <span className="text-theme-muted">FTFR: {BENCHMARKS.first_time_fix_rate}%</span>
         <span className="text-slate-500">Response: {BENCHMARKS.avg_response_time}h</span>
         <span className="text-slate-500">Utilization: {BENCHMARKS.technician_utilization}%</span>
         <span className="text-slate-500">Jobs/Day: {BENCHMARKS.jobs_per_day}</span>

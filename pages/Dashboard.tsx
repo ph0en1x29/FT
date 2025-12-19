@@ -102,40 +102,40 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <div className="text-center py-12 text-slate-500">Loading dashboard data...</div>
+        <h1 className="text-2xl font-bold text-theme">Dashboard</h1>
+        <div className="text-center py-12 text-theme-muted">Loading dashboard data...</div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-theme">Dashboard</h1>
       
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <p className="text-slate-500 text-sm">Total Jobs This Week</p>
-          <p className="text-3xl font-bold text-slate-800">{jobsThisWeek.length}</p>
-          <p className="text-xs text-slate-400 mt-1">Last 7 days</p>
+        <div className="card-theme p-6 rounded-xl theme-transition">
+          <p className="text-theme-muted text-sm">Total Jobs This Week</p>
+          <p className="text-3xl font-bold text-theme">{jobsThisWeek.length}</p>
+          <p className="text-xs text-theme-muted mt-1">Last 7 days</p>
         </div>
         
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <p className="text-slate-500 text-sm">Revenue Estimate</p>
+        <div className="card-theme p-6 rounded-xl theme-transition">
+          <p className="text-theme-muted text-sm">Revenue Estimate</p>
           <p className="text-3xl font-bold text-green-600">${totalRevenue.toLocaleString()}</p>
-          <p className="text-xs text-slate-400 mt-1">All-time total</p>
+          <p className="text-xs text-theme-muted mt-1">All-time total</p>
         </div>
         
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <p className="text-slate-500 text-sm">Pending Finalization</p>
+        <div className="card-theme p-6 rounded-xl theme-transition">
+          <p className="text-theme-muted text-sm">Pending Finalization</p>
           <p className="text-3xl font-bold text-purple-600">{pendingFinalization}</p>
-          <p className="text-xs text-slate-400 mt-1">Awaiting accountant review</p>
+          <p className="text-xs text-theme-muted mt-1">Awaiting accountant review</p>
         </div>
         
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <p className="text-slate-500 text-sm">Avg. Response Time</p>
+        <div className="card-theme p-6 rounded-xl theme-transition">
+          <p className="text-theme-muted text-sm">Avg. Response Time</p>
           <p className="text-3xl font-bold text-blue-600">{avgResponseHours.toFixed(1)}h</p>
-          <p className="text-xs text-slate-400 mt-1">First arrival time</p>
+          <p className="text-xs text-theme-muted mt-1">First arrival time</p>
         </div>
       </div>
 
@@ -143,8 +143,8 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Status Distribution */}
-        <div className="bg-white p-6 rounded-xl shadow-sm h-80">
-          <h3 className="font-semibold text-slate-700 mb-4">Job Status Distribution</h3>
+        <div className="card-theme p-6 rounded-xl h-80 theme-transition">
+          <h3 className="font-semibold text-theme mb-4">Job Status Distribution</h3>
           {dataStatus.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -165,15 +165,15 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-full text-slate-400">
+            <div className="flex items-center justify-center h-full text-theme-muted">
               No jobs yet
             </div>
           )}
         </div>
 
         {/* Weekly Revenue */}
-        <div className="bg-white p-6 rounded-xl shadow-sm h-80">
-          <h3 className="font-semibold text-slate-700 mb-4">Last 5 Days Revenue</h3>
+        <div className="card-theme p-6 rounded-xl h-80 theme-transition">
+          <h3 className="font-semibold text-theme mb-4">Last 5 Days Revenue</h3>
           {dataRevenue.some(d => d.revenue > 0) ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dataRevenue}>
@@ -185,7 +185,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-full text-slate-400">
+            <div className="flex items-center justify-center h-full text-theme-muted">
               No revenue data yet
             </div>
           )}
@@ -193,18 +193,18 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white p-6 rounded-xl shadow-sm">
-        <h3 className="font-semibold text-slate-700 mb-4">Recent Jobs</h3>
+      <div className="card-theme p-6 rounded-xl theme-transition">
+        <h3 className="font-semibold text-theme mb-4">Recent Jobs</h3>
         <div className="space-y-2">
           {jobs.slice(0, 5).map(job => (
             <div 
               key={job.job_id} 
               onClick={() => navigate(`/jobs/${job.job_id}`)}
-              className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100 hover:border-slate-200 cursor-pointer transition-colors"
+              className="flex justify-between items-center p-3 bg-theme-surface-2 rounded-lg border border-theme hover:shadow-theme-sm cursor-pointer transition-all theme-transition"
             >
               <div className="flex-1">
-                <p className="font-medium text-slate-800 hover:text-blue-600">{job.title}</p>
-                <p className="text-xs text-slate-500">{job.customer.name} • {new Date(job.created_at).toLocaleDateString()}</p>
+                <p className="font-medium text-theme hover:text-blue-600">{job.title}</p>
+                <p className="text-xs text-theme-muted">{job.customer.name} • {new Date(job.created_at).toLocaleDateString()}</p>
               </div>
               <span className={`px-2 py-1 rounded text-xs font-medium ${
                 job.status === JobStatus.COMPLETED ? 'bg-green-100 text-green-700' :
@@ -217,7 +217,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
             </div>
           ))}
           {jobs.length === 0 && (
-            <p className="text-center text-slate-400 py-4">No jobs found</p>
+            <p className="text-center text-theme-muted py-4">No jobs found</p>
           )}
         </div>
       </div>

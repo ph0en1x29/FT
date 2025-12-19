@@ -507,8 +507,8 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Forklifts</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-theme">Forklifts</h1>
+          <p className="text-sm text-theme-muted mt-1">
             {filteredForklifts.length} of {forklifts.length} units
             {isSelectionMode && selectedForkliftIds.size > 0 && (
               <span className="ml-2 text-blue-600 font-medium">
@@ -601,7 +601,7 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
             <input
               type="text"
               placeholder="Search by S/N, make, model, location, customer..."
-              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2.5 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-theme placeholder-slate-400 theme-transition"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -610,9 +610,9 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-slate-400" />
+              <Filter className="w-4 h-4 text-theme-muted" />
               <select
-                className="px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="px-3 py-2 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-theme theme-transition"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
               >
@@ -624,7 +624,7 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
             </div>
 
             <select
-              className="px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="px-3 py-2 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-theme theme-transition"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
@@ -635,7 +635,7 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
             </select>
 
             <select
-              className="px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="px-3 py-2 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-theme theme-transition"
               value={filterAssigned}
               onChange={(e) => setFilterAssigned(e.target.value)}
             >
@@ -646,7 +646,7 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
 
             {uniqueMakes.length > 0 && (
               <select
-                className="px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="px-3 py-2 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-theme theme-transition"
                 value={filterMake}
                 onChange={(e) => setFilterMake(e.target.value)}
               >
@@ -662,10 +662,10 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
 
       {/* Forklifts Grid */}
       {filteredForklifts.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <Truck className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-600 mb-2">No forklifts found</h3>
-          <p className="text-sm text-slate-400">
+        <div className="card-theme rounded-xl p-12 text-center theme-transition">
+          <Truck className="w-12 h-12 text-theme-muted opacity-40 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-theme mb-2">No forklifts found</h3>
+          <p className="text-sm text-theme-muted">
             {searchQuery || filterType !== 'all' || filterStatus !== 'all' || filterMake !== 'all' || filterAssigned !== 'all'
               ? 'Try adjusting your search or filters'
               : 'Add your first forklift to get started'}
@@ -693,14 +693,14 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
                     navigate(`/forklifts/${forklift.forklift_id}`);
                   }
                 }}
-                className={`bg-white rounded-xl shadow-sm border overflow-hidden cursor-pointer group transition-all ${
+                className={`card-theme rounded-xl overflow-hidden cursor-pointer group transition-all theme-transition ${
                   isSelected 
                     ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' 
-                    : 'border-slate-100 hover:shadow-md hover:border-blue-200'
+                    : 'hover:shadow-theme hover:border-blue-300'
                 }`}
               >
                 {/* Header */}
-                <div className="p-4 border-b border-slate-100">
+                <div className="p-4 border-b border-theme">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
                       {isSelectionMode && (
@@ -711,21 +711,21 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
                           {isSelected ? (
                             <CheckSquare className="w-5 h-5 text-blue-600" />
                           ) : (
-                            <Square className="w-5 h-5 text-slate-400" />
+                            <Square className="w-5 h-5 text-theme-muted" />
                           )}
                         </button>
                       )}
                       <div>
-                        <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                        <h3 className="font-bold text-theme group-hover:text-blue-600 transition-colors">
                           {forklift.make} {forklift.model}
                         </h3>
-                        <p className="text-sm text-slate-500 font-mono">{forklift.serial_number}</p>
+                        <p className="text-sm text-theme-muted font-mono">{forklift.serial_number}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
                       {getStatusIcon(forklift.status)}
                       {!isSelectionMode && (
-                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                        <ChevronRight className="w-4 h-4 text-theme-muted group-hover:text-blue-500 transition-colors" />
                       )}
                     </div>
                   </div>
@@ -758,32 +758,32 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Gauge className="w-4 h-4 text-slate-400" />
+                    <div className="flex items-center gap-2 text-theme-muted">
+                      <Gauge className="w-4 h-4 opacity-60" />
                       <span>{forklift.hourmeter.toLocaleString()} hrs</span>
                     </div>
                     {forklift.year && (
-                      <div className="flex items-center gap-2 text-slate-600">
-                        <Calendar className="w-4 h-4 text-slate-400" />
+                      <div className="flex items-center gap-2 text-theme-muted">
+                        <Calendar className="w-4 h-4 opacity-60" />
                         <span>{forklift.year}</span>
                       </div>
                     )}
                     {forklift.location && (
-                      <div className="flex items-center gap-2 text-slate-600 col-span-2">
-                        <MapPin className="w-4 h-4 text-slate-400" />
+                      <div className="flex items-center gap-2 text-theme-muted col-span-2">
+                        <MapPin className="w-4 h-4 opacity-60" />
                         <span className="truncate">{forklift.location}</span>
                       </div>
                     )}
                   </div>
 
                   {forklift.capacity_kg && forklift.capacity_kg > 0 && (
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-theme-muted">
                       Capacity: {forklift.capacity_kg.toLocaleString()} kg
                     </div>
                   )}
 
                   {forklift.last_service_date && (
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-theme-muted">
                       Last serviced: {new Date(forklift.last_service_date).toLocaleDateString()}
                     </div>
                   )}
@@ -791,7 +791,7 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
 
                 {/* Actions */}
                 {!isSelectionMode && (
-                  <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+                  <div className="px-4 py-3 bg-theme-surface-2 border-t border-theme flex justify-between items-center theme-transition">
                     {!currentCustomer && (
                       <button
                         onClick={(e) => handleAssign(forklift, e)}

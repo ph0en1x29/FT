@@ -44,7 +44,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-900">
+        <h1 className="text-2xl font-bold text-theme">
           {currentUser.role === 'technician' ? 'My Jobs' : 'Job Board'}
         </h1>
         {(currentUser.role === 'admin' || currentUser.role === 'technician') && (
@@ -62,7 +62,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
           <div 
             key={job.job_id} 
             onClick={() => navigate(`/jobs/${job.job_id}`)}
-            className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition cursor-pointer group"
+            className="card-theme p-5 rounded-xl hover:shadow-theme transition cursor-pointer group theme-transition"
           >
             <div className="flex justify-between items-start mb-3">
               <div className="flex gap-2 flex-wrap">
@@ -80,20 +80,20 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
               )}
             </div>
             
-            <h3 className="font-bold text-lg text-slate-800 group-hover:text-blue-600 mb-1">{job.title}</h3>
-            <p className="text-slate-500 text-sm mb-4 line-clamp-2">{job.description}</p>
+            <h3 className="font-bold text-lg text-theme group-hover:text-blue-600 mb-1">{job.title}</h3>
+            <p className="text-theme-muted text-sm mb-4 line-clamp-2">{job.description}</p>
             
-            <div className="space-y-2 text-sm text-slate-600">
+            <div className="space-y-2 text-sm text-theme-muted">
               <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-slate-400" />
+                <MapPin className="w-4 h-4 opacity-60" />
                 <span className="truncate">{job.customer.address}</span>
               </div>
               <div className="flex items-center gap-2">
-                <UserIcon className="w-4 h-4 text-slate-400" />
+                <UserIcon className="w-4 h-4 opacity-60" />
                 <span>{job.customer.name}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-slate-400" />
+                <Calendar className="w-4 h-4 opacity-60" />
                 <span>{new Date(job.created_at).toLocaleDateString()}</span>
               </div>
             </div>
@@ -101,7 +101,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
         ))}
 
         {jobs.length === 0 && (
-          <div className="col-span-full text-center py-12 text-slate-400">
+          <div className="col-span-full text-center py-12 text-theme-muted">
             <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
             <p>No jobs found.</p>
           </div>

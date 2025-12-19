@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { Sun, Moon } from 'lucide-react';
 import { User, UserRole, ROLE_PERMISSIONS } from './types_with_invoice_tracking';
 import Dashboard from './pages/Dashboard';
 import JobBoard from './pages/JobBoard';
@@ -335,23 +336,32 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
   );
 };
 
-// Top Header with Notifications
-const TopHeader = ({ currentUser }: { currentUser: User }) => {
+// Top Header with Notifications and Theme Toggle
+const TopHeader = ({ currentUser, isDark, onToggleTheme }: { currentUser: User; isDark: boolean; onToggleTheme: () => void }) => {
   return (
-    <div className="bg-white border-b border-slate-200 px-4 py-3 mb-6 -mx-4 md:-mx-8 -mt-4 md:-mt-8 flex justify-between items-center sticky top-0 z-40">
+    <div className="bg-theme-surface border-b border-theme px-4 py-3 mb-6 -mx-4 md:-mx-8 -mt-4 md:-mt-8 flex justify-between items-center sticky top-0 z-40 theme-transition">
       <div className="md:hidden">
-        <h1 className="text-lg font-bold text-slate-800">FieldPro</h1>
+        <h1 className="text-lg font-bold text-theme">FieldPro</h1>
       </div>
       <div className="hidden md:block" />
       <div className="flex items-center gap-4">
+        {/* Theme Toggle Button */}
+        <button
+          onClick={onToggleTheme}
+          className="flex items-center gap-2 px-3 py-2 bg-theme-surface-2 border border-theme rounded-lg text-theme-muted hover:text-theme transition-all theme-transition"
+          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          <span className="text-xs font-medium hidden sm:inline">{isDark ? 'Light' : 'Dark'}</span>
+        </button>
         <NotificationBell currentUser={currentUser} />
-        <div className="flex items-center gap-2 pl-4 border-l border-slate-200">
+        <div className="flex items-center gap-2 pl-4 border-l border-theme">
           <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
             <span className="text-white text-sm font-semibold">{currentUser.name.charAt(0).toUpperCase()}</span>
           </div>
           <div className="hidden sm:block">
-            <p className="text-sm font-medium text-slate-800">{currentUser.name}</p>
-            <p className="text-xs text-slate-500 capitalize">{currentUser.role}</p>
+            <p className="text-sm font-medium text-theme">{currentUser.name}</p>
+            <p className="text-xs text-theme-muted capitalize">{currentUser.role}</p>
           </div>
         </div>
       </div>
@@ -459,6 +469,28 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [isDarkTheme, setIsDarkTheme] = useState(() => {
+    // Initialize from localStorage
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('fieldpro-theme') === 'dark';
+    }
+    return false;
+  });
+
+  // Apply theme to document and persist to localStorage
+  useEffect(() => {
+    if (isDarkTheme) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('fieldpro-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('fieldpro-theme', 'light');
+    }
+  }, [isDarkTheme]);
+
+  const toggleTheme = () => {
+    setIsDarkTheme(prev => !prev);
+  };
 
   const handleLogout = () => {
     setCurrentUser(null);
@@ -482,7 +514,7 @@ export default function App() {
   return (
     <Router>
       <style>{sidebarStyles}</style>
-      <div className="min-h-screen bg-slate-50 flex">
+      <div className="min-h-screen bg-theme-bg flex theme-transition">
         <Sidebar
           currentUser={currentUser}
           onLogout={handleLogout}
@@ -490,7 +522,7 @@ export default function App() {
           setIsCollapsed={setSidebarCollapsed}
         />
         <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64'} p-4 md:p-8 pb-20 md:pb-8 max-w-7xl mx-auto w-full`}>
-          <TopHeader currentUser={currentUser} />
+          <TopHeader currentUser={currentUser} isDark={isDarkTheme} onToggleTheme={toggleTheme} />
           <Routes>
             <Route path="/" element={
               !canViewDashboard

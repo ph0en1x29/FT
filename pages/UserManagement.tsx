@@ -129,8 +129,8 @@ const UserManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">User Management</h1>
-          <p className="text-slate-500 text-sm">Manage team members and access roles.</p>
+          <h1 className="text-2xl font-bold text-theme">User Management</h1>
+          <p className="text-theme-muted text-sm">Manage team members and access roles.</p>
         </div>
         <button 
           onClick={() => handleOpenModal()}
@@ -141,10 +141,10 @@ const UserManagement: React.FC = () => {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="card-theme rounded-xl overflow-hidden theme-transition">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-semibold border-b border-slate-200">
+            <thead className="bg-theme-surface-2 text-theme-muted text-xs uppercase tracking-wider font-semibold border-b border-theme">
               <tr>
                 <th className="px-6 py-4">User</th>
                 <th className="px-6 py-4">Role</th>
@@ -152,20 +152,20 @@ const UserManagement: React.FC = () => {
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-theme">
               {loading ? (
-                 <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500">Loading users...</td></tr>
+                 <tr><td colSpan={4} className="px-6 py-8 text-center text-theme-muted">Loading users...</td></tr>
               ) : (
                 users.map(user => (
-                  <tr key={user.user_id} className="hover:bg-slate-50 transition-colors group">
+                  <tr key={user.user_id} className="hover:bg-theme-surface-2 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+                        <div className="w-8 h-8 rounded-full bg-theme-surface-2 flex items-center justify-center text-theme-muted">
                           <UserIcon className="w-4 h-4" />
                         </div>
                         <div>
-                          <div className="font-medium text-slate-900">{user.name}</div>
-                          <div className="text-sm text-slate-500">{user.email}</div>
+                          <div className="font-medium text-theme">{user.name}</div>
+                          <div className="text-sm text-theme-muted">{user.email}</div>
                         </div>
                       </div>
                     </td>

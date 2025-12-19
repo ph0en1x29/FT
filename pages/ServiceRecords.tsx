@@ -385,7 +385,7 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-slate-500">Loading service records...</div>
+        <div className="text-theme-muted">Loading service records...</div>
       </div>
     );
   }
@@ -395,23 +395,23 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser }) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Service Records</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-theme">Service Records</h1>
+          <p className="text-sm text-theme-muted mt-1">
             {filteredJobs.length} of {jobs.length} records
           </p>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-sm p-4 space-y-4">
+      <div className="card-theme rounded-xl p-4 space-y-4 theme-transition">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted" />
             <input
               type="text"
               placeholder="Search by job title, customer, S/N, technician..."
-              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2.5 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-theme placeholder-slate-400 theme-transition"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -420,10 +420,10 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser }) => {
 
         {/* Filter Row */}
         <div className="flex flex-wrap gap-3 items-center">
-          <Filter className="w-4 h-4 text-slate-400" />
+          <Filter className="w-4 h-4 text-theme-muted" />
           
           <select
-            className="px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="px-3 py-2 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-theme theme-transition"
             value={filterCustomer}
             onChange={(e) => setFilterCustomer(e.target.value)}
           >
@@ -434,7 +434,7 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser }) => {
           </select>
 
           <select
-            className="px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="px-3 py-2 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-theme theme-transition"
             value={filterTechnician}
             onChange={(e) => setFilterTechnician(e.target.value)}
           >
@@ -445,7 +445,7 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser }) => {
           </select>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-500">From:</span>
+            <span className="text-sm text-theme-muted">From:</span>
             <input
               type="date"
               className="px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -482,19 +482,19 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser }) => {
 
       {/* Records List */}
       {filteredJobs.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-600 mb-2">No service records found</h3>
-          <p className="text-sm text-slate-400">
+        <div className="card-theme rounded-xl p-12 text-center theme-transition">
+          <FileText className="w-12 h-12 text-theme-muted opacity-40 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-theme mb-2">No service records found</h3>
+          <p className="text-sm text-theme-muted">
             {searchQuery || filterCustomer !== 'all' || filterTechnician !== 'all' || filterDateFrom || filterDateTo
               ? 'Try adjusting your search or filters'
               : 'Completed jobs will appear here'}
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="card-theme rounded-xl overflow-hidden theme-transition">
           <table className="w-full">
-            <thead className="bg-slate-50 text-slate-600 text-xs uppercase">
+            <thead className="bg-theme-surface-2 text-theme-muted text-xs uppercase">
               <tr>
                 <th className="px-4 py-3 text-left">Report No.</th>
                 <th className="px-4 py-3 text-left">Date</th>
@@ -506,21 +506,21 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser }) => {
                 <th className="px-4 py-3 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-theme">
               {filteredJobs.map(job => (
-                <tr key={job.job_id} className="hover:bg-slate-50">
+                <tr key={job.job_id} className="hover:bg-theme-surface-2 transition-colors">
                   <td className="px-4 py-3">
                     <span className="font-mono text-sm font-medium text-blue-600">
                       {job.job_id.slice(0, 8).toUpperCase()}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm">
+                  <td className="px-4 py-3 text-sm text-theme">
                     {new Date(job.completion_time || job.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-slate-400" />
-                      <span className="text-sm font-medium">{job.customer?.name}</span>
+                      <Building2 className="w-4 h-4 text-theme-muted" />
+                      <span className="text-sm font-medium text-theme">{job.customer?.name}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -528,19 +528,19 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser }) => {
                       <div className="flex items-center gap-2">
                         <Truck className="w-4 h-4 text-amber-500" />
                         <div>
-                          <div className="text-sm font-medium">{job.forklift.serial_number}</div>
-                          <div className="text-xs text-slate-500">{job.forklift.make} {job.forklift.model}</div>
+                          <div className="text-sm font-medium text-theme">{job.forklift.serial_number}</div>
+                          <div className="text-xs text-theme-muted">{job.forklift.make} {job.forklift.model}</div>
                         </div>
                       </div>
                     ) : (
-                      <span className="text-slate-400 text-sm">-</span>
+                      <span className="text-theme-muted text-sm">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm">{job.title}</td>
+                  <td className="px-4 py-3 text-sm text-theme">{job.title}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-slate-400" />
-                      <span className="text-sm">{job.assigned_technician_name || '-'}</span>
+                      <User className="w-4 h-4 text-theme-muted" />
+                      <span className="text-sm text-theme">{job.assigned_technician_name || '-'}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -557,7 +557,7 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser }) => {
                     <div className="flex justify-center gap-2">
                       <button
                         onClick={() => navigate(`/jobs/${job.job_id}`)}
-                        className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+                        className="p-2 text-theme-muted hover:bg-theme-surface-2 rounded-lg"
                         title="View Details"
                       >
                         <Eye className="w-4 h-4" />

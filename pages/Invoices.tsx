@@ -328,7 +328,7 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-slate-500">Loading invoices...</div>
+        <div className="text-theme-muted">Loading invoices...</div>
       </div>
     );
   }
@@ -338,23 +338,23 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Invoices</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-theme">Invoices</h1>
+          <p className="text-sm text-theme-muted mt-1">
             {filteredJobs.length} invoices | Total: <span className="font-semibold text-green-600">RM {grandTotal.toFixed(2)}</span>
           </p>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-sm p-4 space-y-4">
+      <div className="card-theme rounded-xl p-4 space-y-4 theme-transition">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted" />
             <input
               type="text"
               placeholder="Search by invoice no, customer, equipment S/N..."
-              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2.5 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-theme placeholder-slate-400 theme-transition"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -363,10 +363,10 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
 
         {/* Filter Row */}
         <div className="flex flex-wrap gap-3 items-center">
-          <Filter className="w-4 h-4 text-slate-400" />
+          <Filter className="w-4 h-4 text-theme-muted" />
           
           <select
-            className="px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="px-3 py-2 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-theme theme-transition"
             value={filterCustomer}
             onChange={(e) => setFilterCustomer(e.target.value)}
           >
@@ -377,20 +377,20 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
           </select>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-500">From:</span>
+            <span className="text-sm text-theme-muted">From:</span>
             <input
               type="date"
-              className="px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="px-3 py-2 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-theme theme-transition"
               value={filterDateFrom}
               onChange={(e) => setFilterDateFrom(e.target.value)}
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-500">To:</span>
+            <span className="text-sm text-theme-muted">To:</span>
             <input
               type="date"
-              className="px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="px-3 py-2 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-theme theme-transition"
               value={filterDateTo}
               onChange={(e) => setFilterDateTo(e.target.value)}
             />
@@ -413,36 +413,36 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="card-theme rounded-xl p-4 theme-transition">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <FileText className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Total Invoices</p>
-              <p className="text-xl font-bold">{filteredJobs.length}</p>
+              <p className="text-sm text-theme-muted">Total Invoices</p>
+              <p className="text-xl font-bold text-theme">{filteredJobs.length}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="card-theme rounded-xl p-4 theme-transition">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 rounded-lg">
               <DollarSign className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Total Revenue</p>
+              <p className="text-sm text-theme-muted">Total Revenue</p>
               <p className="text-xl font-bold text-green-600">RM {grandTotal.toFixed(2)}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="card-theme rounded-xl p-4 theme-transition">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-100 rounded-lg">
               <Calendar className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Average Invoice</p>
-              <p className="text-xl font-bold">RM {filteredJobs.length > 0 ? (grandTotal / filteredJobs.length).toFixed(2) : '0.00'}</p>
+              <p className="text-sm text-theme-muted">Average Invoice</p>
+              <p className="text-xl font-bold text-theme">RM {filteredJobs.length > 0 ? (grandTotal / filteredJobs.length).toFixed(2) : '0.00'}</p>
             </div>
           </div>
         </div>
@@ -450,19 +450,19 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
 
       {/* Invoices List */}
       {filteredJobs.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-600 mb-2">No invoices found</h3>
-          <p className="text-sm text-slate-400">
+        <div className="card-theme rounded-xl p-12 text-center theme-transition">
+          <FileText className="w-12 h-12 text-theme-muted opacity-40 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-theme mb-2">No invoices found</h3>
+          <p className="text-sm text-theme-muted">
             {searchQuery || filterCustomer !== 'all' || filterDateFrom || filterDateTo
               ? 'Try adjusting your search or filters'
               : 'Finalized invoices will appear here'}
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="card-theme rounded-xl overflow-hidden theme-transition">
           <table className="w-full">
-            <thead className="bg-slate-50 text-slate-600 text-xs uppercase">
+            <thead className="bg-theme-surface-2 text-theme-muted text-xs uppercase">
               <tr>
                 <th className="px-4 py-3 text-left">Invoice No.</th>
                 <th className="px-4 py-3 text-left">Date</th>
@@ -473,25 +473,25 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
                 <th className="px-4 py-3 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-theme">
               {filteredJobs.map(job => (
-                <tr key={job.job_id} className="hover:bg-slate-50">
+                <tr key={job.job_id} className="hover:bg-theme-surface-2 transition-colors">
                   <td className="px-4 py-3">
                     <span className="font-mono text-sm font-medium text-blue-600">
                       INV-{job.job_id.slice(0, 8).toUpperCase()}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm">
+                  <td className="px-4 py-3 text-sm text-theme">
                     {new Date(job.invoiced_at || job.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-slate-400" />
-                      <span className="text-sm font-medium">{job.customer?.name}</span>
+                      <Building2 className="w-4 h-4 text-theme-muted" />
+                      <span className="text-sm font-medium text-theme">{job.customer?.name}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm">{job.title}</td>
-                  <td className="px-4 py-3 text-sm text-slate-500">
+                  <td className="px-4 py-3 text-sm text-theme">{job.title}</td>
+                  <td className="px-4 py-3 text-sm text-theme-muted">
                     {job.invoiced_by_name || '-'}
                   </td>
                   <td className="px-4 py-3 text-right">

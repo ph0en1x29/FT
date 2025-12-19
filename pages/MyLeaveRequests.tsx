@@ -141,7 +141,7 @@ export default function MyLeaveRequests({ currentUser }: MyLeaveRequestsProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-slate-500">Loading your leave requests...</div>
+        <div className="text-theme-muted">Loading your leave requests...</div>
       </div>
     );
   }
@@ -152,17 +152,17 @@ export default function MyLeaveRequests({ currentUser }: MyLeaveRequestsProps) {
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate('/')}
-          className="p-2 hover:bg-slate-100 rounded-lg transition"
+          className="p-2 hover:bg-theme-surface-2 rounded-lg transition theme-transition"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5 text-theme" />
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-slate-800">My Leave Requests</h1>
-          <p className="text-slate-600">Manage your leave applications</p>
+          <h1 className="text-2xl font-bold text-theme">My Leave Requests</h1>
+          <p className="text-theme-muted">Manage your leave applications</p>
         </div>
         <button
           onClick={() => setShowCalendar(true)}
-          className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+          className="flex items-center gap-2 px-4 py-2 border border-theme text-theme-muted rounded-lg hover:bg-theme-surface-2 transition theme-transition"
         >
           <CalendarDays className="w-5 h-5" />
           Calendar
@@ -178,25 +178,25 @@ export default function MyLeaveRequests({ currentUser }: MyLeaveRequestsProps) {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+        <div className="card-theme rounded-xl p-4 theme-transition">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
               <Clock className="w-5 h-5 text-yellow-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Pending Approval</p>
-              <p className="text-2xl font-bold text-slate-800">{stats.pending}</p>
+              <p className="text-sm text-theme-muted">Pending Approval</p>
+              <p className="text-2xl font-bold text-theme">{stats.pending}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+        <div className="card-theme rounded-xl p-4 theme-transition">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
               <CheckCircle className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Upcoming Approved</p>
-              <p className="text-2xl font-bold text-slate-800">{stats.approved}</p>
+              <p className="text-sm text-theme-muted">Upcoming Approved</p>
+              <p className="text-2xl font-bold text-theme">{stats.approved}</p>
             </div>
           </div>
         </div>

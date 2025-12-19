@@ -149,8 +149,8 @@ export default function HRDashboard({ currentUser }: HRDashboardProps) {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">HR Dashboard</h1>
-          <p className="text-slate-600">Employee management and leave tracking</p>
+          <h1 className="text-2xl font-bold text-theme">HR Dashboard</h1>
+          <p className="text-theme-muted">Employee management and leave tracking</p>
         </div>
         <Link
           to="/hr/employees"
@@ -169,44 +169,44 @@ export default function HRDashboard({ currentUser }: HRDashboardProps) {
               <Users className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-800">{summary?.totalEmployees || 0}</p>
-              <p className="text-sm text-slate-600">Total Employees</p>
+              <p className="text-2xl font-bold text-theme">{summary?.totalEmployees || 0}</p>
+              <p className="text-sm text-theme-muted">Total Employees</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-slate-200">
+        <div className="card-theme rounded-xl p-4 theme-transition">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 rounded-lg">
               <UserCheck className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-800">{summary?.activeEmployees || 0}</p>
-              <p className="text-sm text-slate-600">Active</p>
+              <p className="text-2xl font-bold text-theme">{summary?.activeEmployees || 0}</p>
+              <p className="text-sm text-theme-muted">Active</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-slate-200">
+        <div className="card-theme rounded-xl p-4 theme-transition">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-yellow-100 rounded-lg">
               <Calendar className="w-6 h-6 text-yellow-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-800">{summary?.onLeaveToday || 0}</p>
-              <p className="text-sm text-slate-600">On Leave Today</p>
+              <p className="text-2xl font-bold text-theme">{summary?.onLeaveToday || 0}</p>
+              <p className="text-sm text-theme-muted">On Leave Today</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-slate-200">
+        <div className="card-theme rounded-xl p-4 theme-transition">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-orange-100 rounded-lg">
               <Clock className="w-6 h-6 text-orange-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-800">{summary?.pendingLeaveRequests || 0}</p>
-              <p className="text-sm text-slate-600">Pending Leaves</p>
+              <p className="text-2xl font-bold text-theme">{summary?.pendingLeaveRequests || 0}</p>
+              <p className="text-sm text-theme-muted">Pending Leaves</p>
             </div>
           </div>
         </div>
@@ -215,17 +215,17 @@ export default function HRDashboard({ currentUser }: HRDashboardProps) {
       {/* Expiry Alerts Section */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Expiring Licenses */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="card-theme rounded-xl overflow-hidden theme-transition">
+          <div className="p-4 border-b border-theme flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Car className="w-5 h-5 text-blue-600" />
-              <h2 className="font-semibold text-slate-800">Expiring Licenses</h2>
+              <h2 className="font-semibold text-theme">Expiring Licenses</h2>
             </div>
-            <span className="text-sm text-slate-500">{expiringLicenses.length} items</span>
+            <span className="text-sm text-theme-muted">{expiringLicenses.length} items</span>
           </div>
-          <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
+          <div className="divide-y divide-theme max-h-64 overflow-y-auto">
             {expiringLicenses.length === 0 ? (
-              <div className="p-4 text-center text-slate-500">
+              <div className="p-4 text-center text-theme-muted">
                 <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-500" />
                 <p>No licenses expiring soon</p>
               </div>

@@ -220,15 +220,15 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Inventory</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-theme">Inventory</h1>
+          <p className="text-sm text-theme-muted mt-1">
             {filteredParts.length} of {parts.length} items
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm"
+            className="flex items-center gap-2 px-4 py-2 border border-theme rounded-lg hover:bg-theme-surface-2 text-sm text-theme-muted theme-transition"
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
@@ -245,9 +245,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-100">
-          <div className="text-2xl font-bold text-slate-900">{stats.total}</div>
-          <div className="text-sm text-slate-500">Total Items</div>
+        <div className="card-theme rounded-xl p-4 theme-transition">
+          <div className="text-2xl font-bold text-theme">{stats.total}</div>
+          <div className="text-sm text-theme-muted">Total Items</div>
         </div>
         <div className="bg-amber-50 rounded-xl shadow-sm p-4 border border-amber-200">
           <div className="text-2xl font-bold text-amber-600">{stats.lowStock}</div>
@@ -311,23 +311,23 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
 
       {/* Parts by Category */}
       {Object.keys(groupedParts).length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <Package className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-600 mb-2">No parts found</h3>
-          <p className="text-sm text-slate-400">
+        <div className="card-theme rounded-xl p-12 text-center theme-transition">
+          <Package className="w-12 h-12 text-theme-muted opacity-40 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-theme mb-2">No parts found</h3>
+          <p className="text-sm text-theme-muted">
             Try adjusting your search or filters
           </p>
         </div>
       ) : (
         Object.keys(groupedParts).sort().map(category => (
-          <div key={category} className="bg-white rounded-xl shadow overflow-hidden">
-            <div className="bg-slate-50 px-4 py-3 border-b border-slate-100">
-              <h2 className="font-semibold text-slate-700">{category}</h2>
-              <p className="text-xs text-slate-500">{groupedParts[category].length} items</p>
+          <div key={category} className="card-theme rounded-xl overflow-hidden theme-transition">
+            <div className="bg-theme-surface-2 px-4 py-3 border-b border-theme">
+              <h2 className="font-semibold text-theme">{category}</h2>
+              <p className="text-xs text-theme-muted">{groupedParts[category].length} items</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+                <thead className="bg-theme-surface-2 text-theme-muted text-xs uppercase">
                   <tr>
                     <th className="p-4">Part Name</th>
                     <th className="p-4">SKU</th>
@@ -339,19 +339,19 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
                     {isAdmin && <th className="p-4 text-center">Actions</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-theme">
                   {groupedParts[category].map(p => (
-                    <tr key={p.part_id} className="hover:bg-slate-50">
+                    <tr key={p.part_id} className="hover:bg-theme-surface-2 transition-colors">
                       <td className="p-4">
-                        <div className="font-medium">{p.part_name}</div>
+                        <div className="font-medium text-theme">{p.part_name}</div>
                         {p.supplier && (
-                          <div className="text-xs text-slate-400">Supplier: {p.supplier}</div>
+                          <div className="text-xs text-theme-muted">Supplier: {p.supplier}</div>
                         )}
                         {p.location && (
-                          <div className="text-xs text-slate-400">Location: {p.location}</div>
+                          <div className="text-xs text-theme-muted">Location: {p.location}</div>
                         )}
                       </td>
-                      <td className="p-4 text-slate-500 text-sm font-mono">{p.part_code}</td>
+                      <td className="p-4 text-theme-muted text-sm font-mono">{p.part_code}</td>
                       <td className="p-4">
                         <div className={`font-bold flex items-center gap-2 ${
                           p.stock_quantity === 0 ? 'text-red-500' :
@@ -366,7 +366,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
                             <AlertTriangle className="w-4 h-4" />
                           )}
                         </div>
-                        <div className="text-xs text-slate-400">Min: {p.min_stock_level || 10}</div>
+                        <div className="text-xs text-theme-muted">Min: {p.min_stock_level || 10}</div>
                       </td>
                       <td className="p-4 text-slate-600">{p.cost_price.toFixed(2)}</td>
                       <td className="p-4 font-medium">{p.sell_price.toFixed(2)}</td>

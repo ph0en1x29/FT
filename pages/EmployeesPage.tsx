@@ -116,14 +116,14 @@ export default function EmployeesPage({ currentUser }: EmployeesPageProps) {
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/hr')}
-            className="p-2 hover:bg-slate-100 rounded-lg transition"
+            className="p-2 hover:bg-theme-surface-2 rounded-lg transition theme-transition"
             title="Back to HR Dashboard"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 text-theme" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Employees</h1>
-            <p className="text-slate-600">
+            <h1 className="text-2xl font-bold text-theme">Employees</h1>
+            <p className="text-theme-muted">
               Manage employee records, licenses, and permits
             </p>
           </div>
@@ -140,17 +140,17 @@ export default function EmployeesPage({ currentUser }: EmployeesPageProps) {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div className="card-theme rounded-xl p-4 theme-transition">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted" />
             <input
               type="text"
               placeholder="Search by name, code, phone, or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 bg-theme-surface border border-theme rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-theme placeholder-slate-400 theme-transition"
             />
           </div>
 
