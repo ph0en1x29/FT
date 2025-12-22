@@ -280,6 +280,13 @@ export interface Job {
   completed_by_id?: string;
   completed_by_name?: string;
   
+  // Audit Trail - Job Deletion (soft delete)
+  deleted_at?: string;
+  deleted_by?: string;
+  deleted_by_name?: string;
+  deletion_reason?: string;
+  hourmeter_before_delete?: number; // Store hourmeter before deletion for reference
+  
   // Audit Trail - Job Assigned
   assigned_at?: string;
   assigned_by_id?: string;
@@ -341,6 +348,34 @@ export interface QuotationItem {
   voltage?: string;
   accessory?: string;
   warranty?: string;
+}
+
+// Deleted Job (for "Recently Deleted" view)
+export interface DeletedJob {
+  job_id: string;
+  title: string;
+  description: string;
+  status: JobStatus;
+  job_type?: JobType;
+  priority: JobPriority;
+  deleted_at: string;
+  deleted_by?: string;
+  deleted_by_name?: string;
+  deletion_reason?: string;
+  hourmeter_before_delete?: number;
+  forklift_id?: string;
+  customer_id?: string;
+  assigned_technician_name?: string;
+  created_at: string;
+  customer_name?: string;
+  forklift_serial?: string;
+  forklift_make?: string;
+  forklift_model?: string;
+}
+
+// Forklift service history entry (includes cancelled jobs)
+export interface ForkliftServiceEntry extends Job {
+  is_cancelled: boolean; // True if the job was deleted/cancelled
 }
 
 export interface Quotation {

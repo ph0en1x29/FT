@@ -196,6 +196,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [showReassignModal, setShowReassignModal] = useState(false);
   const [reassignTechId, setReassignTechId] = useState('');
 
+  // NEW: Active rental info for forklift
+  const [activeRental, setActiveRental] = useState<{
+    rental_id: string;
+    customer_name: string;
+    rental_location: string;
+    start_date: string;
+  } | null>(null);
+
+  // NEW: Delete job modal with reason
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletionReason, setDeletionReason] = useState('');
+
   useEffect(() => {
     loadJob();
     loadParts();
@@ -216,6 +228,12 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       const serviceRecord = await MockDb.getJobServiceRecord(id);
       if (serviceRecord) {
         setNoPartsUsed(serviceRecord.no_parts_used || false);
+      }
+      
+      // Load active rental info if forklift exists
+      if (data.forklift_id) {
+        const rental = await MockDb.getActiveRentalForForklift(data.forklift_id);
+        setActiveRental(rental);
       }
     }
     
@@ -589,15 +607,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     }
   };
 
-  // Handle delete job (Admin only, not if Completed)
+  // Handle delete job (Admin/Supervisor only, not if Completed)
   const handleDeleteJob = async () => {
     if (!job) return;
     
-    const confirmed = confirm(`Are you sure you want to delete this job: "${job.title}"?\n\nThe job will be archived and can be recovered by an admin if needed.`);
-    if (!confirmed) return;
+    if (!deletionReason.trim()) {
+      alert('Please provide a reason for deleting this job.');
+      return;
+    }
     
     try {
-      await MockDb.deleteJob(job.job_id, currentUserId, currentUserName);
+      await MockDb.deleteJob(job.job_id, currentUserId, currentUserName, deletionReason.trim());
+      setShowDeleteModal(false);
       navigate('/jobs');
     } catch (e) {
       alert('Could not delete job: ' + (e as Error).message);
@@ -655,7 +676,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
 
   const handleCustomerSignature = async (dataUrl: string) => {
     if (!job) return;
-    const updated = await MockDb.signJob(job.job_id, 'customer', job.customer.name, dataUrl);
+    const customerName = job.customer?.name || 'Customer';
+    const updated = await MockDb.signJob(job.job_id, 'customer', customerName, dataUrl);
     setJob({ ...updated } as Job);
     setShowCustSigPad(false);
   };
@@ -820,8 +842,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                <FileDown className="w-4 h-4" /> Invoice
              </button>
            )}
-           {isAdmin && !isCompleted && (
-             <button type="button" onClick={handleDeleteJob} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-red-700 flex items-center gap-2">
+           {(isAdmin || isSupervisor) && !isCompleted && (
+             <button type="button" onClick={() => setShowDeleteModal(true)} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-red-700 flex items-center gap-2">
                <Trash2 className="w-4 h-4" /> Delete
              </button>
            )}
@@ -872,6 +894,30 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                   )}
                 </div>
               </div>
+              
+              {/* Active Rental Info */}
+              {activeRental && (
+                <div className="mt-4 pt-4 border-t border-amber-200">
+                  <h4 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" /> Current Rental Location
+                  </h4>
+                  <div className="bg-white/50 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="w-4 h-4 text-amber-600" />
+                      <span className="font-medium text-slate-800">{activeRental.customer_name}</span>
+                    </div>
+                    {activeRental.rental_location && (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-amber-600 mt-0.5" />
+                        <span className="text-slate-700">{activeRental.rental_location}</span>
+                      </div>
+                    )}
+                    <div className="text-xs text-amber-600">
+                      Rental started: {new Date(activeRental.start_date).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1019,9 +1065,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-semibold text-slate-800">Customer Details</h3>
-                <div className="flex items-center gap-2 text-slate-600 mt-2"><UserIcon className="w-4 h-4" /> <span>{job.customer.name}</span></div>
-                <div className="flex items-center gap-2 text-slate-600 mt-1"><MapPin className="w-4 h-4" /> <span>{job.customer.address}</span></div>
-                <div className="flex items-center gap-2 text-slate-600 mt-1"><Phone className="w-4 h-4" /> <a href={`tel:${job.customer.phone}`} className="text-blue-600">{job.customer.phone}</a></div>
+                {job.customer ? (
+                  <>
+                    <div className="flex items-center gap-2 text-slate-600 mt-2"><UserIcon className="w-4 h-4" /> <span>{job.customer.name}</span></div>
+                    <div className="flex items-center gap-2 text-slate-600 mt-1"><MapPin className="w-4 h-4" /> <span>{job.customer.address}</span></div>
+                    <div className="flex items-center gap-2 text-slate-600 mt-1"><Phone className="w-4 h-4" /> <a href={`tel:${job.customer.phone}`} className="text-blue-600">{job.customer.phone}</a></div>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    <span className="text-amber-700 font-medium">No Customer Assigned</span>
+                  </div>
+                )}
               </div>
               <div className="text-right">
                 <div className="text-sm text-slate-500">Status</div>
@@ -1487,6 +1542,50 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" /> Reassign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Job Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h4 className="font-bold text-lg mb-4 text-red-700 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" /> Cancel / Delete Job
+            </h4>
+            <div className="bg-red-50 rounded-lg p-3 mb-4">
+              <p className="text-sm text-red-800 font-medium">{job?.title}</p>
+              <p className="text-xs text-red-600 mt-1">This action will mark the job as cancelled.</p>
+            </div>
+            <p className="text-sm text-slate-600 mb-4">
+              The job will be removed from active views but preserved for audit. If this job recorded a hourmeter reading, it will be invalidated.
+            </p>
+            <div className="mb-6">
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Reason for Cancellation <span className="text-red-500">*</span></label>
+              <textarea
+                className="w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/25 resize-none h-24"
+                value={deletionReason}
+                onChange={(e) => setDeletionReason(e.target.value)}
+                placeholder="e.g., Customer cancelled request, Duplicate entry, Test job..."
+              />
+            </div>
+            <div className="flex gap-3">
+              <button 
+                type="button" 
+                onClick={() => { setShowDeleteModal(false); setDeletionReason(''); }} 
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleDeleteJob} 
+                disabled={!deletionReason.trim()}
+                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" /> Delete Job
               </button>
             </div>
           </div>

@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Job, JobStatus, JobType, User } from '../types_with_invoice_tracking';
+import { Job, JobStatus, JobType, User, DeletedJob, UserRole } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
-import { Briefcase, Calendar, MapPin, User as UserIcon, Search, Filter, X, ChevronDown } from 'lucide-react';
+import { Briefcase, Calendar, MapPin, User as UserIcon, Search, Filter, X, ChevronDown, AlertTriangle, Trash2, ChevronRight, Clock } from 'lucide-react';
 
 interface JobBoardProps {
   currentUser: User;
@@ -23,15 +23,27 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
 
+  // Recently deleted jobs (admin/supervisor only)
+  const [deletedJobs, setDeletedJobs] = useState<DeletedJob[]>([]);
+  const [showDeletedSection, setShowDeletedSection] = useState(false);
+  const canViewDeleted = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR;
+
   useEffect(() => {
     const fetchJobs = async () => {
       setLoading(true);
       const data = await MockDb.getJobs(currentUser);
       setJobs(data);
+      
+      // Fetch recently deleted jobs for admin/supervisor
+      if (canViewDeleted) {
+        const deleted = await MockDb.getRecentlyDeletedJobs();
+        setDeletedJobs(deleted);
+      }
+      
       setLoading(false);
     };
     fetchJobs();
-  }, [currentUser]);
+  }, [currentUser, canViewDeleted]);
 
   // Filter jobs based on search and filters
   const filteredJobs = useMemo(() => {
@@ -441,7 +453,13 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <UserIcon className="w-4 h-4 opacity-60" />
-                  <span>{job.customer?.name || 'Unknown customer'}</span>
+                  {job.customer ? (
+                    <span>{job.customer.name}</span>
+                  ) : (
+                    <span className="text-amber-600 font-medium flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" /> No Customer
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 opacity-60" />
@@ -469,6 +487,79 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
                   Clear filters to see all jobs
                 </button>
               )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Recently Deleted Section - Admin/Supervisor Only */}
+      {canViewDeleted && deletedJobs.length > 0 && (
+        <div className="mt-8">
+          <button
+            onClick={() => setShowDeletedSection(!showDeletedSection)}
+            className="w-full flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition"
+          >
+            <div className="flex items-center gap-3">
+              <Trash2 className="w-5 h-5 text-red-500" />
+              <span className="font-semibold text-red-800">Recently Deleted ({deletedJobs.length})</span>
+              <span className="text-xs text-red-500">Last 30 days</span>
+            </div>
+            <ChevronRight className={`w-5 h-5 text-red-500 transition-transform ${showDeletedSection ? 'rotate-90' : ''}`} />
+          </button>
+
+          {showDeletedSection && (
+            <div className="mt-3 space-y-3">
+              {deletedJobs.map(job => (
+                <div
+                  key={job.job_id}
+                  className="bg-red-50/50 border border-red-200 rounded-lg p-4"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="font-medium text-slate-800 line-through opacity-60">{job.title}</h4>
+                      <p className="text-sm text-slate-500 line-clamp-1">{job.description}</p>
+                    </div>
+                    <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700">
+                      Cancelled
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mt-3">
+                    <div>
+                      <span className="text-xs text-slate-400 uppercase">Customer</span>
+                      <p className="text-slate-600">{job.customer_name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-slate-400 uppercase">Equipment</span>
+                      <p className="text-slate-600">{job.forklift_serial || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-slate-400 uppercase">Cancelled By</span>
+                      <p className="text-slate-600">{job.deleted_by_name || 'Unknown'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-slate-400 uppercase">Cancelled On</span>
+                      <p className="text-slate-600 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(job.deleted_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {job.deletion_reason && (
+                    <div className="mt-3 p-2 bg-white/50 rounded border border-red-100">
+                      <span className="text-xs text-red-600 font-medium">Reason: </span>
+                      <span className="text-sm text-slate-700">{job.deletion_reason}</span>
+                    </div>
+                  )}
+
+                  {job.hourmeter_before_delete && (
+                    <div className="mt-2 text-xs text-amber-600">
+                      ⚠️ Hourmeter {job.hourmeter_before_delete} hrs was recorded but invalidated due to cancellation
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

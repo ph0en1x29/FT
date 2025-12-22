@@ -87,16 +87,16 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
         <div className="border border-slate-300 p-3">
           <div className="grid grid-cols-[80px_1fr] gap-y-1 text-xs">
             <span className="font-semibold">Name:</span>
-            <span className="border-b border-slate-300">{job.customer.name}</span>
+            <span className="border-b border-slate-300">{job.customer?.name || 'N/A'}</span>
             <span className="font-semibold">Address:</span>
-            <span className="border-b border-slate-300">{job.customer.address}</span>
+            <span className="border-b border-slate-300">{job.customer?.address || 'N/A'}</span>
             <span className="font-semibold">Attn:</span>
-            <span className="border-b border-slate-300">{job.customer.contact_person || '-'}</span>
+            <span className="border-b border-slate-300">{job.customer?.contact_person || '-'}</span>
           </div>
         </div>
         <div className="border border-slate-300 p-3">
           <div className="text-xs space-y-1">
-            <p>Your ref no.: {job.customer.account_number || '-'}</p>
+            <p>Your ref no.: {job.customer?.account_number || '-'}</p>
             <div className="grid grid-cols-2 gap-2 mt-2">
               <label className="flex items-center gap-1">
                 <input type="checkbox" checked={job.job_type === JobType.SERVICE} disabled className="w-4 h-4" /> SERVICE

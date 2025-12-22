@@ -408,10 +408,10 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
   <!-- Customer and Invoice Info -->
   <div class="info-section">
     <div class="customer-box">
-      <div class="customer-name">${job.customer.name}</div>
-      <div>${job.customer.address}</div>
-      ${job.customer.phone ? `<div>TEL: ${job.customer.phone}</div>` : ''}
-      ${job.customer.email ? `<div>EMAIL: ${job.customer.email}</div>` : ''}
+      <div class="customer-name">${job.customer?.name || 'N/A'}</div>
+      <div>${job.customer?.address || 'N/A'}</div>
+      ${job.customer?.phone ? `<div>TEL: ${job.customer.phone}</div>` : ''}
+      ${job.customer?.email ? `<div>EMAIL: ${job.customer.email}</div>` : ''}
     </div>
     <div class="invoice-box">
       <div class="invoice-title">INVOICE</div>
@@ -546,7 +546,7 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
         ` : `
           <div class="signature-line"></div>
         `}
-        <div class="signature-company">${job.customer.name}</div>
+        <div class="signature-company">${job.customer?.name || 'Customer'}</div>
         <div style="font-size: 9px; color: #666;">(Please chop & sign)</div>
       </div>
     </div>

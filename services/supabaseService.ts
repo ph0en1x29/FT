@@ -144,6 +144,54 @@ export const SupabaseDb = {
     return data as Forklift;
   },
 
+  // Get active rental for a forklift (includes customer and location)
+  getActiveRentalForForklift: async (forkliftId: string): Promise<{
+    rental_id: string;
+    customer_id: string;
+    customer_name: string;
+    customer_address: string;
+    rental_location: string;
+    start_date: string;
+    end_date?: string;
+  } | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('forklift_rentals')
+        .select(`
+          rental_id,
+          customer_id,
+          rental_location,
+          start_date,
+          end_date,
+          customers (
+            name,
+            address
+          )
+        `)
+        .eq('forklift_id', forkliftId)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (error || !data) {
+        return null;
+      }
+
+      const customer = data.customers as any;
+      return {
+        rental_id: data.rental_id,
+        customer_id: data.customer_id,
+        customer_name: customer?.name || 'Unknown',
+        customer_address: customer?.address || '',
+        rental_location: data.rental_location || '',
+        start_date: data.start_date,
+        end_date: data.end_date,
+      };
+    } catch (e) {
+      console.warn('Failed to get active rental:', e);
+      return null;
+    }
+  },
+
   createForklift: async (forkliftData: Partial<Forklift>): Promise<Forklift> => {
     const { data, error } = await supabase
       .from('forklifts')
@@ -182,11 +230,12 @@ export const SupabaseDb = {
   },
 
   deleteForklift: async (forkliftId: string): Promise<void> => {
-    // Check if forklift has any jobs
+    // Check if forklift has any active (non-deleted) jobs
     const { data: jobs } = await supabase
       .from('jobs')
       .select('job_id')
-      .eq('forklift_id', forkliftId);
+      .eq('forklift_id', forkliftId)
+      .is('deleted_at', null); // Exclude soft-deleted jobs
     
     if (jobs && jobs.length > 0) {
       throw new Error('Cannot delete forklift with existing service records. Set status to Inactive instead.');
@@ -804,22 +853,119 @@ export const SupabaseDb = {
     return text;
   },
 
-  // Soft delete job (recommended for enterprise - preserves audit trail)
-  deleteJob: async (jobId: string, deletedById?: string, deletedByName?: string): Promise<void> => {
+  // Soft delete job with reason and hourmeter handling
+  // This marks the job as cancelled/deleted, preserves audit trail, 
+  // and handles forklift hourmeter reversion if needed
+  deleteJob: async (
+    jobId: string, 
+    deletedById?: string, 
+    deletedByName?: string,
+    deletionReason?: string
+  ): Promise<void> => {
     const now = new Date().toISOString();
     
-    // Use soft delete - sets deleted_at timestamp instead of hard delete
-    // This preserves audit history and allows recovery if needed
-    // Note: We don't change status as it has a check constraint
+    // First, get the job to check for hourmeter handling
+    const { data: job } = await supabase
+      .from('jobs')
+      .select('forklift_id, hourmeter_reading')
+      .eq('job_id', jobId)
+      .single();
+
+    // If job had a hourmeter reading and forklift, check if we need to revert
+    if (job?.forklift_id && job?.hourmeter_reading) {
+      // Get current forklift hourmeter
+      const { data: forklift } = await supabase
+        .from('forklifts')
+        .select('hourmeter')
+        .eq('forklift_id', job.forklift_id)
+        .single();
+
+      // If the forklift's current hourmeter matches this job's reading
+      if (forklift?.hourmeter === job.hourmeter_reading) {
+        // Find the previous valid hourmeter reading
+        const { data: prevJob } = await supabase
+          .from('jobs')
+          .select('hourmeter_reading')
+          .eq('forklift_id', job.forklift_id)
+          .neq('job_id', jobId)
+          .is('deleted_at', null)
+          .not('hourmeter_reading', 'is', null)
+          .in('status', ['Completed', 'Awaiting Finalization'])
+          .order('completed_at', { ascending: false, nullsFirst: false })
+          .limit(1)
+          .single();
+
+        // Revert to previous hourmeter if found
+        if (prevJob?.hourmeter_reading) {
+          await supabase
+            .from('forklifts')
+            .update({ 
+              hourmeter: prevJob.hourmeter_reading,
+              updated_at: now
+            })
+            .eq('forklift_id', job.forklift_id);
+        }
+      }
+    }
+
+    // Soft delete the job with reason and audit info
     const { error } = await supabase
       .from('jobs')
       .update({
         deleted_at: now,
         deleted_by: deletedById || null,
+        deleted_by_name: deletedByName || null,
+        deletion_reason: deletionReason || null,
+        hourmeter_before_delete: job?.hourmeter_reading || null,
       })
       .eq('job_id', jobId);
 
     if (error) throw new Error(error.message);
+  },
+
+  // Get recently deleted jobs (admin/supervisor only - last 30 days)
+  getRecentlyDeletedJobs: async (): Promise<any[]> => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .select(`
+        job_id,
+        title,
+        description,
+        status,
+        job_type,
+        priority,
+        deleted_at,
+        deleted_by,
+        deleted_by_name,
+        deletion_reason,
+        hourmeter_before_delete,
+        forklift_id,
+        customer_id,
+        assigned_technician_name,
+        created_at,
+        customer:customers(name),
+        forklift:forklifts(serial_number, make, model)
+      `)
+      .not('deleted_at', 'is', null)
+      .gte('deleted_at', thirtyDaysAgo.toISOString())
+      .order('deleted_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching recently deleted jobs:', error);
+      return [];
+    }
+
+    // Transform data for easier consumption
+    return (data || []).map((job: any) => ({
+      ...job,
+      customer_name: job.customer?.name || 'Unknown',
+      forklift_serial: job.forklift?.serial_number,
+      forklift_make: job.forklift?.make,
+      forklift_model: job.forklift?.model,
+    }));
   },
 
   // Hard delete job (admin only - use with caution)
@@ -845,10 +991,12 @@ export const SupabaseDb = {
   },
 
   deleteCustomer: async (customerId: string): Promise<void> => {
+    // Check for active (non-deleted) jobs only
     const { data: jobs } = await supabase
       .from('jobs')
       .select('job_id')
-      .eq('customer_id', customerId);
+      .eq('customer_id', customerId)
+      .is('deleted_at', null); // Exclude soft-deleted jobs
     
     if (jobs && jobs.length > 0) {
       throw new Error('Cannot delete customer with existing jobs. Delete the jobs first.');
@@ -1646,8 +1794,36 @@ export const SupabaseDb = {
     }
   },
 
-  // Get service history for a forklift
+  // Get service history for a forklift (active jobs only)
   getForkliftServiceHistory: async (forkliftId: string): Promise<Job[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          *,
+          customer:customers(*),
+          parts_used:job_parts(*),
+          media:job_media(*),
+          extra_charges:extra_charges(*)
+        `)
+        .eq('forklift_id', forkliftId)
+        .is('deleted_at', null) // Exclude soft-deleted jobs
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('Forklift service history query failed:', error.message);
+        return [];
+      }
+      return data as Job[];
+    } catch (e) {
+      console.warn('Forklift service history not available:', e);
+      return [];
+    }
+  },
+
+  // Get service history for a forklift INCLUDING cancelled/deleted jobs
+  // Returns both active and cancelled jobs, with is_cancelled flag
+  getForkliftServiceHistoryWithCancelled: async (forkliftId: string): Promise<any[]> => {
     try {
       const { data, error } = await supabase
         .from('jobs')
@@ -1662,12 +1838,50 @@ export const SupabaseDb = {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.warn('Forklift service history query failed:', error.message);
+        console.warn('Forklift service history with cancelled query failed:', error.message);
         return [];
       }
-      return data as Job[];
+
+      // Add is_cancelled flag to each job
+      return (data || []).map((job: any) => ({
+        ...job,
+        is_cancelled: job.deleted_at !== null,
+      }));
     } catch (e) {
-      console.warn('Forklift service history not available:', e);
+      console.warn('Forklift service history with cancelled not available:', e);
+      return [];
+    }
+  },
+
+  // Get service history for a customer INCLUDING cancelled/deleted jobs
+  // Returns both active and cancelled jobs, with is_cancelled flag
+  getCustomerJobsWithCancelled: async (customerId: string): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          *,
+          customer:customers(*),
+          forklift:forklifts(*),
+          parts_used:job_parts(*),
+          media:job_media(*),
+          extra_charges:extra_charges(*)
+        `)
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('Customer jobs with cancelled query failed:', error.message);
+        return [];
+      }
+
+      // Add is_cancelled flag to each job
+      return (data || []).map((job: any) => ({
+        ...job,
+        is_cancelled: job.deleted_at !== null,
+      }));
+    } catch (e) {
+      console.warn('Customer jobs with cancelled not available:', e);
       return [];
     }
   },
@@ -2161,5 +2375,494 @@ export const SupabaseDb = {
       console.warn('Job reassignment failed:', e);
       return null;
     }
+  },
+
+  // =====================
+  // SERVICE DUE AUTOMATION
+  // =====================
+
+  // Get forklifts due for service within specified days
+  getForkliftsDueForService: async (daysAhead: number = 7): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase.rpc('get_forklifts_due_for_service', {
+        p_days_ahead: daysAhead
+      });
+
+      if (error) {
+        console.warn('Failed to get forklifts due for service:', error.message);
+        // Fallback: Manual query if RPC not available
+        return await SupabaseDb.getForkliftsDueForServiceFallback(daysAhead);
+      }
+      return data || [];
+    } catch (e) {
+      console.warn('Service due check failed:', e);
+      return await SupabaseDb.getForkliftsDueForServiceFallback(daysAhead);
+    }
+  },
+
+  // Fallback method if RPC is not available
+  getForkliftsDueForServiceFallback: async (daysAhead: number = 7): Promise<any[]> => {
+    try {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + daysAhead);
+      const today = new Date().toISOString().split('T')[0];
+
+      // Get forklifts due by date (without customer embed to avoid relationship ambiguity)
+      const { data: forklifts, error } = await supabase
+        .from('forklifts')
+        .select('*')
+        .eq('status', 'Active')
+        .or(`next_service_due.lte.${futureDate.toISOString()}`);
+
+      if (error) {
+        console.warn('Fallback query failed:', error.message);
+        return [];
+      }
+
+      // Check for open service jobs
+      const forkliftIds = (forklifts || []).map(f => f.forklift_id);
+      const { data: openJobs } = await supabase
+        .from('jobs')
+        .select('forklift_id')
+        .in('forklift_id', forkliftIds)
+        .in('status', ['New', 'Assigned', 'In Progress', 'Pending Parts'])
+        .eq('job_type', 'Service');
+
+      const forkliftsWithOpenJobs = new Set((openJobs || []).map(j => j.forklift_id));
+
+      return (forklifts || []).map(f => {
+        const daysUntilDue = f.next_service_due 
+          ? Math.floor((new Date(f.next_service_due).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+          : null;
+        const hoursUntilDue = f.next_service_hourmeter 
+          ? f.next_service_hourmeter - f.hourmeter
+          : null;
+        const isOverdue = (daysUntilDue !== null && daysUntilDue < 0) || 
+          (hoursUntilDue !== null && hoursUntilDue <= 0);
+
+        return {
+          ...f,
+          days_until_due: daysUntilDue,
+          hours_until_due: hoursUntilDue,
+          is_overdue: isOverdue,
+          has_open_job: forkliftsWithOpenJobs.has(f.forklift_id)
+        };
+      }).filter(f => !f.has_open_job); // Only return forklifts without open jobs
+    } catch (e) {
+      console.warn('Fallback query failed:', e);
+      return [];
+    }
+  },
+
+  // Auto-create service jobs for forklifts due
+  autoCreateServiceJobs: async (
+    daysAhead: number = 7,
+    createdByName: string = 'System'
+  ): Promise<{ created: number; skipped: number; results: any[] }> => {
+    try {
+      // Try RPC first
+      const { data, error } = await supabase.rpc('auto_create_service_jobs', {
+        p_days_ahead: daysAhead,
+        p_created_by_name: createdByName
+      });
+
+      if (error) {
+        console.warn('RPC auto_create_service_jobs failed:', error.message);
+        // Fallback to manual creation
+        return await SupabaseDb.autoCreateServiceJobsFallback(daysAhead, createdByName);
+      }
+
+      return {
+        created: (data || []).filter((r: any) => r.action === 'CREATED').length,
+        skipped: (data || []).filter((r: any) => r.action !== 'CREATED').length,
+        results: data || []
+      };
+    } catch (e) {
+      console.warn('Auto-create service jobs failed:', e);
+      return await SupabaseDb.autoCreateServiceJobsFallback(daysAhead, createdByName);
+    }
+  },
+
+  // Fallback for auto-creating service jobs
+  autoCreateServiceJobsFallback: async (
+    daysAhead: number = 7,
+    createdByName: string = 'System'
+  ): Promise<{ created: number; skipped: number; results: any[] }> => {
+    const results: any[] = [];
+    let created = 0;
+    let skipped = 0;
+
+    try {
+      const dueForklifts = await SupabaseDb.getForkliftsDueForServiceFallback(daysAhead);
+      console.log(`[Jobs] Found ${dueForklifts.length} forklifts due for service`);
+
+      for (const forklift of dueForklifts) {
+        if (forklift.has_open_job) {
+          skipped++;
+          results.push({
+            forklift_serial: forklift.serial_number,
+            action: 'SKIPPED',
+            message: 'Open job already exists'
+          });
+          continue;
+        }
+
+        try {
+          // ALWAYS check active rental FIRST for customer and location
+          const { data: rental } = await supabase
+            .from('forklift_rentals')
+            .select('customer_id, rental_location, customers(name, address)')
+            .eq('forklift_id', forklift.forklift_id)
+            .eq('status', 'active')
+            .maybeSingle();
+
+          // Use rental customer if available, otherwise fall back to forklift's current_customer_id
+          const customerId = rental?.customer_id || forklift.current_customer_id;
+          const rentalLocation = rental?.rental_location;
+          const customerName = (rental?.customers as any)?.name;
+
+          console.log(`[Jobs] Creating job for ${forklift.serial_number}, customer: ${customerName || customerId || 'none'}, location: ${rentalLocation || 'not specified'}`);
+
+          // Build description with location if available
+          let description = `Preventive maintenance service.\n`;
+          description += `Current hourmeter: ${forklift.hourmeter} hrs.\n`;
+          description += `Next service at: ${forklift.next_service_hourmeter || 'N/A'} hrs.`;
+          
+          if (rentalLocation) {
+            description += `\n\n📍 Location: ${rentalLocation}`;
+          }
+          if (customerName) {
+            description += `\n👤 Customer: ${customerName}`;
+          }
+
+          // Create the job
+          const { data: job, error: jobError } = await supabase
+            .from('jobs')
+            .insert({
+              customer_id: customerId,
+              forklift_id: forklift.forklift_id,
+              title: `Scheduled Service - ${forklift.serial_number}`,
+              description: description,
+              job_type: 'Service',
+              status: 'New',
+              priority: forklift.is_overdue ? 'High' : ((forklift.days_until_due || 7) <= 3 ? 'Medium' : 'Low'),
+              scheduled_date: forklift.next_service_due || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              created_by_name: createdByName
+            })
+            .select()
+            .single();
+
+          if (jobError) {
+            skipped++;
+            results.push({
+              forklift_serial: forklift.serial_number,
+              action: 'ERROR',
+              message: jobError.message
+            });
+          } else {
+            created++;
+            results.push({
+              forklift_serial: forklift.serial_number,
+              job_id: job.job_id,
+              action: 'CREATED',
+              message: forklift.is_overdue ? 'OVERDUE!' : `Due in ${forklift.days_until_due} days`
+            });
+            
+            // Also create notification for this new job
+            await SupabaseDb.createServiceJobNotifications(forklift, job.job_id, rentalLocation);
+          }
+        } catch (e: any) {
+          skipped++;
+          results.push({
+            forklift_serial: forklift.serial_number,
+            action: 'ERROR',
+            message: e.message
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Fallback auto-create failed:', e);
+    }
+
+    return { created, skipped, results };
+  },
+
+  // Create service due notifications
+  createServiceDueNotifications: async (daysAhead: number = 7): Promise<number> => {
+    try {
+      const { data, error } = await supabase.rpc('create_service_due_notifications', {
+        p_days_ahead: daysAhead
+      });
+
+      if (error) {
+        console.warn('RPC create_service_due_notifications failed:', error.message);
+        // Fallback to manual notification creation
+        return await SupabaseDb.createServiceDueNotificationsFallback(daysAhead);
+      }
+
+      return data || 0;
+    } catch (e) {
+      console.warn('Create notifications failed:', e);
+      return await SupabaseDb.createServiceDueNotificationsFallback(daysAhead);
+    }
+  },
+
+  // Fallback for creating notifications
+  createServiceDueNotificationsFallback: async (daysAhead: number = 7): Promise<number> => {
+    let count = 0;
+    try {
+      const dueForklifts = await SupabaseDb.getForkliftsDueForServiceFallback(daysAhead);
+      console.log(`[Notifications] Found ${dueForklifts.length} forklifts due`);
+      
+      // Get admins and supervisors
+      const { data: admins, error: adminsError } = await supabase
+        .from('users')
+        .select('user_id, name, role')
+        .in('role', ['admin', 'supervisor', 'Admin', 'Supervisor'])
+        .eq('is_active', true);
+
+      console.log(`[Notifications] Found ${admins?.length || 0} admin/supervisor users`, admins);
+      if (adminsError) {
+        console.warn('[Notifications] Error fetching admins:', adminsError.message);
+      }
+
+      if (!admins || admins.length === 0) {
+        console.warn('[Notifications] No admin/supervisor users found - cannot create notifications');
+        return 0;
+      }
+
+      for (const forklift of dueForklifts) {
+        for (const admin of admins) {
+          // Check if notification already exists today
+          const { data: existing } = await supabase
+            .from('notifications')
+            .select('notification_id')
+            .eq('user_id', admin.user_id)
+            .eq('reference_type', 'forklift')
+            .eq('reference_id', forklift.forklift_id)
+            .gte('created_at', new Date().toISOString().split('T')[0])
+            .maybeSingle();
+
+          if (!existing) {
+            const result = await SupabaseDb.createNotification({
+              user_id: admin.user_id,
+              type: 'service_due' as any,
+              title: forklift.is_overdue 
+                ? `⚠️ Service OVERDUE: ${forklift.serial_number}`
+                : `🔧 Service Due: ${forklift.serial_number}`,
+              message: `${forklift.make} ${forklift.model} ${forklift.is_overdue ? 'is OVERDUE for service!' : `needs service in ${forklift.days_until_due} days.`} Current: ${forklift.hourmeter} hrs.`,
+              reference_type: 'forklift',
+              reference_id: forklift.forklift_id,
+              priority: forklift.is_overdue ? 'urgent' : (forklift.days_until_due || 7) <= 3 ? 'high' : 'normal',
+            });
+            if (result) {
+              count++;
+              console.log(`[Notifications] Created notification for ${forklift.serial_number} -> ${admin.name}`);
+            } else {
+              console.warn(`[Notifications] Failed to create notification for ${forklift.serial_number}`);
+            }
+          } else {
+            console.log(`[Notifications] Skipping - notification already exists for ${forklift.serial_number}`);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Fallback notification creation failed:', e);
+    }
+    return count;
+  },
+
+  // Run daily service check (call this from a scheduled task or manually)
+  runDailyServiceCheck: async (): Promise<{
+    notifications_created: number;
+    jobs_created: number;
+    overdue_updated: number;
+  }> => {
+    try {
+      // Try RPC first
+      const { data, error } = await supabase.rpc('daily_service_check');
+
+      if (error) {
+        console.warn('RPC daily_service_check failed:', error.message);
+        // Fallback to manual checks
+        const notifications = await SupabaseDb.createServiceDueNotifications(7);
+        const jobsResult = await SupabaseDb.autoCreateServiceJobs(7, 'System');
+        
+        return {
+          notifications_created: notifications,
+          jobs_created: jobsResult.created,
+          overdue_updated: 0
+        };
+      }
+
+      // Parse RPC result
+      const result = {
+        notifications_created: 0,
+        jobs_created: 0,
+        overdue_updated: 0
+      };
+      
+      (data || []).forEach((row: any) => {
+        if (row.check_type === 'notifications') result.notifications_created = row.count;
+        if (row.check_type === 'jobs_created') result.jobs_created = row.count;
+        if (row.check_type === 'overdue_updated') result.overdue_updated = row.count;
+      });
+
+      return result;
+    } catch (e) {
+      console.warn('Daily service check failed:', e);
+      return { notifications_created: 0, jobs_created: 0, overdue_updated: 0 };
+    }
+  },
+
+  // Simulate making a forklift overdue (for testing)
+  simulateOverdueForklift: async (forkliftId?: string): Promise<Forklift | null> => {
+    try {
+      let targetForkliftId = forkliftId;
+
+      // If no forklift ID provided, get the first active one
+      if (!targetForkliftId) {
+        const { data: forklift } = await supabase
+          .from('forklifts')
+          .select('forklift_id')
+          .eq('status', 'Active')
+          .limit(1)
+          .single();
+        
+        if (!forklift) return null;
+        targetForkliftId = forklift.forklift_id;
+      }
+
+      // Set next_service_due to yesterday
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      // First get the current hourmeter to calculate a proper overdue value
+      const { data: current } = await supabase
+        .from('forklifts')
+        .select('hourmeter, service_interval_hours')
+        .eq('forklift_id', targetForkliftId)
+        .single();
+      
+      // Set next_service_hourmeter to current - 100 (so it's 100 hours overdue)
+      const overdueHourmeter = (current?.hourmeter || 1000) - 100;
+
+      const { data, error } = await supabase
+        .from('forklifts')
+        .update({
+          next_service_due: yesterday.toISOString(),
+          next_service_hourmeter: overdueHourmeter,
+        })
+        .eq('forklift_id', targetForkliftId)
+        .select()
+        .single();
+
+      if (error) {
+        console.warn('Failed to simulate overdue:', error.message);
+        return null;
+      }
+
+      return data as Forklift;
+    } catch (e) {
+      console.warn('Simulate overdue failed:', e);
+      return null;
+    }
+  },
+
+  // Reset service schedule for all forklifts (fixes corrupted data)
+  resetAllServiceSchedules: async (): Promise<{ updated: number; errors: string[] }> => {
+    const errors: string[] = [];
+    let updated = 0;
+
+    try {
+      // Get all active forklifts
+      const { data: forklifts, error } = await supabase
+        .from('forklifts')
+        .select('forklift_id, serial_number, hourmeter, service_interval_hours, avg_daily_usage')
+        .eq('status', 'Active');
+
+      if (error) {
+        return { updated: 0, errors: [error.message] };
+      }
+
+      // Update each forklift with proper next_service values
+      for (const f of forklifts || []) {
+        const interval = f.service_interval_hours || 500;
+        const avgUsage = f.avg_daily_usage || 8;
+        const nextHourmeter = (f.hourmeter || 0) + interval;
+        const daysUntil = Math.ceil(interval / avgUsage);
+        const nextDate = new Date();
+        nextDate.setDate(nextDate.getDate() + daysUntil);
+
+        const { error: updateError } = await supabase
+          .from('forklifts')
+          .update({
+            next_service_hourmeter: nextHourmeter,
+            next_service_due: nextDate.toISOString(),
+          })
+          .eq('forklift_id', f.forklift_id);
+
+        if (updateError) {
+          errors.push(`${f.serial_number}: ${updateError.message}`);
+        } else {
+          updated++;
+        }
+      }
+
+      return { updated, errors };
+    } catch (e) {
+      return { updated, errors: [`Unexpected error: ${e}`] };
+    }
+  },
+
+  // Create notifications when a service job is created
+  createServiceJobNotifications: async (forklift: any, jobId: string, location?: string): Promise<number> => {
+    let count = 0;
+    try {
+      // Get admins and supervisors
+      const { data: admins } = await supabase
+        .from('users')
+        .select('user_id, name')
+        .in('role', ['admin', 'supervisor', 'Admin', 'Supervisor'])
+        .eq('is_active', true);
+
+      if (!admins || admins.length === 0) {
+        console.log('[Notifications] No admin/supervisor users found');
+        return 0;
+      }
+
+      const isOverdue = forklift.is_overdue;
+      const locationStr = location ? ` at ${location}` : '';
+      
+      for (const admin of admins) {
+        try {
+          const { error } = await supabase
+            .from('notifications')
+            .insert({
+              user_id: admin.user_id,
+              type: 'job_created',
+              title: isOverdue 
+                ? `⚠️ OVERDUE Service Job Created: ${forklift.serial_number}`
+                : `🔧 Service Job Created: ${forklift.serial_number}`,
+              message: `${forklift.make || ''} ${forklift.model || ''} ${forklift.serial_number}${locationStr} - ${isOverdue ? 'OVERDUE for service!' : `Service due in ${forklift.days_until_due || 7} days.`} Hourmeter: ${forklift.hourmeter} hrs.`,
+              reference_type: 'job',
+              reference_id: jobId,
+              priority: isOverdue ? 'urgent' : 'high',
+            });
+
+          if (!error) {
+            count++;
+            console.log(`[Notifications] Created job notification for ${forklift.serial_number} -> ${admin.name}`);
+          } else {
+            console.warn(`[Notifications] Failed to create notification:`, error.message);
+          }
+        } catch (e) {
+          console.warn(`[Notifications] Error creating notification for ${admin.name}:`, e);
+        }
+      }
+    } catch (e) {
+      console.warn('Service job notifications failed:', e);
+    }
+    return count;
   },
 };

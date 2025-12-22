@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell 
 } from 'recharts';
+import { AlertTriangle } from 'lucide-react';
 import { UserRole, Job, JobStatus, User } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
+import ServiceAutomationWidget from '../components/ServiceAutomationWidget';
 
 interface DashboardProps {
   role: UserRole;
@@ -192,33 +194,52 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="card-theme p-6 rounded-xl theme-transition">
-        <h3 className="font-semibold text-theme mb-4">Recent Jobs</h3>
-        <div className="space-y-2">
-          {jobs.slice(0, 5).map(job => (
-            <div 
-              key={job.job_id} 
-              onClick={() => navigate(`/jobs/${job.job_id}`)}
-              className="flex justify-between items-center p-3 bg-theme-surface-2 rounded-lg border border-theme hover:shadow-theme-sm cursor-pointer transition-all theme-transition"
-            >
-              <div className="flex-1">
-                <p className="font-medium text-theme hover:text-blue-600">{job.title}</p>
-                <p className="text-xs text-theme-muted">{job.customer.name} • {new Date(job.created_at).toLocaleDateString()}</p>
+      {/* Service Automation Widget & Recent Jobs - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Service Automation - Admin/Supervisor only */}
+        {(role === UserRole.ADMIN || role === UserRole.SUPERVISOR) && (
+          <ServiceAutomationWidget 
+            onViewAll={() => navigate('/service-due')} 
+          />
+        )}
+
+        {/* Recent Jobs */}
+        <div className="card-theme p-6 rounded-xl theme-transition">
+          <h3 className="font-semibold text-theme mb-4">Recent Jobs</h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {jobs.slice(0, 5).map(job => (
+              <div 
+                key={job.job_id} 
+                onClick={() => navigate(`/jobs/${job.job_id}`)}
+                className="flex justify-between items-center p-3 bg-theme-surface-2 rounded-lg border border-theme hover:shadow-theme-sm cursor-pointer transition-all theme-transition"
+              >
+                <div className="flex-1">
+                  <p className="font-medium text-theme hover:text-blue-600">{job.title}</p>
+                  <p className="text-xs text-theme-muted">
+                    {job.customer ? (
+                      <span>{job.customer.name}</span>
+                    ) : (
+                      <span className="text-amber-600 inline-flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> No Customer
+                      </span>
+                    )}
+                    {' • '}{new Date(job.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  job.status === JobStatus.COMPLETED ? 'bg-green-100 text-green-700' :
+                  job.status === JobStatus.AWAITING_FINALIZATION ? 'bg-purple-100 text-purple-700' :
+                  job.status === JobStatus.IN_PROGRESS ? 'bg-amber-100 text-amber-700' :
+                  'bg-blue-100 text-blue-700'
+                }`}>
+                  {job.status}
+                </span>
               </div>
-              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                job.status === JobStatus.COMPLETED ? 'bg-green-100 text-green-700' :
-                job.status === JobStatus.AWAITING_FINALIZATION ? 'bg-purple-100 text-purple-700' :
-                job.status === JobStatus.IN_PROGRESS ? 'bg-amber-100 text-amber-700' :
-                'bg-blue-100 text-blue-700'
-              }`}>
-                {job.status}
-              </span>
-            </div>
-          ))}
-          {jobs.length === 0 && (
-            <p className="text-center text-theme-muted py-4">No jobs found</p>
-          )}
+            ))}
+            {jobs.length === 0 && (
+              <p className="text-center text-theme-muted py-4">No jobs found</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

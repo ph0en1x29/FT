@@ -20,6 +20,7 @@ import EmployeesPage from './pages/EmployeesPage';
 import EmployeeProfile from './pages/EmployeeProfile';
 import HRDashboard from './pages/HRDashboard';
 import MyLeaveRequests from './pages/MyLeaveRequests';
+import ServiceDue from './pages/ServiceDue';
 import NotificationBell from './components/NotificationBell';
 import { SupabaseDb as MockDb } from './services/supabaseService';
 import { 
@@ -583,6 +584,13 @@ export default function App() {
             } />
             
             <Route path="/my-leave" element={<MyLeaveRequests currentUser={currentUser} />} />
+            
+            {/* Service Due Page - Admin/Supervisor only */}
+            <Route path="/service-due" element={
+              (currentUser.role === 'admin' || currentUser.role === 'supervisor') 
+                ? <ServiceDue /> 
+                : <Navigate to="/" />
+            } />
             
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

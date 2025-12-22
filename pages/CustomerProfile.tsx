@@ -1,29 +1,38 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Customer, Job, User, UserRole, ForkliftRental, Forklift } from '../types_with_invoice_tracking';
+import { Customer, Job, User, UserRole, ForkliftRental, Forklift, ForkliftServiceEntry } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { generateCustomerAnalysis } from '../services/geminiService';
 import { 
   ArrowLeft, MapPin, Phone, Mail, Calendar, DollarSign, 
   TrendingUp, AlertCircle, BrainCircuit, Wrench, CheckCircle, Clock, Trash2,
   Truck, ChevronRight, Building2, Edit2, X, Save, Receipt, Plus,
-  Square, CheckSquare, CircleOff, Loader2, Search
+  Square, CheckSquare, CircleOff, Loader2, Search, Briefcase, Filter,
+  XCircle, AlertOctagon, User as UserIcon2, Gauge
 } from 'lucide-react';
 
 interface CustomerProfileProps {
   currentUser: User;
 }
 
+type RentalTab = 'active' | 'past';
+type ServiceTab = 'open' | 'completed' | 'all';
+
 const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<ForkliftServiceEntry[]>([]);
   const [rentals, setRentals] = useState<ForkliftRental[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [showCancelledJobs, setShowCancelledJobs] = useState(false);
+  
+  // Tab states
+  const [rentalTab, setRentalTab] = useState<RentalTab>('active');
+  const [serviceTab, setServiceTab] = useState<ServiceTab>('all');
   
   // Edit rental modal
   const [editingRental, setEditingRental] = useState<ForkliftRental | null>(null);
@@ -60,6 +69,8 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   const [rentProcessing, setRentProcessing] = useState(false);
 
   const isAdmin = currentUser.role.toString().toLowerCase() === 'admin';
+  const isSupervisor = currentUser.role.toString().toLowerCase() === 'supervisor';
+  const canViewCancelled = isAdmin || isSupervisor;
 
   useEffect(() => {
     loadCustomerData();
@@ -74,13 +85,12 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
       const foundCustomer = customers.find(c => c.customer_id === id);
       setCustomer(foundCustomer || null);
 
-      const allJobs = await MockDb.getJobs(currentUser);
-      const customerJobs = allJobs.filter(j => j.customer_id === id);
-      setJobs(customerJobs.sort((a, b) => 
+      // Get jobs including cancelled ones
+      const customerJobs = await MockDb.getCustomerJobsWithCancelled(id);
+      setJobs(customerJobs.sort((a: ForkliftServiceEntry, b: ForkliftServiceEntry) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       ));
 
-      // Load rentals for this customer
       const customerRentals = await MockDb.getCustomerRentals(id);
       setRentals(customerRentals);
     } catch (error) {
@@ -93,7 +103,6 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   const loadAvailableForklifts = async () => {
     try {
       const forkliftsWithCustomers = await MockDb.getForkliftsWithCustomers();
-      // Filter to only show forklifts without active rentals
       const available = forkliftsWithCustomers.filter(f => !(f as any).current_customer_id);
       setAvailableForklifts(available);
     } catch (error) {
@@ -148,7 +157,6 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
       const forkliftIds = Array.from(selectedForkliftIds);
       
       if (forkliftIds.length === 1) {
-        // Single forklift
         await MockDb.assignForkliftToCustomer(
           forkliftIds[0],
           customer.customer_id,
@@ -173,7 +181,6 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
           ].filter(Boolean)
         });
       } else {
-        // Multiple forklifts
         const result = await MockDb.bulkAssignForkliftsToCustomer(
           forkliftIds,
           customer.customer_id,
@@ -282,9 +289,24 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
     }
   };
 
-  // Multi-select handlers
+  // Computed data
   const activeRentals = useMemo(() => rentals.filter(r => r.status === 'active'), [rentals]);
   const pastRentals = useMemo(() => rentals.filter(r => r.status !== 'active'), [rentals]);
+  
+  // Filter out cancelled jobs for active metrics
+  const activeJobs = useMemo(() => jobs.filter(j => !j.is_cancelled), [jobs]);
+  const cancelledJobs = useMemo(() => jobs.filter(j => j.is_cancelled), [jobs]);
+  
+  const openJobs = useMemo(() => activeJobs.filter(j => !['Completed', 'Awaiting Finalization'].includes(j.status)), [activeJobs]);
+  const completedJobs = useMemo(() => activeJobs.filter(j => ['Completed', 'Awaiting Finalization'].includes(j.status)), [activeJobs]);
+  
+  const filteredJobs = useMemo(() => {
+    switch (serviceTab) {
+      case 'open': return openJobs;
+      case 'completed': return completedJobs;
+      default: return activeJobs;
+    }
+  }, [serviceTab, activeJobs, openJobs, completedJobs]);
 
   const selectedRentals = useMemo(() => {
     return activeRentals.filter(r => selectedRentalIds.has(r.rental_id));
@@ -327,7 +349,6 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
 
     setBulkProcessing(true);
     try {
-      // Get forklift IDs from selected rentals
       const forkliftIds = selectedRentals.map(r => r.forklift_id);
       
       const result = await MockDb.bulkEndRentals(
@@ -378,17 +399,15 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
     return <div className="p-8 text-center text-red-500">Customer not found</div>;
   }
 
-  // Calculate stats
-  const totalJobs = jobs.length;
-  const completedJobs = jobs.filter(j => j.status === 'Completed' || j.status === 'Awaiting Finalization').length;
-  const totalServiceRevenue = jobs.reduce((acc, job) => {
-    const partsCost = job.parts_used.reduce((sum, p) => sum + (p.sell_price_at_time * p.quantity), 0);
+  // Calculate stats (use activeJobs to exclude cancelled jobs from metrics)
+  const totalJobs = activeJobs.length;
+  const totalServiceRevenue = activeJobs.reduce((acc, job) => {
+    const partsCost = (job.parts_used || []).reduce((sum: number, p: any) => sum + (p.sell_price_at_time * p.quantity), 0);
     const laborCost = job.labor_cost || 150;
-    const extraChargesCost = (job.extra_charges || []).reduce((sum, c) => sum + c.amount, 0);
+    const extraChargesCost = (job.extra_charges || []).reduce((sum: number, c: any) => sum + c.amount, 0);
     return acc + partsCost + laborCost + extraChargesCost;
   }, 0);
   
-  // Calculate rental revenue
   const totalRentalRevenue = rentals.reduce((acc, rental) => {
     const monthlyRate = (rental as any).monthly_rental_rate || 0;
     if (monthlyRate <= 0) return acc;
@@ -401,17 +420,16 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   
   const totalRevenue = totalServiceRevenue + totalRentalRevenue;
   
-  const lastService = jobs[0];
-  const avgResponseTime = jobs.filter(j => j.arrival_time).length > 0
-    ? jobs.filter(j => j.arrival_time).reduce((acc, j) => {
+  const avgResponseTime = activeJobs.filter(j => j.arrival_time).length > 0
+    ? activeJobs.filter(j => j.arrival_time).reduce((acc, j) => {
         const created = new Date(j.created_at).getTime();
         const arrived = new Date(j.arrival_time!).getTime();
         return acc + ((arrived - created) / (1000 * 60 * 60));
-      }, 0) / jobs.filter(j => j.arrival_time).length
+      }, 0) / activeJobs.filter(j => j.arrival_time).length
     : 0;
 
   const issueFrequency: { [key: string]: number } = {};
-  jobs.forEach(job => {
+  activeJobs.forEach(job => {
     const title = job.title.toLowerCase();
     const key = title.includes('ac') || title.includes('air') ? 'AC/HVAC' :
                 title.includes('heat') ? 'Heating' :
@@ -425,503 +443,486 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
 
+  const displayedRentals = rentalTab === 'active' ? activeRentals : pastRentals;
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full">
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
-          </button>
-          <h1 className="text-2xl font-bold text-slate-900">Customer Profile</h1>
-        </div>
-        {isAdmin && (
-          <button 
-            type="button"
-            onClick={handleDeleteCustomer}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-red-700 flex items-center gap-2"
-          >
-            <Trash2 className="w-4 h-4" /> Delete Customer
-          </button>
-        )}
-      </div>
-
-      {/* Customer Info Card */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm p-6 border border-blue-100">
-        <div className="flex justify-between items-start">
-          <div className="space-y-3">
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* ========== HEADER ========== */}
+      <div className="bg-white rounded-xl shadow-sm p-5 border border-slate-200">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          {/* Left: Customer Info */}
+          <div className="flex items-start gap-4">
+            <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full mt-1">
+              <ArrowLeft className="w-5 h-5 text-slate-600" />
+            </button>
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">{customer.name}</h2>
-              <p className="text-sm text-slate-500">Customer ID: {customer.customer_id.slice(0, 8)}</p>
-            </div>
-            
-            <div className="space-y-2 text-slate-700">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-blue-600" />
-                <span>{customer.address}</span>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-slate-900">{customer.name}</h1>
+                <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded font-mono">
+                  {customer.customer_id.slice(0, 8)}
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-blue-600" />
-                <a href={`tel:${customer.phone}`} className="hover:underline">{customer.phone}</a>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-blue-600" />
-                <a href={`mailto:${customer.email}`} className="hover:underline">{customer.email}</a>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-slate-600">
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  {customer.address}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Phone className="w-3.5 h-3.5 text-slate-400" />
+                  <a href={`tel:${customer.phone}`} className="hover:underline">{customer.phone}</a>
+                </span>
+                <span className="flex items-center gap-1">
+                  <Mail className="w-3.5 h-3.5 text-slate-400" />
+                  <a href={`mailto:${customer.email}`} className="hover:underline">{customer.email}</a>
+                </span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-              <p className="text-2xl font-bold text-blue-600">{totalJobs}</p>
-              <p className="text-xs text-slate-500">Total Jobs</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-              <p className="text-2xl font-bold text-green-600">RM{totalRevenue.toLocaleString()}</p>
-              <p className="text-xs text-slate-500">Total Revenue</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-              <p className="text-2xl font-bold text-purple-600">{activeRentals.length}</p>
-              <p className="text-xs text-slate-500">Active Rentals</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-              <p className="text-2xl font-bold text-amber-600">RM{totalRentalRevenue.toLocaleString()}</p>
-              <p className="text-xs text-slate-500">Rental Revenue</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-      {/* Rented Forklifts Section */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2">
-            <Truck className="w-5 h-5 text-blue-600" /> Rented Forklifts ({rentals.length})
-          </h3>
-          
-          <div className="flex gap-2">
+          {/* Right: Actions */}
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={openRentModal}
               className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium shadow-sm"
             >
-              <Plus className="w-4 h-4" />
+              <Truck className="w-4 h-4" />
               Rent Forklift
             </button>
-            
-            {activeRentals.length > 1 && (
-              <button
-                onClick={toggleSelectionMode}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  isSelectionMode 
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300' 
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+            <button
+              onClick={() => navigate(`/jobs/create?customer=${customer.customer_id}`)}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium shadow-sm"
+            >
+              <Briefcase className="w-4 h-4" />
+              Create Job
+            </button>
+            <button
+              onClick={() => navigate(`/customers/${customer.customer_id}/edit`)}
+              className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 text-sm font-medium"
+            >
+              <Edit2 className="w-4 h-4" />
+              Edit
+            </button>
+            {isAdmin && (
+              <button 
+                onClick={handleDeleteCustomer}
+                className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg text-sm font-medium"
               >
-                {isSelectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                {isSelectionMode ? 'Exit Selection' : 'Multi-Select'}
+                <Trash2 className="w-4 h-4" />
               </button>
             )}
           </div>
         </div>
+      </div>
 
-          {/* Selection Actions Bar */}
-          {isSelectionMode && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <div className="flex flex-wrap justify-between items-center gap-3">
-                <div className="flex gap-3 text-sm">
-                  <button
-                    onClick={selectAllActiveRentals}
-                    className="text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    Select All ({activeRentals.length})
-                  </button>
-                  <span className="text-slate-300">|</span>
-                  <button
-                    onClick={deselectAll}
-                    className="text-slate-600 hover:text-slate-800 font-medium"
-                  >
-                    Deselect All
-                  </button>
-                </div>
-                
-                {selectedRentalIds.size > 0 && (
+      {/* ========== KPI STRIP ========== */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-slate-200">
+          <p className="text-xs text-slate-500 uppercase font-medium">Total Jobs</p>
+          <p className="text-2xl font-bold text-blue-600">{totalJobs}</p>
+        </div>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-slate-200">
+          <p className="text-xs text-slate-500 uppercase font-medium">Active Rentals</p>
+          <p className="text-2xl font-bold text-purple-600">{activeRentals.length}</p>
+        </div>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-slate-200">
+          <p className="text-xs text-slate-500 uppercase font-medium">Service Revenue</p>
+          <p className="text-2xl font-bold text-green-600">RM{totalServiceRevenue.toLocaleString()}</p>
+        </div>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-slate-200">
+          <p className="text-xs text-slate-500 uppercase font-medium">Rental Revenue</p>
+          <p className="text-2xl font-bold text-amber-600">RM{totalRentalRevenue.toLocaleString()}</p>
+        </div>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-slate-200 col-span-2 md:col-span-1">
+          <p className="text-xs text-slate-500 uppercase font-medium">Total Revenue</p>
+          <p className="text-2xl font-bold text-slate-800">RM{totalRevenue.toLocaleString()}</p>
+        </div>
+      </div>
+
+      {/* ========== MAIN CONTENT ========== */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* ===== RENTALS ===== */}
+        <div className="lg:col-span-4">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="flex border-b border-slate-200">
+              <button
+                onClick={() => { setRentalTab('active'); setIsSelectionMode(false); setSelectedRentalIds(new Set()); }}
+                className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                  rentalTab === 'active' 
+                    ? 'text-green-600 border-b-2 border-green-600 bg-green-50/50' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Active ({activeRentals.length})
+              </button>
+              <button
+                onClick={() => { setRentalTab('past'); setIsSelectionMode(false); setSelectedRentalIds(new Set()); }}
+                className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                  rentalTab === 'past' 
+                    ? 'text-slate-600 border-b-2 border-slate-600 bg-slate-50' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Past ({pastRentals.length})
+              </button>
+            </div>
+
+            {rentalTab === 'active' && activeRentals.length > 1 && (
+              <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <button
+                  onClick={toggleSelectionMode}
+                  className={`text-xs font-medium flex items-center gap-1.5 ${
+                    isSelectionMode ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {isSelectionMode ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                  {isSelectionMode ? 'Exit Select' : 'Multi-Select'}
+                </button>
+                {isSelectionMode && selectedRentalIds.size > 0 && (
                   <button
                     onClick={openBulkEndModal}
-                    className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-medium shadow-sm"
+                    className="text-xs font-medium text-red-600 hover:text-red-700 flex items-center gap-1"
                   >
-                    <CircleOff className="w-4 h-4" />
-                    End {selectedRentalIds.size} Rental(s)
+                    <CircleOff className="w-3.5 h-3.5" />
+                    End {selectedRentalIds.size}
                   </button>
                 )}
               </div>
-            </div>
-          )}
-          
-          {/* Active Rentals */}
-          {activeRentals.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold text-green-700 mb-2">
-                Active Rentals
-                {isSelectionMode && selectedRentalIds.size > 0 && (
-                  <span className="ml-2 text-blue-600">({selectedRentalIds.size} selected)</span>
-                )}
-              </h4>
-              <div className="space-y-3">
-                {activeRentals.map(rental => {
+            )}
+
+            {isSelectionMode && rentalTab === 'active' && (
+              <div className="px-4 py-2 bg-blue-50 border-b border-blue-100 flex gap-3 text-xs">
+                <button onClick={selectAllActiveRentals} className="text-blue-600 hover:underline">Select All</button>
+                <button onClick={deselectAll} className="text-slate-500 hover:underline">Clear</button>
+              </div>
+            )}
+
+            <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
+              {displayedRentals.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <Truck className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No {rentalTab} rentals</p>
+                </div>
+              ) : (
+                displayedRentals.map(rental => {
                   const isSelected = selectedRentalIds.has(rental.rental_id);
+                  const isActive = rental.status === 'active';
                   
                   return (
                     <div 
-                      key={rental.rental_id} 
-                      className={`p-4 rounded-lg transition-all ${
+                      key={rental.rental_id}
+                      onClick={() => {
+                        if (isSelectionMode && isActive) {
+                          const newSelected = new Set(selectedRentalIds);
+                          if (newSelected.has(rental.rental_id)) {
+                            newSelected.delete(rental.rental_id);
+                          } else {
+                            newSelected.add(rental.rental_id);
+                          }
+                          setSelectedRentalIds(newSelected);
+                        } else if (rental.forklift) {
+                          navigate(`/forklifts/${rental.forklift_id}`);
+                        }
+                      }}
+                      className={`p-3 rounded-lg cursor-pointer transition-all ${
                         isSelected 
-                          ? 'bg-blue-50 border-2 border-blue-400 shadow-sm' 
-                          : 'bg-green-50 border border-green-200'
+                          ? 'bg-blue-50 border-2 border-blue-400' 
+                          : isActive 
+                            ? 'bg-green-50 border border-green-200 hover:border-green-300' 
+                            : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-start gap-3 flex-1">
-                          {isSelectionMode && (
-                            <button
-                              onClick={(e) => toggleRentalSelection(rental.rental_id, e)}
-                              className="mt-1"
-                            >
-                              {isSelected ? (
-                                <CheckSquare className="w-5 h-5 text-blue-600" />
-                              ) : (
-                                <Square className="w-5 h-5 text-slate-400" />
-                              )}
-                            </button>
-                          )}
-                          <div 
-                            className={`flex-1 ${!isSelectionMode ? 'cursor-pointer hover:opacity-80' : ''}`}
-                            onClick={() => {
-                              if (isSelectionMode) {
-                                const newSelected = new Set(selectedRentalIds);
-                                if (newSelected.has(rental.rental_id)) {
-                                  newSelected.delete(rental.rental_id);
-                                } else {
-                                  newSelected.add(rental.rental_id);
-                                }
-                                setSelectedRentalIds(newSelected);
-                              } else if (rental.forklift) {
-                                navigate(`/forklifts/${rental.forklift_id}`);
-                              }
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Truck className="w-4 h-4 text-green-600" />
-                              <span className="font-semibold text-slate-800">
-                                {rental.forklift?.make} {rental.forklift?.model}
-                              </span>
-                              {!isSelectionMode && <ChevronRight className="w-4 h-4 text-slate-300" />}
-                            </div>
-                            <p className="text-sm text-slate-500 font-mono mt-1">
-                              {rental.forklift?.serial_number}
-                            </p>
-                            <div className="flex gap-4 mt-2 text-sm">
-                              <span className="text-slate-600">
-                                <Calendar className="w-3 h-3 inline mr-1" />
-                                From: {new Date(rental.start_date).toLocaleDateString()}
-                              </span>
-                              {rental.end_date && (
-                                <span className="text-slate-600">
-                                  <Calendar className="w-3 h-3 inline mr-1" />
-                                  Until: {new Date(rental.end_date).toLocaleDateString()}
-                                </span>
-                              )}
-                            </div>
-                            {(rental as any).monthly_rental_rate > 0 && (
-                              <div className="mt-2 text-sm font-medium text-green-700">
-                                <DollarSign className="w-3 h-3 inline mr-1" />
-                                RM{((rental as any).monthly_rental_rate || 0).toLocaleString()}/month
-                              </div>
-                            )}
-                            {rental.notes && (
-                              <p className="text-xs text-slate-500 mt-2 italic">{rental.notes}</p>
+                      <div className="flex items-start gap-2">
+                        {isSelectionMode && isActive && (
+                          <div className="mt-0.5">
+                            {isSelected ? (
+                              <CheckSquare className="w-4 h-4 text-blue-600" />
+                            ) : (
+                              <Square className="w-4 h-4 text-slate-400" />
                             )}
                           </div>
-                        </div>
-                        {!isSelectionMode && (
-                          <div className="flex gap-2">
-                            {isAdmin && (
-                              <button
-                                onClick={() => handleEditRental(rental)}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                                title="Edit Rental & Rate"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-slate-800 text-sm truncate">
+                              {rental.forklift?.make} {rental.forklift?.model}
+                            </span>
+                            {!isSelectionMode && <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />}
+                          </div>
+                          <p className="text-xs text-slate-500 font-mono">{rental.forklift?.serial_number}</p>
+                          <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500">
+                            <Calendar className="w-3 h-3" />
+                            <span>{new Date(rental.start_date).toLocaleDateString()}</span>
+                            {!isActive && rental.end_date && (
+                              <span className="text-slate-400">→ {new Date(rental.end_date).toLocaleDateString()}</span>
                             )}
+                          </div>
+                          {isActive && (rental as any).monthly_rental_rate > 0 && (
+                            <div className="mt-1.5 text-xs font-medium text-green-700">
+                              RM{((rental as any).monthly_rental_rate).toLocaleString()}/mo
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {isActive && !isSelectionMode && (
+                        <div className="flex gap-2 mt-3 pt-2 border-t border-green-100">
+                          {isAdmin && (
                             <button
-                              onClick={() => handleEndRental(rental.rental_id)}
-                              className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
+                              onClick={(e) => { e.stopPropagation(); handleEditRental(rental); }}
+                              className="flex-1 text-xs py-1.5 text-blue-600 hover:bg-blue-50 rounded font-medium"
                             >
-                              End Rental
+                              Edit
                             </button>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleEndRental(rental.rental_id); }}
+                            className="flex-1 text-xs py-1.5 text-red-600 hover:bg-red-50 rounded font-medium"
+                          >
+                            End
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ===== SERVICE HISTORY ===== */}
+        <div className="lg:col-span-5">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="flex border-b border-slate-200">
+              <button
+                onClick={() => { setServiceTab('open'); setShowCancelledJobs(false); }}
+                className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                  serviceTab === 'open' && !showCancelledJobs
+                    ? 'text-amber-600 border-b-2 border-amber-600 bg-amber-50/50' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Open ({openJobs.length})
+              </button>
+              <button
+                onClick={() => { setServiceTab('completed'); setShowCancelledJobs(false); }}
+                className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                  serviceTab === 'completed' && !showCancelledJobs
+                    ? 'text-green-600 border-b-2 border-green-600 bg-green-50/50' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Completed ({completedJobs.length})
+              </button>
+              <button
+                onClick={() => { setServiceTab('all'); setShowCancelledJobs(false); }}
+                className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                  serviceTab === 'all' && !showCancelledJobs
+                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                All ({activeJobs.length})
+              </button>
+              {cancelledJobs.length > 0 && canViewCancelled && (
+                <button
+                  onClick={() => setShowCancelledJobs(true)}
+                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                    showCancelledJobs
+                      ? 'text-red-600 border-b-2 border-red-600 bg-red-50/50' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Cancelled ({cancelledJobs.length})
+                </button>
+              )}
+            </div>
+
+            <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
+              {showCancelledJobs ? (
+                // Cancelled jobs view
+                cancelledJobs.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    <XCircle className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No cancelled jobs</p>
+                  </div>
+                ) : (
+                  cancelledJobs.map(job => (
+                    <div
+                      key={job.job_id}
+                      className="p-3 border border-red-200 bg-red-50/50 rounded-lg"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-slate-600 text-sm line-through truncate">
+                            {job.title}
+                          </h4>
+                          <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{job.description}</p>
+                          {job.forklift && (
+                            <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                              <Truck className="w-3 h-3" />
+                              {job.forklift.serial_number}
+                            </p>
+                          )}
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap flex-shrink-0 bg-red-100 text-red-700">
+                          Cancelled
+                        </span>
+                      </div>
+
+                      {/* Cancellation info */}
+                      <div className="mt-2 pt-2 border-t border-red-200 text-xs">
+                        <div className="flex items-center gap-1 text-red-600">
+                          <XCircle className="w-3 h-3" />
+                          <span>Cancelled by {job.deleted_by_name || 'Unknown'}</span>
+                        </div>
+                        {job.deletion_reason && (
+                          <div className="mt-1 text-slate-500 italic">
+                            Reason: {job.deletion_reason}
+                          </div>
+                        )}
+                        {job.deleted_at && (
+                          <div className="mt-1 text-slate-400">
+                            {new Date(job.deleted_at).toLocaleString()}
                           </div>
                         )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Past Rentals */}
-          {pastRentals.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold text-slate-500 mb-2">Past Rentals</h4>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {pastRentals.map(rental => (
-                  <div 
-                    key={rental.rental_id} 
-                    className="p-3 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-100"
-                    onClick={() => rental.forklift && navigate(`/forklifts/${rental.forklift_id}`)}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="font-medium text-slate-700">
-                          {rental.forklift?.make} {rental.forklift?.model}
-                        </span>
-                        <span className="text-sm text-slate-400 ml-2 font-mono">
-                          {rental.forklift?.serial_number}
+                  ))
+                )
+              ) : (
+                // Normal jobs view
+                filteredJobs.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    <Wrench className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No {serviceTab === 'all' ? '' : serviceTab} jobs</p>
+                  </div>
+                ) : (
+                  filteredJobs.map(job => (
+                    <div
+                      key={job.job_id}
+                      onClick={() => navigate(`/jobs/${job.job_id}`)}
+                      className="p-3 border border-slate-200 rounded-lg hover:shadow-md hover:border-blue-300 transition cursor-pointer group"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-slate-800 text-sm group-hover:text-blue-600 truncate">
+                            {job.title}
+                          </h4>
+                          <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{job.description}</p>
+                          {job.forklift && (
+                            <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                              <Truck className="w-3 h-3" />
+                              {job.forklift.serial_number}
+                            </p>
+                          )}
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap flex-shrink-0 ${
+                          job.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                          job.status === 'Awaiting Finalization' ? 'bg-purple-100 text-purple-700' :
+                          job.status === 'In Progress' ? 'bg-amber-100 text-amber-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {job.status}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-500">
-                        {new Date(rental.start_date).toLocaleDateString()} - {rental.end_date ? new Date(rental.end_date).toLocaleDateString() : 'N/A'}
+
+                      <div className="flex justify-between items-center text-xs text-slate-400 mt-2 pt-2 border-t border-slate-100">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(job.created_at).toLocaleDateString()}
+                        </span>
+                        {job.parts_used && job.parts_used.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Wrench className="w-3 h-3" />
+                            {job.parts_used.length} parts
+                          </span>
+                        )}
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))
+                )
+              )}
             </div>
-          )}
-
-          {/* Empty state when no rentals */}
-          {rentals.length === 0 && (
-            <div className="text-center py-8 text-slate-400">
-              <Truck className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <p className="mb-4">No forklifts rented to this customer yet</p>
-            </div>
-          )}
+          </div>
         </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Stats */}
-        <div className="space-y-6">
-          {/* Service Stats */}
-          <div className="bg-white rounded-xl shadow-sm p-5 space-y-4">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-blue-600" /> Service Stats
+        {/* ===== INSIGHTS SIDEBAR ===== */}
+        <div className="lg:col-span-3 space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-blue-600" /> Service Stats
             </h3>
-            
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium text-slate-700">Completed</span>
-                </div>
-                <span className="font-bold text-green-600">{completedJobs}</span>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center p-2 bg-green-50 rounded">
+                <span className="text-xs text-slate-600">Completed</span>
+                <span className="font-bold text-green-600 text-sm">{completedJobs.length}</span>
               </div>
-
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-slate-700">Avg Response</span>
-                </div>
-                <span className="font-bold text-blue-600">{avgResponseTime.toFixed(1)}h</span>
+              <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
+                <span className="text-xs text-slate-600">Avg Response</span>
+                <span className="font-bold text-blue-600 text-sm">{avgResponseTime.toFixed(1)}h</span>
               </div>
-
-              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-purple-600" />
-                  <span className="text-sm font-medium text-slate-700">Avg Job Value</span>
-                </div>
-                <span className="font-bold text-purple-600">
+              <div className="flex justify-between items-center p-2 bg-purple-50 rounded">
+                <span className="text-xs text-slate-600">Avg Job Value</span>
+                <span className="font-bold text-purple-600 text-sm">
                   RM{totalJobs > 0 ? Math.round(totalServiceRevenue / totalJobs) : 0}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Revenue Breakdown */}
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Receipt className="w-5 h-5 text-green-600" /> Revenue Breakdown
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                <span className="text-sm font-medium text-slate-700">Service Revenue</span>
-                <span className="font-bold text-green-600">RM{totalServiceRevenue.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-amber-50 rounded-lg">
-                <span className="text-sm font-medium text-slate-700">Rental Revenue</span>
-                <span className="font-bold text-amber-600">RM{totalRentalRevenue.toLocaleString()}</span>
-              </div>
-              <hr className="my-2" />
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                <span className="text-sm font-bold text-slate-800">Total Revenue</span>
-                <span className="font-bold text-lg text-blue-600">RM{totalRevenue.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Top Issues */}
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-orange-600" /> Common Issues
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-orange-600" /> Common Issues
             </h3>
             {topIssues.length > 0 ? (
               <div className="space-y-2">
                 {topIssues.map(([issue, count], idx) => (
                   <div key={issue} className="flex justify-between items-center p-2 bg-slate-50 rounded">
-                    <span className="text-sm text-slate-700">#{idx + 1} {issue}</span>
+                    <span className="text-xs text-slate-600">#{idx + 1} {issue}</span>
                     <span className="text-xs font-bold text-slate-500">{count}x</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-400 italic">No service history yet</p>
+              <p className="text-xs text-slate-400 italic">No service history yet</p>
             )}
           </div>
 
-          {/* Last Service */}
-          {lastService && (
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-600" /> Last Service
-              </h3>
-              <div className="space-y-2 text-sm">
-                <p className="font-medium text-slate-800">{lastService.title}</p>
-                <p className="text-slate-500">{lastService.description}</p>
-                <div className="pt-2 border-t border-slate-100">
-                  <p className="text-xs text-slate-400">
-                    {new Date(lastService.created_at).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </p>
-                  <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium ${
-                    lastService.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {lastService.status}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-
-        {/* Right Column - History & AI */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* AI Analysis */}
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-sm p-6 border border-purple-100">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-1">
-                  <BrainCircuit className="w-5 h-5 text-purple-600" /> AI Customer Analysis
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Get intelligent insights about service patterns and trends
-                </p>
-              </div>
-              {!aiAnalysis && (
-                <button
-                  onClick={handleGenerateAnalysis}
-                  disabled={generatingAI || jobs.length === 0}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                >
-                  {generatingAI ? 'Analyzing...' : 'Generate Analysis'}
-                </button>
-              )}
-            </div>
-
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-sm border border-purple-100 p-4">
+            <h3 className="font-semibold text-slate-800 text-sm mb-2 flex items-center gap-2">
+              <BrainCircuit className="w-4 h-4 text-purple-600" /> AI Insights
+            </h3>
+            
             {aiAnalysis ? (
-              <div className="bg-white rounded-lg p-4 shadow-sm">
-                <div className="prose prose-sm max-w-none text-slate-700">
-                  {aiAnalysis.split('\n').map((line, idx) => (
-                    <p key={idx} className="mb-2">{line}</p>
-                  ))}
-                </div>
+              <div className="bg-white rounded-lg p-3 text-xs text-slate-700 space-y-2 max-h-48 overflow-y-auto">
+                {aiAnalysis.split('\n').filter(Boolean).map((line, idx) => (
+                  <p key={idx}>{line}</p>
+                ))}
                 <button
                   onClick={() => setAiAnalysis('')}
-                  className="mt-4 text-xs text-purple-600 hover:underline"
+                  className="text-purple-600 hover:underline text-xs mt-2"
                 >
-                  Generate New Analysis
+                  Regenerate
                 </button>
               </div>
             ) : jobs.length === 0 ? (
-              <div className="bg-white rounded-lg p-4 text-center text-slate-400">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No service history to analyze yet</p>
-              </div>
-            ) : null}
-          </div>
-
-          {/* Service History */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="font-bold text-slate-800 mb-4">Service History</h3>
-            
-            {jobs.length > 0 ? (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {jobs.map(job => (
-                  <div
-                    key={job.job_id}
-                    onClick={() => navigate(`/jobs/${job.job_id}`)}
-                    className="p-4 border border-slate-200 rounded-lg hover:shadow-md hover:border-blue-300 transition cursor-pointer group"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-slate-800 group-hover:text-blue-600">
-                          {job.title}
-                        </h4>
-                        <p className="text-sm text-slate-500 line-clamp-1">{job.description}</p>
-                        {job.forklift && (
-                          <p className="text-xs text-slate-400 mt-1">
-                            <Truck className="w-3 h-3 inline mr-1" />
-                            {job.forklift.make} {job.forklift.model} ({job.forklift.serial_number})
-                          </p>
-                        )}
-                      </div>
-                      <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ml-3 ${
-                        job.status === 'Completed' ? 'bg-green-100 text-green-700' :
-                        job.status === 'Awaiting Finalization' ? 'bg-purple-100 text-purple-700' :
-                        job.status === 'In Progress' ? 'bg-amber-100 text-amber-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>
-                        {job.status}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center text-xs text-slate-400 mt-2 pt-2 border-t border-slate-100">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(job.created_at).toLocaleDateString()}
-                      </span>
-                      {job.parts_used.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          <Wrench className="w-3 h-3" />
-                          {job.parts_used.length} parts used
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="text-xs text-slate-400">No service history to analyze</p>
             ) : (
-              <div className="text-center py-8 text-slate-400">
-                <Wrench className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                <p>No service history yet</p>
-              </div>
+              <button
+                onClick={handleGenerateAnalysis}
+                disabled={generatingAI}
+                className="w-full mt-2 bg-purple-600 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:opacity-50"
+              >
+                {generatingAI ? 'Analyzing...' : 'Generate Analysis'}
+              </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* ========== MODALS ========== */}
 
       {/* Edit Rental Modal */}
       {editingRental && (
@@ -929,10 +930,7 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h3 className="font-bold text-lg text-slate-800">Edit Rental</h3>
-              <button 
-                onClick={() => setEditingRental(null)} 
-                className="text-slate-400 hover:text-slate-600"
-              >
+              <button onClick={() => setEditingRental(null)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -946,24 +944,20 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                  Start Date
-                </label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Start Date</label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
                   value={editStartDate}
                   onChange={(e) => setEditStartDate(e.target.value)}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                  End Date (Optional)
-                </label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">End Date (Optional)</label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
                   value={editEndDate}
                   onChange={(e) => setEditEndDate(e.target.value)}
                 />
@@ -971,30 +965,24 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
 
               {isAdmin && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                    <Receipt className="w-3 h-3 inline mr-1" />
-                    Monthly Rental Rate (RM)
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Monthly Rate (RM)</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">RM</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">RM</span>
                     <input
                       type="number"
-                      className="w-full pl-10 pr-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-blue-500"
+                      className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
                       value={editMonthlyRate}
                       onChange={(e) => setEditMonthlyRate(e.target.value)}
                       placeholder="0.00"
                     />
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">Set the monthly rental fee for this forklift</p>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                  Notes
-                </label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes</label>
                 <textarea
-                  className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-blue-500 h-20 resize-none"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 h-20 resize-none"
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
                   placeholder="Optional notes..."
@@ -1003,19 +991,17 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
 
               <div className="pt-4 flex gap-3">
                 <button
-                  type="button"
                   onClick={() => setEditingRental(null)}
                   className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
                 >
                   Cancel
                 </button>
                 <button
-                  type="button"
                   onClick={handleSaveRentalEdit}
                   className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm flex items-center justify-center gap-2"
                 >
                   <Save className="w-4 h-4" />
-                  Save Changes
+                  Save
                 </button>
               </div>
             </div>
@@ -1026,36 +1012,26 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
       {/* Bulk End Rental Modal */}
       {showBulkEndModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-red-50 sticky top-0">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div className="px-6 py-4 border-b flex justify-between items-center bg-red-50">
               <h3 className="font-bold text-lg text-red-800">
-                End Rentals ({selectedRentals.length} Forklifts)
+                End {selectedRentals.length} Rental(s)
               </h3>
-              <button 
-                onClick={() => setShowBulkEndModal(false)} 
-                className="text-slate-400 hover:text-slate-600"
-              >
+              <button onClick={() => setShowBulkEndModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
-              {/* Selected Rentals Preview */}
-              <div className="bg-slate-50 rounded-lg p-3 max-h-48 overflow-y-auto">
+              <div className="bg-slate-50 rounded-lg p-3 max-h-40 overflow-y-auto">
                 <p className="text-xs font-bold text-slate-500 uppercase mb-2">Rentals to End:</p>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {selectedRentals.map(rental => (
-                    <div key={rental.rental_id} className="text-sm p-2 bg-white rounded border border-slate-200">
-                      <div className="flex items-center gap-2 text-slate-700">
-                        <Truck className="w-3 h-3 text-slate-400" />
-                        <span className="font-medium">{rental.forklift?.serial_number}</span>
-                        <span className="text-slate-400">- {rental.forklift?.make} {rental.forklift?.model}</span>
-                      </div>
-                      {(rental as any).monthly_rental_rate > 0 && (
-                        <div className="text-xs text-green-600 mt-1">
-                          RM{(rental as any).monthly_rental_rate.toLocaleString()}/month
-                        </div>
-                      )}
+                    <div key={rental.rental_id} className="text-sm p-2 bg-white rounded border border-slate-200 flex items-center gap-2">
+                      <Truck className="w-3 h-3 text-slate-400" />
+                      <span className="font-medium">{rental.forklift?.serial_number}</span>
+                      <span className="text-slate-400">—</span>
+                      <span className="text-slate-500">{rental.forklift?.make} {rental.forklift?.model}</span>
                     </div>
                   ))}
                 </div>
@@ -1063,16 +1039,15 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
 
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <p className="text-sm text-amber-800">
-                  <strong>⚠️ Warning:</strong> This will end all {selectedRentals.length} rental(s) for this customer. 
-                  The forklifts will become available for new rentals.
+                  <strong>⚠️</strong> These forklifts will become available for new rentals.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rental End Date</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">End Date</label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
                   value={bulkEndDate}
                   onChange={(e) => setBulkEndDate(e.target.value)}
                 />
@@ -1080,7 +1055,6 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
 
               <div className="pt-4 flex gap-3">
                 <button
-                  type="button"
                   onClick={() => setShowBulkEndModal(false)}
                   disabled={bulkProcessing}
                   className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium disabled:opacity-50"
@@ -1088,17 +1062,12 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
                   Cancel
                 </button>
                 <button
-                  type="button"
                   onClick={handleBulkEndRentals}
                   disabled={bulkProcessing}
-                  className="flex-1 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {bulkProcessing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <CircleOff className="w-4 h-4" />
-                  )}
-                  {bulkProcessing ? 'Processing...' : `End ${selectedRentals.length} Rentals`}
+                  {bulkProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CircleOff className="w-4 h-4" />}
+                  {bulkProcessing ? 'Processing...' : 'End Rentals'}
                 </button>
               </div>
             </div>
@@ -1110,36 +1079,31 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
       {showRentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-green-50 flex-shrink-0">
+            <div className="px-6 py-4 border-b flex justify-between items-center bg-green-50 flex-shrink-0">
               <h3 className="font-bold text-lg text-green-800 flex items-center gap-2">
                 <Plus className="w-5 h-5" />
-                Rent Forklift to {customer?.name}
+                Rent to {customer?.name}
               </h3>
-              <button 
-                onClick={() => setShowRentModal(false)} 
-                className="text-slate-400 hover:text-slate-600"
-              >
+              <button onClick={() => setShowRentModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search by serial number, make, model..."
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  placeholder="Search forklifts..."
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   value={forkliftSearchQuery}
                   onChange={(e) => setForkliftSearchQuery(e.target.value)}
                 />
               </div>
 
-              {/* Available Forklifts */}
-              <div className="bg-slate-50 rounded-lg p-3 max-h-64 overflow-y-auto">
+              <div className="bg-slate-50 rounded-lg p-3 max-h-56 overflow-y-auto">
                 <p className="text-xs font-bold text-slate-500 uppercase mb-2">
-                  Available Forklifts ({filteredAvailableForklifts.length})
+                  Available ({filteredAvailableForklifts.length})
                   {selectedForkliftIds.size > 0 && (
                     <span className="ml-2 text-green-600">• {selectedForkliftIds.size} selected</span>
                   )}
@@ -1147,7 +1111,7 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
                 {filteredAvailableForklifts.length === 0 ? (
                   <div className="text-center py-6 text-slate-400">
                     <Truck className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No available forklifts found</p>
+                    <p className="text-sm">No available forklifts</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1169,12 +1133,12 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
                             ) : (
                               <Square className="w-5 h-5 text-slate-400 flex-shrink-0" />
                             )}
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="font-semibold text-slate-800">
+                                <span className="font-semibold text-slate-800 text-sm">
                                   {forklift.make} {forklift.model}
                                 </span>
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
                                   forklift.type === 'Electric' ? 'bg-blue-100 text-blue-700' :
                                   forklift.type === 'Diesel' ? 'bg-slate-100 text-slate-700' :
                                   'bg-purple-100 text-purple-700'
@@ -1182,10 +1146,7 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
                                   {forklift.type}
                                 </span>
                               </div>
-                              <p className="text-sm text-slate-500 font-mono">{forklift.serial_number}</p>
-                              {forklift.location && (
-                                <p className="text-xs text-slate-400 mt-1">📍 {forklift.location}</p>
-                              )}
+                              <p className="text-xs text-slate-500 font-mono">{forklift.serial_number}</p>
                             </div>
                           </div>
                         </div>
@@ -1195,22 +1156,21 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
                 )}
               </div>
 
-              {/* Rental Details */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Start Date *</label>
                   <input
                     type="date"
-                    className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-green-500"
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-green-500"
                     value={rentStartDate}
                     onChange={(e) => setRentStartDate(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">End Date (Optional)</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">End Date</label>
                   <input
                     type="date"
-                    className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-green-500"
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-green-500"
                     value={rentEndDate}
                     onChange={(e) => setRentEndDate(e.target.value)}
                   />
@@ -1219,15 +1179,12 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
 
               {isAdmin && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
-                    <Receipt className="w-3 h-3 inline mr-1" />
-                    Monthly Rental Rate (RM)
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Monthly Rate (RM)</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">RM</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">RM</span>
                     <input
                       type="number"
-                      className="w-full pl-10 pr-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-green-500"
+                      className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-green-500"
                       value={rentMonthlyRate}
                       onChange={(e) => setRentMonthlyRate(e.target.value)}
                       placeholder="0.00"
@@ -1237,19 +1194,18 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes (Optional)</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes</label>
                 <textarea
-                  className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-green-500 h-20 resize-none"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-green-500 h-16 resize-none"
                   value={rentNotes}
                   onChange={(e) => setRentNotes(e.target.value)}
-                  placeholder="Optional rental notes..."
+                  placeholder="Optional notes..."
                 />
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 flex gap-3 flex-shrink-0 bg-slate-50">
+            <div className="px-6 py-4 border-t flex gap-3 flex-shrink-0 bg-slate-50">
               <button
-                type="button"
                 onClick={() => setShowRentModal(false)}
                 disabled={rentProcessing}
                 className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 font-medium disabled:opacity-50"
@@ -1257,16 +1213,11 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
                 Cancel
               </button>
               <button
-                type="button"
                 onClick={handleRentForklifts}
                 disabled={rentProcessing || selectedForkliftIds.size === 0}
-                className="flex-1 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {rentProcessing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )}
+                {rentProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 {rentProcessing ? 'Processing...' : `Rent ${selectedForkliftIds.size || ''} Forklift${selectedForkliftIds.size !== 1 ? 's' : ''}`}
               </button>
             </div>
@@ -1305,7 +1256,7 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
               <p className="text-slate-700">{resultModal.message}</p>
               
               {resultModal.details && resultModal.details.length > 0 && (
-                <div className="bg-slate-50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                <div className="bg-slate-50 rounded-lg p-3 max-h-40 overflow-y-auto">
                   <div className="space-y-1 text-sm font-mono">
                     {resultModal.details.map((detail, idx) => (
                       <p key={idx} className={
@@ -1320,19 +1271,16 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
                 </div>
               )}
 
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => setResultModal({ ...resultModal, show: false })}
-                  className={`w-full py-2.5 rounded-lg font-medium shadow-sm ${
-                    resultModal.type === 'success' ? 'bg-green-600 text-white hover:bg-green-700' :
-                    resultModal.type === 'error' ? 'bg-red-600 text-white hover:bg-red-700' :
-                    'bg-amber-600 text-white hover:bg-amber-700'
-                  }`}
-                >
-                  Close
-                </button>
-              </div>
+              <button
+                onClick={() => setResultModal({ ...resultModal, show: false })}
+                className={`w-full py-2.5 rounded-lg font-medium shadow-sm ${
+                  resultModal.type === 'success' ? 'bg-green-600 text-white hover:bg-green-700' :
+                  resultModal.type === 'error' ? 'bg-red-600 text-white hover:bg-red-700' :
+                  'bg-amber-600 text-white hover:bg-amber-700'
+                }`}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
