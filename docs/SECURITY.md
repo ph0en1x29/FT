@@ -1,0 +1,94 @@
+# Security Guidelines
+
+## Credential Handling
+
+### ⚠️ Before Going Live
+
+When FieldPro goes live with ACWER or becomes public:
+- Move test credentials from USER_GUIDE.md to private doc
+- Rotate all test account passwords
+- Use .env.example with placeholders only
+
+### Current Status (Demo Phase)
+
+✅ **OK for now** — Repo is private, demo only
+⚠️ **Before production** — Remove or relocate test credentials
+
+---
+
+## Environment Variables
+
+### For Local Development
+
+Copy `.env.example` to `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+The `.env.local` file is in `.gitignore` and will not be committed.
+
+### Required Variables
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key |
+
+### Optional Variables
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_GEMINI_API_KEY` | Google Gemini API (AI features) |
+
+---
+
+## Supabase Security Checklist
+
+### Before ACWER Go-Live
+
+- [ ] **Enable email confirmation**
+  - Authentication → Providers → Email → Confirm email ✓
+- [ ] **Enable leaked password protection**
+  - Authentication → Settings → Enable Leaked Password Protection
+- [ ] **Fix RLS on all tables**
+  - See `database/rls_redesign/` for scripts
+- [ ] **Add search_path to functions**
+  - 52 functions need updating
+- [ ] **Audit service role key usage**
+  - Ensure not exposed in frontend
+- [ ] **Enable 2FA for admin accounts**
+  - Supabase Dashboard → Settings
+
+---
+
+## Production Credentials
+
+When deploying to Vercel:
+
+1. Go to Vercel Dashboard → Project → Settings → Environment Variables
+2. Add all required variables
+3. Never commit production credentials to repo
+
+---
+
+## Reporting Security Issues
+
+If you discover a vulnerability:
+1. Do NOT create a public GitHub issue
+2. Contact project admin directly
+3. Provide details privately
+
+---
+
+## Credential Rotation Schedule
+
+| Credential | Rotation | Last Rotated | Next Due |
+|------------|----------|--------------|----------|
+| Supabase anon key | On compromise | — | — |
+| Test account passwords | Before go-live | — | Before ACWER |
+| Gemini API key | Quarterly | — | — |
+
+---
+
+*Last Updated: January 2026*
