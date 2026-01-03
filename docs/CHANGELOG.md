@@ -30,6 +30,20 @@ All notable changes, decisions, and client requirements for this project.
 ### Documentation
 - DB schema docs synced to current Supabase schema (2026-01-02 00:16:45 CST, author: Codex)
 
+### Security Fixes (2026-01-03)
+- ✔️ Fixed 5 Security Definer views → converted to SECURITY INVOKER
+  - `active_rentals_view`, `v_todays_leave`, `v_expiring_licenses`, `v_pending_leaves`, `v_expiring_permits`
+- ✔️ Enabled RLS on 5 tables with role-based policies
+  - `quotations`, `service_intervals`, `scheduled_services`, `notifications`, `technician_kpi_snapshots`
+- ✔️ Added `SET search_path = public` to 44 functions (prevents search_path injection)
+- ✔️ Enabled Leaked Password Protection (Supabase Auth setting)
+- ✔️ Created helper functions with proper security: `get_current_user_role()`, `has_role()`, `get_user_id_from_auth()`
+
+**Migration files:**
+- `database/migrations/security_fix_linter_issues.sql`
+- `database/migrations/fix_security_invoker_views.sql`
+- `database/migrations/fix_function_search_paths.sql`
+
 ### Implementation Status
 
 | # | Feature | Complexity | Requirements | Build Status |
