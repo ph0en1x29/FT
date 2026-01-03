@@ -29,6 +29,8 @@
 
 ## Recent Documentation Updates
 
+- **2026-01-03:** User-Employee merge cleanup — all `employees` table references removed, HR data now in `users` table
+- **2026-01-03:** Security fixes applied — RLS, function search paths, leaked password protection
 - DB schema docs synced to current Supabase schema (2026-01-02 00:16:45 CST, author: Codex)
 
 ---

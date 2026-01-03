@@ -2,7 +2,7 @@
 
 > Purpose: Reference for engineers and AI assistants when modifying or extending the database.
 > Database: Supabase (PostgreSQL)
-> Last Updated: January 2026
+> Last Updated: 2026-01-03 (User-Employee merge completed)
 
 ---
 
@@ -24,7 +24,7 @@
 ## Core Tables
 
 ### `users`
-Application user profiles (separate from `auth.users`).
+Application user profiles with HR data (merged from former `employees` table).
 
 | Column | Type | Nullable | Default |
 |--------|------|----------|---------|
@@ -36,10 +36,32 @@ Application user profiles (separate from `auth.users`).
 | `is_active` | BOOLEAN | YES | `true` |
 | `avatar` | TEXT | YES | |
 | `created_at` | TIMESTAMPTZ | YES | `now()` |
+| `employee_code` | VARCHAR | YES | |
+| `full_name` | VARCHAR | YES | |
+| `phone` | VARCHAR | YES | |
+| `ic_number` | VARCHAR | YES | |
+| `address` | TEXT | YES | |
+| `department` | VARCHAR | YES | |
+| `position` | VARCHAR | YES | |
+| `joined_date` | DATE | YES | |
+| `employment_type` | VARCHAR | YES | `'full-time'` |
+| `employment_status` | VARCHAR | YES | `'active'` |
+| `emergency_contact_name` | VARCHAR | YES | |
+| `emergency_contact_phone` | VARCHAR | YES | |
+| `emergency_contact_relationship` | VARCHAR | YES | |
+| `profile_photo_url` | TEXT | YES | |
+| `updated_at` | TIMESTAMPTZ | YES | `now()` |
+| `created_by_id` | UUID | YES | |
+| `created_by_name` | VARCHAR | YES | |
+| `updated_by_id` | UUID | YES | |
+| `updated_by_name` | VARCHAR | YES | |
+| `notes` | TEXT | YES | |
 
 Constraints:
 - PK: `user_id`
-- UNIQUE: `email`, `auth_id`
+- UNIQUE: `email`, `auth_id`, `employee_code`
+
+> **Note:** The `employees` table has been merged into `users` as of 2026-01-03. All HR-related queries now use the `users` table directly.
 
 ---
 
@@ -723,41 +745,14 @@ Foreign keys:
 
 ## HR System
 
-### `employees`
-HR profile for a user.
+> **Architecture Change (2026-01-03):** The `employees` table has been merged into `users`. All employee/HR data is now stored directly in the `users` table. HR-related tables (`employee_leaves`, `employee_licenses`, `employee_permits`, etc.) now reference `users.user_id` directly.
 
-| Column | Type | Nullable | Default |
-|--------|------|----------|---------|
-| `user_id` | UUID | NO | |
-| `employee_code` | VARCHAR | YES | |
-| `full_name` | VARCHAR | NO | |
-| `phone` | VARCHAR | YES | |
-| `email` | VARCHAR | YES | |
-| `ic_number` | VARCHAR | YES | |
-| `address` | TEXT | YES | |
-| `department` | VARCHAR | YES | |
-| `position` | VARCHAR | YES | |
-| `joined_date` | DATE | NO | `CURRENT_DATE` |
-| `employment_type` | VARCHAR | YES | `'full-time'::character varying` |
-| `status` | VARCHAR | YES | `'active'::character varying` |
-| `emergency_contact_name` | VARCHAR | YES | |
-| `emergency_contact_phone` | VARCHAR | YES | |
-| `emergency_contact_relationship` | VARCHAR | YES | |
-| `profile_photo_url` | TEXT | YES | |
-| `created_at` | TIMESTAMPTZ | YES | `now()` |
-| `updated_at` | TIMESTAMPTZ | YES | `now()` |
-| `created_by_id` | UUID | YES | |
-| `created_by_name` | VARCHAR | YES | |
-| `updated_by_id` | UUID | YES | |
-| `updated_by_name` | VARCHAR | YES | |
-| `notes` | TEXT | YES | |
+### `employees` ❌ DEPRECATED
+~~HR profile for a user.~~
 
-Constraints:
-- PK: `user_id`
-- UNIQUE: `employee_code`
+**This table has been merged into `users`.** All HR fields are now columns on the `users` table. See the `users` table definition in Core Tables.
 
-Foreign keys:
-- `user_id` -> `users.user_id`
+Foreign key references that previously pointed to `employees.user_id` now point to `users.user_id`.
 
 ---
 
@@ -804,7 +799,7 @@ Constraints:
 - UNIQUE: (`user_id`, `leave_type_id`, `year`)
 
 Foreign keys:
-- `user_id` -> `employees.user_id`
+- `user_id` -> `users.user_id`
 - `leave_type_id` -> `leave_types.leave_type_id`
 
 ---
@@ -844,7 +839,7 @@ Constraints:
 - PK: `leave_id`
 
 Foreign keys:
-- `user_id` -> `employees.user_id`
+- `user_id` -> `users.user_id`
 - `leave_type_id` -> `leave_types.leave_type_id`
 - `requested_by_user_id` -> `users.user_id`
 - `approved_by_user_id` -> `users.user_id`
@@ -882,7 +877,7 @@ Constraints:
 - PK: `license_id`
 
 Foreign keys:
-- `user_id` -> `employees.user_id`
+- `user_id` -> `users.user_id`
 
 ---
 
@@ -917,7 +912,7 @@ Constraints:
 - PK: `permit_id`
 
 Foreign keys:
-- `user_id` -> `employees.user_id`
+- `user_id` -> `users.user_id`
 
 ---
 
@@ -948,7 +943,7 @@ Constraints:
 - PK: `alert_id`
 
 Foreign keys:
-- `user_id` -> `employees.user_id`
+- `user_id` -> `users.user_id`
 - `license_id` -> `employee_licenses.license_id`
 - `permit_id` -> `employee_permits.permit_id`
 - `leave_id` -> `employee_leaves.leave_id`

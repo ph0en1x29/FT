@@ -240,7 +240,7 @@ export default function HRDashboard({ currentUser }: HRDashboardProps) {
                   >
                     <div>
                       <p className="font-medium text-slate-800">
-                        {(license.employee as Employee)?.full_name || 'Unknown'}
+                        {(license.user as User)?.name || (license.user as User)?.full_name || 'Unknown'}
                       </p>
                       <p className="text-sm text-slate-600">
                         {license.license_type} - {license.license_number}
@@ -282,7 +282,7 @@ export default function HRDashboard({ currentUser }: HRDashboardProps) {
                   >
                     <div>
                       <p className="font-medium text-slate-800">
-                        {(permit.employee as Employee)?.full_name || 'Unknown'}
+                        {(permit.user as User)?.name || (permit.user as User)?.full_name || 'Unknown'}
                       </p>
                       <p className="text-sm text-slate-600">
                         {permit.permit_type} - {permit.permit_number}
@@ -323,7 +323,7 @@ export default function HRDashboard({ currentUser }: HRDashboardProps) {
                   </div>
                   <div>
                     <p className="font-medium text-slate-800">
-                      {(leave.employee as Employee)?.full_name || 'Unknown'}
+                      {(leave.user as User)?.name || (leave.user as User)?.full_name || 'Unknown'}
                     </p>
                     <p className="text-sm text-slate-600">
                       {(leave.leave_type as any)?.name || 'Leave'} •{' '}
@@ -413,7 +413,7 @@ export default function HRDashboard({ currentUser }: HRDashboardProps) {
                         </div>
                         <div>
                           <p className="font-medium text-slate-800 text-sm">
-                            {(leave.employee as Employee)?.full_name || 'Unknown'}
+                            {(leave.user as User)?.name || (leave.user as User)?.full_name || 'Unknown'}
                           </p>
                           <p className="text-xs text-slate-500">{(leave.leave_type as LeaveType)?.name || 'Leave'}</p>
                         </div>

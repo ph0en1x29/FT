@@ -48,7 +48,28 @@ All notable changes, decisions, and client requirements for this project.
 - ✔️ Fixed 25 Auth RLS InitPlan issues - wrapped `auth.uid()` with `(select auth.uid())` for caching
 - ✔️ Consolidated 70+ multiple permissive policies into ~50 optimized single policies per role/action
 - ✔️ Created `get_my_role()` helper function with proper caching
-- Tables affected: users, customers, parts, jobs, forklifts, forklift_rentals, forklift_hourmeter_logs, job_parts, job_media, job_service_records, job_invoices, job_invoice_extra_charges, job_inventory_usage, notifications, technician_kpi_snapshots, quotations, scheduled_services, service_intervals, service_predictions, employees, employee_leaves, employee_leave_balances, employee_licenses, employee_permits, hr_alerts, leave_types
+
+### User-Employee Merge Cleanup (2026-01-03)
+- ✔️ **Database migration applied** - `employees` table merged into `users` table
+  - Migration file: `database/migration_merge_employees_into_users.sql`
+  - All HR columns now in `users` table
+  - FK references updated (licenses, permits, leaves → users)
+  - Views recreated to use `users` directly
+  - `employees` table dropped
+- ✔️ Removed final references to old `employees` table in codebase
+  - `hrService.ts`: Changed HR alert join from `employee:employees(full_name, department)` to `user:users(name, department)`
+  - `hrService.ts`: Updated `record.employee?.full_name` to `record.user?.name` in expiry alerts
+  - `hrService.ts`: Updated `getAttendanceToday()` return type from `Employee[]` to `User[]`
+  - `EmployeesPage.tsx`: Updated `loadAvailableUsers()` to query users with incomplete HR data instead of checking separate employees table
+- ✔️ Updated TypeScript interfaces in `types_with_invoice_tracking.ts`
+  - `EmployeeLicense.employee` → `EmployeeLicense.user`
+  - `EmployeePermit.employee` → `EmployeePermit.user`
+  - `EmployeeLeave.employee` → `EmployeeLeave.user`
+  - `HRAlert.employee` → `HRAlert.user`
+  - `AttendanceToday.available: Employee[]` → `User[]`
+  - `AttendanceToday.onLeave: { employee: Employee }` → `{ user: User }`
+  - Added backward compatibility: `export type Employee = User`
+- ✔️ Single source of truth: All user/employee data now in `users` table
 
 **Migration files:**
 - `database/migrations/fix_rls_performance.sql`

@@ -72,7 +72,7 @@ export default function EmployeesPage({ currentUser }: EmployeesPageProps) {
       emp.phone?.includes(searchTerm) ||
       emp.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === 'all' || emp.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || emp.employment_status === statusFilter;
     const matchesDepartment =
       departmentFilter === 'all' || emp.department === departmentFilter;
 
@@ -403,7 +403,7 @@ function AddEmployeeModal({ onClose, onSave }: AddEmployeeModalProps) {
   });
   const [saving, setSaving] = useState(false);
 
-  // Load users without employee profiles
+  // Load users that may need HR details updated
   useEffect(() => {
     loadAvailableUsers();
   }, []);
@@ -414,23 +414,17 @@ function AddEmployeeModal({ onClose, onSave }: AddEmployeeModalProps) {
       // Import supabase to fetch users
       const { supabase } = await import('../services/supabaseService');
       
-      // Get all users
+      // Get all active users - with merged table, all users have HR fields
+      // Filter to those with incomplete HR data (no ic_number or department)
       const { data: users } = await supabase
         .from('users')
-        .select('user_id, name, email, role')
+        .select('user_id, name, email, role, ic_number, department')
         .eq('is_active', true)
         .order('name');
       
-      // Get existing employee user_ids
-      const { data: employees } = await supabase
-        .from('employees')
-        .select('user_id');
-      
-      const existingUserIds = new Set((employees || []).map(e => e.user_id));
-      
-      // Filter users without employee profiles
-      const usersWithoutProfiles = (users || []).filter(u => !existingUserIds.has(u.user_id));
-      setAvailableUsers(usersWithoutProfiles);
+      // Filter users without complete HR profiles (no IC or department)
+      const usersWithIncompleteHR = (users || []).filter(u => !u.ic_number || !u.department);
+      setAvailableUsers(usersWithIncompleteHR);
     } catch (error) {
       console.error('Error loading users:', error);
     } finally {

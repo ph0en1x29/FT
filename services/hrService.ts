@@ -21,16 +21,18 @@ import {
 
 export const HRService = {
   // =============================================
-  // EMPLOYEE OPERATIONS
-  // Now using user_id as primary key
+  // EMPLOYEE OPERATIONS (Now queries users table directly)
+  // employees table has been merged into users
   // =============================================
 
   getEmployees: async (): Promise<Employee[]> => {
     const { data, error } = await supabase
-      .from('employees')
+      .from('users')
       .select(`
         *,
-        user:users(*)
+        licenses:employee_licenses(*),
+        permits:employee_permits(*),
+        leaves:employee_leaves(*, leave_type:leave_types(*))
       `)
       .order('full_name');
 
@@ -38,13 +40,12 @@ export const HRService = {
     return data as Employee[];
   },
 
-  // Get employee by user_id (primary key)
+  // Get employee by user_id (now directly from users table)
   getEmployeeByUserId: async (userId: string): Promise<Employee | null> => {
     const { data, error } = await supabase
-      .from('employees')
+      .from('users')
       .select(`
         *,
-        user:users(*),
         licenses:employee_licenses(*),
         permits:employee_permits(*),
         leaves:employee_leaves(
@@ -87,46 +88,62 @@ export const HRService = {
     return HRService.getEmployeeByUserId(userData.user_id);
   },
 
-  createEmployee: async (
+  // Update user's HR profile (replaces createEmployee - user already exists)
+  updateEmployeeProfile: async (
+    userId: string,
     employeeData: Partial<Employee>,
-    createdById?: string,
-    createdByName?: string
+    updatedById?: string,
+    updatedByName?: string
   ): Promise<Employee> => {
-    // user_id is required as it's the primary key
-    if (!employeeData.user_id) {
-      throw new Error('user_id is required to create an employee');
+    if (!userId) {
+      throw new Error('user_id is required to update employee profile');
     }
 
     const { data, error } = await supabase
-      .from('employees')
-      .insert({
-        user_id: employeeData.user_id,
+      .from('users')
+      .update({
         employee_code: employeeData.employee_code,
         full_name: employeeData.full_name,
         phone: employeeData.phone,
-        email: employeeData.email,
         ic_number: employeeData.ic_number,
         address: employeeData.address,
         department: employeeData.department,
         position: employeeData.position,
-        joined_date: employeeData.joined_date || new Date().toISOString().split('T')[0],
+        joined_date: employeeData.joined_date,
         employment_type: employeeData.employment_type,
-        status: employeeData.status || EmploymentStatus.ACTIVE,
+        employment_status: employeeData.employment_status || EmploymentStatus.ACTIVE,
         emergency_contact_name: employeeData.emergency_contact_name,
         emergency_contact_phone: employeeData.emergency_contact_phone,
         emergency_contact_relationship: employeeData.emergency_contact_relationship,
         profile_photo_url: employeeData.profile_photo_url,
         notes: employeeData.notes,
-        created_by_id: createdById,
-        created_by_name: createdByName,
-        created_at: new Date().toISOString(),
+        updated_by_id: updatedById,
+        updated_by_name: updatedByName,
         updated_at: new Date().toISOString(),
       })
+      .eq('user_id', userId)
       .select()
       .single();
 
     if (error) throw new Error(error.message);
     return data as Employee;
+  },
+
+  // Backward compatibility alias
+  createEmployee: async (
+    employeeData: Partial<Employee>,
+    createdById?: string,
+    createdByName?: string
+  ): Promise<Employee> => {
+    if (!employeeData.user_id) {
+      throw new Error('user_id is required');
+    }
+    return HRService.updateEmployeeProfile(
+      employeeData.user_id,
+      employeeData,
+      createdById,
+      createdByName
+    );
   },
 
   updateEmployee: async (
@@ -139,7 +156,7 @@ export const HRService = {
     const { user_id, ...safeUpdates } = updates;
 
     const { data, error } = await supabase
-      .from('employees')
+      .from('users')
       .update({
         ...safeUpdates,
         updated_by_id: updatedById,
@@ -154,27 +171,31 @@ export const HRService = {
     return data as Employee;
   },
 
+  // Deactivate employee (soft delete - keeps user record)
   deleteEmployee: async (userId: string): Promise<void> => {
     const { error } = await supabase
-      .from('employees')
-      .delete()
+      .from('users')
+      .update({
+        is_active: false,
+        employment_status: EmploymentStatus.TERMINATED,
+        updated_at: new Date().toISOString(),
+      })
       .eq('user_id', userId);
 
     if (error) throw new Error(error.message);
   },
 
-  // Get technicians (employees who are technicians)
+  // Get technicians (users with technician role)
   getTechnicianEmployees: async (): Promise<Employee[]> => {
     const { data, error } = await supabase
-      .from('employees')
+      .from('users')
       .select(`
         *,
-        user:users!inner(role),
         licenses:employee_licenses(*),
         permits:employee_permits(*)
       `)
-      .eq('user.role', UserRole.TECHNICIAN)
-      .eq('status', EmploymentStatus.ACTIVE)
+      .eq('role', UserRole.TECHNICIAN)
+      .eq('employment_status', EmploymentStatus.ACTIVE)
       .order('full_name');
 
     if (error) {
@@ -193,7 +214,7 @@ export const HRService = {
       .from('employee_licenses')
       .select(`
         *,
-        employee:employees(full_name, phone, department, employee_code)
+        user:users(full_name, phone, department, employee_code)
       `)
       .order('expiry_date');
 
@@ -214,7 +235,7 @@ export const HRService = {
       .from('employee_licenses')
       .select(`
         *,
-        employee:employees(full_name, phone, department, employee_code)
+        user:users(full_name, phone, department, employee_code)
       `)
       .eq('status', 'active')
       .lte('expiry_date', futureDate.toISOString().split('T')[0])
@@ -302,7 +323,7 @@ export const HRService = {
       .from('employee_permits')
       .select(`
         *,
-        employee:employees(full_name, phone, department, employee_code)
+        user:users(full_name, phone, department, employee_code)
       `)
       .order('expiry_date');
 
@@ -323,7 +344,7 @@ export const HRService = {
       .from('employee_permits')
       .select(`
         *,
-        employee:employees(full_name, phone, department, employee_code)
+        user:users(full_name, phone, department, employee_code)
       `)
       .eq('status', 'active')
       .lte('expiry_date', futureDate.toISOString().split('T')[0])
@@ -432,7 +453,7 @@ export const HRService = {
       .from('employee_leaves')
       .select(`
         *,
-        employee:employees(full_name, department, employee_code, phone),
+        user:users(full_name, department, employee_code, phone),
         leave_type:leave_types(*)
       `)
       .order('start_date', { ascending: false });
@@ -460,7 +481,7 @@ export const HRService = {
       .from('employee_leaves')
       .select(`
         *,
-        employee:employees(full_name, department, employee_code, phone),
+        user:users(full_name, department, employee_code, phone),
         leave_type:leave_types(*)
       `)
       .eq('status', LeaveStatus.PENDING)
@@ -477,7 +498,7 @@ export const HRService = {
       .from('employee_leaves')
       .select(`
         *,
-        employee:employees(full_name, department, employee_code, phone, profile_photo_url),
+        user:users(full_name, department, employee_code, phone, profile_photo_url),
         leave_type:leave_types(*)
       `)
       .eq('status', LeaveStatus.APPROVED)
@@ -512,7 +533,7 @@ export const HRService = {
       })
       .select(`
         *,
-        employee:employees(full_name, department),
+        user:users(full_name, department),
         leave_type:leave_types(*)
       `)
       .single();
@@ -574,7 +595,7 @@ export const HRService = {
       .eq('leave_id', leaveId)
       .select(`
         *,
-        employee:employees(full_name, department),
+        user:users(full_name, department),
         leave_type:leave_types(*)
       `)
       .single();
@@ -628,7 +649,7 @@ export const HRService = {
       .eq('leave_id', leaveId)
       .select(`
         *,
-        employee:employees(full_name, department),
+        user:users(full_name, department),
         leave_type:leave_types(*)
       `)
       .single();
@@ -672,7 +693,7 @@ export const HRService = {
       .eq('leave_id', leaveId)
       .select(`
         *,
-        employee:employees(full_name, department),
+        user:users(full_name, department),
         leave_type:leave_types(*)
       `)
       .single();
@@ -745,14 +766,14 @@ export const HRService = {
 
   getDashboardSummary: async (): Promise<HRDashboardSummary> => {
     try {
-      // Get employee counts
-      const { data: employees } = await supabase
-        .from('employees')
-        .select('status');
+      // Get employee counts from users table
+      const { data: users } = await supabase
+        .from('users')
+        .select('employment_status');
 
-      const totalEmployees = employees?.length || 0;
+      const totalEmployees = users?.length || 0;
       const activeEmployees =
-        employees?.filter((e) => e.status === EmploymentStatus.ACTIVE).length || 0;
+        users?.filter((u) => u.employment_status === EmploymentStatus.ACTIVE).length || 0;
 
       // Get today's leaves
       const today = new Date().toISOString().split('T')[0];
@@ -815,7 +836,7 @@ export const HRService = {
         .from('employee_leaves')
         .select(`
           *,
-          employee:employees(*),
+          user:users(*),
           leave_type:leave_types(*)
         `)
         .eq('status', LeaveStatus.APPROVED)
@@ -825,16 +846,16 @@ export const HRService = {
       const onLeave = (leavesData || []) as any[];
       const onLeaveUserIds = onLeave.map((l) => l.user_id);
 
-      // Get all active employees
-      const { data: allEmployees } = await supabase
-        .from('employees')
+      // Get all active users (employees)
+      const { data: allUsers } = await supabase
+        .from('users')
         .select('*')
-        .eq('status', EmploymentStatus.ACTIVE);
+        .eq('employment_status', EmploymentStatus.ACTIVE);
 
       // Filter available employees (not on leave)
-      const available = (allEmployees || []).filter(
-        (emp) => !onLeaveUserIds.includes(emp.user_id)
-      ) as Employee[];
+      const available = (allUsers || []).filter(
+        (u) => !onLeaveUserIds.includes(u.user_id)
+      ) as User[];
 
       return {
         available,
@@ -863,7 +884,7 @@ export const HRService = {
       .from('employee_leaves')
       .select(`
         *,
-        employee:employees(full_name, department, employee_code),
+        user:users(full_name, department, employee_code),
         leave_type:leave_types(*)
       `)
       .eq('status', LeaveStatus.APPROVED)
@@ -882,7 +903,7 @@ export const HRService = {
       .from('hr_alerts')
       .select(`
         *,
-        employee:employees(full_name, department)
+        user:users(name, department)
       `)
       .order('scheduled_for', { ascending: false })
       .limit(50);
@@ -922,8 +943,8 @@ export const HRService = {
         : `Permit Expiring`;
     const message =
       type === 'license'
-        ? `${(record as EmployeeLicense).license_type} license (${record.employee?.full_name || 'Employee'}) expires in ${daysUntilExpiry} days on ${new Date(record.expiry_date).toLocaleDateString()}`
-        : `${(record as EmployeePermit).permit_type} permit (${record.employee?.full_name || 'Employee'}) expires in ${daysUntilExpiry} days on ${new Date(record.expiry_date).toLocaleDateString()}`;
+        ? `${(record as EmployeeLicense).license_type} license (${record.user?.name || 'Employee'}) expires in ${daysUntilExpiry} days on ${new Date(record.expiry_date).toLocaleDateString()}`
+        : `${(record as EmployeePermit).permit_type} permit (${record.user?.name || 'Employee'}) expires in ${daysUntilExpiry} days on ${new Date(record.expiry_date).toLocaleDateString()}`;
 
     const { data, error } = await supabase
       .from('hr_alerts')

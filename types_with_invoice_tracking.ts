@@ -180,8 +180,47 @@ export interface User {
   password_hash?: string;
   is_active: boolean;
   avatar?: string;
+  auth_id?: string;
   created_at?: string;
+  
+  // HR Information (merged from employees table)
+  employee_code?: string;
+  full_name?: string;
+  phone?: string;
+  ic_number?: string;
+  address?: string;
+  
+  // Employment Details
+  department?: string;
+  position?: string;
+  joined_date?: string;
+  employment_type?: EmploymentType;
+  employment_status?: EmploymentStatus;
+  
+  // Emergency Contact
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relationship?: string;
+  
+  // Profile Photo
+  profile_photo_url?: string;
+  
+  // Metadata
+  updated_at?: string;
+  created_by_id?: string;
+  created_by_name?: string;
+  updated_by_id?: string;
+  updated_by_name?: string;
+  notes?: string;
+  
+  // Related data (populated on fetch)
+  licenses?: EmployeeLicense[];
+  permits?: EmployeePermit[];
+  leaves?: EmployeeLeave[];
 }
+
+// Backward compatibility - Employee is now the same as User
+export type Employee = User;
 
 export interface Customer {
   customer_id: string;
@@ -626,52 +665,9 @@ export enum HRAlertType {
   LEAVE_REQUEST = 'leave_request',
 }
 
-export interface Employee {
-  // user_id is now PRIMARY KEY (1:1 with users)
-  user_id: string;
-  
-  // Basic Information
-  employee_code?: string;
-  full_name: string;
-  phone?: string;
-  email?: string;
-  ic_number?: string;
-  address?: string;
-  
-  // Employment Details
-  department?: string;
-  position?: string;
-  joined_date: string;
-  employment_type: EmploymentType;
-  status: EmploymentStatus;
-  
-  // Emergency Contact
-  emergency_contact_name?: string;
-  emergency_contact_phone?: string;
-  emergency_contact_relationship?: string;
-  
-  // Profile Photo
-  profile_photo_url?: string;
-  
-  // Metadata
-  created_at: string;
-  updated_at: string;
-  created_by_id?: string;
-  created_by_name?: string;
-  updated_by_id?: string;
-  updated_by_name?: string;
-  notes?: string;
-  
-  // Related data (populated on fetch)
-  licenses?: EmployeeLicense[];
-  permits?: EmployeePermit[];
-  leaves?: EmployeeLeave[];
-  user?: User;
-}
-
 export interface EmployeeLicense {
   license_id: string;
-  user_id: string; // Changed from employee_id - references employees.user_id
+  user_id: string; // References users.user_id directly
   
   // License Information
   license_type: string;
@@ -703,7 +699,7 @@ export interface EmployeeLicense {
   
   // Computed (from view)
   days_until_expiry?: number;
-  employee?: Employee;
+  user?: User;
 }
 
 export interface EmployeePermit {
@@ -743,7 +739,7 @@ export interface EmployeePermit {
   
   // Computed (from view)
   days_until_expiry?: number;
-  employee?: Employee;
+  user?: User;
 }
 
 export interface LeaveType {
@@ -795,7 +791,7 @@ export interface EmployeeLeave {
   notes?: string;
   
   // Related data
-  employee?: Employee;
+  user?: User;
   leave_type?: LeaveType;
 }
 
@@ -848,7 +844,7 @@ export interface HRAlert {
   expires_at?: string;
   
   // Related data
-  employee?: Employee;
+  user?: User;
 }
 
 // HR Dashboard Summary Types
@@ -862,8 +858,8 @@ export interface HRDashboardSummary {
 }
 
 export interface AttendanceToday {
-  available: Employee[];
-  onLeave: (EmployeeLeave & { employee: Employee; leave_type: LeaveType })[];
+  available: User[];
+  onLeave: (EmployeeLeave & { user: User; leave_type: LeaveType })[];
 }
 
 // =============================================
