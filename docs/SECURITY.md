@@ -60,6 +60,10 @@ The `.env.local` file is in `.gitignore` and will not be committed.
 - [x] **Add search_path to functions** ✅ (2026-01-03)
   - Fixed 44 functions with `SET search_path = public`
   - See `database/migrations/fix_function_search_paths.sql`
+- [x] **Fix RLS performance issues** ✅ (2026-01-03)
+  - Fixed 25 Auth RLS InitPlan issues (auth.uid() caching)
+  - Consolidated 70+ duplicate policies into ~50 optimized policies
+  - See `database/migrations/fix_rls_performance_v2.sql`
 - [ ] **Audit service role key usage**
   - Ensure not exposed in frontend
 - [ ] **Enable 2FA for admin accounts**

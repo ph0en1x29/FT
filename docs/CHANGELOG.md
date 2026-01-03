@@ -44,6 +44,16 @@ All notable changes, decisions, and client requirements for this project.
 - `database/migrations/fix_security_invoker_views.sql`
 - `database/migrations/fix_function_search_paths.sql`
 
+### RLS Performance Fixes (2026-01-03)
+- ✔️ Fixed 25 Auth RLS InitPlan issues - wrapped `auth.uid()` with `(select auth.uid())` for caching
+- ✔️ Consolidated 70+ multiple permissive policies into ~50 optimized single policies per role/action
+- ✔️ Created `get_my_role()` helper function with proper caching
+- Tables affected: users, customers, parts, jobs, forklifts, forklift_rentals, forklift_hourmeter_logs, job_parts, job_media, job_service_records, job_invoices, job_invoice_extra_charges, job_inventory_usage, notifications, technician_kpi_snapshots, quotations, scheduled_services, service_intervals, service_predictions, employees, employee_leaves, employee_leave_balances, employee_licenses, employee_permits, hr_alerts, leave_types
+
+**Migration files:**
+- `database/migrations/fix_rls_performance.sql`
+- `database/migrations/fix_rls_performance_v2.sql` (fixed hr_alerts column name)
+
 ### Implementation Status
 
 | # | Feature | Complexity | Requirements | Build Status |
