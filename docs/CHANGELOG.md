@@ -54,6 +54,15 @@ All notable changes, decisions, and client requirements for this project.
 - `database/migrations/fix_rls_performance.sql`
 - `database/migrations/fix_rls_performance_v2.sql` (fixed hr_alerts column name)
 
+### Database Performance Indexes (2026-01-03)
+- ✔️ Added 48 indexes for unindexed foreign keys (improves JOIN/DELETE performance)
+- ✔️ Added composite index for jobs list query: `idx_jobs_active_created`
+- ✔️ Added index for extra_charges: `idx_extra_charges_job_id`
+- Tables indexed: employee_leaves, forklift_hourmeter_logs, forklift_rentals, forklifts, hr_alerts, job_audit_log, job_inventory_usage, job_invoice_extra_charges, job_invoices, job_media, job_parts, job_service_records, job_status_history, jobs, parts, quotations, scheduled_services, service_predictions
+
+**Migration file:**
+- `database/migrations/add_foreign_key_indexes.sql`
+
 ### Implementation Status
 
 | # | Feature | Complexity | Requirements | Build Status |

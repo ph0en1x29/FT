@@ -64,6 +64,10 @@ The `.env.local` file is in `.gitignore` and will not be committed.
   - Fixed 25 Auth RLS InitPlan issues (auth.uid() caching)
   - Consolidated 70+ duplicate policies into ~50 optimized policies
   - See `database/migrations/fix_rls_performance_v2.sql`
+- [x] **Add foreign key indexes** ✅ (2026-01-03)
+  - Added 48 indexes for unindexed foreign keys
+  - Added composite indexes for jobs query optimization
+  - See `database/migrations/add_foreign_key_indexes.sql`
 - [ ] **Audit service role key usage**
   - Ensure not exposed in frontend
 - [ ] **Enable 2FA for admin accounts**
