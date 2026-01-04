@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Job, JobStatus, JobPriority, JobType, Part, User, UserRole, Customer, JobMedia, SignatureEntry, Forklift, ForkliftStatus, ForkliftRental, RentalStatus, Notification, NotificationType, ScheduledService } from '../types_with_invoice_tracking';
+import { Job, JobStatus, JobPriority, JobType, Part, User, UserRole, Customer, JobMedia, SignatureEntry, Forklift, ForkliftStatus, ForkliftRental, RentalStatus, Notification, NotificationType, ScheduledService, JobAssignment } from '../types_with_invoice_tracking';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -361,7 +361,25 @@ export const SupabaseDb = {
       console.error('Error fetching job:', error);
       return null;
     }
-    return data as Job;
+
+    // Fetch active helper assignment
+    const { data: helperData } = await supabase
+      .from('job_assignments')
+      .select(`
+        *,
+        technician:users!job_assignments_technician_id_fkey(user_id, name, email, phone, role)
+      `)
+      .eq('job_id', jobId)
+      .eq('assignment_type', 'assistant')
+      .eq('is_active', true)
+      .single();
+
+    const job = data as Job;
+    if (helperData) {
+      job.helper_assignment = helperData as JobAssignment;
+    }
+
+    return job;
   },
 
   createJob: async (jobData: Partial<Job>, createdById?: string, createdByName?: string): Promise<Job> => {
@@ -659,7 +677,9 @@ export const SupabaseDb = {
     jobId: string, 
     media: Omit<JobMedia, 'media_id' | 'job_id'>,
     uploadedById?: string,
-    uploadedByName?: string
+    uploadedByName?: string,
+    isHelperPhoto?: boolean,
+    assignmentId?: string
   ): Promise<Job> => {
     const { error } = await supabase
       .from('job_media')
@@ -668,6 +688,8 @@ export const SupabaseDb = {
         ...media,
         uploaded_by_id: uploadedById || null,
         uploaded_by_name: uploadedByName || null,
+        is_helper_photo: isHelperPhoto || false,
+        uploaded_by_assignment_id: assignmentId || null,
       });
 
     if (error) throw new Error(error.message);
@@ -3119,6 +3141,239 @@ export const SupabaseDb = {
     } catch (e) {
       console.error('Service interval hard delete error:', e);
       return false;
+    }
+  },
+
+  // =====================
+  // JOB ASSIGNMENTS (Helper Technician)
+  // =====================
+
+  // Get all assignments for a job
+  getJobAssignments: async (jobId: string): Promise<JobAssignment[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('job_assignments')
+        .select(`
+          *,
+          technician:users!job_assignments_technician_id_fkey(user_id, name, email, phone, role)
+        `)
+        .eq('job_id', jobId)
+        .order('assigned_at', { ascending: false });
+
+      if (error) {
+        console.error('Failed to get job assignments:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (e) {
+      console.error('Job assignments fetch error:', e);
+      return [];
+    }
+  },
+
+  // Get active helper assignment for a job
+  getActiveHelper: async (jobId: string): Promise<JobAssignment | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('job_assignments')
+        .select(`
+          *,
+          technician:users!job_assignments_technician_id_fkey(user_id, name, email, phone, role)
+        `)
+        .eq('job_id', jobId)
+        .eq('assignment_type', 'assistant')
+        .eq('is_active', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('Failed to get active helper:', error.message);
+        return null;
+      }
+      return data || null;
+    } catch (e) {
+      console.error('Active helper fetch error:', e);
+      return null;
+    }
+  },
+
+  // Assign helper to a job
+  assignHelper: async (
+    jobId: string,
+    technicianId: string,
+    assignedById: string,
+    notes?: string
+  ): Promise<JobAssignment | null> => {
+    try {
+      // First, deactivate any existing active helper
+      await supabase
+        .from('job_assignments')
+        .update({ is_active: false, ended_at: new Date().toISOString() })
+        .eq('job_id', jobId)
+        .eq('assignment_type', 'assistant')
+        .eq('is_active', true);
+
+      // Create new helper assignment
+      const { data, error } = await supabase
+        .from('job_assignments')
+        .insert({
+          job_id: jobId,
+          technician_id: technicianId,
+          assignment_type: 'assistant',
+          assigned_by: assignedById,
+          notes: notes || null,
+          is_active: true,
+        })
+        .select(`
+          *,
+          technician:users!job_assignments_technician_id_fkey(user_id, name, email, phone, role)
+        `)
+        .single();
+
+      if (error) {
+        console.error('Failed to assign helper:', error.message);
+        return null;
+      }
+      return data;
+    } catch (e) {
+      console.error('Helper assignment error:', e);
+      return null;
+    }
+  },
+
+  // Remove helper from a job
+  removeHelper: async (jobId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('job_assignments')
+        .update({ is_active: false, ended_at: new Date().toISOString() })
+        .eq('job_id', jobId)
+        .eq('assignment_type', 'assistant')
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Failed to remove helper:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Helper removal error:', e);
+      return false;
+    }
+  },
+
+  // Start helper's work (log start time)
+  startHelperWork: async (assignmentId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('job_assignments')
+        .update({ started_at: new Date().toISOString() })
+        .eq('assignment_id', assignmentId);
+
+      if (error) {
+        console.error('Failed to start helper work:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Helper start work error:', e);
+      return false;
+    }
+  },
+
+  // End helper's work (log end time)
+  endHelperWork: async (assignmentId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('job_assignments')
+        .update({ ended_at: new Date().toISOString() })
+        .eq('assignment_id', assignmentId);
+
+      if (error) {
+        console.error('Failed to end helper work:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Helper end work error:', e);
+      return false;
+    }
+  },
+
+  // Get all jobs where user is assigned as helper
+  getHelperJobs: async (technicianId: string): Promise<string[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('job_assignments')
+        .select('job_id')
+        .eq('technician_id', technicianId)
+        .eq('assignment_type', 'assistant')
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Failed to get helper jobs:', error.message);
+        return [];
+      }
+      return data?.map(d => d.job_id) || [];
+    } catch (e) {
+      console.error('Helper jobs fetch error:', e);
+      return [];
+    }
+  },
+
+  // Check if user is helper on a specific job
+  isUserHelperOnJob: async (jobId: string, userId: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('job_assignments')
+        .select('assignment_id')
+        .eq('job_id', jobId)
+        .eq('technician_id', userId)
+        .eq('assignment_type', 'assistant')
+        .eq('is_active', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Failed to check helper status:', error.message);
+        return false;
+      }
+      return !!data;
+    } catch (e) {
+      console.error('Helper status check error:', e);
+      return false;
+    }
+  },
+
+  // Get user's assignment type on a job (lead, assistant, or null)
+  getUserAssignmentType: async (jobId: string, userId: string): Promise<'lead' | 'assistant' | null> => {
+    try {
+      // Check if user is the assigned technician (lead)
+      const { data: job } = await supabase
+        .from('jobs')
+        .select('assigned_to')
+        .eq('job_id', jobId)
+        .single();
+
+      if (job?.assigned_to === userId) {
+        return 'lead';
+      }
+
+      // Check if user is an active helper
+      const { data: assignment } = await supabase
+        .from('job_assignments')
+        .select('assignment_type')
+        .eq('job_id', jobId)
+        .eq('technician_id', userId)
+        .eq('is_active', true)
+        .single();
+
+      if (assignment?.assignment_type === 'assistant') {
+        return 'assistant';
+      }
+
+      return null;
+    } catch (e) {
+      console.error('Assignment type check error:', e);
+      return null;
     }
   },
 };

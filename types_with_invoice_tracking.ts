@@ -262,6 +262,26 @@ export interface JobPartUsed {
 
 export type MediaCategory = 'before' | 'after' | 'spare_part' | 'condition' | 'evidence' | 'other';
 
+// Job Assignment Types (for Helper Technician feature)
+export type AssignmentType = 'lead' | 'assistant';
+
+export interface JobAssignment {
+  assignment_id: string;
+  job_id: string;
+  technician_id: string;
+  technician?: User; // Populated on fetch
+  assignment_type: AssignmentType;
+  assigned_at: string;
+  assigned_by?: string;
+  assigned_by_name?: string;
+  started_at?: string;
+  ended_at?: string;
+  notes?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface JobMedia {
   media_id: string;
   job_id: string;
@@ -272,6 +292,8 @@ export interface JobMedia {
   uploaded_by_id?: string;
   uploaded_by_name?: string;
   category?: MediaCategory;
+  is_helper_photo?: boolean;
+  uploaded_by_assignment_id?: string;
 }
 
 export interface SignatureEntry {
@@ -351,6 +373,10 @@ export interface Job {
   // Signatures
   technician_signature?: SignatureEntry;
   customer_signature?: SignatureEntry;
+
+  // Helper Technician
+  helper_assignment?: JobAssignment; // Active helper if any
+  assignments?: JobAssignment[]; // All assignments (for history)
 
   parts_used: JobPartUsed[];
   media: JobMedia[];
