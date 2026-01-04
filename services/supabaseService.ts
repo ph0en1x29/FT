@@ -338,8 +338,56 @@ export const SupabaseDb = {
       throw new Error(error.message);
     }
     
-    console.log('[getJobs] Found jobs:', data?.length || 0);
-    return data as Job[];
+    // For technicians, also fetch jobs where they're assigned as helper
+    let allJobs = data as Job[];
+    
+    if (user.role === UserRole.TECHNICIAN) {
+      // Get job IDs where user is a helper
+      const { data: helperAssignments, error: helperError } = await supabase
+        .from('job_assignments')
+        .select('job_id')
+        .eq('technician_id', user.user_id)
+        .eq('assignment_type', 'assistant')
+        .eq('is_active', true);
+      
+      if (!helperError && helperAssignments && helperAssignments.length > 0) {
+        const helperJobIds = helperAssignments.map(a => a.job_id);
+        
+        // Fetch those jobs (exclude ones already in the list)
+        const existingJobIds = new Set(allJobs.map(j => j.job_id));
+        const newHelperJobIds = helperJobIds.filter(id => !existingJobIds.has(id));
+        
+        if (newHelperJobIds.length > 0) {
+          const { data: helperJobs, error: hjError } = await supabase
+            .from('jobs')
+            .select(`
+              *,
+              customer:customers(*),
+              forklift:forklifts!forklift_id(*),
+              parts_used:job_parts(*),
+              media:job_media(*),
+              extra_charges:extra_charges(*)
+            `)
+            .in('job_id', newHelperJobIds)
+            .is('deleted_at', null);
+          
+          if (!hjError && helperJobs) {
+            // Mark these jobs as helper assignments for UI display
+            const markedHelperJobs = helperJobs.map(j => ({
+              ...j,
+              _isHelperAssignment: true // UI hint
+            }));
+            allJobs = [...allJobs, ...markedHelperJobs];
+          }
+        }
+      }
+      
+      // Sort combined list by created_at desc
+      allJobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+    
+    console.log('[getJobs] Found jobs:', allJobs.length || 0);
+    return allJobs;
   },
 
   getJobById: async (jobId: string): Promise<Job | null> => {

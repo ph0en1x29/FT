@@ -94,6 +94,43 @@ All notable changes, decisions, and client requirements for this project.
   - Run `add_job_media_category.sql` in Supabase SQL Editor before use
 - **Access:** Technician, Admin, Supervisor
 
+#### #1 Helper Technician Support - ✔️ COMPLETED
+- **Files created:**
+  - `database/migrations/add_job_assignments.sql` - Job assignments table with RLS
+- **Files modified:**
+  - `types_with_invoice_tracking.ts` - Added `JobAssignment` interface
+  - `services/supabaseService.ts`:
+    - Added helper assignment functions: `assignHelperToJob`, `removeHelperFromJob`, `getJobHelperAssignment`
+    - Updated `getJobs()` to include helper jobs for technicians
+    - Photos tagged with `is_helper_photo` when uploaded by helper
+  - `pages/JobDetail.tsx`:
+    - Added Helper Technician section in sidebar showing assigned helper
+    - Added "Add Helper" / "Remove Helper" buttons for Admin/Supervisor
+    - Added "You are the helper on this job" notice for helpers
+    - Added Assign Helper modal with technician selection
+    - Added `isHelperOnly` permission flag with restrictions:
+      - ❌ Start Job, Complete Job (status changes)
+      - ❌ Hourmeter reading input
+      - ❌ Add/edit spare parts
+      - ❌ Technician/Customer signatures
+      - ❌ Add notes
+      - ❌ Edit Job Carried Out / Recommendation
+      - ❌ Edit Condition Checklist
+      - ❌ Edit prices / extra charges
+      - ✅ Upload photos (tagged as helper photos)
+      - ✅ View job details
+  - `pages/JobBoard.tsx`:
+    - Added "Helper" badge for jobs where user is assigned as helper
+    - Helper jobs now appear in technician's job list
+- **Features:**
+  - Max 1 helper per job (enforced by unique index)
+  - Same "Technician" role, different `assignment_type` (lead/assistant)
+  - Helper can only upload photos - all other actions blocked
+  - Photos uploaded by helper are tagged for audit trail
+  - Helper sees job in their job list with "Helper" badge
+- **DB Migration Required:** Run `add_job_assignments.sql` in Supabase SQL Editor
+- **Access:** Technician (as helper), Admin/Supervisor (assign/remove)
+
 ### Documentation
 - DB schema docs synced to current Supabase schema (2026-01-02 00:16:45 CST, author: Codex)
 

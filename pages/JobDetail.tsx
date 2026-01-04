@@ -260,6 +260,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletionReason, setDeletionReason] = useState('');
 
+  // Helper Technician states
+  const [showAssignHelperModal, setShowAssignHelperModal] = useState(false);
+  const [selectedHelperId, setSelectedHelperId] = useState('');
+  const [helperNotes, setHelperNotes] = useState('');
+  const [isCurrentUserHelper, setIsCurrentUserHelper] = useState(false);
+  const [helperAssignmentId, setHelperAssignmentId] = useState<string | null>(null);
+
   useEffect(() => {
     loadJob();
     loadParts();
@@ -294,6 +301,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       if (data.forklift_id) {
         const rental = await MockDb.getActiveRentalForForklift(data.forklift_id);
         setActiveRental(rental);
+      }
+
+      // Check if current user is helper on this job
+      if (data.helper_assignment) {
+        const isHelper = data.helper_assignment.technician_id === currentUserId;
+        setIsCurrentUserHelper(isHelper);
+        if (isHelper) {
+          setHelperAssignmentId(data.helper_assignment.assignment_id);
+        }
+      } else {
+        setIsCurrentUserHelper(false);
+        setHelperAssignmentId(null);
       }
     }
     
@@ -748,10 +767,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             category: uploadPhotoCategory as MediaCategory,
           },
           currentUserId,
-          currentUserName
+          currentUserName,
+          isCurrentUserHelper,
+          helperAssignmentId || undefined
         );
         setJob({ ...updated } as Job);
-        showToast.success('Photo uploaded', `Category: ${PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}`);
+        const categoryLabel = PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other';
+        showToast.success('Photo uploaded', `Category: ${categoryLabel}${isCurrentUserHelper ? ' (Helper)' : ''}`);
       };
       reader.readAsDataURL(file);
     }
@@ -817,6 +839,52 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     }
   };
 
+  // Helper Technician handlers
+  const handleAssignHelper = async () => {
+    if (!job || !selectedHelperId) {
+      showToast.error('Please select a helper technician');
+      return;
+    }
+    
+    // Can't assign same person as lead and helper
+    if (selectedHelperId === job.assigned_technician_id) {
+      showToast.error('Cannot assign lead technician as helper');
+      return;
+    }
+    
+    const result = await MockDb.assignHelper(
+      job.job_id,
+      selectedHelperId,
+      currentUserId,
+      helperNotes || undefined
+    );
+    
+    if (result) {
+      showToast.success('Helper assigned');
+      setShowAssignHelperModal(false);
+      setSelectedHelperId('');
+      setHelperNotes('');
+      loadJob(); // Reload to get updated helper info
+    } else {
+      showToast.error('Failed to assign helper');
+    }
+  };
+
+  const handleRemoveHelper = async () => {
+    if (!job) return;
+    
+    const confirmed = window.confirm('Remove helper technician from this job?');
+    if (!confirmed) return;
+    
+    const success = await MockDb.removeHelper(job.job_id);
+    if (success) {
+      showToast.success('Helper removed');
+      loadJob();
+    } else {
+      showToast.error('Failed to remove helper');
+    }
+  };
+
   const handleTechnicianSignature = async (dataUrl: string) => {
     if (!job) return;
     const updated = await MockDb.signJob(job.job_id, 'technician', currentUserName, dataUrl);
@@ -864,6 +932,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const isAccountant = normalizedRole === 'accountant';
   const canReassign = isAdmin || isSupervisor;
   
+  // Helper can only upload photos - restrict other actions
+  const isHelperOnly = isCurrentUserHelper && !isAdmin && !isSupervisor;
+  
   const isNew = normalizedStatus === 'new';
   const isAssigned = normalizedStatus === 'assigned';
   const isInProgress = normalizedStatus === 'in progress' || normalizedStatus === 'in_progress';
@@ -890,7 +961,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       subLabel: t.email
   }));
 
-  const canEditPrices = !isCompleted && (!isAwaitingFinalization || isAdmin || isAccountant);
+  const canEditPrices = !isCompleted && !isHelperOnly && (!isAwaitingFinalization || isAdmin || isAccountant);
   const repairDuration = getRepairDuration();
 
   const inputClassName = "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/25 placeholder-slate-400 transition-all duration-200";
@@ -959,12 +1030,12 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-           {(isTechnician || isAdmin || isSupervisor) && isAssigned && (
+           {(isTechnician || isAdmin || isSupervisor) && isAssigned && !isHelperOnly && (
              <button type="button" onClick={handleOpenStartJobModal} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-blue-700 flex items-center gap-2">
                <Play className="w-4 h-4" /> Start Job
              </button>
            )}
-           {(isTechnician || isAdmin || isSupervisor) && isInProgress && (
+           {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && (
              <div className="relative group">
                <button type="button" onClick={() => handleStatusChange(JobStatus.AWAITING_FINALIZATION)} disabled={!hasBothSignatures}
                  className={`px-4 py-2 rounded-lg text-sm font-semibold shadow ${hasBothSignatures ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
@@ -1111,7 +1182,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
                   <ClipboardList className="w-5 h-5" /> Condition Checklist
                 </h3>
-                {(isInProgress || isAwaitingFinalization) && !editingChecklist && (
+                {(isInProgress || isAwaitingFinalization) && !editingChecklist && !isHelperOnly && (
                   <button type="button" onClick={handleStartEditChecklist} className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-100 flex items-center gap-1">
                     <Edit2 className="w-3 h-3" /> Edit
                   </button>
@@ -1174,7 +1245,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
                 <FileText className="w-5 h-5" /> Job Details
               </h3>
-              {(isInProgress || isAwaitingFinalization) && !editingJobCarriedOut && (
+              {(isInProgress || isAwaitingFinalization) && !editingJobCarriedOut && !isHelperOnly && (
                 <button type="button" onClick={handleStartEditJobCarriedOut} className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-100 flex items-center gap-1">
                   <Edit2 className="w-3 h-3" /> Edit
                 </button>
@@ -1261,6 +1332,55 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                     </div>
                 </div>
             )}
+
+            {/* Helper Technician Section */}
+            {(isInProgress || isAwaitingFinalization) && (
+              <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 mt-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h4 className="text-sm font-bold text-amber-800 flex items-center gap-2">
+                      <UserPlus className="w-4 h-4" /> Helper Technician
+                    </h4>
+                    {job.helper_assignment ? (
+                      <div className="mt-1">
+                        <p className="text-slate-700">{job.helper_assignment.technician?.name || 'Unknown'}</p>
+                        <p className="text-xs text-slate-500">
+                          Assigned {new Date(job.helper_assignment.assigned_at).toLocaleString()}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 text-sm mt-1">No helper assigned</p>
+                    )}
+                  </div>
+                  {canReassign && (
+                    <div className="flex gap-2">
+                      {job.helper_assignment ? (
+                        <button 
+                          type="button" 
+                          onClick={handleRemoveHelper}
+                          className="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-200 flex items-center gap-1"
+                        >
+                          <X className="w-3 h-3" /> Remove
+                        </button>
+                      ) : (
+                        <button 
+                          type="button" 
+                          onClick={() => setShowAssignHelperModal(true)}
+                          className="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-amber-700 flex items-center gap-1"
+                        >
+                          <UserPlus className="w-3 h-3" /> Add Helper
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {isCurrentUserHelper && (
+                  <div className="mt-3 p-2 bg-amber-100 rounded text-xs text-amber-800">
+                    <strong>You are the helper on this job.</strong> You can upload photos only.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Parts Section */}
@@ -1301,7 +1421,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               <div className="mb-4">
                 <p className="text-slate-400 italic mb-3">No parts added yet.</p>
                 {/* No parts used checkbox */}
-                {(isInProgress || isAwaitingFinalization) && (
+                {(isInProgress || isAwaitingFinalization) && !isHelperOnly && (
                   <label className="flex items-center gap-2 cursor-pointer text-sm bg-amber-50 p-3 rounded-lg border border-amber-200">
                     <input
                       type="checkbox"
@@ -1317,7 +1437,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 )}
               </div>
             )}
-            {isInProgress && (
+            {isInProgress && !isHelperOnly && (
               <div className="border-t pt-4 mt-4">
                 <p className="text-xs text-slate-500 mb-2">Add New Part</p>
                 <div className="flex gap-2 items-start">
@@ -1486,7 +1606,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               <div className="max-h-40 overflow-y-auto space-y-2 mb-4 text-sm">
                 {job.notes.map((note, idx) => (<div key={idx} className="bg-slate-50 p-3 rounded border-l-4 border-blue-400 text-slate-700">{note}</div>))}
               </div>
-              {isInProgress && (
+              {isInProgress && !isHelperOnly && (
                 <div className="flex gap-2">
                   <input type="text" placeholder="Add a note..." className={inputClassName} value={noteInput} onChange={(e) => setNoteInput(e.target.value)} />
                   <button type="button" onClick={handleAddNote} className="bg-slate-800 text-white px-4 rounded-lg text-sm font-medium hover:bg-slate-700">Add</button>
@@ -1622,8 +1742,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 </ul>
               </div>
             )}
-            {renderSignatureBlock("Technician Sign-off", job.technician_signature, () => setShowTechSigPad(true), <ShieldCheck className="w-4 h-4 text-blue-600" />, isTechnician && (isInProgress || isAwaitingFinalization))}
-            {renderSignatureBlock("Customer Acceptance", job.customer_signature, () => setShowCustSigPad(true), <UserCheck className="w-4 h-4 text-green-600" />, (isInProgress || isAwaitingFinalization))}
+            {renderSignatureBlock("Technician Sign-off", job.technician_signature, () => setShowTechSigPad(true), <ShieldCheck className="w-4 h-4 text-blue-600" />, isTechnician && !isHelperOnly && (isInProgress || isAwaitingFinalization))}
+            {renderSignatureBlock("Customer Acceptance", job.customer_signature, () => setShowCustSigPad(true), <UserCheck className="w-4 h-4 text-green-600" />, !isHelperOnly && (isInProgress || isAwaitingFinalization))}
           </div>
 
           {/* AI Assistant */}
@@ -1769,6 +1889,60 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" /> Reassign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Helper Modal */}
+      {showAssignHelperModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h4 className="font-bold text-lg mb-4 text-amber-800 flex items-center gap-2">
+              <UserPlus className="w-5 h-5" /> Assign Helper Technician
+            </h4>
+            <p className="text-sm text-slate-600 mb-4">
+              Helper can upload photos only. Cannot modify hourmeter, parts, or complete the job.
+            </p>
+            <div className="bg-slate-50 rounded-lg p-3 mb-4 text-sm">
+              <div className="text-slate-500">Lead Technician:</div>
+              <div className="font-medium text-slate-800">{job?.assigned_technician_name || 'Unassigned'}</div>
+            </div>
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Helper Technician</label>
+              <Combobox 
+                options={techOptions.filter(t => t.id !== job?.assigned_technician_id)} 
+                value={selectedHelperId} 
+                onChange={setSelectedHelperId} 
+                placeholder="Select helper..." 
+              />
+            </div>
+            <div className="mb-6">
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Notes (optional)</label>
+              <input
+                type="text"
+                value={helperNotes}
+                onChange={(e) => setHelperNotes(e.target.value)}
+                placeholder="e.g., Assist with heavy lifting"
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button 
+                type="button" 
+                onClick={() => { setShowAssignHelperModal(false); setSelectedHelperId(''); setHelperNotes(''); }} 
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleAssignHelper} 
+                disabled={!selectedHelperId}
+                className="flex-1 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <UserPlus className="w-4 h-4" /> Assign Helper
               </button>
             </div>
           </div>

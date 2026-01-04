@@ -437,6 +437,12 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
                       {job.job_type}
                     </span>
                   )}
+                  {/* Helper badge for technicians viewing helper assignments */}
+                  {(job as any)._isHelperAssignment && (
+                    <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                      Helper
+                    </span>
+                  )}
                 </div>
                 {job.priority === 'Emergency' && (
                   <span className="text-xs font-bold text-red-600 animate-pulse">EMERGENCY</span>
