@@ -2965,4 +2965,160 @@ export const SupabaseDb = {
     }
     return count;
   },
+
+  // =====================
+  // SERVICE INTERVALS CONFIG
+  // =====================
+
+  // Get all service intervals
+  getServiceIntervals: async (): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('service_intervals')
+        .select('*')
+        .order('forklift_type', { ascending: true })
+        .order('hourmeter_interval', { ascending: true });
+
+      if (error) {
+        console.error('Failed to fetch service intervals:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (e) {
+      console.error('Service intervals fetch error:', e);
+      return [];
+    }
+  },
+
+  // Get service intervals by forklift type
+  getServiceIntervalsByType: async (forkliftType: string): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('service_intervals')
+        .select('*')
+        .eq('forklift_type', forkliftType)
+        .eq('is_active', true)
+        .order('hourmeter_interval', { ascending: true });
+
+      if (error) {
+        console.error('Failed to fetch service intervals by type:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (e) {
+      console.error('Service intervals by type fetch error:', e);
+      return [];
+    }
+  },
+
+  // Create a new service interval
+  createServiceInterval: async (interval: {
+    forklift_type: string;
+    service_type: string;
+    hourmeter_interval: number;
+    calendar_interval_days?: number;
+    priority?: string;
+    checklist_items?: string[];
+    estimated_duration_hours?: number;
+    name?: string;
+  }): Promise<any | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('service_intervals')
+        .insert({
+          forklift_type: interval.forklift_type,
+          service_type: interval.service_type,
+          hourmeter_interval: interval.hourmeter_interval,
+          calendar_interval_days: interval.calendar_interval_days || null,
+          priority: interval.priority || 'Medium',
+          checklist_items: interval.checklist_items || [],
+          estimated_duration_hours: interval.estimated_duration_hours || null,
+          name: interval.name || interval.service_type,
+          is_active: true,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Failed to create service interval:', error.message);
+        return null;
+      }
+      return data;
+    } catch (e) {
+      console.error('Service interval create error:', e);
+      return null;
+    }
+  },
+
+  // Update a service interval
+  updateServiceInterval: async (
+    intervalId: string,
+    updates: {
+      forklift_type?: string;
+      service_type?: string;
+      hourmeter_interval?: number;
+      calendar_interval_days?: number | null;
+      priority?: string;
+      checklist_items?: string[];
+      estimated_duration_hours?: number | null;
+      name?: string;
+      is_active?: boolean;
+    }
+  ): Promise<any | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('service_intervals')
+        .update(updates)
+        .eq('interval_id', intervalId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Failed to update service interval:', error.message);
+        return null;
+      }
+      return data;
+    } catch (e) {
+      console.error('Service interval update error:', e);
+      return null;
+    }
+  },
+
+  // Delete (deactivate) a service interval
+  deleteServiceInterval: async (intervalId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('service_intervals')
+        .update({ is_active: false })
+        .eq('interval_id', intervalId);
+
+      if (error) {
+        console.error('Failed to delete service interval:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Service interval delete error:', e);
+      return false;
+    }
+  },
+
+  // Hard delete a service interval (use with caution)
+  hardDeleteServiceInterval: async (intervalId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('service_intervals')
+        .delete()
+        .eq('interval_id', intervalId);
+
+      if (error) {
+        console.error('Failed to hard delete service interval:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Service interval hard delete error:', e);
+      return false;
+    }
+  },
 };

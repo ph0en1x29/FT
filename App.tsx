@@ -22,6 +22,7 @@ import EmployeeProfile from './pages/EmployeeProfile';
 import HRDashboard from './pages/HRDashboard';
 import MyLeaveRequests from './pages/MyLeaveRequests';
 import ServiceDue from './pages/ServiceDue';
+import ServiceIntervalsConfig from './pages/ServiceIntervalsConfig';
 import NotificationBell from './components/NotificationBell';
 import { SupabaseDb as MockDb } from './services/supabaseService';
 import { 
@@ -308,6 +309,7 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
                 {canViewKPI && <SubNavItem to="/technician-kpi" label="Technician KPI" />}
                 {canViewHR && <SubNavItem to="/hr" label="HR / Employees" />}
                 {canManageUsers && <SubNavItem to="/users" label="Users" />}
+                {currentUser.role === 'admin' && <SubNavItem to="/service-intervals" label="Service Intervals" />}
               </div>
             </div>
           </div>
@@ -599,6 +601,13 @@ export default function App() {
             <Route path="/service-due" element={
               (currentUser.role === 'admin' || currentUser.role === 'supervisor') 
                 ? <ServiceDue /> 
+                : <Navigate to="/" />
+            } />
+            
+            {/* Service Intervals Config - Admin only */}
+            <Route path="/service-intervals" element={
+              currentUser.role === 'admin'
+                ? <ServiceIntervalsConfig currentUser={currentUser} />
                 : <Navigate to="/" />
             } />
             

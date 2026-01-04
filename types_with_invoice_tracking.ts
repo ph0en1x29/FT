@@ -260,6 +260,8 @@ export interface JobPartUsed {
   sell_price_at_time: number;
 }
 
+export type MediaCategory = 'before' | 'after' | 'spare_part' | 'condition' | 'evidence' | 'other';
+
 export interface JobMedia {
   media_id: string;
   job_id: string;
@@ -269,6 +271,7 @@ export interface JobMedia {
   created_at: string;
   uploaded_by_id?: string;
   uploaded_by_name?: string;
+  category?: MediaCategory;
 }
 
 export interface SignatureEntry {

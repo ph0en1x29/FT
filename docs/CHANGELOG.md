@@ -27,6 +27,63 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### ACWER Feature Implementation (2026-01-04)
+
+#### #4 Hourmeter Prediction + Dashboard - ✔️ COMPLETED (Pre-existing)
+- **Files (already existed):**
+  - `pages/ServiceDue.tsx` - Full service due page with filtering
+  - `components/ServiceAutomationWidget.tsx` - Dashboard widget
+- **Features:**
+  - Overdue/Due Soon/Jobs Created stats with color coding
+  - "Run Service Check" button for auto-creating jobs
+  - Widget on Dashboard for Admin/Supervisor
+  - Clickable stats navigate to ServiceDue with filters
+  - Uses `get_forklifts_due_for_service` RPC function
+  - Integrated with service_intervals config from #5
+
+#### #5 Service Intervals Config UI - ✔️ COMPLETED
+- **Files created:**
+  - `pages/ServiceIntervalsConfig.tsx` - Admin UI to view/edit service intervals
+- **Files modified:**
+  - `services/supabaseService.ts` - Added CRUD functions:
+    - `getServiceIntervals()` - Fetch all intervals
+    - `getServiceIntervalsByType(type)` - Filter by forklift type
+    - `createServiceInterval(data)` - Add new interval
+    - `updateServiceInterval(id, updates)` - Edit interval
+    - `deleteServiceInterval(id)` - Soft delete (deactivate)
+    - `hardDeleteServiceInterval(id)` - Permanent delete
+  - `App.tsx` - Added route `/service-intervals` and sidebar link under Management
+- **Features:**
+  - View all service intervals grouped by forklift type
+  - Filter tabs: All, Diesel, Electric, LPG
+  - Inline editing in table
+  - Add new interval via modal
+  - ACWER defaults reference card (Electric: 3 months, Diesel: 500h, LPG: 350h)
+  - Uses existing `service_intervals` table (no schema changes)
+- **Access:** Admin only
+
+#### #10 Photo Categorization + ZIP Download - ✔️ COMPLETED
+- **Files created:**
+  - `database/migrations/add_job_media_category.sql` - DB migration to add category column
+- **Files modified:**
+  - `types_with_invoice_tracking.ts` - Added `MediaCategory` type and `category` field to `JobMedia`
+  - `pages/JobDetail.tsx`:
+    - Added photo category filter tabs (All, Before, After, Spare Parts, Condition, Evidence, Other)
+    - Added category selector dropdown when uploading photos
+    - Added category badges on photo thumbnails
+    - Added "Download ZIP" button with category-organized folders
+    - Uses JSZip for client-side ZIP generation
+  - `package.json` - Added `jszip` dependency
+- **Features:**
+  - 6 photo categories: `before`, `after`, `spare_part`, `condition`, `evidence`, `other`
+  - Color-coded category badges on each photo
+  - Filter photos by category with count indicators
+  - Category selector when uploading (visible during In Progress status)
+  - Download all photos as ZIP with folders per category
+  - Filtered downloads respect current category filter
+- **DB Migration Required:** Run `add_job_media_category.sql` before use
+- **Access:** Technician, Admin, Supervisor
+
 ### Documentation
 - DB schema docs synced to current Supabase schema (2026-01-02 00:16:45 CST, author: Codex)
 
@@ -132,16 +189,16 @@ All notable changes, decisions, and client requirements for this project.
 | 1 | Helper Technician | Medium | ✅ Confirmed | ❌ Not started |
 | 2 | In-Job Request System | High | ✅ Confirmed | ❌ Not started |
 | 3 | Spare Parts Request/Approval | Medium | ✅ Confirmed | ❌ Not started |
-| 4 | Hourmeter Reading + prediction | Medium | ✅ Confirmed | ❌ Not started |
-| 5 | Service Intervals | Low | ✅ Confirmed | ❌ Not started |
+| 4 | Hourmeter Reading + prediction | Medium | ✅ Confirmed | ✔️ Completed |
+| 5 | Service Intervals | Low | ✅ Confirmed | ✔️ Completed |
 | 6 | Job Reassignment + Items/KPI | High | ✅ Confirmed | ❌ Not started |
 | 7 | Multi-Day Jobs + Escalation | Medium | ✅ Confirmed | ❌ Not started |
 | 8 | Deferred Customer Acknowledgement | Medium | ✅ Confirmed | ❌ Not started |
 | 9 | KPI Dashboard | Medium | ✅ Confirmed | ❌ Not started |
-| 10 | Photo Categorization + ZIP | Low | ✅ Confirmed | ❌ Not started |
+| 10 | Photo Categorization + ZIP | Low | ✅ Confirmed | ✔️ Completed |
 | 11 | Partial Work Tracking | Low-Medium | ⏳ Pending | ❌ Not started |
 
-**Summary:** 10 features ready to build, 1 awaiting client confirmation, 0 completed
+**Summary:** 7 features ready to build, 1 awaiting client confirmation, 3 completed
 
 ---
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Job, JobStatus, UserRole, Part, JobPriority, JobType, SignatureEntry, User, ForkliftConditionChecklist } from '../types_with_invoice_tracking';
+import { Job, JobStatus, UserRole, Part, JobPriority, JobType, SignatureEntry, User, ForkliftConditionChecklist, MediaCategory } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { generateJobSummary } from '../services/geminiService';
 import { SignaturePad } from '../components/SignaturePad';
@@ -14,7 +14,7 @@ import {
   CheckCircle, Plus, Camera, PenTool, Box, DollarSign, BrainCircuit, 
   ShieldCheck, UserCheck, UserPlus, Edit2, Trash2, Save, X, FileText, 
   Info, FileDown, Truck, Gauge, ClipboardList, Receipt, Play, Clock, 
-  AlertTriangle, CheckSquare, Square, FileCheck, RefreshCw
+  AlertTriangle, CheckSquare, Square, FileCheck, RefreshCw, Download, Filter
 } from 'lucide-react';
 
 interface JobDetailProps {
@@ -133,6 +133,16 @@ const CHECKLIST_CATEGORIES = [
   },
 ];
 
+// Photo categories for ACWER workflow
+const PHOTO_CATEGORIES = [
+  { value: 'before', label: 'Before Service', color: 'bg-blue-500' },
+  { value: 'after', label: 'After Service', color: 'bg-green-500' },
+  { value: 'spare_part', label: 'Spare Parts', color: 'bg-amber-500' },
+  { value: 'condition', label: 'Condition Check', color: 'bg-purple-500' },
+  { value: 'evidence', label: 'Evidence', color: 'bg-red-500' },
+  { value: 'other', label: 'Other', color: 'bg-slate-500' },
+];
+
 const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const currentUserRole = currentUser.role;
   const currentUserId = currentUser.user_id;
@@ -192,6 +202,11 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
 
   // NEW: No parts used flag
   const [noPartsUsed, setNoPartsUsed] = useState(false);
+
+  // Photo categorization states
+  const [photoCategoryFilter, setPhotoCategoryFilter] = useState<string>('all');
+  const [uploadPhotoCategory, setUploadPhotoCategory] = useState<string>('other');
+  const [downloadingPhotos, setDownloadingPhotos] = useState(false);
 
   // NEW: Job Reassignment Modal
   const [showReassignModal, setShowReassignModal] = useState(false);
@@ -685,14 +700,76 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             type: 'photo',
             url: reader.result as string,
             description: file.name,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            category: uploadPhotoCategory as MediaCategory,
           },
           currentUserId,
           currentUserName
         );
         setJob({ ...updated } as Job);
+        showToast.success('Photo uploaded', `Category: ${PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}`);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // Download all photos as ZIP
+  const handleDownloadPhotos = async () => {
+    if (!job || job.media.length === 0) {
+      showToast.error('No photos to download');
+      return;
+    }
+    
+    setDownloadingPhotos(true);
+    try {
+      // Dynamic import JSZip
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      // Group photos by category
+      const photosToDownload = photoCategoryFilter === 'all' 
+        ? job.media 
+        : job.media.filter(m => m.category === photoCategoryFilter);
+      
+      if (photosToDownload.length === 0) {
+        showToast.error('No photos in selected category');
+        setDownloadingPhotos(false);
+        return;
+      }
+      
+      // Add photos to ZIP organized by category
+      for (const photo of photosToDownload) {
+        const category = photo.category || 'other';
+        const folder = zip.folder(category);
+        
+        // Convert data URL to blob
+        const response = await fetch(photo.url);
+        const blob = await response.blob();
+        
+        // Generate filename
+        const timestamp = new Date(photo.created_at).toISOString().replace(/[:.]/g, '-');
+        const filename = `${timestamp}_${photo.description || 'photo'}.jpg`;
+        
+        folder?.file(filename, blob);
+      }
+      
+      // Generate and download ZIP
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Job_${job.service_report_number || job.job_id}_Photos.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showToast.success('Photos downloaded', `${photosToDownload.length} photos`);
+    } catch (e: any) {
+      console.error('Failed to download photos:', e);
+      showToast.error('Download failed', e.message);
+    } finally {
+      setDownloadingPhotos(false);
     }
   };
 
@@ -1252,32 +1329,109 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             )}
           </div>
 
-          {/* Photos */}
+          {/* Photos with Category Filter */}
           {(isTechnician || isAdmin || isSupervisor) && (
             <div className="bg-white rounded-xl shadow p-5">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2"><Camera className="w-5 h-5" /> Photos</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
-                {job.media.map(m => (
-                  <div key={m.media_id} className="relative group">
-                    <img src={m.url} alt="Job" className="w-full h-24 object-cover rounded border" />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] px-1.5 py-1 rounded-b opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {new Date(m.created_at).toLocaleString()}
-                      </div>
-                      {m.uploaded_by_name && (
-                        <div className="text-slate-300 truncate">By: {m.uploaded_by_name}</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {isInProgress && (
-                  <label className="border-2 border-dashed border-slate-300 rounded flex flex-col items-center justify-center h-24 text-slate-400 cursor-pointer hover:bg-slate-50 transition-colors">
-                    <Camera className="w-6 h-6 mb-1" /><span className="text-xs">Add Photo</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-                  </label>
+              {/* Header with Download Button */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                  <Camera className="w-5 h-5" /> Photos
+                  <span className="text-sm font-normal text-slate-500">({job.media.length})</span>
+                </h3>
+                {job.media.length > 0 && (
+                  <button
+                    onClick={handleDownloadPhotos}
+                    disabled={downloadingPhotos}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition disabled:opacity-50"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    {downloadingPhotos ? 'Downloading...' : 'Download ZIP'}
+                  </button>
                 )}
               </div>
+
+              {/* Category Filter Tabs */}
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                <button
+                  onClick={() => setPhotoCategoryFilter('all')}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-full transition ${
+                    photoCategoryFilter === 'all' 
+                      ? 'bg-slate-800 text-white' 
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  All ({job.media.length})
+                </button>
+                {PHOTO_CATEGORIES.map(cat => {
+                  const count = job.media.filter(m => m.category === cat.value).length;
+                  if (count === 0) return null;
+                  return (
+                    <button
+                      key={cat.value}
+                      onClick={() => setPhotoCategoryFilter(cat.value)}
+                      className={`px-2.5 py-1 text-xs font-medium rounded-full transition ${
+                        photoCategoryFilter === cat.value 
+                          ? `${cat.color} text-white` 
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {cat.label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Photo Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+                {job.media
+                  .filter(m => photoCategoryFilter === 'all' || m.category === photoCategoryFilter)
+                  .map(m => {
+                    const catInfo = PHOTO_CATEGORIES.find(c => c.value === m.category) || PHOTO_CATEGORIES.find(c => c.value === 'other');
+                    return (
+                      <div key={m.media_id} className="relative group">
+                        <img src={m.url} alt="Job" className="w-full h-24 object-cover rounded border" />
+                        {/* Category Badge */}
+                        <span className={`absolute top-1 left-1 px-1.5 py-0.5 text-[9px] font-medium text-white rounded ${catInfo?.color || 'bg-slate-500'}`}>
+                          {catInfo?.label || 'Other'}
+                        </span>
+                        {/* Hover Info */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] px-1.5 py-1 rounded-b opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(m.created_at).toLocaleString()}
+                          </div>
+                          {m.uploaded_by_name && (
+                            <div className="text-slate-300 truncate">By: {m.uploaded_by_name}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                {/* Upload Button with Category Selector */}
+                {isInProgress && (
+                  <div className="border-2 border-dashed border-slate-300 rounded flex flex-col items-center justify-center h-24 text-slate-400">
+                    <select
+                      value={uploadPhotoCategory}
+                      onChange={(e) => setUploadPhotoCategory(e.target.value)}
+                      className="text-[10px] mb-1 px-1 py-0.5 border rounded bg-white text-slate-600 w-20"
+                    >
+                      {PHOTO_CATEGORIES.map(cat => (
+                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                      ))}
+                    </select>
+                    <label className="cursor-pointer hover:text-slate-600 transition-colors flex flex-col items-center">
+                      <Camera className="w-5 h-5 mb-0.5" />
+                      <span className="text-[10px]">Add Photo</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Empty state */}
+              {job.media.length === 0 && (
+                <p className="text-center text-slate-400 text-sm py-4">No photos uploaded yet</p>
+              )}
             </div>
           )}
 
