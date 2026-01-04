@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Customer } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
+import { showToast } from '../services/toastService';
 import { MapPin, Phone, Mail, Users, Search, Eye, Plus, X } from 'lucide-react';
 
 const Customers: React.FC = () => {
@@ -45,7 +46,7 @@ const Customers: React.FC = () => {
 
   const handleCreateCustomer = async () => {
     if (!newCustomer.name.trim() || !newCustomer.address.trim()) {
-      alert('Please enter at least a name and address');
+      showToast.warning('Missing required fields', 'Please enter at least a name and address');
       return;
     }
 
@@ -62,11 +63,12 @@ const Customers: React.FC = () => {
       setCustomers([...customers, created]);
       setShowCreateModal(false);
       setNewCustomer({ name: '', address: '', phone: '', email: '', notes: '' });
+      showToast.success('Customer created successfully');
       
       // Navigate to the new customer profile
       navigate(`/customers/${created.customer_id}`);
     } catch (e) {
-      alert('Could not create customer: ' + (e as Error).message);
+      showToast.error('Failed to create customer', (e as Error).message);
     } finally {
       setCreating(false);
     }

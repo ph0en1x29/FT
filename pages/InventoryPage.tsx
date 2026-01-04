@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Part, User, UserRole } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
+import { showToast } from '../services/toastService';
 import { 
   Plus, Search, Package, Edit2, Trash2, X, Save, 
   AlertTriangle, Filter, Download, Upload, Clock
@@ -48,6 +49,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
       setParts(data);
     } catch (error) {
       console.error('Error loading parts:', error);
+      showToast.error('Failed to load inventory');
     }
     setLoading(false);
   };
@@ -141,7 +143,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
     e.preventDefault();
     
     if (!formData.part_name || !formData.part_code || !formData.category) {
-      alert('Please fill in Part Name, Code, and Category');
+      showToast.error('Please fill in Part Name, Code, and Category');
       return;
     }
 
@@ -155,8 +157,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
 
       if (editingPart) {
         await MockDb.updatePart(editingPart.part_id, partData);
+        showToast.success('Part updated successfully');
       } else {
         await MockDb.createPart(partData);
+        showToast.success('Part added successfully');
       }
       
       await loadParts();
@@ -164,7 +168,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
       resetForm();
       setEditingPart(null);
     } catch (error) {
-      alert('Error saving part: ' + (error as Error).message);
+      console.error('Error saving part:', error);
+      showToast.error('Failed to save part', (error as Error).message);
     }
   };
 
@@ -174,8 +179,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
     try {
       await MockDb.deletePart(part.part_id);
       await loadParts();
+      showToast.success('Part deleted');
     } catch (error) {
-      alert((error as Error).message);
+      console.error('Error deleting part:', error);
+      showToast.error('Failed to delete part', (error as Error).message);
     }
   };
 

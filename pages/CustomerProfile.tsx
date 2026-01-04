@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Customer, Job, User, UserRole, ForkliftRental, Forklift, ForkliftServiceEntry } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { generateCustomerAnalysis } from '../services/geminiService';
+import { showToast } from '../services/toastService';
 import { 
   ArrowLeft, MapPin, Phone, Mail, Calendar, DollarSign, 
   TrendingUp, AlertCircle, BrainCircuit, Wrench, CheckCircle, Clock, Trash2,
@@ -95,6 +96,7 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
       setRentals(customerRentals);
     } catch (error) {
       console.error('Error loading customer:', error);
+      showToast.error('Failed to load customer profile');
     } finally {
       setLoading(false);
     }
@@ -107,6 +109,7 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
       setAvailableForklifts(available);
     } catch (error) {
       console.error('Error loading available forklifts:', error);
+      showToast.error('Failed to load available forklifts');
     }
   };
 
@@ -234,6 +237,7 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
     } catch (error) {
       console.error('AI Analysis error:', error);
       setAiAnalysis('Unable to generate analysis at this time.');
+      showToast.error('AI analysis failed');
     } finally {
       setGeneratingAI(false);
     }

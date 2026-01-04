@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, UserRole } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
+import { showToast } from '../services/toastService';
 import { Plus, Edit2, Search, CheckCircle, XCircle, Shield, Wrench, FileText, User as UserIcon, Lock, X, Users, AlertTriangle } from 'lucide-react';
 
 const UserManagement: React.FC = () => {
@@ -71,8 +72,12 @@ const UserManagement: React.FC = () => {
           is_active: formData.is_active,
           ...(formData.password ? { password: formData.password } : {})
         });
+        showToast.success('User updated successfully');
       } else {
-        if (!formData.password) return alert("Password is required for new users");
+        if (!formData.password) {
+          showToast.error('Password required', 'Please enter a password for the new user');
+          return;
+        }
         await MockDb.createUser({
           name: formData.name,
           email: formData.email,
@@ -80,11 +85,12 @@ const UserManagement: React.FC = () => {
           password: formData.password,
           is_active: formData.is_active
         });
+        showToast.success('User created successfully');
       }
       setIsModalOpen(false);
       loadUsers();
     } catch (error: any) {
-      alert(error.message);
+      showToast.error('Failed to save user', error.message);
     }
   };
 
@@ -102,9 +108,11 @@ const UserManagement: React.FC = () => {
       await MockDb.updateUser(confirmModal.user.user_id, { 
         is_active: !confirmModal.user.is_active 
       });
+      const action = confirmModal.action === 'activate' ? 'activated' : 'deactivated';
+      showToast.success(`User ${action} successfully`);
       loadUsers();
     } catch (error: any) {
-      alert(error.message);
+      showToast.error('Failed to update user status', error.message);
     } finally {
       setConfirmModal({ isOpen: false, user: null, action: 'deactivate' });
     }

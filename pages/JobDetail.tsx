@@ -8,6 +8,7 @@ import { Combobox, ComboboxOption } from '../components/Combobox';
 import { printServiceReport } from '../components/ServiceReportPDF';
 import { printQuotation, generateQuotationFromJob } from '../components/QuotationPDF';
 import { printInvoice } from '../components/InvoicePDF';
+import { showToast } from '../services/toastService';
 import { 
   ArrowLeft, MapPin, Phone, User as UserIcon, Calendar, 
   CheckCircle, Plus, Camera, PenTool, Box, DollarSign, BrainCircuit, 
@@ -272,7 +273,14 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     
     const hourmeter = parseInt(startJobHourmeter);
     if (isNaN(hourmeter) || hourmeter < 0) {
-      alert('Please enter a valid hourmeter reading');
+      showToast.error('Please enter a valid hourmeter reading');
+      return;
+    }
+    
+    // Client-side validation: must be >= forklift's current reading
+    const currentForkliftHourmeter = job.forklift?.hourmeter || 0;
+    if (hourmeter < currentForkliftHourmeter) {
+      showToast.error(`Hourmeter must be ≥ ${currentForkliftHourmeter} (forklift's current reading)`);
       return;
     }
 
@@ -286,8 +294,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       );
       setJob({ ...updated } as Job);
       setShowStartJobModal(false);
+      showToast.success('Job started', 'Status changed to In Progress');
     } catch (error) {
-      alert('Failed to start job: ' + (error as Error).message);
+      showToast.error('Failed to start job', (error as Error).message);
     }
   };
 
@@ -302,8 +311,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
         currentUserName   // Completed by Name
       );
       setJob({ ...updated } as Job);
+      showToast.success(`Status updated to ${newStatus}`);
     } catch (error) {
-      alert('Failed to update status: ' + (error as Error).message);
+      showToast.error('Failed to update status', (error as Error).message);
     }
   };
 
@@ -340,9 +350,10 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
           setJob({ ...updated } as Job);
           setShowReassignModal(false);
           setReassignTechId('');
+          showToast.success(`Job reassigned to ${tech.name}`);
         }
       } catch (e) {
-        alert('Failed to reassign job: ' + (e as Error).message);
+        showToast.error('Failed to reassign job', (e as Error).message);
       }
     }
   };
@@ -361,7 +372,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     if (selectedPartPrice !== '') {
         const parsed = parseFloat(selectedPartPrice);
         if (isNaN(parsed) || parsed < 0) {
-            alert("Please enter a valid price");
+            showToast.error('Please enter a valid price');
             return;
         }
         finalPrice = parsed;
@@ -372,8 +383,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       setJob({ ...updated } as Job);
       setSelectedPartId('');
       setSelectedPartPrice('');
+      showToast.success('Part added to job');
     } catch (e) {
-      alert('Could not add part. Check stock.');
+      showToast.error('Could not add part', 'Check stock availability');
     }
   };
 
@@ -387,7 +399,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     
     const parsed = parseFloat(editingPrice);
     if (isNaN(parsed) || parsed < 0) {
-      alert("Please enter a valid price");
+      showToast.error('Please enter a valid price');
       return;
     }
 
@@ -396,8 +408,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       setJob({ ...updated } as Job);
       setEditingPartId(null);
       setEditingPrice('');
+      showToast.success('Price updated');
     } catch (e) {
-      alert('Could not update price.');
+      showToast.error('Could not update price');
     }
   };
 
@@ -413,8 +426,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     try {
       const updated = await MockDb.removePartFromJob(job.job_id, jobPartId);
       setJob({ ...updated } as Job);
+      showToast.success('Part removed from job');
     } catch (e) {
-      alert('Could not remove part.');
+      showToast.error('Could not remove part');
     }
   };
 
@@ -429,7 +443,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     
     const parsed = parseFloat(laborCostInput);
     if (isNaN(parsed) || parsed < 0) {
-      alert("Please enter a valid labor cost");
+      showToast.error('Please enter a valid labor cost');
       return;
     }
 
@@ -438,8 +452,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       setJob({ ...updated } as Job);
       setEditingLabor(false);
       setLaborCostInput('');
+      showToast.success('Labor cost updated');
     } catch (e) {
-      alert('Could not update labor cost.');
+      showToast.error('Could not update labor cost');
     }
   };
 
@@ -452,13 +467,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     if (!job) return;
     
     if (!chargeName.trim()) {
-      alert("Please enter a charge name");
+      showToast.error('Please enter a charge name');
       return;
     }
 
     const parsed = parseFloat(chargeAmount);
     if (isNaN(parsed) || parsed < 0) {
-      alert("Please enter a valid amount");
+      showToast.error('Please enter a valid amount');
       return;
     }
 
@@ -474,8 +489,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       setChargeDescription('');
       setChargeAmount('');
       setShowAddCharge(false);
+      showToast.success('Extra charge added');
     } catch (e) {
-      alert('Could not add extra charge.');
+      showToast.error('Could not add extra charge');
     }
   };
 
@@ -486,8 +502,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     try {
       const updated = await MockDb.removeExtraCharge(job.job_id, chargeId);
       setJob({ ...updated } as Job);
+      showToast.success('Extra charge removed');
     } catch (e) {
-      alert('Could not remove charge.');
+      showToast.error('Could not remove charge');
     }
   };
 
@@ -503,7 +520,14 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     
     const parsed = parseInt(hourmeterInput);
     if (isNaN(parsed) || parsed < 0) {
-      alert("Please enter a valid hourmeter reading");
+      showToast.error('Please enter a valid hourmeter reading');
+      return;
+    }
+    
+    // Client-side validation: must be >= forklift's current reading
+    const currentForkliftHourmeter = job.forklift?.hourmeter || 0;
+    if (parsed < currentForkliftHourmeter) {
+      showToast.error(`Hourmeter must be ≥ ${currentForkliftHourmeter} (forklift's current reading)`);
       return;
     }
 
@@ -512,8 +536,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       setJob({ ...updated } as Job);
       setEditingHourmeter(false);
       setHourmeterInput('');
-    } catch (e) {
-      alert('Could not update hourmeter.');
+      showToast.success('Hourmeter updated');
+    } catch (e: any) {
+      showToast.error(e.message || 'Could not update hourmeter');
     }
   };
 
@@ -541,8 +566,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       );
       setJob({ ...updated } as Job);
       setEditingJobCarriedOut(false);
+      showToast.success('Job details saved');
     } catch (e) {
-      alert('Could not save job details.');
+      showToast.error('Could not save job details');
     }
   };
 
@@ -565,8 +591,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       const updated = await MockDb.updateConditionChecklist(job.job_id, checklistEditData, currentUserId);
       setJob({ ...updated } as Job);
       setEditingChecklist(false);
+      showToast.success('Checklist saved');
     } catch (e) {
-      alert('Could not save checklist: ' + (e as Error).message);
+      showToast.error('Could not save checklist', (e as Error).message);
     }
   };
 
@@ -590,7 +617,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       await MockDb.setNoPartsUsed(job.job_id, newValue);
       setNoPartsUsed(newValue);
     } catch (e) {
-      alert('Could not update: ' + (e as Error).message);
+      showToast.error('Could not update', (e as Error).message);
     }
   };
 
@@ -602,8 +629,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       const updated = await MockDb.finalizeInvoice(job.job_id, currentUserId, currentUserName);
       setJob({ ...updated } as Job);
       setShowFinalizeModal(false);
+      showToast.success('Invoice finalized');
     } catch (e) {
-      alert('Could not finalize invoice: ' + (e as Error).message);
+      showToast.error('Could not finalize invoice', (e as Error).message);
     }
   };
 
@@ -612,16 +640,17 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     if (!job) return;
     
     if (!deletionReason.trim()) {
-      alert('Please provide a reason for deleting this job.');
+      showToast.error('Please provide a reason for deleting this job');
       return;
     }
     
     try {
       await MockDb.deleteJob(job.job_id, currentUserId, currentUserName, deletionReason.trim());
       setShowDeleteModal(false);
+      showToast.success('Job deleted');
       navigate('/jobs');
     } catch (e) {
-      alert('Could not delete job: ' + (e as Error).message);
+      showToast.error('Could not delete job', (e as Error).message);
     }
   };
 

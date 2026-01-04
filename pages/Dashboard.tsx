@@ -7,6 +7,7 @@ import { AlertTriangle } from 'lucide-react';
 import { UserRole, Job, JobStatus, User } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import ServiceAutomationWidget from '../components/ServiceAutomationWidget';
+import { showToast } from '../services/toastService';
 
 interface DashboardProps {
   role: UserRole;
@@ -28,6 +29,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
       setJobs(jobsData);
     } catch (error) {
       console.error('Error loading dashboard:', error);
+      showToast.error('Failed to load dashboard data', 'Please refresh the page');
     } finally {
       setLoading(false);
     }

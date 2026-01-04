@@ -9,6 +9,7 @@ import {
   ROLE_PERMISSIONS,
 } from '../types_with_invoice_tracking';
 import { HRService } from '../services/hrService';
+import { showToast } from '../services/toastService';
 import {
   Users,
   Plus,
@@ -56,6 +57,7 @@ export default function EmployeesPage({ currentUser }: EmployeesPageProps) {
       setEmployees(data);
     } catch (error) {
       console.error('Error loading employees:', error);
+      showToast.error('Failed to load employees');
     } finally {
       setLoading(false);
     }
@@ -67,7 +69,7 @@ export default function EmployeesPage({ currentUser }: EmployeesPageProps) {
   // Filter employees
   const filteredEmployees = employees.filter((emp) => {
     const matchesSearch =
-      emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.full_name || emp.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.employee_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.phone?.includes(searchTerm) ||
       emp.email?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -206,7 +208,7 @@ export default function EmployeesPage({ currentUser }: EmployeesPageProps) {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-800">
-                {employees.filter((e) => e.status === EmploymentStatus.ACTIVE).length}
+                {employees.filter((e) => e.employment_status === EmploymentStatus.ACTIVE).length}
               </p>
               <p className="text-sm text-slate-600">Active</p>
             </div>
@@ -220,7 +222,7 @@ export default function EmployeesPage({ currentUser }: EmployeesPageProps) {
             </div>
             <div>
               <p className="text-2xl font-bold text-slate-800">
-                {employees.filter((e) => e.status === EmploymentStatus.ON_LEAVE).length}
+                {employees.filter((e) => e.employment_status === EmploymentStatus.ON_LEAVE).length}
               </p>
               <p className="text-sm text-slate-600">On Leave</p>
             </div>
@@ -271,12 +273,12 @@ export default function EmployeesPage({ currentUser }: EmployeesPageProps) {
                   {employee.profile_photo_url ? (
                     <img
                       src={employee.profile_photo_url}
-                      alt={employee.full_name}
+                      alt={employee.full_name || employee.name || ''}
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <span className="text-lg font-semibold text-slate-600">
-                      {employee.full_name.charAt(0).toUpperCase()}
+                      {(employee.full_name || employee.name || 'U').charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
@@ -285,7 +287,7 @@ export default function EmployeesPage({ currentUser }: EmployeesPageProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold text-slate-800 truncate">
-                      {employee.full_name}
+                      {employee.full_name || employee.name}
                     </h3>
                     {employee.employee_code && (
                       <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
@@ -294,11 +296,11 @@ export default function EmployeesPage({ currentUser }: EmployeesPageProps) {
                     )}
                     <span
                       className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${getStatusColor(
-                        employee.status
+                        employee.employment_status
                       )}`}
                     >
-                      {getStatusIcon(employee.status)}
-                      {employee.status}
+                      {getStatusIcon(employee.employment_status)}
+                      {employee.employment_status}
                     </span>
                   </div>
 
@@ -319,7 +321,7 @@ export default function EmployeesPage({ currentUser }: EmployeesPageProps) {
                   </div>
 
                   {/* Badges for licenses/permits */}
-                  {employee.user?.role === UserRole.TECHNICIAN && (
+                  {employee.role === UserRole.TECHNICIAN && (
                     <div className="flex items-center gap-2 mt-2">
                       {employee.licenses && employee.licenses.length > 0 && (
                         <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
@@ -365,9 +367,10 @@ export default function EmployeesPage({ currentUser }: EmployeesPageProps) {
               );
               loadEmployees();
               setShowAddModal(false);
+              showToast.success('Employee created successfully');
             } catch (error) {
               console.error('Error creating employee:', error);
-              alert('Failed to create employee');
+              showToast.error('Failed to create employee');
             }
           }}
         />
@@ -427,6 +430,7 @@ function AddEmployeeModal({ onClose, onSave }: AddEmployeeModalProps) {
       setAvailableUsers(usersWithIncompleteHR);
     } catch (error) {
       console.error('Error loading users:', error);
+      showToast.error('Failed to load users');
     } finally {
       setLoadingUsers(false);
     }

@@ -15,6 +15,7 @@ import {
   ROLE_PERMISSIONS,
 } from '../types_with_invoice_tracking';
 import { HRService } from '../services/hrService';
+import { showToast } from '../services/toastService';
 import {
   Users,
   AlertTriangle,
@@ -84,6 +85,7 @@ export default function HRDashboard({ currentUser }: HRDashboardProps) {
       setAlerts(alertsData);
     } catch (error) {
       console.error('Error loading HR dashboard:', error);
+      showToast.error('Failed to load HR dashboard');
     } finally {
       setLoading(false);
     }
@@ -93,9 +95,10 @@ export default function HRDashboard({ currentUser }: HRDashboardProps) {
     try {
       await HRService.approveLeave(leaveId, currentUser.user_id, currentUser.name);
       loadDashboardData();
+      showToast.success('Leave request approved');
     } catch (error) {
       console.error('Error approving leave:', error);
-      alert('Failed to approve leave');
+      showToast.error('Failed to approve leave');
     }
   };
 
@@ -115,9 +118,10 @@ export default function HRDashboard({ currentUser }: HRDashboardProps) {
       setShowRejectModal(false);
       setRejectingLeaveId(null);
       setRejectionReason('');
+      showToast.success('Leave request rejected');
     } catch (error) {
       console.error('Error rejecting leave:', error);
-      alert('Failed to reject leave');
+      showToast.error('Failed to reject leave');
     } finally {
       setRejecting(false);
     }

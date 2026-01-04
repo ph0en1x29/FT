@@ -30,6 +30,47 @@ All notable changes, decisions, and client requirements for this project.
 ### Documentation
 - DB schema docs synced to current Supabase schema (2026-01-02 00:16:45 CST, author: Codex)
 
+### UX Improvements (2026-01-03)
+- ✔️ **Toast Notifications** - Added user-visible error/success notifications across all pages
+  - Added `showToast.error()` to catch blocks that previously only used `console.error`
+  - Pages fixed: `Invoices.tsx`, `CustomerProfile.tsx`, `EmployeeProfile.tsx`, `Forklifts.tsx`, `ServiceDue.tsx`, `ServiceRecords.tsx`, `TechnicianKPIPage.tsx`, `TechnicianKPIPageV2.tsx`
+  - Uses existing `sonner` library + `toastService.ts` helper
+- ✔️ **Employee Field Fixes** - Fixed field name mismatches after User-Employee merge
+  - `EmployeesPage.tsx`: `employee.status` → `employee.employment_status` (3 places)
+  - `EmployeesPage.tsx`: `employee.user?.role` → `employee.role`
+  - `EmployeeProfile.tsx`: `employee.status` → `employee.employment_status` (3 places)
+  - `EmployeeProfile.tsx`: `editData.status` → `editData.employment_status`
+- ✔️ **Null Safety Guards** - Added fallbacks for `full_name` to prevent runtime crashes
+  - Pattern: `employee.full_name || employee.name || ''`
+  - Applied in: `EmployeesPage.tsx` (4 places), `EmployeeProfile.tsx` (4 places)
+
+### Data Integrity Fixes (2026-01-03)
+- ✔️ **Timestamp Guards in updateJobStatus** - Prevents timestamp overwrites on status re-submission
+  - Forward transitions: Only set timestamps if not already set
+  - Rollback `In Progress` → `Assigned`: Clears `arrival_time`, `started_at`
+  - Rollback `Awaiting Finalization`/`Completed` → `In Progress`: Clears completion timestamps
+  - File: `services/supabaseService.ts` - `updateJobStatus()` function
+- ✔️ **Hourmeter Validation** - Prevents hourmeter readings less than forklift's current reading
+  - Client-side: `JobDetail.tsx` - `handleSaveHourmeter()`, `handleStartJobWithCondition()`
+  - Service-side: `supabaseService.ts` - `updateJobHourmeter()`, `startJobWithCondition()`
+  - Shows clear error message with current forklift reading
+- ✔️ **Required Fields Validation** - Enforces field requirements before status transitions
+  - `Assigned` → `In Progress`: Requires `assigned_technician_id` and `forklift_id`
+  - `In Progress` → `Awaiting Finalization`: Requires `hourmeter_reading` and both signatures
+  - Service-side: `supabaseService.ts` - `updateJobStatus()` function
+  - Uses correct DB columns: `technician_signature`, `customer_signature` (not `signatures` array)
+  - Clear error messages tell user what's missing
+
+### Status Enum Decision (2026-01-03)
+- **Decision**: Keep `jobs.status` as TEXT with title-case values for now
+- **Current values**: `New`, `Assigned`, `In Progress`, `Awaiting Finalization`, `Completed`
+- **Rationale**: Matches ACWER workflow and existing RLS policies in `rls_redesign/`
+- **Future Migration** (when workflow is locked):
+  - Convert to `job_status_enum` with snake_case: `new`, `assigned`, `in_progress`, `awaiting_finalization`, `completed`
+  - Update all RLS policies in `database/rls_redesign/`
+  - Update `JobStatus` enum in `types.ts`
+  - Update UI status displays and filters
+
 ### Security Fixes (2026-01-03)
 - ✔️ Fixed 5 Security Definer views → converted to SECURITY INVOKER
   - `active_rentals_view`, `v_todays_leave`, `v_expiring_licenses`, `v_pending_leaves`, `v_expiring_permits`

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SupabaseDb } from '../services/supabaseService';
+import { showToast } from '../services/toastService';
 import { 
   AlertTriangle, Calendar, CheckCircle, Clock, Truck, 
   ChevronRight, Filter, RefreshCw, Play, Wrench
@@ -44,6 +45,7 @@ const ServiceDue: React.FC = () => {
       setDueForklifts(forklifts);
     } catch (e) {
       console.error('Failed to load service due data:', e);
+      showToast.error('Failed to load service due data');
     } finally {
       setLoading(false);
     }
@@ -56,9 +58,11 @@ const ServiceDue: React.FC = () => {
     try {
       const result = await SupabaseDb.runDailyServiceCheck();
       setLastResult(`Created ${result.jobs_created} jobs, ${result.notifications_created} notifications`);
+      showToast.success(`Created ${result.jobs_created} jobs`);
       await loadData();
     } catch (e: any) {
       setLastResult(`Error: ${e.message}`);
+      showToast.error('Daily service check failed');
     } finally {
       setRunning(false);
     }

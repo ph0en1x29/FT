@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Job, JobStatus } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
+import { showToast } from '../services/toastService';
 import { 
   Search, Filter, FileText, Calendar, 
   Eye, Download, CheckCircle, Building2, DollarSign
@@ -35,6 +36,7 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
       setJobs(completedJobs);
     } catch (error) {
       console.error('Error loading jobs:', error);
+      showToast.error('Failed to load invoices');
     }
     setLoading(false);
   };

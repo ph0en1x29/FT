@@ -4,6 +4,7 @@ import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { Customer, JobPriority, JobStatus, JobType, User, UserRole, Forklift } from '../types_with_invoice_tracking';
 import { ArrowLeft, Save, X, Truck, Gauge, CalendarCheck } from 'lucide-react';
 import { Combobox, ComboboxOption } from '../components/Combobox';
+import { showToast } from '../services/toastService';
 
 interface CreateJobProps {
   currentUser: User;
@@ -75,7 +76,10 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.customer_id) return alert('Please select a customer');
+    if (!formData.customer_id) {
+      showToast.error('Please select a customer');
+      return;
+    }
     
     // Determine assignee
     let assignedId = '';
@@ -96,24 +100,29 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
     // Parse hourmeter reading
     const hourmeterReading = formData.hourmeter_reading ? parseInt(formData.hourmeter_reading) : undefined;
     
-    await MockDb.createJob(
-      {
-        customer_id: formData.customer_id,
-        title: formData.title,
-        description: formData.description,
-        priority: formData.priority,
-        job_type: formData.job_type,
-        assigned_technician_id: assignedId,
-        assigned_technician_name: assignedName,
-        status: status,
-        forklift_id: formData.forklift_id || undefined,
-        hourmeter_reading: hourmeterReading,
-      },
-      currentUser.user_id,  // Created by ID
-      currentUser.name      // Created by Name
-    );
-    
-    navigate('/jobs');
+    try {
+      await MockDb.createJob(
+        {
+          customer_id: formData.customer_id,
+          title: formData.title,
+          description: formData.description,
+          priority: formData.priority,
+          job_type: formData.job_type,
+          assigned_technician_id: assignedId,
+          assigned_technician_name: assignedName,
+          status: status,
+          forklift_id: formData.forklift_id || undefined,
+          hourmeter_reading: hourmeterReading,
+        },
+        currentUser.user_id,  // Created by ID
+        currentUser.name      // Created by Name
+      );
+      
+      showToast.success('Job created successfully');
+      navigate('/jobs');
+    } catch (error) {
+      showToast.error('Failed to create job', (error as Error).message);
+    }
   };
 
   const handleCreateCustomerSubmit = async (e: React.FormEvent) => {
@@ -131,8 +140,9 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
       // Reset and close
       setNewCustomer({ name: '', phone: '', email: '', address: '' });
       setShowNewCustomerModal(false);
+      showToast.success('Customer created');
     } catch (error) {
-      alert('Failed to create customer');
+      showToast.error('Failed to create customer');
     }
   };
 

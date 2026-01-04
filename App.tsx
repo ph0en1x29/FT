@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { Sun, Moon } from 'lucide-react';
 import { User, UserRole, ROLE_PERMISSIONS } from './types_with_invoice_tracking';
 import Dashboard from './pages/Dashboard';
@@ -522,6 +523,15 @@ export default function App() {
   return (
     <Router>
       <style>{sidebarStyles}</style>
+      <Toaster 
+        position="top-right" 
+        richColors 
+        closeButton
+        toastOptions={{
+          duration: 4000,
+          className: 'text-sm',
+        }}
+      />
       <div className="min-h-screen bg-theme-bg flex theme-transition">
         <Sidebar
           currentUser={currentUser}

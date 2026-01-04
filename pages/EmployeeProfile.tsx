@@ -15,6 +15,7 @@ import {
   ROLE_PERMISSIONS,
 } from '../types_with_invoice_tracking';
 import { HRService } from '../services/hrService';
+import { showToast } from '../services/toastService';
 import {
   ArrowLeft,
   Edit,
@@ -86,6 +87,7 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
       }
     } catch (error) {
       console.error('Error loading employee:', error);
+      showToast.error('Failed to load employee profile');
     } finally {
       setLoading(false);
     }
@@ -97,6 +99,7 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
       setLeaveTypes(types);
     } catch (error) {
       console.error('Error loading leave types:', error);
+      showToast.error('Failed to load leave types');
     }
   };
 
@@ -112,6 +115,7 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
       setEditing(false);
     } catch (error) {
       console.error('Error updating employee:', error);
+      showToast.error('Failed to update employee');
       alert('Failed to update employee');
     }
   };
@@ -178,7 +182,7 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
         </button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-slate-800">
-            {isOwnProfile ? 'My Profile' : employee.full_name}
+            {isOwnProfile ? 'My Profile' : (employee.full_name || employee.name)}
           </h1>
           <p className="text-slate-600">
             {employee.position}
@@ -226,26 +230,26 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
               {employee.profile_photo_url ? (
                 <img
                   src={employee.profile_photo_url}
-                  alt={employee.full_name}
+                  alt={employee.full_name || employee.name || ''}
                   className="w-full h-full object-cover"
                 />
               ) : (
                 <span className="text-3xl font-bold text-slate-500">
-                  {employee.full_name.charAt(0).toUpperCase()}
+                  {(employee.full_name || employee.name || 'U').charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
             <div className="mt-2 text-center">
               <span
                 className={`inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full ${
-                  employee.status === EmploymentStatus.ACTIVE
+                  employee.employment_status === EmploymentStatus.ACTIVE
                     ? 'bg-green-100 text-green-800'
-                    : employee.status === EmploymentStatus.ON_LEAVE
+                    : employee.employment_status === EmploymentStatus.ON_LEAVE
                     ? 'bg-yellow-100 text-yellow-800'
                     : 'bg-slate-100 text-slate-800'
                 }`}
               >
-                {employee.status}
+                {employee.employment_status}
               </span>
             </div>
           </div>
@@ -445,7 +449,7 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
       {showLeaveCalendar && (
         <LeaveCalendarModal
           userId={employee.user_id}
-          employeeName={employee.full_name}
+          employeeName={employee.full_name || employee.name || ''}
           onClose={() => setShowLeaveCalendar(false)}
         />
       )}
@@ -589,11 +593,11 @@ function InfoTab({
               Status
             </label>
             <select
-              value={editData.status}
+              value={editData.employment_status}
               onChange={(e) =>
                 setEditData({
                   ...editData,
-                  status: e.target.value as EmploymentStatus,
+                  employment_status: e.target.value as EmploymentStatus,
                 })
               }
               className="w-full px-3 py-2 border border-slate-300 rounded-lg"
@@ -742,6 +746,7 @@ function LicensesTab({
       onRefresh();
     } catch (error) {
       console.error('Error deleting license:', error);
+      showToast.error('Failed to delete license');
       alert('Failed to delete license');
     }
   };
@@ -930,6 +935,7 @@ function PermitsTab({
       onRefresh();
     } catch (error) {
       console.error('Error deleting permit:', error);
+      showToast.error('Failed to delete permit');
       alert('Failed to delete permit');
     }
   };
@@ -1150,6 +1156,7 @@ function LeavesTab({
       onRefresh();
     } catch (error) {
       console.error('Error approving leave:', error);
+      showToast.error('Failed to approve leave');
       alert('Failed to approve leave');
     }
   };
@@ -1167,6 +1174,7 @@ function LeavesTab({
       onRefresh();
     } catch (error) {
       console.error('Error rejecting leave:', error);
+      showToast.error('Failed to reject leave');
       alert('Failed to reject leave');
     }
   };
@@ -1178,6 +1186,7 @@ function LeavesTab({
       onRefresh();
     } catch (error) {
       console.error('Error canceling leave:', error);
+      showToast.error('Failed to cancel leave');
       alert('Failed to cancel leave');
     }
   };
@@ -1479,6 +1488,7 @@ function AddLicenseModal({
       });
     } catch (error) {
       console.error('Error saving license:', error);
+      showToast.error('Failed to save license');
       alert('Failed to save license. Please try again.');
     } finally {
       setSaving(false);
@@ -1791,6 +1801,7 @@ function AddPermitModal({
       });
     } catch (error) {
       console.error('Error saving permit:', error);
+      showToast.error('Failed to save permit');
       alert('Failed to save permit. Please try again.');
     } finally {
       setSaving(false);
@@ -2108,6 +2119,7 @@ function AddLeaveModal({
       });
     } catch (error) {
       console.error('Error submitting leave:', error);
+      showToast.error('Failed to submit leave request');
       alert('Failed to submit leave request. Please try again.');
     } finally {
       setSaving(false);
@@ -2393,6 +2405,7 @@ function LeaveCalendarModal({
       setLeaves(data.filter(l => l.status === LeaveStatus.APPROVED || l.status === LeaveStatus.PENDING));
     } catch (error) {
       console.error('Error loading leaves:', error);
+      showToast.error('Failed to load leave history');
     } finally {
       setLoading(false);
     }

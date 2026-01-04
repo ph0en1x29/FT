@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Forklift, ForkliftType, ForkliftStatus, Customer, User } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
+import { showToast } from '../services/toastService';
 import { 
   Plus, Search, Filter, Truck, Edit2, Trash2, X, Save, 
   Gauge, Calendar, MapPin, CheckCircle, AlertCircle, Clock,
@@ -87,6 +88,7 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
       setCustomers(customerData);
     } catch (error) {
       console.error('Error loading data:', error);
+      showToast.error('Failed to load forklifts');
       // Fallback to basic forklift load
       const data = await MockDb.getForklifts();
       setForklifts(data);

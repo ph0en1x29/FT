@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Job, UserRole, TechnicianKPI } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
+import { showToast } from '../services/toastService';
 import { 
   Users, Clock, CheckCircle, DollarSign, TrendingUp, 
   AlertTriangle, Award, Target, Activity, Calendar,
@@ -33,6 +34,7 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
       setAllJobs(jobData);
     } catch (error) {
       console.error('Error loading KPI data:', error);
+      showToast.error('Failed to load KPI data');
     }
     setLoading(false);
   };

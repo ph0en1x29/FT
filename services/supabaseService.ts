@@ -444,20 +444,90 @@ export const SupabaseDb = {
   },
 
   updateJobStatus: async (jobId: string, status: JobStatus, completedById?: string, completedByName?: string): Promise<Job> => {
+    // First fetch current job to check existing timestamps and required fields
+    const { data: currentJob, error: fetchError } = await supabase
+      .from('jobs')
+      .select('status, arrival_time, started_at, completion_time, repair_end_time, completed_at, assigned_technician_id, forklift_id, hourmeter_reading, technician_signature, customer_signature')
+      .eq('job_id', jobId)
+      .single();
+    
+    if (fetchError) throw new Error(fetchError.message);
+    
+    const previousStatus = currentJob?.status;
+    
+    // === REQUIRED FIELD VALIDATION ===
+    
+    // Transition to IN_PROGRESS requires: assigned technician and forklift
+    if (status === JobStatus.IN_PROGRESS && previousStatus !== JobStatus.IN_PROGRESS) {
+      if (!currentJob?.assigned_technician_id) {
+        throw new Error('Cannot start job: No technician assigned');
+      }
+      if (!currentJob?.forklift_id) {
+        throw new Error('Cannot start job: No forklift assigned');
+      }
+    }
+    
+    // Transition to AWAITING_FINALIZATION requires: hourmeter and both signatures
+    if (status === JobStatus.AWAITING_FINALIZATION) {
+      if (!currentJob?.hourmeter_reading) {
+        throw new Error('Cannot complete job: Hourmeter reading is required');
+      }
+      // Check for both signature columns (stored as base64 strings or URLs)
+      const hasTechSignature = !!currentJob?.technician_signature;
+      const hasCustomerSignature = !!currentJob?.customer_signature;
+      if (!hasTechSignature || !hasCustomerSignature) {
+        throw new Error('Cannot complete job: Both technician and customer signatures are required');
+      }
+    }
+    
+    // === END VALIDATION ===
+    
     const updates: any = { status };
     const now = new Date().toISOString();
 
+    // Forward transition: Assigned → In Progress
+    // Only set timestamps if not already set (prevents overwriting on re-submission)
     if (status === JobStatus.IN_PROGRESS) {
-      updates.arrival_time = now;
-      updates.started_at = now;
+      if (!currentJob?.arrival_time) {
+        updates.arrival_time = now;
+      }
+      if (!currentJob?.started_at) {
+        updates.started_at = now;
+      }
     }
+    
+    // Forward transition: In Progress → Awaiting Finalization
+    // Only set timestamps if not already set
     if (status === JobStatus.AWAITING_FINALIZATION) {
-      updates.completion_time = now;
-      updates.repair_end_time = now;
-      // Audit: Job Completed (awaiting finalization by accountant)
-      updates.completed_at = now;
-      updates.completed_by_id = completedById || null;
-      updates.completed_by_name = completedByName || null;
+      if (!currentJob?.completion_time) {
+        updates.completion_time = now;
+      }
+      if (!currentJob?.repair_end_time) {
+        updates.repair_end_time = now;
+      }
+      if (!currentJob?.completed_at) {
+        updates.completed_at = now;
+        updates.completed_by_id = completedById || null;
+        updates.completed_by_name = completedByName || null;
+      }
+    }
+    
+    // Rollback: In Progress → Assigned (reassignment scenario)
+    // Clear arrival timestamps
+    if (status === JobStatus.ASSIGNED && previousStatus === JobStatus.IN_PROGRESS) {
+      updates.arrival_time = null;
+      updates.started_at = null;
+    }
+    
+    // Rollback: Awaiting Finalization/Completed → In Progress
+    // Clear completion timestamps
+    if (status === JobStatus.IN_PROGRESS && 
+        (previousStatus === JobStatus.AWAITING_FINALIZATION || previousStatus === JobStatus.COMPLETED)) {
+      updates.completion_time = null;
+      updates.repair_end_time = null;
+      updates.completed_at = null;
+      updates.completed_by_id = null;
+      updates.completed_by_name = null;
     }
 
     const { data, error } = await supabase
@@ -486,8 +556,23 @@ export const SupabaseDb = {
     return job;
   },
 
-  // Update job's hourmeter reading
+  // Update job's hourmeter reading with validation
   updateJobHourmeter: async (jobId: string, hourmeterReading: number): Promise<Job> => {
+    // First get the job's forklift to validate hourmeter
+    const { data: jobData, error: jobError } = await supabase
+      .from('jobs')
+      .select('forklift_id, forklift:forklifts!forklift_id(hourmeter)')
+      .eq('job_id', jobId)
+      .single();
+    
+    if (jobError) throw new Error(jobError.message);
+    
+    // Validate hourmeter reading is >= forklift's current reading
+    const currentHourmeter = (jobData?.forklift as any)?.hourmeter || 0;
+    if (hourmeterReading < currentHourmeter) {
+      throw new Error(`Hourmeter reading (${hourmeterReading}) cannot be less than forklift's current reading (${currentHourmeter})`);
+    }
+    
     const { data, error } = await supabase
       .from('jobs')
       .update({ hourmeter_reading: hourmeterReading })
@@ -1224,6 +1309,21 @@ export const SupabaseDb = {
     startedByName?: string
   ): Promise<Job> => {
     const now = new Date().toISOString();
+    
+    // First get the job's forklift to validate hourmeter
+    const { data: jobData, error: fetchError } = await supabase
+      .from('jobs')
+      .select('forklift_id, forklift:forklifts!forklift_id(hourmeter)')
+      .eq('job_id', jobId)
+      .single();
+    
+    if (fetchError) throw new Error(fetchError.message);
+    
+    // Validate hourmeter reading is >= forklift's current reading
+    const currentHourmeter = (jobData?.forklift as any)?.hourmeter || 0;
+    if (hourmeterReading < currentHourmeter) {
+      throw new Error(`Hourmeter reading (${hourmeterReading}) cannot be less than forklift's current reading (${currentHourmeter})`);
+    }
     
     // Update jobs table
     const { data, error } = await supabase

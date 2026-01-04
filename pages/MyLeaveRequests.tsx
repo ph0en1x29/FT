@@ -8,6 +8,7 @@ import {
   ROLE_PERMISSIONS,
 } from '../types_with_invoice_tracking';
 import { HRService } from '../services/hrService';
+import { showToast } from '../services/toastService';
 import {
   ArrowLeft,
   Calendar,
@@ -60,6 +61,7 @@ export default function MyLeaveRequests({ currentUser }: MyLeaveRequestsProps) {
       setLeaveTypes(typesData);
     } catch (error) {
       console.error('Error loading leave data:', error);
+      showToast.error('Failed to load leave data');
     } finally {
       setLoading(false);
     }
@@ -70,9 +72,10 @@ export default function MyLeaveRequests({ currentUser }: MyLeaveRequestsProps) {
       await HRService.cancelLeave(leaveId);
       setCancelModal({ isOpen: false, leaveId: null });
       loadData();
+      showToast.success('Leave request cancelled');
     } catch (error) {
       console.error('Error canceling leave:', error);
-      alert('Failed to cancel leave');
+      showToast.error('Failed to cancel leave');
     }
   };
   

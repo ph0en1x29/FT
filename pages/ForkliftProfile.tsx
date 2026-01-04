@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Forklift, ForkliftRental, Job, User, ForkliftStatus, RentalStatus, Customer, ScheduledService, UserRole, ROLE_PERMISSIONS, ForkliftServiceEntry } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
+import { showToast } from '../services/toastService';
 import { 
   ArrowLeft, Truck, MapPin, Gauge, Calendar, Wrench, 
   CheckCircle, Clock, AlertCircle, Building2, User as UserIcon,
