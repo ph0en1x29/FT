@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Job, JobStatus, UserRole, Part, JobPriority, JobType, SignatureEntry, User, ForkliftConditionChecklist, MediaCategory } from '../types_with_invoice_tracking';
+import { Job, JobStatus, UserRole, Part, JobPriority, JobType, SignatureEntry, User, ForkliftConditionChecklist, MediaCategory, JobRequest, JobRequestType } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { generateJobSummary } from '../services/geminiService';
 import { SignaturePad } from '../components/SignaturePad';
@@ -14,7 +14,8 @@ import {
   CheckCircle, Plus, Camera, PenTool, Box, DollarSign, BrainCircuit, 
   ShieldCheck, UserCheck, UserPlus, Edit2, Trash2, Save, X, FileText, 
   Info, FileDown, Truck, Gauge, ClipboardList, Receipt, Play, Clock, 
-  AlertTriangle, CheckSquare, Square, FileCheck, RefreshCw, Download, Filter
+  AlertTriangle, CheckSquare, Square, FileCheck, RefreshCw, Download, Filter,
+  HandHelping, Wrench, MessageSquarePlus, HelpCircle, Send
 } from 'lucide-react';
 
 interface JobDetailProps {
@@ -267,9 +268,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [isCurrentUserHelper, setIsCurrentUserHelper] = useState(false);
   const [helperAssignmentId, setHelperAssignmentId] = useState<string | null>(null);
 
+  // Job Request states (In-Job Request System)
+  const [jobRequests, setJobRequests] = useState<JobRequest[]>([]);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestType, setRequestType] = useState<JobRequestType>('spare_part');
+  const [requestDescription, setRequestDescription] = useState('');
+  const [requestPhotoUrl, setRequestPhotoUrl] = useState('');
+  const [submittingRequest, setSubmittingRequest] = useState(false);
+
   useEffect(() => {
     loadJob();
     loadParts();
+    loadRequests();
     if (currentUserRole === UserRole.ADMIN || currentUserRole === UserRole.SUPERVISOR) {
         loadTechnicians();
     }
@@ -327,6 +337,54 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const loadTechnicians = async () => {
       const data = await MockDb.getTechnicians();
       setTechnicians(data);
+  };
+
+  // Load job requests
+  const loadRequests = async () => {
+    if (!id) return;
+    const requests = await MockDb.getJobRequests(id);
+    setJobRequests(requests);
+  };
+
+  // Handle submitting a job request
+  const handleSubmitRequest = async () => {
+    if (!job || !requestDescription.trim()) {
+      showToast.error('Please enter a description');
+      return;
+    }
+
+    setSubmittingRequest(true);
+    try {
+      const result = await MockDb.createJobRequest(
+        job.job_id,
+        requestType,
+        currentUserId,
+        requestDescription.trim(),
+        requestPhotoUrl || undefined
+      );
+
+      if (result) {
+        showToast.success('Request submitted', 'Admin will review your request');
+        setShowRequestModal(false);
+        setRequestDescription('');
+        setRequestPhotoUrl('');
+        loadRequests();
+      } else {
+        showToast.error('Failed to submit request');
+      }
+    } catch (e) {
+      showToast.error('Error submitting request');
+    } finally {
+      setSubmittingRequest(false);
+    }
+  };
+
+  // Open request modal with specific type
+  const openRequestModal = (type: JobRequestType) => {
+    setRequestType(type);
+    setRequestDescription('');
+    setRequestPhotoUrl('');
+    setShowRequestModal(true);
   };
 
   // Handle opening the Start Job modal
@@ -1383,6 +1441,101 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             )}
           </div>
 
+          {/* Requests Section - Lead technician can request assistance/parts/skillful tech */}
+          {isInProgress && !isHelperOnly && (
+            <div className="bg-white rounded-xl shadow p-5">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                  <MessageSquarePlus className="w-5 h-5" /> Requests
+                </h3>
+                {jobRequests.filter(r => r.status === 'pending').length > 0 && (
+                  <span className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full">
+                    {jobRequests.filter(r => r.status === 'pending').length} pending
+                  </span>
+                )}
+              </div>
+              
+              {/* Request Buttons */}
+              {(isTechnician || isAdmin || isSupervisor) && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => openRequestModal('assistance')}
+                    className="flex items-center gap-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm hover:bg-blue-100"
+                  >
+                    <HandHelping className="w-4 h-4" /> Request Assistance
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openRequestModal('spare_part')}
+                    className="flex items-center gap-1 px-3 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm hover:bg-amber-100"
+                  >
+                    <Wrench className="w-4 h-4" /> Request Spare Part
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openRequestModal('skillful_technician')}
+                    className="flex items-center gap-1 px-3 py-2 bg-purple-50 text-purple-700 rounded-lg text-sm hover:bg-purple-100"
+                  >
+                    <HelpCircle className="w-4 h-4" /> Request Skillful Tech
+                  </button>
+                </div>
+              )}
+
+              {/* Existing Requests */}
+              {jobRequests.length > 0 ? (
+                <div className="space-y-2">
+                  {jobRequests.map(req => (
+                    <div key={req.request_id} className={`p-3 rounded-lg border ${
+                      req.status === 'pending' ? 'bg-amber-50 border-amber-200' :
+                      req.status === 'approved' ? 'bg-green-50 border-green-200' :
+                      'bg-red-50 border-red-200'
+                    }`}>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                            req.request_type === 'assistance' ? 'bg-blue-100 text-blue-700' :
+                            req.request_type === 'spare_part' ? 'bg-amber-100 text-amber-700' :
+                            'bg-purple-100 text-purple-700'
+                          }`}>
+                            {req.request_type === 'assistance' ? 'Assistance' :
+                             req.request_type === 'spare_part' ? 'Spare Part' : 'Skillful Tech'}
+                          </span>
+                          <span className={`ml-2 px-2 py-0.5 rounded text-xs ${
+                            req.status === 'pending' ? 'bg-amber-200 text-amber-800' :
+                            req.status === 'approved' ? 'bg-green-200 text-green-800' :
+                            'bg-red-200 text-red-800'
+                          }`}>
+                            {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                          </span>
+                        </div>
+                        <span className="text-xs text-slate-500">
+                          {new Date(req.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-700 mt-2">{req.description}</p>
+                      {req.photo_url && (
+                        <img src={req.photo_url} alt="Request" className="mt-2 h-20 w-20 object-cover rounded" />
+                      )}
+                      {req.admin_response_notes && (
+                        <p className="text-xs text-slate-600 mt-2 italic">
+                          Admin: {req.admin_response_notes}
+                        </p>
+                      )}
+                      {req.admin_response_part && (
+                        <p className="text-xs text-green-700 mt-1">
+                          Approved: {req.admin_response_quantity}x {req.admin_response_part.name}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-400 text-sm text-center py-2">No requests yet</p>
+              )}
+            </div>
+          )}
+
           {/* Parts Section */}
           <div className="bg-white rounded-xl shadow p-5">
             <div className="flex justify-between items-center mb-4">
@@ -1943,6 +2096,73 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 className="flex-1 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <UserPlus className="w-4 h-4" /> Assign Helper
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Request Modal */}
+      {showRequestModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
+              {requestType === 'assistance' && <><HandHelping className="w-5 h-5 text-blue-600" /> Request Assistance</>}
+              {requestType === 'spare_part' && <><Wrench className="w-5 h-5 text-amber-600" /> Request Spare Part</>}
+              {requestType === 'skillful_technician' && <><HelpCircle className="w-5 h-5 text-purple-600" /> Request Skillful Technician</>}
+            </h4>
+            <p className="text-sm text-slate-600 mb-4">
+              {requestType === 'assistance' && 'Request a helper technician to assist with this job.'}
+              {requestType === 'spare_part' && 'Describe the part needed. Admin will select from inventory and approve.'}
+              {requestType === 'skillful_technician' && 'Request job reassignment to a more skilled technician.'}
+            </p>
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Description <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={requestDescription}
+                onChange={(e) => setRequestDescription(e.target.value)}
+                placeholder={
+                  requestType === 'assistance' ? 'e.g., Need help with heavy lifting, complex wiring...' :
+                  requestType === 'spare_part' ? 'e.g., Hydraulic seal leaking, need replacement. Part looks like...' :
+                  'e.g., Electrical issue beyond my expertise, need certified electrician...'
+                }
+                className="w-full px-3 py-2 border rounded-lg text-sm resize-none h-24"
+              />
+            </div>
+            {requestType === 'spare_part' && (
+              <div className="mb-4">
+                <label className="text-sm font-medium text-slate-700 mb-2 block">Photo URL (optional)</label>
+                <input
+                  type="text"
+                  value={requestPhotoUrl}
+                  onChange={(e) => setRequestPhotoUrl(e.target.value)}
+                  placeholder="Paste image URL of the faulty component"
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                />
+                <p className="text-xs text-slate-500 mt-1">Tip: Upload photo to job first, then copy URL</p>
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button 
+                type="button" 
+                onClick={() => { setShowRequestModal(false); setRequestDescription(''); setRequestPhotoUrl(''); }} 
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleSubmitRequest}
+                disabled={!requestDescription.trim() || submittingRequest}
+                className={`flex-1 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2 ${
+                  requestType === 'assistance' ? 'bg-blue-600 hover:bg-blue-700' :
+                  requestType === 'spare_part' ? 'bg-amber-600 hover:bg-amber-700' :
+                  'bg-purple-600 hover:bg-purple-700'
+                }`}
+              >
+                <Send className="w-4 h-4" /> {submittingRequest ? 'Submitting...' : 'Submit Request'}
               </button>
             </div>
           </div>

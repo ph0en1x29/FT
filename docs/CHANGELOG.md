@@ -131,6 +131,35 @@ All notable changes, decisions, and client requirements for this project.
 - **DB Migration Required:** Run `add_job_assignments.sql` in Supabase SQL Editor
 - **Access:** Technician (as helper), Admin/Supervisor (assign/remove)
 
+#### #2 + #3 In-Job Request System + Spare Parts Approval - ✔️ COMPLETED
+- **Files created:**
+  - `database/migrations/add_job_requests.sql` - Job requests table with RLS
+- **Files modified:**
+  - `types_with_invoice_tracking.ts` - Added `JobRequest`, `JobRequestType`, `JobRequestStatus` types
+  - `services/supabaseService.ts`:
+    - `createJobRequest()` - Create assistance/spare_part/skillful_technician request
+    - `getJobRequests()` - Get all requests for a job with user/part details
+    - `getPendingRequests()` - Get pending requests for admin dashboard
+    - `approveSparePartRequest()` - Approve and add part to job's parts_used
+    - `rejectRequest()` - Reject with reason
+    - `approveAssistanceRequest()` - Approve and assign helper
+    - `getRequestCounts()` - Get pending/total counts for badges
+  - `pages/JobDetail.tsx`:
+    - Added Requests section with 3 request buttons (visible during In Progress)
+    - Request buttons: "Request Assistance", "Request Spare Part", "Request Skillful Tech"
+    - Request list showing all requests with status badges
+    - Request modal for creating new requests with description + optional photo
+    - Color-coded request types and statuses
+- **Features:**
+  - 3 request types: assistance, spare_part, skillful_technician
+  - Lead technician can create requests during In Progress status
+  - Requests show pending count badge
+  - Each request shows type, status, timestamp, description, photo (if any)
+  - Approved spare parts auto-added to job's parts_used with `added_via_request` tracking
+  - Admin response notes visible on resolved requests
+- **DB Migration Required:** Run `add_job_requests.sql` in Supabase SQL Editor
+- **Access:** Technician (create), Admin/Supervisor (approve/reject)
+
 ### Bugfixes (2026-01-04) - Helper Technician RLS & Schema Fixes
 - ✔️ **RLS Policy Fix** - Fixed `job_assignments` policies that would block production access
   - Changed `users.user_id = auth.uid()` → `users.auth_id = auth.uid()` (correct auth mapping)

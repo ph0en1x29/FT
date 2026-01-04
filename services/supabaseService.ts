@@ -3422,4 +3422,283 @@ export const SupabaseDb = {
       return null;
     }
   },
+
+  // =====================
+  // JOB REQUESTS (In-Job Request System)
+  // =====================
+
+  // Create a new job request
+  createJobRequest: async (
+    jobId: string,
+    requestType: 'assistance' | 'spare_part' | 'skillful_technician',
+    requestedBy: string,
+    description: string,
+    photoUrl?: string
+  ): Promise<{ request_id: string } | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('job_requests')
+        .insert({
+          job_id: jobId,
+          request_type: requestType,
+          requested_by: requestedBy,
+          description: description,
+          photo_url: photoUrl || null,
+          status: 'pending',
+        })
+        .select('request_id')
+        .single();
+
+      if (error) {
+        console.error('Failed to create job request:', error.message);
+        return null;
+      }
+      return data;
+    } catch (e) {
+      console.error('Job request create error:', e);
+      return null;
+    }
+  },
+
+  // Get all requests for a job
+  getJobRequests: async (jobId: string): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('job_requests')
+        .select(`
+          *,
+          requested_by_user:users!job_requests_requested_by_fkey(user_id, name, full_name),
+          responded_by_user:users!job_requests_responded_by_fkey(user_id, name, full_name),
+          admin_response_part:parts!job_requests_admin_response_part_id_fkey(part_id, name, sell_price)
+        `)
+        .eq('job_id', jobId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Failed to get job requests:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (e) {
+      console.error('Job requests fetch error:', e);
+      return [];
+    }
+  },
+
+  // Get pending requests for admin dashboard
+  getPendingRequests: async (): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('job_requests')
+        .select(`
+          *,
+          job:jobs(job_id, description, status, forklift:forklifts(serial_number, make, model)),
+          requested_by_user:users!job_requests_requested_by_fkey(user_id, name, full_name)
+        `)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Failed to get pending requests:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (e) {
+      console.error('Pending requests fetch error:', e);
+      return [];
+    }
+  },
+
+  // Approve a spare part request
+  approveSparePartRequest: async (
+    requestId: string,
+    adminUserId: string,
+    partId: string,
+    quantity: number,
+    notes?: string
+  ): Promise<boolean> => {
+    try {
+      // Get the request to find job_id
+      const { data: request, error: reqError } = await supabase
+        .from('job_requests')
+        .select('job_id, requested_by')
+        .eq('request_id', requestId)
+        .single();
+
+      if (reqError || !request) {
+        console.error('Request not found:', reqError?.message);
+        return false;
+      }
+
+      // Get part details
+      const { data: part, error: partError } = await supabase
+        .from('parts')
+        .select('name, sell_price')
+        .eq('part_id', partId)
+        .single();
+
+      if (partError || !part) {
+        console.error('Part not found:', partError?.message);
+        return false;
+      }
+
+      // Update request status
+      const { error: updateError } = await supabase
+        .from('job_requests')
+        .update({
+          status: 'approved',
+          admin_response_part_id: partId,
+          admin_response_quantity: quantity,
+          admin_response_notes: notes || null,
+          responded_by: adminUserId,
+          responded_at: new Date().toISOString(),
+        })
+        .eq('request_id', requestId);
+
+      if (updateError) {
+        console.error('Failed to update request:', updateError.message);
+        return false;
+      }
+
+      // Add part to job's parts_used
+      const { data: job, error: jobError } = await supabase
+        .from('jobs')
+        .select('parts_used')
+        .eq('job_id', request.job_id)
+        .single();
+
+      if (jobError) {
+        console.error('Failed to get job:', jobError.message);
+        return false;
+      }
+
+      const currentParts = job?.parts_used || [];
+      const newPart = {
+        part_id: partId,
+        part_name: part.name,
+        quantity: quantity,
+        sell_price_at_time: part.sell_price,
+        added_via_request: requestId,
+      };
+
+      const { error: partsError } = await supabase
+        .from('jobs')
+        .update({
+          parts_used: [...currentParts, newPart],
+        })
+        .eq('job_id', request.job_id);
+
+      if (partsError) {
+        console.error('Failed to add part to job:', partsError.message);
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      console.error('Approve spare part request error:', e);
+      return false;
+    }
+  },
+
+  // Reject a request
+  rejectRequest: async (
+    requestId: string,
+    adminUserId: string,
+    reason: string
+  ): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('job_requests')
+        .update({
+          status: 'rejected',
+          admin_response_notes: reason,
+          responded_by: adminUserId,
+          responded_at: new Date().toISOString(),
+        })
+        .eq('request_id', requestId);
+
+      if (error) {
+        console.error('Failed to reject request:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Reject request error:', e);
+      return false;
+    }
+  },
+
+  // Approve assistance request (assigns helper)
+  approveAssistanceRequest: async (
+    requestId: string,
+    adminUserId: string,
+    helperTechnicianId: string,
+    notes?: string
+  ): Promise<boolean> => {
+    try {
+      // Get the request to find job_id
+      const { data: request, error: reqError } = await supabase
+        .from('job_requests')
+        .select('job_id')
+        .eq('request_id', requestId)
+        .single();
+
+      if (reqError || !request) {
+        console.error('Request not found:', reqError?.message);
+        return false;
+      }
+
+      // Update request status
+      const { error: updateError } = await supabase
+        .from('job_requests')
+        .update({
+          status: 'approved',
+          admin_response_notes: notes || null,
+          responded_by: adminUserId,
+          responded_at: new Date().toISOString(),
+        })
+        .eq('request_id', requestId);
+
+      if (updateError) {
+        console.error('Failed to update request:', updateError.message);
+        return false;
+      }
+
+      // Assign helper using existing function
+      const result = await SupabaseDb.assignHelperToJob(
+        request.job_id,
+        helperTechnicianId,
+        adminUserId,
+        notes || 'Assigned via assistance request'
+      );
+
+      return result !== null;
+    } catch (e) {
+      console.error('Approve assistance request error:', e);
+      return false;
+    }
+  },
+
+  // Get request counts by status for badge display
+  getRequestCounts: async (): Promise<{ pending: number; total: number }> => {
+    try {
+      const { count: pending, error: pendingError } = await supabase
+        .from('job_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      const { count: total, error: totalError } = await supabase
+        .from('job_requests')
+        .select('*', { count: 'exact', head: true });
+
+      if (pendingError || totalError) {
+        return { pending: 0, total: 0 };
+      }
+
+      return { pending: pending || 0, total: total || 0 };
+    } catch (e) {
+      console.error('Request counts error:', e);
+      return { pending: 0, total: 0 };
+    }
+  },
 };

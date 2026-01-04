@@ -46,8 +46,8 @@
 | ✅ Service Intervals Config | Completed |
 | ✅ Hourmeter Prediction + Dashboard | Completed |
 | ✅ Photo Categorization + ZIP Download | Completed |
-| 🔨 Helper Technician support | In Progress |
-| ⏳ In-Job Request System (Assistance, Spare Parts) | Planned |
+| ✅ Helper Technician support | Completed |
+| ✅ In-Job Request System (Assistance, Spare Parts) | Completed |
 | ⏳ Multi-Day Jobs with escalation | Planned |
 | ⏳ Deferred Customer Acknowledgement | Planned |
 | ⏳ Job Reassignment (Full) | Planned |
