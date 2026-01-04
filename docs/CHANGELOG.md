@@ -64,7 +64,7 @@ All notable changes, decisions, and client requirements for this project.
 
 #### #10 Photo Categorization + ZIP Download - ✔️ COMPLETED
 - **Files created:**
-  - `database/migrations/add_job_media_category.sql` - DB migration to add category column
+  - `database/migrations/add_job_media_category.sql` - DB migration (production-safe, idempotent)
 - **Files modified:**
   - `types_with_invoice_tracking.ts` - Added `MediaCategory` type and `category` field to `JobMedia`
   - `pages/JobDetail.tsx`:
@@ -72,16 +72,26 @@ All notable changes, decisions, and client requirements for this project.
     - Added category selector dropdown when uploading photos
     - Added category badges on photo thumbnails
     - Added "Download ZIP" button with category-organized folders
+    - Added `getDefaultPhotoCategory()` helper for status-linked defaults
     - Uses JSZip for client-side ZIP generation
   - `package.json` - Added `jszip` dependency
 - **Features:**
   - 6 photo categories: `before`, `after`, `spare_part`, `condition`, `evidence`, `other`
   - Color-coded category badges on each photo
   - Filter photos by category with count indicators
-  - Category selector when uploading (visible during In Progress status)
+  - **Status-linked default category (auto-suggest with user override):**
+    - New / Assigned → `before` (pre-service documentation)
+    - In Progress (first 30 min) → `before`
+    - In Progress (after 30 min) → `other` (user picks)
+    - Awaiting Finalization → `after` (post-service documentation)
+  - Photo upload available for: New, Assigned, In Progress, Awaiting Finalization
   - Download all photos as ZIP with folders per category
   - Filtered downloads respect current category filter
-- **DB Migration Required:** Run `add_job_media_category.sql` before use
+- **DB Migration (production-safe):**
+  - Adds column as nullable first, backfills, then sets NOT NULL DEFAULT 'other'
+  - CHECK constraint for valid category values
+  - Index on (job_id, category) for filtered queries
+  - Run `add_job_media_category.sql` in Supabase SQL Editor before use
 - **Access:** Technician, Admin, Supervisor
 
 ### Documentation

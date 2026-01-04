@@ -143,6 +143,42 @@ const PHOTO_CATEGORIES = [
   { value: 'other', label: 'Other', color: 'bg-slate-500' },
 ];
 
+// Status-linked default category for photo uploads (ACWER workflow)
+// - New / Assigned → before
+// - In Progress (first 30 min) → before
+// - In Progress (after 30 min) → other (user picks)
+// - Awaiting Finalization → after
+const getDefaultPhotoCategory = (job: Job | null): MediaCategory => {
+  if (!job) return 'other';
+  
+  const status = job.status;
+  
+  // New or Assigned: default to "before" (pre-service documentation)
+  if (status === JobStatus.NEW || status === JobStatus.ASSIGNED) {
+    return 'before';
+  }
+  
+  // In Progress: check if within first 30 minutes
+  if (status === JobStatus.IN_PROGRESS) {
+    const startTime = job.actual_start_time ? new Date(job.actual_start_time) : null;
+    if (startTime) {
+      const now = new Date();
+      const minutesSinceStart = (now.getTime() - startTime.getTime()) / (1000 * 60);
+      if (minutesSinceStart <= 30) {
+        return 'before'; // Still in early phase, likely documenting initial state
+      }
+    }
+    return 'other'; // After 30 min, let user pick
+  }
+  
+  // Awaiting Finalization: default to "after" (post-service documentation)
+  if (status === JobStatus.AWAITING_FINALIZATION) {
+    return 'after';
+  }
+  
+  return 'other';
+};
+
 const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const currentUserRole = currentUser.role;
   const currentUserId = currentUser.user_id;
@@ -232,6 +268,14 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, currentUserRole]);
+
+  // Update default photo category when job loads or status changes
+  useEffect(() => {
+    if (job) {
+      const defaultCategory = getDefaultPhotoCategory(job);
+      setUploadPhotoCategory(defaultCategory);
+    }
+  }, [job?.status, job?.actual_start_time]);
 
   const loadJob = async () => {
     if (!id) return;
@@ -1407,13 +1451,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                       </div>
                     );
                   })}
-                {/* Upload Button with Category Selector */}
-                {isInProgress && (
+                {/* Upload Button with Category Selector - Available for active jobs */}
+                {(isNew || isAssigned || isInProgress || isAwaitingFinalization) && (
                   <div className="border-2 border-dashed border-slate-300 rounded flex flex-col items-center justify-center h-24 text-slate-400">
                     <select
                       value={uploadPhotoCategory}
                       onChange={(e) => setUploadPhotoCategory(e.target.value)}
-                      className="text-[10px] mb-1 px-1 py-0.5 border rounded bg-white text-slate-600 w-20"
+                      className="text-[10px] mb-1 px-1 py-0.5 border rounded bg-white text-slate-600 w-24"
                     >
                       {PHOTO_CATEGORIES.map(cat => (
                         <option key={cat.value} value={cat.value}>{cat.label}</option>
