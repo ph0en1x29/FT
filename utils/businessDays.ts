@@ -8,6 +8,16 @@
  */
 
 /**
+ * Format date to YYYY-MM-DD in local timezone (not UTC)
+ */
+export function formatDateLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Check if a date is a Sunday
  */
 export function isSunday(date: Date): boolean {
@@ -20,7 +30,7 @@ export function isSunday(date: Date): boolean {
  * @param holidays - Array of holiday date strings (YYYY-MM-DD format)
  */
 export function isHoliday(date: Date, holidays: string[]): boolean {
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = formatDateLocal(date);
   return holidays.includes(dateStr);
 }
 

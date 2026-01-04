@@ -39,7 +39,7 @@ CREATE INDEX IF NOT EXISTS idx_public_holidays_year ON public_holidays(year);
 -- Index jobs that need escalation checking (not yet escalated, active status)
 CREATE INDEX IF NOT EXISTS idx_jobs_pending_escalation ON jobs(escalation_triggered_at) 
 WHERE escalation_triggered_at IS NULL 
-  AND status IN ('Assigned', 'In Progress');
+  AND status IN ('Assigned', 'In Progress', 'Incomplete - Continuing');
 
 -- =============================================================================
 -- STEP 4: Seed Malaysian Public Holidays 2025-2026

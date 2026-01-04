@@ -3805,18 +3805,33 @@ export const SupabaseDb = {
     try {
       const now = new Date().toISOString();
       
-      // Update job status and set cutoff time
+      // Fetch current notes (JSONB)
+      const { data: job, error: fetchError } = await supabase
+        .from('jobs')
+        .select('notes')
+        .eq('job_id', jobId)
+        .single();
+      
+      if (fetchError) {
+        console.error('Failed to fetch job notes:', fetchError.message);
+        return false;
+      }
+      
+      // Append new note to JSONB array
+      const currentNotes = Array.isArray(job?.notes) ? job.notes : [];
+      const updatedNotes = [...currentNotes, {
+        text: `Job marked to continue: ${reason}`,
+        created_at: now,
+        created_by: userName
+      }];
+      
+      // Update job status, cutoff time, and notes
       const { error } = await supabase
         .from('jobs')
         .update({
           status: 'Incomplete - Continuing',
           cutoff_time: now,
-          // Add note about continuation
-          notes: supabase.sql`array_append(notes, ${JSON.stringify({
-            text: `Job marked to continue: ${reason}`,
-            created_at: now,
-            created_by: userName
-          })})`
+          notes: updatedNotes
         })
         .eq('job_id', jobId);
 
@@ -3836,16 +3851,31 @@ export const SupabaseDb = {
     try {
       const now = new Date().toISOString();
       
+      // Fetch current notes (JSONB)
+      const { data: job, error: fetchError } = await supabase
+        .from('jobs')
+        .select('notes')
+        .eq('job_id', jobId)
+        .single();
+      
+      if (fetchError) {
+        console.error('Failed to fetch job notes:', fetchError.message);
+        return false;
+      }
+      
+      // Append new note to JSONB array
+      const currentNotes = Array.isArray(job?.notes) ? job.notes : [];
+      const updatedNotes = [...currentNotes, {
+        text: 'Job resumed',
+        created_at: now,
+        created_by: userName
+      }];
+      
       const { error } = await supabase
         .from('jobs')
         .update({
           status: 'In Progress',
-          // Add note about resumption
-          notes: supabase.sql`array_append(notes, ${JSON.stringify({
-            text: 'Job resumed',
-            created_at: now,
-            created_by: userName
-          })})`
+          notes: updatedNotes
         })
         .eq('job_id', jobId);
 
