@@ -197,6 +197,7 @@ All notable changes, decisions, and client requirements for this project.
   - SLA: Configurable, default 5 business days
 - **DB Migration Required:** Run `add_multiday_escalation.sql` in Supabase SQL Editor
 - **Access:** Technician (continue/resume), Admin/Supervisor (overtime toggle, view escalations)
+- **Note:** Escalation check runs on Dashboard load (MVP). Upgrade to Edge Function cron with Supabase Pro for automatic 8 AM daily checks.
 
 ### Bugfixes (2026-01-04) - Request System Schema & UI Fixes
 - ✔️ **Fixed Spare Part Approval** - Was writing to non-existent `jobs.parts_used` column

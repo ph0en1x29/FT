@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell 
 } from 'recharts';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Clock } from 'lucide-react';
 import { UserRole, Job, JobStatus, User } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import ServiceAutomationWidget from '../components/ServiceAutomationWidget';
@@ -17,11 +17,41 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [escalatedJobs, setEscalatedJobs] = useState<any[]>([]);
+  const [escalationChecked, setEscalationChecked] = useState(false);
   const navigate = useNavigate();
+
+  const isAdmin = role === UserRole.ADMIN;
+  const isSupervisor = role === UserRole.SUPERVISOR;
 
   useEffect(() => {
     loadDashboardData();
   }, [currentUser]);
+
+  // Check escalations on load (Admin/Supervisor only)
+  useEffect(() => {
+    if ((isAdmin || isSupervisor) && !escalationChecked) {
+      checkEscalations();
+    }
+  }, [isAdmin, isSupervisor, escalationChecked]);
+
+  const checkEscalations = async () => {
+    try {
+      const result = await MockDb.checkAndTriggerEscalations();
+      if (result.escalated > 0) {
+        showToast.warning(
+          `${result.escalated} job(s) escalated`,
+          'Jobs exceeded time limit without completion'
+        );
+      }
+      // Load all escalated jobs for display
+      const allEscalated = await MockDb.getEscalatedJobs();
+      setEscalatedJobs(allEscalated);
+      setEscalationChecked(true);
+    } catch (e) {
+      console.error('Escalation check error:', e);
+    }
+  };
 
   const loadDashboardData = async () => {
     try {
@@ -195,6 +225,46 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
           )}
         </div>
       </div>
+
+      {/* Escalated Jobs Alert - Admin/Supervisor only */}
+      {(isAdmin || isSupervisor) && escalatedJobs.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
+            <h3 className="font-semibold text-red-800">
+              Escalated Jobs ({escalatedJobs.length})
+            </h3>
+          </div>
+          <p className="text-sm text-red-600 mb-3">
+            These jobs exceeded their time limit without completion and require attention.
+          </p>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {escalatedJobs.map(job => (
+              <div 
+                key={job.job_id}
+                onClick={() => navigate(`/jobs/${job.job_id}`)}
+                className="flex justify-between items-center p-3 bg-white rounded-lg border border-red-200 hover:border-red-400 cursor-pointer transition-all"
+              >
+                <div className="flex-1">
+                  <p className="font-medium text-red-800">{job.title}</p>
+                  <p className="text-xs text-red-600">
+                    {job.customer?.name || 'No Customer'} • {job.assigned_technician_name || 'Unassigned'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full">
+                    {job.status}
+                  </span>
+                  <p className="text-xs text-red-500 mt-1">
+                    <Clock className="w-3 h-3 inline mr-1" />
+                    {new Date(job.escalation_triggered_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Service Automation Widget & Recent Jobs - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

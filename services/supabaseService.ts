@@ -3984,4 +3984,103 @@ export const SupabaseDb = {
       return [];
     }
   },
+
+  // Check and trigger escalations (called from Dashboard)
+  // Returns: { checked: number, escalated: number, jobs: array }
+  checkAndTriggerEscalations: async (): Promise<{ checked: number; escalated: number; jobs: any[] }> => {
+    try {
+      // 1. Get holidays for current year
+      const currentYear = new Date().getFullYear();
+      const { data: holidayData } = await supabase
+        .from('public_holidays')
+        .select('holiday_date')
+        .gte('year', currentYear - 1)
+        .lte('year', currentYear + 1);
+      
+      const holidays = (holidayData || []).map(h => h.holiday_date);
+
+      // 2. Get jobs needing escalation check
+      const { data: jobs, error } = await supabase
+        .from('jobs')
+        .select(`
+          job_id, title, status, created_at, scheduled_date, cutoff_time,
+          is_overtime, escalation_triggered_at,
+          assigned_technician_id, assigned_technician_name,
+          customer:customers(name)
+        `)
+        .is('escalation_triggered_at', null)
+        .is('deleted_at', null)
+        .eq('is_overtime', false)
+        .in('status', ['Assigned', 'In Progress', 'Incomplete - Continuing']);
+
+      if (error || !jobs) {
+        console.error('Failed to get jobs for escalation:', error?.message);
+        return { checked: 0, escalated: 0, jobs: [] };
+      }
+
+      // 3. Check each job against escalation rules
+      const now = new Date();
+      const escalatedJobs: any[] = [];
+
+      for (const job of jobs) {
+        // Use cutoff_time if continuing, otherwise scheduled_date or created_at
+        const referenceDate = job.cutoff_time 
+          ? new Date(job.cutoff_time)
+          : job.scheduled_date 
+            ? new Date(job.scheduled_date)
+            : new Date(job.created_at);
+
+        // Calculate next business day 8 AM
+        const escalationTime = getNextBusinessDay8AM(referenceDate, holidays);
+
+        if (now >= escalationTime) {
+          // Trigger escalation
+          const { error: updateError } = await supabase
+            .from('jobs')
+            .update({ escalation_triggered_at: now.toISOString() })
+            .eq('job_id', job.job_id);
+
+          if (!updateError) {
+            escalatedJobs.push(job);
+          }
+        }
+      }
+
+      return { 
+        checked: jobs.length, 
+        escalated: escalatedJobs.length, 
+        jobs: escalatedJobs 
+      };
+    } catch (e) {
+      console.error('Check escalations error:', e);
+      return { checked: 0, escalated: 0, jobs: [] };
+    }
+  },
 };
+
+// Helper: Get next business day at 8 AM (used by escalation check)
+function getNextBusinessDay8AM(date: Date, holidays: string[]): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + 1);
+  
+  // Skip Sundays and holidays
+  while (isSundayLocal(next) || isHolidayLocal(next, holidays)) {
+    next.setDate(next.getDate() + 1);
+  }
+  
+  // Set to 8:00 AM local time
+  next.setHours(8, 0, 0, 0);
+  return next;
+}
+
+function isSundayLocal(date: Date): boolean {
+  return date.getDay() === 0;
+}
+
+function isHolidayLocal(date: Date, holidays: string[]): boolean {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`;
+  return holidays.includes(dateStr);
+}
