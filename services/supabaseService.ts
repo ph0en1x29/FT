@@ -3629,6 +3629,34 @@ export const SupabaseDb = {
     }
   },
 
+  // Acknowledge skillful technician request (marks as approved, reassignment done separately)
+  acknowledgeSkillfulTechRequest: async (
+    requestId: string,
+    adminUserId: string,
+    notes?: string
+  ): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('job_requests')
+        .update({
+          status: 'approved',
+          admin_response_notes: notes || 'Acknowledged - Job will be reassigned to skilled technician',
+          responded_by: adminUserId,
+          responded_at: new Date().toISOString(),
+        })
+        .eq('request_id', requestId);
+
+      if (error) {
+        console.error('Failed to acknowledge skillful tech request:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Acknowledge skillful tech request error:', e);
+      return false;
+    }
+  },
+
   // Approve assistance request (assigns helper)
   approveAssistanceRequest: async (
     requestId: string,

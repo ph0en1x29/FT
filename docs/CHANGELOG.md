@@ -180,7 +180,9 @@ All notable changes, decisions, and client requirements for this project.
     - Info panel (for skillful_technician requests - requires separate reassignment)
     - Notes field
   - File: `pages/JobDetail.tsx`
-- **Deferred:** Skillful technician approval triggers existing Job Reassignment feature (not auto-reassign)
+- ✔️ **Added `acknowledgeSkillfulTechRequest()`** - Sets status to 'approved' (not 'rejected')
+  - Skillful tech requests are now properly marked as approved/acknowledged
+  - File: `services/supabaseService.ts`
 
 ### Bugfixes (2026-01-04) - Helper Technician RLS & Schema Fixes
 - ✔️ **RLS Policy Fix** - Fixed `job_assignments` policies that would block production access

@@ -441,8 +441,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             approvalNotes || undefined
           );
         } else if (approvalRequest.request_type === 'skillful_technician') {
-          // For skillful tech, we just approve the request - actual reassignment is separate
-          success = await MockDb.rejectRequest(
+          // For skillful tech, mark as approved/acknowledged - actual reassignment is separate
+          success = await MockDb.acknowledgeSkillfulTechRequest(
             approvalRequest.request_id,
             currentUserId,
             approvalNotes || 'Acknowledged - Job will be reassigned'
