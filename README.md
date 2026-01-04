@@ -40,12 +40,17 @@
 - Light/Dark theme
 
 ### Coming in v1.1 (ACWER Workflow)
-- Helper Technician support
-- In-Job Request System (Assistance, Spare Parts, Skillful Tech)
-- Multi-Day Jobs with escalation
-- Deferred Customer Acknowledgement
-- Service prediction by forklift type
-- KPI Dashboard
+
+| Feature | Status |
+|---------|--------|
+| ✅ Service Intervals Config | Completed |
+| ✅ Hourmeter Prediction + Dashboard | Completed |
+| ✅ Photo Categorization + ZIP Download | Completed |
+| 🔨 Helper Technician support | In Progress |
+| ⏳ In-Job Request System (Assistance, Spare Parts) | Planned |
+| ⏳ Multi-Day Jobs with escalation | Planned |
+| ⏳ Deferred Customer Acknowledgement | Planned |
+| ⏳ Job Reassignment (Full) | Planned |
 
 ---
 
