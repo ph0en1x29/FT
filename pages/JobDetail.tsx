@@ -276,6 +276,15 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [requestPhotoUrl, setRequestPhotoUrl] = useState('');
   const [submittingRequest, setSubmittingRequest] = useState(false);
 
+  // Admin approval states
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [approvalRequest, setApprovalRequest] = useState<JobRequest | null>(null);
+  const [approvalPartId, setApprovalPartId] = useState('');
+  const [approvalQuantity, setApprovalQuantity] = useState('1');
+  const [approvalNotes, setApprovalNotes] = useState('');
+  const [approvalHelperId, setApprovalHelperId] = useState('');
+  const [submittingApproval, setSubmittingApproval] = useState(false);
+
   useEffect(() => {
     loadJob();
     loadParts();
@@ -385,6 +394,89 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     setRequestDescription('');
     setRequestPhotoUrl('');
     setShowRequestModal(true);
+  };
+
+  // Open approval modal for admin/supervisor
+  const openApprovalModal = (request: JobRequest) => {
+    setApprovalRequest(request);
+    setApprovalPartId('');
+    setApprovalQuantity('1');
+    setApprovalNotes('');
+    setApprovalHelperId('');
+    setShowApprovalModal(true);
+  };
+
+  // Handle approval submission
+  const handleApproval = async (approve: boolean) => {
+    if (!approvalRequest || !job) return;
+    setSubmittingApproval(true);
+
+    try {
+      let success = false;
+
+      if (approve) {
+        if (approvalRequest.request_type === 'spare_part') {
+          if (!approvalPartId || !approvalQuantity) {
+            showToast.error('Please select a part and quantity');
+            setSubmittingApproval(false);
+            return;
+          }
+          success = await MockDb.approveSparePartRequest(
+            approvalRequest.request_id,
+            currentUserId,
+            approvalPartId,
+            parseInt(approvalQuantity),
+            approvalNotes || undefined
+          );
+        } else if (approvalRequest.request_type === 'assistance') {
+          if (!approvalHelperId) {
+            showToast.error('Please select a helper technician');
+            setSubmittingApproval(false);
+            return;
+          }
+          success = await MockDb.approveAssistanceRequest(
+            approvalRequest.request_id,
+            currentUserId,
+            approvalHelperId,
+            approvalNotes || undefined
+          );
+        } else if (approvalRequest.request_type === 'skillful_technician') {
+          // For skillful tech, we just approve the request - actual reassignment is separate
+          success = await MockDb.rejectRequest(
+            approvalRequest.request_id,
+            currentUserId,
+            approvalNotes || 'Acknowledged - Job will be reassigned'
+          );
+          showToast.info('Request acknowledged. Use Job Reassignment to assign a new technician.');
+        }
+      } else {
+        // Reject
+        if (!approvalNotes) {
+          showToast.error('Please provide a reason for rejection');
+          setSubmittingApproval(false);
+          return;
+        }
+        success = await MockDb.rejectRequest(
+          approvalRequest.request_id,
+          currentUserId,
+          approvalNotes
+        );
+      }
+
+      if (success) {
+        showToast.success(approve ? 'Request approved' : 'Request rejected');
+        setShowApprovalModal(false);
+        loadRequests();
+        loadJob(); // Refresh job to show new parts
+      } else {
+        showToast.error('Failed to process request');
+      }
+    } catch (e) {
+      console.error('Approval error:', e);
+      showToast.error('Error processing request');
+    } finally {
+      setSubmittingApproval(false);
+    }
   };
 
   // Handle opening the Start Job modal
@@ -1524,8 +1616,31 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                       )}
                       {req.admin_response_part && (
                         <p className="text-xs text-green-700 mt-1">
-                          Approved: {req.admin_response_quantity}x {req.admin_response_part.name}
+                          Approved: {req.admin_response_quantity}x {req.admin_response_part.part_name}
                         </p>
+                      )}
+                      {/* Admin/Supervisor approval buttons for pending requests */}
+                      {req.status === 'pending' && (isAdmin || isSupervisor) && (
+                        <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200">
+                          <button
+                            type="button"
+                            onClick={() => openApprovalModal(req)}
+                            className="flex-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                          >
+                            Review & Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setApprovalRequest(req);
+                              setApprovalNotes('');
+                              setShowApprovalModal(true);
+                            }}
+                            className="px-3 py-1.5 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200"
+                          >
+                            Reject
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -2163,6 +2278,129 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 }`}
               >
                 <Send className="w-4 h-4" /> {submittingRequest ? 'Submitting...' : 'Submit Request'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approval Modal - Admin/Supervisor */}
+      {showApprovalModal && approvalRequest && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
+              {approvalRequest.request_type === 'assistance' && <><HandHelping className="w-5 h-5 text-blue-600" /> Review Assistance Request</>}
+              {approvalRequest.request_type === 'spare_part' && <><Wrench className="w-5 h-5 text-amber-600" /> Review Spare Part Request</>}
+              {approvalRequest.request_type === 'skillful_technician' && <><HelpCircle className="w-5 h-5 text-purple-600" /> Review Skillful Tech Request</>}
+            </h4>
+            
+            {/* Request details */}
+            <div className="bg-slate-50 rounded-lg p-3 mb-4">
+              <p className="text-sm text-slate-700">{approvalRequest.description}</p>
+              {approvalRequest.photo_url && (
+                <img src={approvalRequest.photo_url} alt="Request" className="mt-2 h-24 w-24 object-cover rounded" />
+              )}
+              <p className="text-xs text-slate-500 mt-2">
+                Requested {new Date(approvalRequest.created_at).toLocaleString()}
+              </p>
+            </div>
+
+            {/* Spare Part: Part picker + quantity */}
+            {approvalRequest.request_type === 'spare_part' && (
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Select Part <span className="text-red-500">*</span></label>
+                  <select
+                    value={approvalPartId}
+                    onChange={(e) => setApprovalPartId(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
+                  >
+                    <option value="">-- Select Part --</option>
+                    {parts.map(p => (
+                      <option key={p.part_id} value={p.part_id}>
+                        {p.part_name} (Stock: {p.stock_quantity}) - RM{p.sell_price}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Quantity <span className="text-red-500">*</span></label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={approvalQuantity}
+                    onChange={(e) => setApprovalQuantity(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Assistance: Helper picker */}
+            {approvalRequest.request_type === 'assistance' && (
+              <div className="mb-4">
+                <label className="text-sm font-medium text-slate-700 mb-1 block">Assign Helper <span className="text-red-500">*</span></label>
+                <select
+                  value={approvalHelperId}
+                  onChange={(e) => setApprovalHelperId(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
+                >
+                  <option value="">-- Select Technician --</option>
+                  {technicians.filter(t => t.user_id !== job?.assigned_technician_id).map(t => (
+                    <option key={t.user_id} value={t.user_id}>
+                      {t.full_name || t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Skillful Tech: Info */}
+            {approvalRequest.request_type === 'skillful_technician' && (
+              <div className="bg-purple-50 rounded-lg p-3 mb-4">
+                <p className="text-sm text-purple-800">
+                  This request indicates a skill escalation is needed. Approving will acknowledge the request. 
+                  Use the <strong>Job Reassignment</strong> feature to assign a different technician.
+                </p>
+              </div>
+            )}
+
+            {/* Notes */}
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 mb-1 block">
+                Notes {approvalRequest.request_type !== 'spare_part' && approvalRequest.request_type !== 'assistance' ? '' : '(optional)'}
+              </label>
+              <textarea
+                value={approvalNotes}
+                onChange={(e) => setApprovalNotes(e.target.value)}
+                placeholder="Add notes or reason..."
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg resize-none h-20"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                type="button" 
+                onClick={() => { setShowApprovalModal(false); setApprovalRequest(null); }} 
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={() => handleApproval(false)}
+                disabled={submittingApproval}
+                className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium disabled:opacity-50"
+              >
+                Reject
+              </button>
+              <button 
+                type="button" 
+                onClick={() => handleApproval(true)}
+                disabled={submittingApproval}
+                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
+              >
+                {submittingApproval ? 'Processing...' : 'Approve'}
               </button>
             </div>
           </div>

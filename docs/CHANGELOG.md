@@ -160,6 +160,28 @@ All notable changes, decisions, and client requirements for this project.
 - **DB Migration Required:** Run `add_job_requests.sql` in Supabase SQL Editor
 - **Access:** Technician (create), Admin/Supervisor (approve/reject)
 
+### Bugfixes (2026-01-04) - Request System Schema & UI Fixes
+- ✔️ **Fixed Spare Part Approval** - Was writing to non-existent `jobs.parts_used` column
+  - Now correctly inserts into `job_parts` table
+  - Also updates stock quantity in `parts` table
+  - File: `services/supabaseService.ts:approveSparePartRequest()`
+- ✔️ **Fixed Assistance Approval Call** - Was calling non-existent `assignHelperToJob()`
+  - Changed to correct function `assignHelper()`
+  - File: `services/supabaseService.ts:approveAssistanceRequest()`
+- ✔️ **Fixed Part Column Name** - Was using `parts.name` instead of `parts.part_name`
+  - Fixed in `getJobRequests()` query
+  - Fixed in JobDetail.tsx display
+  - Files: `services/supabaseService.ts`, `pages/JobDetail.tsx`
+- ✔️ **Added Admin Approval UI** - Was missing UI for approve/reject actions
+  - Added "Review & Approve" / "Reject" buttons on pending requests for Admin/Supervisor
+  - Added approval modal with:
+    - Part picker + quantity selector (for spare_part requests)
+    - Technician picker (for assistance requests)
+    - Info panel (for skillful_technician requests - requires separate reassignment)
+    - Notes field
+  - File: `pages/JobDetail.tsx`
+- **Deferred:** Skillful technician approval triggers existing Job Reassignment feature (not auto-reassign)
+
 ### Bugfixes (2026-01-04) - Helper Technician RLS & Schema Fixes
 - ✔️ **RLS Policy Fix** - Fixed `job_assignments` policies that would block production access
   - Changed `users.user_id = auth.uid()` → `users.auth_id = auth.uid()` (correct auth mapping)

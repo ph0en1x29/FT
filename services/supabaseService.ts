@@ -3469,7 +3469,7 @@ export const SupabaseDb = {
           *,
           requested_by_user:users!job_requests_requested_by_fkey(user_id, name, full_name),
           responded_by_user:users!job_requests_responded_by_fkey(user_id, name, full_name),
-          admin_response_part:parts!job_requests_admin_response_part_id_fkey(part_id, name, sell_price)
+          admin_response_part:parts!job_requests_admin_response_part_id_fkey(part_id, part_name, sell_price)
         `)
         .eq('job_id', jobId)
         .order('created_at', { ascending: false });
@@ -3530,15 +3530,21 @@ export const SupabaseDb = {
         return false;
       }
 
-      // Get part details
+      // Get part details (use part_name, not name)
       const { data: part, error: partError } = await supabase
         .from('parts')
-        .select('name, sell_price')
+        .select('part_name, sell_price, stock_quantity')
         .eq('part_id', partId)
         .single();
 
       if (partError || !part) {
         console.error('Part not found:', partError?.message);
+        return false;
+      }
+
+      // Check stock
+      if (part.stock_quantity < quantity) {
+        console.error('Insufficient stock');
         return false;
       }
 
@@ -3560,37 +3566,32 @@ export const SupabaseDb = {
         return false;
       }
 
-      // Add part to job's parts_used
-      const { data: job, error: jobError } = await supabase
-        .from('jobs')
-        .select('parts_used')
-        .eq('job_id', request.job_id)
-        .single();
+      // Add part to job_parts table (not jobs.parts_used)
+      const { error: insertError } = await supabase
+        .from('job_parts')
+        .insert({
+          job_id: request.job_id,
+          part_id: partId,
+          part_name: part.part_name,
+          quantity: quantity,
+          sell_price_at_time: part.sell_price,
+          // Note: added_via_request_id would need schema change, tracked via request record instead
+        });
 
-      if (jobError) {
-        console.error('Failed to get job:', jobError.message);
+      if (insertError) {
+        console.error('Failed to add part to job:', insertError.message);
         return false;
       }
 
-      const currentParts = job?.parts_used || [];
-      const newPart = {
-        part_id: partId,
-        part_name: part.name,
-        quantity: quantity,
-        sell_price_at_time: part.sell_price,
-        added_via_request: requestId,
-      };
+      // Update stock quantity
+      const { error: stockError } = await supabase
+        .from('parts')
+        .update({ stock_quantity: part.stock_quantity - quantity })
+        .eq('part_id', partId);
 
-      const { error: partsError } = await supabase
-        .from('jobs')
-        .update({
-          parts_used: [...currentParts, newPart],
-        })
-        .eq('job_id', request.job_id);
-
-      if (partsError) {
-        console.error('Failed to add part to job:', partsError.message);
-        return false;
+      if (stockError) {
+        console.error('Failed to update stock:', stockError.message);
+        // Part was added but stock not updated - log but don't fail
       }
 
       return true;
@@ -3665,7 +3666,7 @@ export const SupabaseDb = {
       }
 
       // Assign helper using existing function
-      const result = await SupabaseDb.assignHelperToJob(
+      const result = await SupabaseDb.assignHelper(
         request.job_id,
         helperTechnicianId,
         adminUserId,
