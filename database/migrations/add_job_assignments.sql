@@ -53,8 +53,8 @@ BEGIN
       USING (
         EXISTS (
           SELECT 1 FROM users 
-          WHERE users.user_id = auth.uid() 
-          AND users.role IN ('Admin', 'Supervisor')
+          WHERE users.auth_id = auth.uid() 
+          AND users.role IN ('admin', 'supervisor')
         )
       );
   END IF;
@@ -69,7 +69,11 @@ BEGIN
     CREATE POLICY job_assignments_tech_select ON job_assignments
       FOR SELECT
       TO authenticated
-      USING (technician_id = auth.uid());
+      USING (
+        technician_id IN (
+          SELECT user_id FROM users WHERE auth_id = auth.uid()
+        )
+      );
   END IF;
 END $$;
 
@@ -81,8 +85,16 @@ BEGIN
     CREATE POLICY job_assignments_tech_update ON job_assignments
       FOR UPDATE
       TO authenticated
-      USING (technician_id = auth.uid())
-      WITH CHECK (technician_id = auth.uid());
+      USING (
+        technician_id IN (
+          SELECT user_id FROM users WHERE auth_id = auth.uid()
+        )
+      )
+      WITH CHECK (
+        technician_id IN (
+          SELECT user_id FROM users WHERE auth_id = auth.uid()
+        )
+      );
   END IF;
 END $$;
 

@@ -726,8 +726,7 @@ export const SupabaseDb = {
     media: Omit<JobMedia, 'media_id' | 'job_id'>,
     uploadedById?: string,
     uploadedByName?: string,
-    isHelperPhoto?: boolean,
-    assignmentId?: string
+    isHelperPhoto?: boolean
   ): Promise<Job> => {
     const { error } = await supabase
       .from('job_media')
@@ -737,7 +736,6 @@ export const SupabaseDb = {
         uploaded_by_id: uploadedById || null,
         uploaded_by_name: uploadedByName || null,
         is_helper_photo: isHelperPhoto || false,
-        uploaded_by_assignment_id: assignmentId || null,
       });
 
     if (error) throw new Error(error.message);
@@ -3397,11 +3395,11 @@ export const SupabaseDb = {
       // Check if user is the assigned technician (lead)
       const { data: job } = await supabase
         .from('jobs')
-        .select('assigned_to')
+        .select('assigned_technician_id')
         .eq('job_id', jobId)
         .single();
 
-      if (job?.assigned_to === userId) {
+      if (job?.assigned_technician_id === userId) {
         return 'lead';
       }
 

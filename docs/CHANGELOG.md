@@ -131,6 +131,24 @@ All notable changes, decisions, and client requirements for this project.
 - **DB Migration Required:** Run `add_job_assignments.sql` in Supabase SQL Editor
 - **Access:** Technician (as helper), Admin/Supervisor (assign/remove)
 
+### Bugfixes (2026-01-04) - Helper Technician RLS & Schema Fixes
+- ✔️ **RLS Policy Fix** - Fixed `job_assignments` policies that would block production access
+  - Changed `users.user_id = auth.uid()` → `users.auth_id = auth.uid()` (correct auth mapping)
+  - Changed role check `'Admin', 'Supervisor'` → `'admin', 'supervisor'` (lowercase to match schema)
+  - Technician policies now use subquery to map `auth.uid()` to `user_id`
+  - File: `database/migrations/add_job_assignments.sql`
+- ✔️ **Remove Invalid Column Reference** - Fixed `addMedia()` insert that referenced non-existent column
+  - Removed `uploaded_by_assignment_id` from insert (column never added to `job_media`)
+  - `uploaded_by` + `is_helper_photo` already provides sufficient audit trail
+  - File: `services/supabaseService.ts`
+- ✔️ **Fix Column Name** - Fixed `getUserAssignmentType()` using wrong column
+  - Changed `assigned_to` → `assigned_technician_id` (correct column name)
+  - File: `services/supabaseService.ts`
+- **Deferred:**
+  - Helper time logging UI (not requested by ACWER yet)
+  - Lead assignment records in `job_assignments` (using `jobs.assigned_technician_id` + audit log instead)
+  - `jobs.helper_technician_id` cleanup (unused denormalized field, can remove later)
+
 ### Documentation
 - DB schema docs synced to current Supabase schema (2026-01-02 00:16:45 CST, author: Codex)
 
