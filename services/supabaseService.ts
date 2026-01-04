@@ -4058,29 +4058,63 @@ export const SupabaseDb = {
   },
 };
 
-// Helper: Get next business day at 8 AM (used by escalation check)
+// ==========================================================================
+// MALAYSIA TIMEZONE HELPERS (UTC+8)
+// ==========================================================================
+
+const MALAYSIA_TZ = 'Asia/Kuala_Lumpur';
+
+// Get current time in Malaysia
+function getMalaysiaTime(): Date {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: MALAYSIA_TZ }));
+}
+
+// Format date as YYYY-MM-DD in Malaysia timezone
+function formatDateMalaysia(date: Date): string {
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: MALAYSIA_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  };
+  const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
+  const year = parts.find(p => p.type === 'year')?.value;
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
+  return `${year}-${month}-${day}`;
+}
+
+// Check if date is Sunday in Malaysia timezone
+function isSundayMalaysia(date: Date): boolean {
+  const dayStr = new Intl.DateTimeFormat('en-US', { 
+    timeZone: MALAYSIA_TZ, 
+    weekday: 'short' 
+  }).format(date);
+  return dayStr === 'Sun';
+}
+
+// Check if date is a holiday (comparing in Malaysia timezone)
+function isHolidayMalaysia(date: Date, holidays: string[]): boolean {
+  const dateStr = formatDateMalaysia(date);
+  return holidays.includes(dateStr);
+}
+
+// Helper: Get next business day at 8 AM Malaysia time
 function getNextBusinessDay8AM(date: Date, holidays: string[]): Date {
+  // Start from the next day
   const next = new Date(date);
   next.setDate(next.getDate() + 1);
   
-  // Skip Sundays and holidays
-  while (isSundayLocal(next) || isHolidayLocal(next, holidays)) {
+  // Skip Sundays and holidays (checking in Malaysia timezone)
+  while (isSundayMalaysia(next) || isHolidayMalaysia(next, holidays)) {
     next.setDate(next.getDate() + 1);
   }
   
-  // Set to 8:00 AM local time
-  next.setHours(8, 0, 0, 0);
-  return next;
-}
-
-function isSundayLocal(date: Date): boolean {
-  return date.getDay() === 0;
-}
-
-function isHolidayLocal(date: Date, holidays: string[]): boolean {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const dateStr = `${year}-${month}-${day}`;
-  return holidays.includes(dateStr);
+  // Set to 8:00 AM Malaysia time (UTC+8)
+  // Get the date string in Malaysia timezone, then create a new date at 8 AM MYT
+  const dateStr = formatDateMalaysia(next);
+  // 8 AM MYT = 0 AM UTC (8 - 8 = 0)
+  const myt8am = new Date(`${dateStr}T00:00:00.000Z`);
+  
+  return myt8am;
 }

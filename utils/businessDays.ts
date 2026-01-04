@@ -5,23 +5,37 @@
  * - Working days: Monday to Saturday
  * - Non-working: Sunday only
  * - Public holidays: Skip (fetched from database)
+ * - Timezone: Malaysia (UTC+8)
  */
 
+const MALAYSIA_TZ = 'Asia/Kuala_Lumpur';
+
 /**
- * Format date to YYYY-MM-DD in local timezone (not UTC)
+ * Format date to YYYY-MM-DD in Malaysia timezone
  */
-export function formatDateLocal(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+export function formatDateMalaysia(date: Date): string {
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: MALAYSIA_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  };
+  const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
+  const year = parts.find(p => p.type === 'year')?.value;
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
   return `${year}-${month}-${day}`;
 }
 
 /**
- * Check if a date is a Sunday
+ * Check if a date is a Sunday in Malaysia timezone
  */
 export function isSunday(date: Date): boolean {
-  return date.getDay() === 0;
+  const dayStr = new Intl.DateTimeFormat('en-US', { 
+    timeZone: MALAYSIA_TZ, 
+    weekday: 'short' 
+  }).format(date);
+  return dayStr === 'Sun';
 }
 
 /**
@@ -30,7 +44,7 @@ export function isSunday(date: Date): boolean {
  * @param holidays - Array of holiday date strings (YYYY-MM-DD format)
  */
 export function isHoliday(date: Date, holidays: string[]): boolean {
-  const dateStr = formatDateLocal(date);
+  const dateStr = formatDateMalaysia(date);
   return holidays.includes(dateStr);
 }
 
@@ -80,7 +94,7 @@ export function addBusinessDays(date: Date, days: number, holidays: string[]): D
 }
 
 /**
- * Get escalation time for a job (8:00 AM next business day)
+ * Get escalation time for a job (8:00 AM Malaysia time next business day)
  * @param jobDate - Job assignment or cutoff date
  * @param holidays - Array of holiday date strings
  * @param isOvertime - If true, returns null (no escalation for OT jobs)
@@ -95,10 +109,11 @@ export function getEscalationTime(
   }
   
   const nextBizDay = getNextBusinessDay(jobDate, holidays);
-  // Set to 8:00 AM local time
-  nextBizDay.setHours(8, 0, 0, 0);
-  
-  return nextBizDay;
+  // Set to 8:00 AM Malaysia time (UTC+8)
+  // Get the date in Malaysia timezone, then create UTC time for 8 AM MYT
+  const dateStr = formatDateMalaysia(nextBizDay);
+  // 8 AM MYT = 0 AM UTC (8 - 8 = 0)
+  return new Date(`${dateStr}T00:00:00.000Z`);
 }
 
 /**
@@ -122,10 +137,11 @@ export function shouldEscalate(
 }
 
 /**
- * Format a date for display
+ * Format a date for display (Malaysia timezone)
  */
 export function formatDate(date: Date): string {
   return date.toLocaleDateString('en-MY', {
+    timeZone: MALAYSIA_TZ,
     weekday: 'short',
     year: 'numeric',
     month: 'short',
@@ -134,10 +150,11 @@ export function formatDate(date: Date): string {
 }
 
 /**
- * Format a datetime for display
+ * Format a datetime for display (Malaysia timezone)
  */
 export function formatDateTime(date: Date): string {
   return date.toLocaleString('en-MY', {
+    timeZone: MALAYSIA_TZ,
     weekday: 'short',
     year: 'numeric',
     month: 'short',
