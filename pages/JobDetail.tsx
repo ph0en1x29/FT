@@ -285,6 +285,11 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [approvalHelperId, setApprovalHelperId] = useState('');
   const [submittingApproval, setSubmittingApproval] = useState(false);
 
+  // Multi-day escalation states (#7)
+  const [showContinueTomorrowModal, setShowContinueTomorrowModal] = useState(false);
+  const [continueTomorrowReason, setContinueTomorrowReason] = useState('');
+  const [submittingContinue, setSubmittingContinue] = useState(false);
+
   useEffect(() => {
     loadJob();
     loadParts();
@@ -476,6 +481,58 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       showToast.error('Error processing request');
     } finally {
       setSubmittingApproval(false);
+    }
+  };
+
+  // Handle Continue Tomorrow (Multi-day #7)
+  const handleContinueTomorrow = async () => {
+    if (!job || !continueTomorrowReason.trim()) return;
+    setSubmittingContinue(true);
+
+    try {
+      const success = await MockDb.markJobContinueTomorrow(
+        job.job_id,
+        continueTomorrowReason,
+        currentUserId,
+        currentUserName
+      );
+
+      if (success) {
+        showToast.success('Job marked to continue tomorrow');
+        setShowContinueTomorrowModal(false);
+        setContinueTomorrowReason('');
+        loadJob();
+      } else {
+        showToast.error('Failed to update job');
+      }
+    } catch (e) {
+      console.error('Continue tomorrow error:', e);
+      showToast.error('Error updating job');
+    } finally {
+      setSubmittingContinue(false);
+    }
+  };
+
+  // Handle Resume Job (Multi-day #7)
+  const handleResumeJob = async () => {
+    if (!job) return;
+
+    try {
+      const success = await MockDb.resumeMultiDayJob(
+        job.job_id,
+        currentUserId,
+        currentUserName
+      );
+
+      if (success) {
+        showToast.success('Job resumed');
+        loadJob();
+      } else {
+        showToast.error('Failed to resume job');
+      }
+    } catch (e) {
+      console.error('Resume job error:', e);
+      showToast.error('Error resuming job');
     }
   };
 
@@ -1090,6 +1147,11 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const isInProgress = normalizedStatus === 'in progress' || normalizedStatus === 'in_progress';
   const isAwaitingFinalization = normalizedStatus === 'awaiting finalization' || normalizedStatus === 'awaiting_finalization';
   const isCompleted = normalizedStatus === 'completed';
+  // Multi-day statuses (#7)
+  const isIncompleteContinuing = normalizedStatus === 'incomplete - continuing' || normalizedStatus === 'incomplete_continuing';
+  const isIncompleteReassigned = normalizedStatus === 'incomplete - reassigned' || normalizedStatus === 'incomplete_reassigned';
+  const isEscalated = !!job.escalation_triggered_at;
+  const isOvertime = job.is_overtime || false;
 
   // Check if both signatures are present
   const hasBothSignatures = !!(job.technician_signature && job.customer_signature);
@@ -1176,6 +1238,24 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               <span className={`text-xs px-2 py-1 rounded-full font-medium ${job.priority === JobPriority.EMERGENCY ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
                 {job.priority}
               </span>
+              {/* Escalation Badge (#7) */}
+              {isEscalated && (
+                <span className="text-xs px-2 py-1 rounded-full font-medium bg-red-500 text-white animate-pulse">
+                  ⚠️ Escalated
+                </span>
+              )}
+              {/* Overtime Badge (#7) */}
+              {isOvertime && (
+                <span className="text-xs px-2 py-1 rounded-full font-medium bg-purple-100 text-purple-700">
+                  OT Job
+                </span>
+              )}
+              {/* Continuing Badge (#7) */}
+              {isIncompleteContinuing && (
+                <span className="text-xs px-2 py-1 rounded-full font-medium bg-amber-100 text-amber-700">
+                  Continuing
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -1197,6 +1277,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                  </div>
                )}
              </div>
+           )}
+           {/* Continue Tomorrow - Multi-day (#7) */}
+           {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && (
+             <button type="button" onClick={() => setShowContinueTomorrowModal(true)} className="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-amber-600 flex items-center gap-2">
+               <Clock className="w-4 h-4" /> Continue Tomorrow
+             </button>
+           )}
+           {/* Resume Job - Multi-day (#7) */}
+           {(isTechnician || isAdmin || isSupervisor) && isIncompleteContinuing && !isHelperOnly && (
+             <button type="button" onClick={handleResumeJob} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-blue-700 flex items-center gap-2">
+               <Play className="w-4 h-4" /> Resume Job
+             </button>
            )}
            {(isAccountant || isAdmin) && isAwaitingFinalization && (
              <button type="button" onClick={() => setShowFinalizeModal(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-purple-700">
@@ -1481,6 +1573,58 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                         </button>
                     </div>
                 </div>
+            )}
+
+            {/* Multi-Day Job Controls (#7) */}
+            {(isAdmin || isSupervisor) && (isAssigned || isInProgress || isIncompleteContinuing) && (
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 mt-4">
+                <h4 className="text-sm font-bold text-purple-800 flex items-center gap-2 mb-3">
+                  <Clock className="w-4 h-4" /> Multi-Day Controls
+                </h4>
+                
+                {/* Overtime Toggle */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-purple-700">Overtime Job</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const success = await MockDb.markJobAsOvertime(job.job_id, !isOvertime);
+                      if (success) {
+                        showToast.success(isOvertime ? 'Overtime disabled' : 'Marked as overtime');
+                        loadJob();
+                      }
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      isOvertime ? 'bg-purple-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      isOvertime ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+                <p className="text-xs text-purple-600 mb-3">
+                  {isOvertime ? 'Escalation disabled for this job' : 'Enable for Saturday OT jobs'}
+                </p>
+
+                {/* Cutoff Time Display */}
+                {job.cutoff_time && (
+                  <div className="bg-white p-2 rounded border border-purple-200">
+                    <p className="text-xs text-purple-700">
+                      <strong>Cutoff:</strong> {new Date(job.cutoff_time).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+
+                {/* Escalation Info */}
+                {isEscalated && (
+                  <div className="bg-red-100 p-2 rounded border border-red-200 mt-2">
+                    <p className="text-xs text-red-700">
+                      <strong>⚠️ Escalated:</strong> {new Date(job.escalation_triggered_at!).toLocaleString()}
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Helper Technician Section */}
@@ -2401,6 +2545,49 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
               >
                 {submittingApproval ? 'Processing...' : 'Approve'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Continue Tomorrow Modal (#7 Multi-day) */}
+      {showContinueTomorrowModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h4 className="font-bold text-lg mb-4 text-amber-700 flex items-center gap-2">
+              <Clock className="w-5 h-5" /> Continue Tomorrow
+            </h4>
+            <div className="bg-amber-50 rounded-lg p-3 mb-4">
+              <p className="text-sm text-amber-800 font-medium">{job?.title}</p>
+              <p className="text-xs text-amber-600 mt-1">This job will be marked as incomplete and can be resumed tomorrow.</p>
+            </div>
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Reason for continuation <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                className="w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/25 resize-none h-24"
+                value={continueTomorrowReason}
+                onChange={(e) => setContinueTomorrowReason(e.target.value)}
+                placeholder="e.g., Waiting for parts, End of work day, Complex repair needs more time..."
+              />
+            </div>
+            <div className="flex gap-3">
+              <button 
+                type="button" 
+                onClick={() => { setShowContinueTomorrowModal(false); setContinueTomorrowReason(''); }} 
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleContinueTomorrow}
+                disabled={!continueTomorrowReason.trim() || submittingContinue}
+                className="flex-1 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Clock className="w-4 h-4" /> {submittingContinue ? 'Saving...' : 'Confirm'}
               </button>
             </div>
           </div>

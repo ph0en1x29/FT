@@ -14,10 +14,11 @@
 4. Inventory
 5. HR System
 6. Notifications and KPI
-7. Views
-8. Enums
-9. Functions
-10. Storage Buckets
+7. System Settings
+8. Views
+9. Enums
+10. Functions
+11. Storage Buckets
 
 ---
 
@@ -161,6 +162,9 @@ Core work orders.
 | `deleted_by_name` | TEXT | YES | |
 | `deletion_reason` | TEXT | YES | |
 | `hourmeter_before_delete` | INTEGER | YES | |
+| `cutoff_time` | TIMESTAMPTZ | YES | | Multi-day: when tech marked to continue |
+| `is_overtime` | BOOLEAN | YES | `false` | OT jobs don't escalate |
+| `escalation_triggered_at` | TIMESTAMPTZ | YES | | When escalation notification sent |
 
 Constraints:
 - PK: `job_id`
@@ -1018,6 +1022,61 @@ Constraints:
 
 Foreign keys:
 - `technician_id` -> `users.user_id`
+
+---
+
+## System Settings
+
+### `public_holidays`
+Malaysian public holidays for business day calculations.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `holiday_id` | UUID | NO | `gen_random_uuid()` |
+| `holiday_date` | DATE | NO | |
+| `name` | TEXT | NO | |
+| `year` | INTEGER | YES | Generated from holiday_date |
+| `created_at` | TIMESTAMPTZ | YES | `now()` |
+
+Constraints:
+- PK: `holiday_id`
+- UNIQUE: `holiday_date`
+
+Indexes:
+- `idx_public_holidays_date` on `holiday_date`
+- `idx_public_holidays_year` on `year`
+
+RLS:
+- All authenticated users: SELECT
+- Admin only: INSERT, UPDATE, DELETE
+
+---
+
+### `app_settings`
+Application-wide configuration settings.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `setting_id` | UUID | NO | `gen_random_uuid()` |
+| `key` | TEXT | NO | |
+| `value` | TEXT | NO | |
+| `description` | TEXT | YES | |
+| `updated_at` | TIMESTAMPTZ | YES | `now()` |
+| `updated_by` | UUID | YES | |
+
+Constraints:
+- PK: `setting_id`
+- UNIQUE: `key`
+
+Foreign keys:
+- `updated_by` -> `users.user_id`
+
+RLS:
+- All authenticated users: SELECT
+- Admin only: UPDATE
+
+Default settings:
+- `deferred_ack_sla_days` = '5' (business days for customer acknowledgement)
 
 ---
 

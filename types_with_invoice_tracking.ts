@@ -11,6 +11,11 @@ export enum JobStatus {
   IN_PROGRESS = 'In Progress',
   AWAITING_FINALIZATION = 'Awaiting Finalization',
   COMPLETED = 'Completed',
+  // Multi-day & Deferred Acknowledgement statuses (ACWER #7, #8)
+  COMPLETED_AWAITING_ACK = 'Completed Awaiting Acknowledgement',
+  INCOMPLETE_CONTINUING = 'Incomplete - Continuing',
+  INCOMPLETE_REASSIGNED = 'Incomplete - Reassigned',
+  DISPUTED = 'Disputed',
 }
 
 export enum JobPriority {
@@ -306,6 +311,25 @@ export interface JobRequest {
   updated_at: string;
 }
 
+// Public Holidays for business day calculations (#7)
+export interface PublicHoliday {
+  holiday_id: string;
+  holiday_date: string; // DATE as ISO string
+  name: string;
+  year: number;
+  created_at?: string;
+}
+
+// App Settings for configurable values
+export interface AppSetting {
+  setting_id: string;
+  key: string;
+  value: string;
+  description?: string;
+  updated_at?: string;
+  updated_by?: string;
+}
+
 export interface JobMedia {
   media_id: string;
   job_id: string;
@@ -425,6 +449,11 @@ export interface Job {
   
   // Service report number
   service_report_number?: string;
+  
+  // Multi-Day Escalation (#7)
+  cutoff_time?: string; // When tech marked job to continue next day
+  is_overtime?: boolean; // Saturday OT jobs don't escalate
+  escalation_triggered_at?: string; // When escalation notification was sent
 }
 
 // Quotation specific types

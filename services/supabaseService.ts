@@ -3730,4 +3730,228 @@ export const SupabaseDb = {
       return { pending: 0, total: 0 };
     }
   },
+
+  // ==========================================================================
+  // MULTI-DAY ESCALATION (#7)
+  // ==========================================================================
+
+  // Get all public holidays
+  getPublicHolidays: async (year?: number): Promise<any[]> => {
+    try {
+      let query = supabase.from('public_holidays').select('*');
+      if (year) {
+        query = query.eq('year', year);
+      }
+      const { data, error } = await query.order('holiday_date', { ascending: true });
+      if (error) {
+        console.error('Failed to get holidays:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (e) {
+      console.error('Get holidays error:', e);
+      return [];
+    }
+  },
+
+  // Get app setting by key
+  getAppSetting: async (key: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', key)
+        .single();
+      if (error) {
+        console.error('Failed to get setting:', error.message);
+        return null;
+      }
+      return data?.value || null;
+    } catch (e) {
+      console.error('Get setting error:', e);
+      return null;
+    }
+  },
+
+  // Update app setting
+  updateAppSetting: async (key: string, value: string, updatedBy?: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('app_settings')
+        .update({ 
+          value, 
+          updated_at: new Date().toISOString(),
+          updated_by: updatedBy || null 
+        })
+        .eq('key', key);
+      if (error) {
+        console.error('Failed to update setting:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Update setting error:', e);
+      return false;
+    }
+  },
+
+  // Mark job to continue tomorrow (multi-day)
+  markJobContinueTomorrow: async (
+    jobId: string,
+    reason: string,
+    userId: string,
+    userName: string
+  ): Promise<boolean> => {
+    try {
+      const now = new Date().toISOString();
+      
+      // Update job status and set cutoff time
+      const { error } = await supabase
+        .from('jobs')
+        .update({
+          status: 'Incomplete - Continuing',
+          cutoff_time: now,
+          // Add note about continuation
+          notes: supabase.sql`array_append(notes, ${JSON.stringify({
+            text: `Job marked to continue: ${reason}`,
+            created_at: now,
+            created_by: userName
+          })})`
+        })
+        .eq('job_id', jobId);
+
+      if (error) {
+        console.error('Failed to mark job continue:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Mark job continue error:', e);
+      return false;
+    }
+  },
+
+  // Resume a multi-day job
+  resumeMultiDayJob: async (jobId: string, userId: string, userName: string): Promise<boolean> => {
+    try {
+      const now = new Date().toISOString();
+      
+      const { error } = await supabase
+        .from('jobs')
+        .update({
+          status: 'In Progress',
+          // Add note about resumption
+          notes: supabase.sql`array_append(notes, ${JSON.stringify({
+            text: 'Job resumed',
+            created_at: now,
+            created_by: userName
+          })})`
+        })
+        .eq('job_id', jobId);
+
+      if (error) {
+        console.error('Failed to resume job:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Resume job error:', e);
+      return false;
+    }
+  },
+
+  // Get jobs that need escalation check
+  getJobsNeedingEscalation: async (): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          job_id, title, status, created_at, scheduled_date, cutoff_time,
+          is_overtime, escalation_triggered_at,
+          assigned_technician_id, assigned_technician_name,
+          customer:customers(name)
+        `)
+        .is('escalation_triggered_at', null)
+        .is('deleted_at', null)
+        .eq('is_overtime', false)
+        .in('status', ['Assigned', 'In Progress', 'Incomplete - Continuing']);
+
+      if (error) {
+        console.error('Failed to get escalation jobs:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (e) {
+      console.error('Get escalation jobs error:', e);
+      return [];
+    }
+  },
+
+  // Trigger escalation for a job (mark as escalated, admin will be notified)
+  triggerEscalation: async (jobId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({
+          escalation_triggered_at: new Date().toISOString()
+        })
+        .eq('job_id', jobId);
+
+      if (error) {
+        console.error('Failed to trigger escalation:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Trigger escalation error:', e);
+      return false;
+    }
+  },
+
+  // Mark job as overtime (disables escalation)
+  markJobAsOvertime: async (jobId: string, isOvertime: boolean): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ is_overtime: isOvertime })
+        .eq('job_id', jobId);
+
+      if (error) {
+        console.error('Failed to update overtime status:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Update overtime error:', e);
+      return false;
+    }
+  },
+
+  // Get escalated jobs for admin dashboard
+  getEscalatedJobs: async (): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          job_id, title, status, created_at, scheduled_date, cutoff_time,
+          escalation_triggered_at,
+          assigned_technician_id, assigned_technician_name,
+          customer:customers(name),
+          forklift:forklifts(serial_number, model)
+        `)
+        .not('escalation_triggered_at', 'is', null)
+        .is('deleted_at', null)
+        .not('status', 'eq', 'Completed')
+        .order('escalation_triggered_at', { ascending: false });
+
+      if (error) {
+        console.error('Failed to get escalated jobs:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (e) {
+      console.error('Get escalated jobs error:', e);
+      return [];
+    }
+  },
 };

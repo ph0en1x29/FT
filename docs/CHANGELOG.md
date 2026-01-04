@@ -160,6 +160,44 @@ All notable changes, decisions, and client requirements for this project.
 - **DB Migration Required:** Run `add_job_requests.sql` in Supabase SQL Editor
 - **Access:** Technician (create), Admin/Supervisor (approve/reject)
 
+#### #7 Multi-Day Escalation - ✔️ COMPLETED
+- **Files created:**
+  - `database/migrations/add_multiday_escalation.sql` - Schema + holidays + settings
+  - `utils/businessDays.ts` - Business day calculation utilities
+- **Files modified:**
+  - `types_with_invoice_tracking.ts`:
+    - Added new JobStatus values: `COMPLETED_AWAITING_ACK`, `INCOMPLETE_CONTINUING`, `INCOMPLETE_REASSIGNED`, `DISPUTED`
+    - Added Job fields: `cutoff_time`, `is_overtime`, `escalation_triggered_at`
+    - Added `PublicHoliday` and `AppSetting` interfaces
+  - `services/supabaseService.ts`:
+    - `getPublicHolidays()` - Fetch holidays for business day calc
+    - `getAppSetting()` / `updateAppSetting()` - Config management
+    - `markJobContinueTomorrow()` - Set cutoff and status
+    - `resumeMultiDayJob()` - Resume continuing job
+    - `getJobsNeedingEscalation()` - Find jobs to escalate
+    - `triggerEscalation()` - Mark job as escalated
+    - `markJobAsOvertime()` - Toggle overtime flag
+    - `getEscalatedJobs()` - For admin dashboard
+  - `pages/JobDetail.tsx`:
+    - "Continue Tomorrow" button (In Progress → Incomplete - Continuing)
+    - "Resume Job" button (Incomplete - Continuing → In Progress)
+    - Multi-Day Controls panel (Admin/Supervisor): Overtime toggle, cutoff time, escalation info
+    - Status badges: "Escalated" (red pulse), "OT Job" (purple), "Continuing" (amber)
+    - Continue Tomorrow modal with reason input
+- **Schema changes:**
+  - `jobs` table: `cutoff_time`, `is_overtime`, `escalation_triggered_at`
+  - `public_holidays` table: Malaysian holidays 2025-2026 (Sunday + holidays = non-working)
+  - `app_settings` table: Configurable settings (SLA days, etc.)
+  - Index: `idx_jobs_pending_escalation` for queue scans
+- **Business rules:**
+  - Working days: Monday-Saturday (Sunday only off)
+  - Holidays: Skip Malaysian public holidays
+  - Escalation: 8:00 AM next business day, notify Admin (no auto-reassign)
+  - Overtime jobs: No escalation
+  - SLA: Configurable, default 5 business days
+- **DB Migration Required:** Run `add_multiday_escalation.sql` in Supabase SQL Editor
+- **Access:** Technician (continue/resume), Admin/Supervisor (overtime toggle, view escalations)
+
 ### Bugfixes (2026-01-04) - Request System Schema & UI Fixes
 - ✔️ **Fixed Spare Part Approval** - Was writing to non-existent `jobs.parts_used` column
   - Now correctly inserts into `job_parts` table
