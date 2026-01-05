@@ -453,7 +453,7 @@ export const HRService = {
       .from('employee_leaves')
       .select(`
         *,
-        user:users(full_name, department, employee_code, phone),
+        user:users!employee_leaves_user_id_fkey(full_name, department, employee_code, phone),
         leave_type:leave_types(*)
       `)
       .order('start_date', { ascending: false });
@@ -481,7 +481,7 @@ export const HRService = {
       .from('employee_leaves')
       .select(`
         *,
-        user:users(full_name, department, employee_code, phone),
+        user:users!employee_leaves_user_id_fkey(full_name, department, employee_code, phone),
         leave_type:leave_types(*)
       `)
       .eq('status', LeaveStatus.PENDING)
@@ -498,7 +498,7 @@ export const HRService = {
       .from('employee_leaves')
       .select(`
         *,
-        user:users(full_name, department, employee_code, phone, profile_photo_url),
+        user:users!employee_leaves_user_id_fkey(full_name, department, employee_code, phone, profile_photo_url),
         leave_type:leave_types(*)
       `)
       .eq('status', LeaveStatus.APPROVED)
@@ -533,7 +533,7 @@ export const HRService = {
       })
       .select(`
         *,
-        user:users(full_name, department),
+        user:users!employee_leaves_user_id_fkey(full_name, department),
         leave_type:leave_types(*)
       `)
       .single();
@@ -595,7 +595,7 @@ export const HRService = {
       .eq('leave_id', leaveId)
       .select(`
         *,
-        user:users(full_name, department),
+        user:users!employee_leaves_user_id_fkey(full_name, department),
         leave_type:leave_types(*)
       `)
       .single();
@@ -649,7 +649,7 @@ export const HRService = {
       .eq('leave_id', leaveId)
       .select(`
         *,
-        user:users(full_name, department),
+        user:users!employee_leaves_user_id_fkey(full_name, department),
         leave_type:leave_types(*)
       `)
       .single();
@@ -693,7 +693,7 @@ export const HRService = {
       .eq('leave_id', leaveId)
       .select(`
         *,
-        user:users(full_name, department),
+        user:users!employee_leaves_user_id_fkey(full_name, department),
         leave_type:leave_types(*)
       `)
       .single();
@@ -836,7 +836,7 @@ export const HRService = {
         .from('employee_leaves')
         .select(`
           *,
-          user:users(*),
+          user:users!employee_leaves_user_id_fkey(*),
           leave_type:leave_types(*)
         `)
         .eq('status', LeaveStatus.APPROVED)
@@ -884,7 +884,7 @@ export const HRService = {
       .from('employee_leaves')
       .select(`
         *,
-        user:users(full_name, department, employee_code),
+        user:users!employee_leaves_user_id_fkey(full_name, department, employee_code),
         leave_type:leave_types(*)
       `)
       .eq('status', LeaveStatus.APPROVED)
