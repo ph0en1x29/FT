@@ -155,7 +155,7 @@ SELECT
     u.phone,
     u.department,
     u.employee_code,
-    EXTRACT(DAY FROM el.expiry_date - CURRENT_DATE) AS days_until_expiry
+    (el.expiry_date - CURRENT_DATE) AS days_until_expiry
 FROM employee_licenses el
 JOIN users u ON el.user_id = u.user_id
 WHERE el.status = 'active'
@@ -170,7 +170,7 @@ SELECT
     u.phone,
     u.department,
     u.employee_code,
-    EXTRACT(DAY FROM ep.expiry_date - CURRENT_DATE) AS days_until_expiry
+    (ep.expiry_date - CURRENT_DATE) AS days_until_expiry
 FROM employee_permits ep
 JOIN users u ON ep.user_id = u.user_id
 WHERE ep.status = 'active'
