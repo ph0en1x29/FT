@@ -49,8 +49,9 @@ The `.env.local` file is in `.gitignore` and will not be committed.
 
 - [ ] **Enable email confirmation**
   - Authentication → Providers → Email → Confirm email ✓
-- [x] **Enable leaked password protection** ✅ (2026-01-03)
+- [ ] **Enable leaked password protection** ⚠️ (was enabled 2026-01-03, linter shows disabled 2026-01-05)
   - Authentication → Settings → Enable Leaked Password Protection
+  - **ACTION REQUIRED**: Re-enable in Supabase Dashboard
 - [x] **Fix RLS on all tables** ✅ (2026-01-03)
   - Enabled RLS + policies on: `quotations`, `service_intervals`, `scheduled_services`, `notifications`, `technician_kpi_snapshots`
   - See `database/migrations/security_fix_linter_issues.sql`
@@ -63,9 +64,10 @@ The `.env.local` file is in `.gitignore` and will not be committed.
   - Enabled RLS on `_backup_users_before_merge` and `_backup_employees_before_merge`
   - Created restrictive policy (`USING (false)`) - only service_role can access
   - See `database/migrations/fix_security_linter_warnings.sql`
-- [x] **Add search_path to functions** ✅ (2026-01-03)
-  - Fixed 44 functions with `SET search_path = public`
-  - See `database/migrations/fix_function_search_paths.sql`
+- [x] **Add search_path to functions** ✅ (2026-01-05 - Additional 3 functions fixed)
+  - Fixed 44 functions (2026-01-03) + 3 new functions (2026-01-05)
+  - New: `update_job_assignments_updated_at`, `update_user_timestamp`, `update_job_requests_updated_at`
+  - See `database/migrations/fix_function_search_paths.sql` and `fix_function_search_paths_v2.sql`
 - [x] **Fix RLS performance issues** ✅ (2026-01-03)
   - Fixed 25 Auth RLS InitPlan issues (auth.uid() caching)
   - Consolidated 70+ duplicate policies into ~50 optimized policies

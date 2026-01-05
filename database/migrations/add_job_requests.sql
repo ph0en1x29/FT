@@ -98,7 +98,8 @@ BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = public;
 
 DROP TRIGGER IF EXISTS trigger_job_requests_updated_at ON job_requests;
 CREATE TRIGGER trigger_job_requests_updated_at

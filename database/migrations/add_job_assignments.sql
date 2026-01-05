@@ -105,7 +105,8 @@ BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = public;
 
 DROP TRIGGER IF EXISTS trigger_job_assignments_updated_at ON job_assignments;
 CREATE TRIGGER trigger_job_assignments_updated_at

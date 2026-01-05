@@ -76,6 +76,14 @@ All notable changes, decisions, and client requirements for this project.
   - Enabled RLS with restrictive policy (`USING (false)`)
   - Only service_role can access backup data now
   - File: `database/migrations/fix_security_linter_warnings.sql`
+- ✔️ **Function search_path mutable** - 3 trigger functions missing search_path
+  - Functions: `update_job_assignments_updated_at`, `update_user_timestamp`, `update_job_requests_updated_at`
+  - Added `SET search_path = public` to all 3 functions
+  - Updated original migration files to prevent issue on fresh deployments
+  - File: `database/migrations/fix_function_search_paths_v2.sql`
+- ⚠️ **Leaked Password Protection** - Dashboard setting (manual action required)
+  - Go to Supabase Dashboard → Authentication → Settings
+  - Enable "Leaked Password Protection"
 
 ### Bugfixes (2026-01-05) - HR Dashboard & Migration Fixes
 - ✔️ **Migration Fix: EXTRACT on integer** - `EXTRACT(DAY FROM date - date)` fails because date subtraction returns integer, not interval
