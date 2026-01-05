@@ -64,6 +64,19 @@ All notable changes, decisions, and client requirements for this project.
   - `completedJobs` filter now includes: Completed, Awaiting Finalization, Completed Awaiting Acknowledgement, Disputed
   - All "work done" statuses now count toward technician KPIs
 
+### Security Fixes (2026-01-05) - Supabase Linter Warnings
+- ✔️ **SECURITY DEFINER views** - 4 HR views flagged as security risk
+  - Views: `v_pending_leaves`, `v_expiring_permits`, `v_todays_leave`, `v_expiring_licenses`
+  - Recreated with explicit `WITH (security_invoker = true)`
+  - Views now respect RLS policies of the querying user
+  - Updated original migration to prevent issue on fresh deployments
+  - File: `database/migrations/fix_security_linter_warnings.sql`
+- ✔️ **Backup tables without RLS** - Migration backup tables exposed
+  - Tables: `_backup_users_before_merge`, `_backup_employees_before_merge`
+  - Enabled RLS with restrictive policy (`USING (false)`)
+  - Only service_role can access backup data now
+  - File: `database/migrations/fix_security_linter_warnings.sql`
+
 ### Bugfixes (2026-01-05) - HR Dashboard & Migration Fixes
 - ✔️ **Migration Fix: EXTRACT on integer** - `EXTRACT(DAY FROM date - date)` fails because date subtraction returns integer, not interval
   - Changed `EXTRACT(DAY FROM ...)` to just `(date - date)` in v_expiring_licenses and v_expiring_permits views

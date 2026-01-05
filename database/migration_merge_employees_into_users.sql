@@ -164,7 +164,9 @@ DROP VIEW IF EXISTS v_pending_leaves;
 -- =============================================
 
 -- View: Expiring Licenses (within 60 days)
-CREATE OR REPLACE VIEW v_expiring_licenses AS
+CREATE OR REPLACE VIEW v_expiring_licenses 
+WITH (security_invoker = true)
+AS
 SELECT 
     el.*,
     u.full_name,
@@ -179,7 +181,9 @@ WHERE el.status = 'active'
 ORDER BY el.expiry_date ASC;
 
 -- View: Expiring Permits (within 60 days)
-CREATE OR REPLACE VIEW v_expiring_permits AS
+CREATE OR REPLACE VIEW v_expiring_permits
+WITH (security_invoker = true)
+AS
 SELECT 
     ep.*,
     u.full_name,
@@ -194,7 +198,9 @@ WHERE ep.status = 'active'
 ORDER BY ep.expiry_date ASC;
 
 -- View: Today's Leave Schedule
-CREATE OR REPLACE VIEW v_todays_leave AS
+CREATE OR REPLACE VIEW v_todays_leave
+WITH (security_invoker = true)
+AS
 SELECT 
     el.*,
     u.full_name,
@@ -210,7 +216,9 @@ WHERE el.status = 'approved'
 ORDER BY u.department, u.full_name;
 
 -- View: Pending Leave Requests
-CREATE OR REPLACE VIEW v_pending_leaves AS
+CREATE OR REPLACE VIEW v_pending_leaves
+WITH (security_invoker = true)
+AS
 SELECT 
     el.*,
     u.full_name,

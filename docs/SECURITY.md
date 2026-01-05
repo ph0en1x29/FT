@@ -54,9 +54,15 @@ The `.env.local` file is in `.gitignore` and will not be committed.
 - [x] **Fix RLS on all tables** ✅ (2026-01-03)
   - Enabled RLS + policies on: `quotations`, `service_intervals`, `scheduled_services`, `notifications`, `technician_kpi_snapshots`
   - See `database/migrations/security_fix_linter_issues.sql`
-- [x] **Fix Security Definer views** ✅ (2026-01-03)
-  - Converted 5 views to SECURITY INVOKER: `active_rentals_view`, `v_todays_leave`, `v_expiring_licenses`, `v_pending_leaves`, `v_expiring_permits`
-  - See `database/migrations/fix_security_invoker_views.sql`
+- [x] **Fix Security Definer views** ✅ (2026-01-05 - Re-fixed after merge migration)
+  - HR views were recreated during user-employee merge without `security_invoker`
+  - Converted 4 views to SECURITY INVOKER: `v_todays_leave`, `v_expiring_licenses`, `v_pending_leaves`, `v_expiring_permits`
+  - Updated original migration to include `WITH (security_invoker = true)`
+  - See `database/migrations/fix_security_linter_warnings.sql`
+- [x] **Fix RLS on backup tables** ✅ (2026-01-05)
+  - Enabled RLS on `_backup_users_before_merge` and `_backup_employees_before_merge`
+  - Created restrictive policy (`USING (false)`) - only service_role can access
+  - See `database/migrations/fix_security_linter_warnings.sql`
 - [x] **Add search_path to functions** ✅ (2026-01-03)
   - Fixed 44 functions with `SET search_path = public`
   - See `database/migrations/fix_function_search_paths.sql`
@@ -104,4 +110,4 @@ If you discover a vulnerability:
 
 ---
 
-*Last Updated: January 3, 2026*
+*Last Updated: January 5, 2026*
