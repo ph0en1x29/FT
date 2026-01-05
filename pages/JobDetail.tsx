@@ -546,6 +546,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   // Handle Deferred Completion (#8)
   const handleDeferredCompletion = async () => {
     if (!job || !deferredReason.trim()) return;
+    
+    // Require at least 1 evidence photo
+    if (selectedEvidenceIds.length === 0) {
+      showToast.error('Please select at least 1 evidence photo');
+      return;
+    }
+    
     setSubmittingDeferred(true);
 
     try {
@@ -1781,6 +1788,57 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                     </div>
                   </div>
                 )}
+
+                {/* Admin Actions for Awaiting Ack - Acknowledge on behalf */}
+                {isAwaitingAck && (isAdmin || isSupervisor) && (
+                  <div className="mt-3 pt-3 border-t border-orange-200">
+                    <p className="text-xs text-orange-600 mb-2">Customer confirmed via phone/email?</p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const method = await new Promise<'phone' | 'email' | null>((resolve) => {
+                            const choice = prompt('How did customer confirm? (phone/email):');
+                            if (choice?.toLowerCase() === 'phone') resolve('phone');
+                            else if (choice?.toLowerCase() === 'email') resolve('email');
+                            else resolve(null);
+                          });
+                          if (method) {
+                            const notes = prompt('Add any notes (optional):') || '';
+                            const success = await MockDb.acknowledgeJob(job.job_id, method, undefined, notes);
+                            if (success) {
+                              showToast.success('Customer acknowledgement recorded');
+                              loadJob();
+                            } else {
+                              showToast.error('Failed to record acknowledgement');
+                            }
+                          }
+                        }}
+                        className="flex-1 bg-green-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-green-700"
+                      >
+                        Record Acknowledgement
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const notes = prompt('Enter dispute reason from customer:');
+                          if (notes) {
+                            const success = await MockDb.disputeJob(job.job_id, notes);
+                            if (success) {
+                              showToast.warning('Dispute recorded');
+                              loadJob();
+                            } else {
+                              showToast.error('Failed to record dispute');
+                            }
+                          }
+                        }}
+                        className="flex-1 bg-red-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-red-700"
+                      >
+                        Record Dispute
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -2781,7 +2839,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             {/* Evidence Photos Selection */}
             <div className="mb-4">
               <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Evidence Photos (select from job photos)
+                Evidence Photos <span className="text-red-500">*</span> <span className="text-slate-500 font-normal">(min. 1 required)</span>
               </label>
               {jobMedia && jobMedia.length > 0 ? (
                 <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-2 bg-slate-50 rounded-lg">
@@ -2833,7 +2891,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               <button 
                 type="button" 
                 onClick={handleDeferredCompletion}
-                disabled={!deferredReason.trim() || submittingDeferred}
+                disabled={!deferredReason.trim() || selectedEvidenceIds.length === 0 || submittingDeferred}
                 className="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {submittingDeferred ? 'Processing...' : 'Complete & Notify Customer'}

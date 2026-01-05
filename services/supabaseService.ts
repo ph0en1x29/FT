@@ -4070,6 +4070,11 @@ export const SupabaseDb = {
     userName: string
   ): Promise<{ success: boolean; ackId?: string; error?: string }> => {
     try {
+      // Validate minimum 1 evidence photo required
+      if (!evidencePhotoIds || evidencePhotoIds.length === 0) {
+        return { success: false, error: 'At least 1 evidence photo is required' };
+      }
+
       // Get SLA days from settings
       const slaDays = await SupabaseDb.getAppSetting('deferred_ack_sla_days');
       const slaBusinessDays = parseInt(slaDays || '5', 10);
