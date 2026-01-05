@@ -27,6 +27,18 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### Bugfixes (2026-01-05) - #8 Deferred Acknowledgement Hardening
+- ✔️ **Evidence Photo Enforcement** - Now requires minimum 1 photo for deferred completion
+  - Handler validates `selectedEvidenceIds.length > 0`
+  - Service layer returns error if array empty/null
+  - Button disabled until 1+ photos selected
+  - Label shows "Evidence Photos * (min. 1 required)"
+- ✔️ **Admin Acknowledge on Behalf** - MVP for customer workflow
+  - "Record Acknowledgement" button (phone/email confirmation)
+  - "Record Dispute" button (record customer complaint)
+  - Admin/Supervisor can complete the acknowledgement flow without customer portal
+  - Full customer portal with access_token can be built later if needed
+
 ### ACWER Feature Implementation (2026-01-04)
 
 #### #4 Hourmeter Prediction + Dashboard - ✔️ COMPLETED (Pre-existing)
