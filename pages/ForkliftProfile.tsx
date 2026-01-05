@@ -208,6 +208,11 @@ const ForkliftProfile: React.FC<ForkliftProfileProps> = ({ currentUser }) => {
       'In Progress': 'bg-amber-100 text-amber-700',
       'Assigned': 'bg-blue-100 text-blue-700',
       'New': 'bg-slate-100 text-slate-700',
+      // New statuses (#7 Multi-Day, #8 Deferred Ack)
+      'Completed Awaiting Acknowledgement': 'bg-orange-100 text-orange-700',
+      'Incomplete - Continuing': 'bg-amber-100 text-amber-700',
+      'Incomplete - Reassigned': 'bg-rose-100 text-rose-700',
+      'Disputed': 'bg-red-100 text-red-700',
     };
     return styles[status] || 'bg-slate-100 text-slate-700';
   };
@@ -239,7 +244,9 @@ const ForkliftProfile: React.FC<ForkliftProfileProps> = ({ currentUser }) => {
   const activeServiceHistory = serviceHistory.filter(j => !j.is_cancelled);
   const cancelledJobs = serviceHistory.filter(j => j.is_cancelled);
   const totalServices = activeServiceHistory.length;
-  const completedServices = activeServiceHistory.filter(j => j.status === 'Completed' || j.status === 'Awaiting Finalization').length;
+  // Completed = work done (includes Awaiting Ack, Disputed - work was done)
+  const completedStatuses = ['Completed', 'Awaiting Finalization', 'Completed Awaiting Acknowledgement', 'Disputed'];
+  const completedServices = activeServiceHistory.filter(j => completedStatuses.includes(j.status)).length;
   const totalPartsUsed = activeServiceHistory.reduce((acc, job) => acc + (job.parts_used?.length || 0), 0);
 
   // Calculate rental revenue

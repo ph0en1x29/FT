@@ -82,8 +82,11 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
         });
         break;
       case 'unfinished':
+        // Unfinished = needs work or attention
+        // Excludes: Completed, Completed Awaiting Ack (work done, just pending customer)
         result = result.filter(job => 
-          job.status !== JobStatus.COMPLETED
+          job.status !== JobStatus.COMPLETED &&
+          job.status !== JobStatus.COMPLETED_AWAITING_ACK
         );
         break;
       case 'week':
@@ -148,6 +151,11 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
       case JobStatus.IN_PROGRESS: return 'bg-amber-100 text-amber-800';
       case JobStatus.AWAITING_FINALIZATION: return 'bg-purple-100 text-purple-800';
       case JobStatus.COMPLETED: return 'bg-green-100 text-green-800';
+      // New statuses (#7 Multi-Day, #8 Deferred Ack)
+      case JobStatus.COMPLETED_AWAITING_ACK: return 'bg-orange-100 text-orange-800';
+      case JobStatus.INCOMPLETE_CONTINUING: return 'bg-amber-100 text-amber-800';
+      case JobStatus.INCOMPLETE_REASSIGNED: return 'bg-rose-100 text-rose-800';
+      case JobStatus.DISPUTED: return 'bg-red-100 text-red-800';
       default: return 'bg-slate-100 text-slate-800';
     }
   };
@@ -174,13 +182,27 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
 
   // Count jobs by status for quick stats
   const statusCounts = useMemo(() => {
+    const completedCount = jobs.filter(j => j.status === JobStatus.COMPLETED).length;
+    const awaitingAckCount = jobs.filter(j => j.status === JobStatus.COMPLETED_AWAITING_ACK).length;
+    const disputedCount = jobs.filter(j => j.status === JobStatus.DISPUTED).length;
+    const incompleteContinuingCount = jobs.filter(j => j.status === JobStatus.INCOMPLETE_CONTINUING).length;
+    const incompleteReassignedCount = jobs.filter(j => j.status === JobStatus.INCOMPLETE_REASSIGNED).length;
+    
+    // "Completed" for totals includes: Completed + Awaiting Ack + Disputed (work was done)
+    const totalCompleted = completedCount + awaitingAckCount + disputedCount;
+    
     return {
       total: jobs.length,
       new: jobs.filter(j => j.status === JobStatus.NEW).length,
       assigned: jobs.filter(j => j.status === JobStatus.ASSIGNED).length,
       inProgress: jobs.filter(j => j.status === JobStatus.IN_PROGRESS).length,
       awaiting: jobs.filter(j => j.status === JobStatus.AWAITING_FINALIZATION).length,
-      completed: jobs.filter(j => j.status === JobStatus.COMPLETED).length,
+      completed: totalCompleted,
+      // Separate counts for admin visibility
+      awaitingAck: awaitingAckCount,
+      disputed: disputedCount,
+      incompleteContinuing: incompleteContinuingCount,
+      incompleteReassigned: incompleteReassignedCount,
     };
   }, [jobs]);
 
@@ -402,6 +424,10 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
                 <option value={JobStatus.IN_PROGRESS}>In Progress</option>
                 <option value={JobStatus.AWAITING_FINALIZATION}>Awaiting Finalization</option>
                 <option value={JobStatus.COMPLETED}>Completed</option>
+                <option value={JobStatus.COMPLETED_AWAITING_ACK}>Awaiting Customer Ack</option>
+                <option value={JobStatus.INCOMPLETE_CONTINUING}>Incomplete - Continuing</option>
+                <option value={JobStatus.INCOMPLETE_REASSIGNED}>Incomplete - Reassigned</option>
+                <option value={JobStatus.DISPUTED}>Disputed</option>
               </select>
             </div>
           </div>

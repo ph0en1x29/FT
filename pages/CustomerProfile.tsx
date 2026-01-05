@@ -301,8 +301,15 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   const activeJobs = useMemo(() => jobs.filter(j => !j.is_cancelled), [jobs]);
   const cancelledJobs = useMemo(() => jobs.filter(j => j.is_cancelled), [jobs]);
   
-  const openJobs = useMemo(() => activeJobs.filter(j => !['Completed', 'Awaiting Finalization'].includes(j.status)), [activeJobs]);
-  const completedJobs = useMemo(() => activeJobs.filter(j => ['Completed', 'Awaiting Finalization'].includes(j.status)), [activeJobs]);
+  // Completed = work done (includes Awaiting Ack, Disputed - work was done)
+  const completedStatuses = [
+    'Completed', 
+    'Awaiting Finalization',
+    'Completed Awaiting Acknowledgement',
+    'Disputed'
+  ];
+  const openJobs = useMemo(() => activeJobs.filter(j => !completedStatuses.includes(j.status)), [activeJobs]);
+  const completedJobs = useMemo(() => activeJobs.filter(j => completedStatuses.includes(j.status)), [activeJobs]);
   
   const filteredJobs = useMemo(() => {
     switch (serviceTab) {

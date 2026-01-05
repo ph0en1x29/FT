@@ -4067,7 +4067,8 @@ export const SupabaseDb = {
     reason: string,
     evidencePhotoIds: string[],
     userId: string,
-    userName: string
+    userName: string,
+    endHourmeter?: number
   ): Promise<{ success: boolean; ackId?: string; error?: string }> => {
     try {
       // Validate minimum 1 evidence photo required
@@ -4092,10 +4093,10 @@ export const SupabaseDb = {
       const now = new Date();
       const deadline = addBusinessDaysMalaysia(now, slaBusinessDays, holidays);
 
-      // Get job's customer_id
+      // Get job's customer_id and forklift_id
       const { data: job, error: jobFetchError } = await supabase
         .from('jobs')
-        .select('customer_id, notes')
+        .select('customer_id, forklift_id, notes')
         .eq('job_id', jobId)
         .single();
 
@@ -4103,7 +4104,7 @@ export const SupabaseDb = {
         return { success: false, error: 'Job not found or no customer assigned' };
       }
 
-      // Update job
+      // Update job with completion timestamps
       const currentNotes = Array.isArray(job.notes) ? job.notes : [];
       const updatedNotes = [...currentNotes, {
         text: `Deferred completion: ${reason}`,
@@ -4111,21 +4112,42 @@ export const SupabaseDb = {
         created_by: userName
       }];
 
+      const jobUpdate: any = {
+        status: 'Completed Awaiting Acknowledgement',
+        verification_type: 'deferred',
+        deferred_reason: reason,
+        evidence_photo_ids: evidencePhotoIds,
+        customer_notified_at: now.toISOString(),
+        customer_response_deadline: deadline.toISOString(),
+        notes: updatedNotes,
+        // Set completion timestamps for reporting/invoicing
+        completed_at: now.toISOString(),
+        completion_time: now.toISOString(),
+        repair_end_time: now.toISOString(),
+        completed_by_user_id: userId,
+        completed_by_name: userName
+      };
+
+      // Add hourmeter if provided
+      if (endHourmeter !== undefined) {
+        jobUpdate.end_hourmeter = endHourmeter;
+      }
+
       const { error: updateError } = await supabase
         .from('jobs')
-        .update({
-          status: 'Completed Awaiting Acknowledgement',
-          verification_type: 'deferred',
-          deferred_reason: reason,
-          evidence_photo_ids: evidencePhotoIds,
-          customer_notified_at: now.toISOString(),
-          customer_response_deadline: deadline.toISOString(),
-          notes: updatedNotes
-        })
+        .update(jobUpdate)
         .eq('job_id', jobId);
 
       if (updateError) {
         return { success: false, error: updateError.message };
+      }
+
+      // Update forklift hourmeter if provided
+      if (endHourmeter !== undefined && job.forklift_id) {
+        await supabase
+          .from('forklifts')
+          .update({ hourmeter: endHourmeter })
+          .eq('forklift_id', job.forklift_id);
       }
 
       // Create customer acknowledgement record
@@ -4229,7 +4251,11 @@ export const SupabaseDb = {
   },
 
   // Customer disputes job completion
-  disputeJob: async (jobId: string, disputeNotes: string): Promise<boolean> => {
+  disputeJob: async (
+    jobId: string, 
+    disputeNotes: string,
+    method: 'portal' | 'email' | 'phone' = 'portal'
+  ): Promise<boolean> => {
     try {
       const now = new Date().toISOString();
 
@@ -4239,7 +4265,7 @@ export const SupabaseDb = {
         .update({
           status: 'disputed',
           responded_at: now,
-          response_method: 'portal',
+          response_method: method,
           response_notes: disputeNotes,
           updated_at: now
         })

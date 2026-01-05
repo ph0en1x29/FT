@@ -141,7 +141,7 @@ COMPLETED_AWAITING_ACKNOWLEDGEMENT
 | ASSIGNED | IN_PROGRESS | Technician accepts | Start photo uploaded |
 | ASSIGNED | REJECTED | Technician rejects | Rejection reason |
 | IN_PROGRESS | COMPLETED | Technician completes | End photo, signature, hourmeter |
-| IN_PROGRESS | COMPLETED_AWAITING_ACK | Technician completes without sig | Reason, evidence photos |
+| IN_PROGRESS | COMPLETED_AWAITING_ACK | Technician completes without sig | Reason, evidence photos, hourmeter |
 | IN_PROGRESS | INCOMPLETE_TO_BE_CONTINUED | Technician pauses | Reason, cutoff_time |
 | IN_PROGRESS | INCOMPLETE_REASSIGNED | Admin reassigns | Reassignment reason, new tech |
 | COMPLETED_AWAITING_ACK | COMPLETED | Customer acknowledges OR 3-5 days pass | — |

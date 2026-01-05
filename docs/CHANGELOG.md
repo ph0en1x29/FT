@@ -27,6 +27,43 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### UI Consistency Updates (2026-01-05) - #7/#8 Status Integration Across Pages
+- ✔️ **JobBoard.tsx** - Added new statuses to filters, counts, and badges
+  - Status filter dropdown includes: Incomplete - Continuing, Incomplete - Reassigned, Completed Awaiting Acknowledgement, Disputed
+  - Badge colors for all new statuses in job cards
+  - "Unfinished" date filter excludes Completed and Completed Awaiting Ack (work done)
+  - getStatusBadge() and getStatusBadgeClass() handle all new statuses
+- ✔️ **Dashboard.tsx** - Status counts and alert sections
+  - Status summary counts include new statuses in appropriate categories
+  - Separate alert sections for "Awaiting Acknowledgement" and "Disputed" jobs
+  - Admins see jobs needing attention while main totals treat them as completed
+  - Donut chart includes new status colors
+- ✔️ **CustomerProfile.tsx** - Open vs Completed classification
+  - Completed statuses include: Completed, Awaiting Finalization, Completed Awaiting Acknowledgement, Disputed
+  - Work done = counted as completed for totals
+- ✔️ **ForkliftProfile.tsx** - Badge colors and completed services count
+  - getJobStatusBadge() includes all new status colors
+  - Completed services calculation updated
+- ✔️ **disputeJob() response_method fix**
+  - Function now accepts optional `method` parameter: 'portal' | 'email' | 'phone' (default: 'portal')
+  - JobDetail.tsx dispute button prompts for communication method before recording
+  - Consistent with acknowledgeJob() behavior
+
+### Bugfixes (2026-01-05) - #8 Deferred Completion Critical Fixes
+- ✔️ **High: Deferred completion missing hourmeter check**
+  - Added `deferredHourmeter` state to JobDetail.tsx
+  - Deferred Completion modal now requires hourmeter input with validation (>= start hourmeter)
+  - Hourmeter passed to `deferJobCompletion()` and stored in `end_hourmeter`
+  - Forklift hourmeter updated on deferred completion
+- ✔️ **High: Missing completion timestamps in deferJobCompletion()**
+  - `deferJobCompletion()` now sets: `completed_at`, `completion_time`, `repair_end_time`, `completed_by_user_id`, `completed_by_name`
+  - Function signature updated to accept optional `endHourmeter` parameter
+  - Ensures reporting/invoicing works correctly for deferred jobs
+- ✔️ **Medium: KPI pages excluded Completed Awaiting Acknowledgement**
+  - Updated `TechnicianKPIPage.tsx` and `TechnicianKPIPageV2.tsx`
+  - `completedJobs` filter now includes: Completed, Awaiting Finalization, Completed Awaiting Acknowledgement, Disputed
+  - All "work done" statuses now count toward technician KPIs
+
 ### Bugfixes (2026-01-05) - HR Dashboard & Migration Fixes
 - ✔️ **Migration Fix: EXTRACT on integer** - `EXTRACT(DAY FROM date - date)` fails because date subtraction returns integer, not interval
   - Changed `EXTRACT(DAY FROM ...)` to just `(date - date)` in v_expiring_licenses and v_expiring_permits views

@@ -293,6 +293,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   // Deferred acknowledgement states (#8)
   const [showDeferredModal, setShowDeferredModal] = useState(false);
   const [deferredReason, setDeferredReason] = useState('');
+  const [deferredHourmeter, setDeferredHourmeter] = useState('');
   const [selectedEvidenceIds, setSelectedEvidenceIds] = useState<string[]>([]);
   const [submittingDeferred, setSubmittingDeferred] = useState(false);
   const [jobAcknowledgement, setJobAcknowledgement] = useState<any>(null);
@@ -547,6 +548,20 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const handleDeferredCompletion = async () => {
     if (!job || !deferredReason.trim()) return;
     
+    // Require hourmeter reading
+    const hourmeterValue = parseFloat(deferredHourmeter);
+    if (!deferredHourmeter.trim() || isNaN(hourmeterValue)) {
+      showToast.error('Please enter a valid hourmeter reading');
+      return;
+    }
+    
+    // Validate hourmeter >= start hourmeter
+    const startHourmeter = job.start_hourmeter || job.forklift?.hourmeter || 0;
+    if (hourmeterValue < startHourmeter) {
+      showToast.error(`Hourmeter must be >= start reading (${startHourmeter})`);
+      return;
+    }
+    
     // Require at least 1 evidence photo
     if (selectedEvidenceIds.length === 0) {
       showToast.error('Please select at least 1 evidence photo');
@@ -561,13 +576,15 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
         deferredReason,
         selectedEvidenceIds,
         currentUserId,
-        currentUserName
+        currentUserName,
+        hourmeterValue
       );
 
       if (result.success) {
         showToast.success('Job marked as completed (pending customer acknowledgement)');
         setShowDeferredModal(false);
         setDeferredReason('');
+        setDeferredHourmeter('');
         setSelectedEvidenceIds([]);
         loadJob();
       } else {
@@ -1377,7 +1394,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                Finalize Invoice
              </button>
            )}
-           {(isTechnician || isAdmin || isSupervisor) && (isInProgress || isAwaitingFinalization || isCompleted) && (
+           {(isTechnician || isAdmin || isSupervisor) && (isInProgress || isAwaitingFinalization || isCompleted || isAwaitingAck || isDisputed) && (
              <button type="button" onClick={handlePrintServiceReport} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-amber-700 flex items-center gap-2">
                <FileCheck className="w-4 h-4" /> Service Report
              </button>
@@ -1821,14 +1838,22 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                       <button
                         type="button"
                         onClick={async () => {
-                          const notes = prompt('Enter dispute reason from customer:');
-                          if (notes) {
-                            const success = await MockDb.disputeJob(job.job_id, notes);
-                            if (success) {
-                              showToast.warning('Dispute recorded');
-                              loadJob();
-                            } else {
-                              showToast.error('Failed to record dispute');
+                          const method = await new Promise<'phone' | 'email' | null>((resolve) => {
+                            const choice = prompt('How did customer communicate dispute? (phone/email):');
+                            if (choice?.toLowerCase() === 'phone') resolve('phone');
+                            else if (choice?.toLowerCase() === 'email') resolve('email');
+                            else resolve(null);
+                          });
+                          if (method) {
+                            const notes = prompt('Enter dispute reason from customer:');
+                            if (notes) {
+                              const success = await MockDb.disputeJob(job.job_id, notes, method);
+                              if (success) {
+                                showToast.warning('Dispute recorded');
+                                loadJob();
+                              } else {
+                                showToast.error('Failed to record dispute');
+                              }
                             }
                           }
                         }}
@@ -2836,6 +2861,29 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               />
             </div>
 
+            {/* Hourmeter Reading */}
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                End Hourmeter <span className="text-red-500">*</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="number"
+                    step="0.1"
+                    className="w-full pl-10 pr-4 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/25"
+                    value={deferredHourmeter}
+                    onChange={(e) => setDeferredHourmeter(e.target.value)}
+                    placeholder="Enter current hourmeter"
+                  />
+                </div>
+                <span className="text-xs text-slate-500">
+                  Start: {job?.start_hourmeter || job?.forklift?.hourmeter || 0} hrs
+                </span>
+              </div>
+            </div>
+
             {/* Evidence Photos Selection */}
             <div className="mb-4">
               <label className="text-sm font-medium text-slate-700 mb-2 block">
@@ -2883,7 +2931,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             <div className="flex gap-3">
               <button 
                 type="button" 
-                onClick={() => { setShowDeferredModal(false); setDeferredReason(''); setSelectedEvidenceIds([]); }} 
+                onClick={() => { setShowDeferredModal(false); setDeferredReason(''); setDeferredHourmeter(''); setSelectedEvidenceIds([]); }} 
                 className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
               >
                 Cancel

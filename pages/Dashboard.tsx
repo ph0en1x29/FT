@@ -82,19 +82,37 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
   
   const jobsThisWeek = jobs.filter(j => new Date(j.created_at) >= oneWeekAgo);
   
-  // Status distribution
+  // Status distribution (with new #7/#8 statuses)
+  const completedCount = jobs.filter(j => j.status === JobStatus.COMPLETED).length;
+  const awaitingAckCount = jobs.filter(j => j.status === JobStatus.COMPLETED_AWAITING_ACK).length;
+  const disputedCount = jobs.filter(j => j.status === JobStatus.DISPUTED).length;
+  const incompleteContinuingCount = jobs.filter(j => j.status === JobStatus.INCOMPLETE_CONTINUING).length;
+  const incompleteReassignedCount = jobs.filter(j => j.status === JobStatus.INCOMPLETE_REASSIGNED).length;
+  
+  // For main totals: Awaiting Ack + Disputed count as "completed" (work was done)
+  const totalCompletedForStats = completedCount + awaitingAckCount + disputedCount;
+  
   const statusCounts = {
-    [JobStatus.COMPLETED]: jobs.filter(j => j.status === JobStatus.COMPLETED).length,
+    [JobStatus.COMPLETED]: completedCount,
     [JobStatus.AWAITING_FINALIZATION]: jobs.filter(j => j.status === JobStatus.AWAITING_FINALIZATION).length,
     [JobStatus.IN_PROGRESS]: jobs.filter(j => j.status === JobStatus.IN_PROGRESS).length,
     [JobStatus.NEW]: jobs.filter(j => j.status === JobStatus.NEW).length,
     [JobStatus.ASSIGNED]: jobs.filter(j => j.status === JobStatus.ASSIGNED).length,
+    // New statuses
+    [JobStatus.COMPLETED_AWAITING_ACK]: awaitingAckCount,
+    [JobStatus.DISPUTED]: disputedCount,
+    [JobStatus.INCOMPLETE_CONTINUING]: incompleteContinuingCount,
+    [JobStatus.INCOMPLETE_REASSIGNED]: incompleteReassignedCount,
   };
 
   const dataStatus = [
-    { name: 'Completed', value: statusCounts[JobStatus.COMPLETED], color: '#22c55e' },
+    { name: 'Completed', value: completedCount, color: '#22c55e' },
+    { name: 'Awaiting Ack', value: awaitingAckCount, color: '#f97316' },
+    { name: 'Disputed', value: disputedCount, color: '#ef4444' },
     { name: 'Awaiting Finalization', value: statusCounts[JobStatus.AWAITING_FINALIZATION], color: '#a855f7' },
     { name: 'In Progress', value: statusCounts[JobStatus.IN_PROGRESS], color: '#f59e0b' },
+    { name: 'Continuing', value: incompleteContinuingCount, color: '#fbbf24' },
+    { name: 'Reassigned', value: incompleteReassignedCount, color: '#fb7185' },
     { name: 'New', value: statusCounts[JobStatus.NEW], color: '#3b82f6' },
     { name: 'Assigned', value: statusCounts[JobStatus.ASSIGNED], color: '#8b5cf6' },
   ].filter(item => item.value > 0); // Only show statuses with jobs
@@ -274,6 +292,48 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Awaiting Customer Acknowledgement - Admin/Supervisor only */}
+      {(isAdmin || isSupervisor) && awaitingAckCount > 0 && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="w-5 h-5 text-orange-600" />
+            <h3 className="font-semibold text-orange-800">
+              Awaiting Customer Acknowledgement ({awaitingAckCount})
+            </h3>
+          </div>
+          <p className="text-sm text-orange-600 mb-3">
+            Work completed but pending customer confirmation. Check customer response deadlines.
+          </p>
+          <button
+            onClick={() => navigate('/jobs?status=Completed%20Awaiting%20Acknowledgement')}
+            className="text-sm text-orange-700 hover:text-orange-900 font-medium"
+          >
+            View all →
+          </button>
+        </div>
+      )}
+
+      {/* Disputed Jobs - Admin/Supervisor only */}
+      {(isAdmin || isSupervisor) && disputedCount > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
+            <h3 className="font-semibold text-red-800">
+              Disputed Jobs ({disputedCount})
+            </h3>
+          </div>
+          <p className="text-sm text-red-600 mb-3">
+            Customers have disputed these job completions. Resolution required.
+          </p>
+          <button
+            onClick={() => navigate('/jobs?status=Disputed')}
+            className="text-sm text-red-700 hover:text-red-900 font-medium"
+          >
+            View all →
+          </button>
         </div>
       )}
 

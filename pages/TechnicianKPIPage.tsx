@@ -54,8 +54,12 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
   const technicianKPIs: TechnicianKPI[] = useMemo(() => {
     return technicians.map(tech => {
       const techJobs = filteredJobs.filter(j => j.assigned_technician_id === tech.user_id);
+      // Include all "work done" statuses (#7/#8)
       const completedJobs = techJobs.filter(j => 
-        j.status === 'Completed' || j.status === 'Awaiting Finalization'
+        j.status === 'Completed' || 
+        j.status === 'Awaiting Finalization' ||
+        j.status === 'Completed Awaiting Acknowledgement' ||
+        j.status === 'Disputed'
       );
       
       // Response time calculation (time from assignment to arrival)
