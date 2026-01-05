@@ -153,7 +153,7 @@ WHERE verification_type = 'deferred'
 -- STEP 5: Index for disputed jobs
 -- =============================================================================
 
-CREATE INDEX IF NOT EXISTS idx_jobs_disputed ON jobs(updated_at)
+CREATE INDEX IF NOT EXISTS idx_jobs_disputed ON jobs(disputed_at)
 WHERE status = 'Disputed';
 
 -- =============================================================================
