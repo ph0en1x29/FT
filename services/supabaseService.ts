@@ -3957,21 +3957,24 @@ export const SupabaseDb = {
     }
   },
 
-  // Get escalated jobs for admin dashboard
+  // Get escalated jobs for admin dashboard (enhanced with ack tracking)
   getEscalatedJobs: async (): Promise<any[]> => {
     try {
       const { data, error } = await supabase
         .from('jobs')
         .select(`
           job_id, title, status, created_at, scheduled_date, cutoff_time,
-          escalation_triggered_at,
+          escalation_triggered_at, escalation_acknowledged_at, 
+          escalation_acknowledged_by, escalation_notes,
           assigned_technician_id, assigned_technician_name,
-          customer:customers(name),
-          forklift:forklifts(serial_number, model)
+          customer:customers(name, phone, email),
+          forklift:forklifts(serial_number, model),
+          technician:users!jobs_assigned_technician_id_fkey(phone)
         `)
         .not('escalation_triggered_at', 'is', null)
         .is('deleted_at', null)
-        .not('status', 'eq', 'Completed')
+        .not('status', 'in', '("Completed","Completed Awaiting Acknowledgement")')
+        .order('escalation_acknowledged_at', { ascending: true, nullsFirst: true })
         .order('escalation_triggered_at', { ascending: false });
 
       if (error) {
@@ -3982,6 +3985,47 @@ export const SupabaseDb = {
     } catch (e) {
       console.error('Get escalated jobs error:', e);
       return [];
+    }
+  },
+
+  // Acknowledge an escalated job (Admin takes ownership)
+  acknowledgeEscalation: async (jobId: string, userId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({
+          escalation_acknowledged_at: new Date().toISOString(),
+          escalation_acknowledged_by: userId
+        })
+        .eq('job_id', jobId);
+
+      if (error) {
+        console.error('Failed to acknowledge escalation:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Acknowledge escalation error:', e);
+      return false;
+    }
+  },
+
+  // Add/update escalation notes
+  updateEscalationNotes: async (jobId: string, notes: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ escalation_notes: notes })
+        .eq('job_id', jobId);
+
+      if (error) {
+        console.error('Failed to update escalation notes:', error.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error('Update escalation notes error:', e);
+      return false;
     }
   },
 

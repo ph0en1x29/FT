@@ -302,6 +302,32 @@ function getNextBusinessDay(date: Date): Date {
 }
 ```
 
+### Escalation Management (Admin Dashboard)
+
+When jobs escalate, they appear on Admin Dashboard for resolution:
+
+| Field | Description |
+|-------|-------------|
+| `escalation_triggered_at` | When escalation fired (8 AM next business day) |
+| `escalation_acknowledged_at` | When Admin took ownership |
+| `escalation_acknowledged_by` | Which Admin acknowledged |
+| `escalation_notes` | Notes about delay/action taken |
+
+**Admin Workflow:**
+1. See escalated jobs on Dashboard (sorted: unacknowledged first)
+2. **Acknowledge** - Take ownership (stops repeated alerts to others)
+3. **Add notes** - Document reason for delay (e.g., "Waiting for parts")
+4. **Take action:**
+   - Reassign to different technician
+   - Mark as overtime (disable escalation)
+   - Contact customer/technician (phone numbers visible)
+5. Job auto-resolves when status changes to Completed
+
+**Visual States:**
+- 🔴 **New** (unacknowledged): Red, prominent
+- ⚪ **Acknowledged**: Gray, still visible until resolved
+- ✅ **Resolved**: Hidden (job completed)
+
 ---
 
 ## Customer Signature Flow

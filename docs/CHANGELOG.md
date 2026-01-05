@@ -49,6 +49,26 @@ All notable changes, decisions, and client requirements for this project.
   - JobDetail.tsx dispute button prompts for communication method before recording
   - Consistent with acknowledgeJob() behavior
 
+### Feature: Enhanced Escalation Management (2026-01-05)
+Dashboard escalation panel upgraded with industry-standard workflow:
+- ✔️ **Acknowledge ownership** - Admin can "Ack" to take ownership of escalated job
+- ✔️ **Days overdue** - Shows "2d overdue" instead of raw dates (color-coded severity)
+- ✔️ **Expand/collapse rows** - Click to see full details without leaving Dashboard
+- ✔️ **Contact info** - Customer & technician phone numbers with click-to-call
+- ✔️ **Escalation notes** - Add/edit notes explaining delay or action taken
+- ✔️ **Quick actions** - Reassign, Mark Overtime, View Job buttons inline
+- ✔️ **Acknowledged state** - Acknowledged jobs show dimmed with green badge
+
+Database additions:
+- `jobs.escalation_acknowledged_at` - When admin acknowledged
+- `jobs.escalation_acknowledged_by` - Which admin acknowledged
+- `jobs.escalation_notes` - Notes about the escalation
+
+Files:
+- `database/migrations/add_escalation_acknowledgement.sql`
+- `services/supabaseService.ts` - acknowledgeEscalation(), updateEscalationNotes()
+- `pages/Dashboard.tsx` - Enhanced escalation panel
+
 ### Bugfixes (2026-01-05) - #8 Deferred Completion Critical Fixes
 - ✔️ **High: Deferred completion missing hourmeter check**
   - Added `deferredHourmeter` state to JobDetail.tsx

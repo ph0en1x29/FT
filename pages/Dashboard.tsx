@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell 
 } from 'recharts';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { AlertTriangle, Clock, Phone, ChevronDown, ChevronUp, Check, MessageSquare, UserCog, Calendar } from 'lucide-react';
 import { UserRole, Job, JobStatus, User } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import ServiceAutomationWidget from '../components/ServiceAutomationWidget';
@@ -19,6 +19,9 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
   const [loading, setLoading] = useState(true);
   const [escalatedJobs, setEscalatedJobs] = useState<any[]>([]);
   const [escalationChecked, setEscalationChecked] = useState(false);
+  const [expandedEscalationId, setExpandedEscalationId] = useState<string | null>(null);
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [notesInput, setNotesInput] = useState('');
   const navigate = useNavigate();
 
   const isAdmin = role === UserRole.ADMIN;
@@ -73,6 +76,63 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
       showToast.error('Failed to load dashboard data', 'Please refresh the page');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Escalation handlers
+  const handleAcknowledgeEscalation = async (jobId: string) => {
+    const success = await MockDb.acknowledgeEscalation(jobId, currentUser.user_id);
+    if (success) {
+      showToast.success('Escalation acknowledged');
+      // Refresh escalated jobs list
+      const updated = await MockDb.getEscalatedJobs();
+      setEscalatedJobs(updated);
+    } else {
+      showToast.error('Failed to acknowledge escalation');
+    }
+  };
+
+  const handleSaveNotes = async (jobId: string) => {
+    const success = await MockDb.updateEscalationNotes(jobId, notesInput);
+    if (success) {
+      showToast.success('Notes saved');
+      setEditingNotesId(null);
+      // Refresh escalated jobs list
+      const updated = await MockDb.getEscalatedJobs();
+      setEscalatedJobs(updated);
+    } else {
+      showToast.error('Failed to save notes');
+    }
+  };
+
+  const handleMarkOvertime = async (jobId: string) => {
+    const success = await MockDb.markJobAsOvertime(jobId, true);
+    if (success) {
+      showToast.success('Job marked as overtime (escalation disabled)');
+      // Refresh escalated jobs list
+      const updated = await MockDb.getEscalatedJobs();
+      setEscalatedJobs(updated);
+    } else {
+      showToast.error('Failed to mark as overtime');
+    }
+  };
+
+  const getDaysOverdue = (escalationTriggeredAt: string): number => {
+    const escalated = new Date(escalationTriggeredAt);
+    const now = new Date();
+    const diffMs = now.getTime() - escalated.getTime();
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  };
+
+  const toggleExpandEscalation = (jobId: string) => {
+    if (expandedEscalationId === jobId) {
+      setExpandedEscalationId(null);
+      setEditingNotesId(null);
+    } else {
+      setExpandedEscalationId(jobId);
+      // Pre-fill notes input when expanding
+      const job = escalatedJobs.find(j => j.job_id === jobId);
+      setNotesInput(job?.escalation_notes || '');
     }
   };
 
@@ -255,42 +315,217 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
         </div>
       </div>
 
-      {/* Escalated Jobs Alert - Admin/Supervisor only */}
+      {/* Escalated Jobs Alert - Admin/Supervisor only (Enhanced) */}
       {(isAdmin || isSupervisor) && escalatedJobs.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-            <h3 className="font-semibold text-red-800">
-              Escalated Jobs ({escalatedJobs.length})
-            </h3>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <h3 className="font-semibold text-red-800">
+                Escalated Jobs ({escalatedJobs.length})
+              </h3>
+              <span className="text-xs bg-red-200 text-red-700 px-2 py-0.5 rounded-full">
+                {escalatedJobs.filter(j => !j.escalation_acknowledged_at).length} unacknowledged
+              </span>
+            </div>
           </div>
           <p className="text-sm text-red-600 mb-3">
-            These jobs exceeded their time limit without completion and require attention.
+            Jobs exceeded time limit. Acknowledge to take ownership.
           </p>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {escalatedJobs.map(job => (
-              <div 
-                key={job.job_id}
-                onClick={() => navigate(`/jobs/${job.job_id}`)}
-                className="flex justify-between items-center p-3 bg-white rounded-lg border border-red-200 hover:border-red-400 cursor-pointer transition-all"
-              >
-                <div className="flex-1">
-                  <p className="font-medium text-red-800">{job.title}</p>
-                  <p className="text-xs text-red-600">
-                    {job.customer?.name || 'No Customer'} • {job.assigned_technician_name || 'Unassigned'}
-                  </p>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {escalatedJobs.map(job => {
+              const isExpanded = expandedEscalationId === job.job_id;
+              const isAcknowledged = !!job.escalation_acknowledged_at;
+              const daysOverdue = getDaysOverdue(job.escalation_triggered_at);
+              
+              return (
+                <div 
+                  key={job.job_id}
+                  className={`rounded-lg border transition-all ${
+                    isAcknowledged 
+                      ? 'bg-gray-50 border-gray-200' 
+                      : 'bg-white border-red-200'
+                  }`}
+                >
+                  {/* Collapsed Row */}
+                  <div 
+                    className="flex justify-between items-center p-3 cursor-pointer"
+                    onClick={() => toggleExpandEscalation(job.job_id)}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className={`font-medium ${isAcknowledged ? 'text-gray-700' : 'text-red-800'}`}>
+                          {job.title}
+                        </p>
+                        {isAcknowledged && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Check className="w-3 h-3" /> Acknowledged
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-xs ${isAcknowledged ? 'text-gray-500' : 'text-red-600'}`}>
+                        {job.customer?.name || 'No Customer'} • {job.assigned_technician_name || 'Unassigned'}
+                      </p>
+                      {job.escalation_notes && !isExpanded && (
+                        <p className="text-xs text-gray-500 mt-1 italic truncate max-w-xs">
+                          <MessageSquare className="w-3 h-3 inline mr-1" />
+                          {job.escalation_notes}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          daysOverdue >= 3 
+                            ? 'bg-red-500 text-white' 
+                            : daysOverdue >= 1 
+                              ? 'bg-red-200 text-red-700' 
+                              : 'bg-orange-100 text-orange-700'
+                        }`}>
+                          {daysOverdue}d overdue
+                        </span>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {job.status}
+                        </p>
+                      </div>
+                      {!isAcknowledged && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAcknowledgeEscalation(job.job_id);
+                          }}
+                          className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1"
+                        >
+                          <Check className="w-3 h-3" /> Ack
+                        </button>
+                      )}
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-gray-400" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-gray-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Expanded Details */}
+                  {isExpanded && (
+                    <div className="px-3 pb-3 pt-0 border-t border-gray-100">
+                      <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                        {/* Customer Info */}
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Customer</p>
+                          <p className="font-medium text-gray-800">{job.customer?.name || 'N/A'}</p>
+                          {job.customer?.phone && (
+                            <a 
+                              href={`tel:${job.customer.phone}`}
+                              className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 mt-1"
+                            >
+                              <Phone className="w-3 h-3" /> {job.customer.phone}
+                            </a>
+                          )}
+                        </div>
+                        {/* Technician Info */}
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Technician</p>
+                          <p className="font-medium text-gray-800">{job.assigned_technician_name || 'Unassigned'}</p>
+                          {job.technician?.phone && (
+                            <a 
+                              href={`tel:${job.technician.phone}`}
+                              className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 mt-1"
+                            >
+                              <Phone className="w-3 h-3" /> {job.technician.phone}
+                            </a>
+                          )}
+                        </div>
+                        {/* Forklift Info */}
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Forklift</p>
+                          <p className="font-medium text-gray-800">
+                            {job.forklift?.serial_number || 'N/A'}
+                          </p>
+                          <p className="text-xs text-gray-500">{job.forklift?.model || ''}</p>
+                        </div>
+                        {/* Timeline */}
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Timeline</p>
+                          <p className="text-xs text-gray-600">
+                            <Calendar className="w-3 h-3 inline mr-1" />
+                            Scheduled: {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : 'N/A'}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            <Clock className="w-3 h-3 inline mr-1" />
+                            Escalated: {new Date(job.escalation_triggered_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Notes Section */}
+                      <div className="mt-3">
+                        <p className="text-xs text-gray-500 mb-1">Escalation Notes</p>
+                        {editingNotesId === job.job_id ? (
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={notesInput}
+                              onChange={(e) => setNotesInput(e.target.value)}
+                              placeholder="E.g., Waiting for parts, Customer rescheduled..."
+                              className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleSaveNotes(job.job_id)}
+                              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingNotesId(null)}
+                              className="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div 
+                            onClick={() => {
+                              setEditingNotesId(job.job_id);
+                              setNotesInput(job.escalation_notes || '');
+                            }}
+                            className="p-2 bg-gray-50 rounded text-sm text-gray-600 cursor-pointer hover:bg-gray-100 min-h-[2rem]"
+                          >
+                            {job.escalation_notes || <span className="text-gray-400 italic">Click to add notes...</span>}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => navigate(`/jobs/${job.job_id}`)}
+                          className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          View Job →
+                        </button>
+                        <button
+                          onClick={() => navigate(`/jobs/${job.job_id}?action=reassign`)}
+                          className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-1"
+                        >
+                          <UserCog className="w-3 h-3" /> Reassign
+                        </button>
+                        {!job.is_overtime && (
+                          <button
+                            onClick={() => handleMarkOvertime(job.job_id)}
+                            className="px-3 py-1.5 bg-purple-100 text-purple-700 text-xs rounded-lg hover:bg-purple-200 transition-colors flex items-center gap-1"
+                          >
+                            <Clock className="w-3 h-3" /> Mark Overtime
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="text-right">
-                  <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full">
-                    {job.status}
-                  </span>
-                  <p className="text-xs text-red-500 mt-1">
-                    <Clock className="w-3 h-3 inline mr-1" />
-                    {new Date(job.escalation_triggered_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
