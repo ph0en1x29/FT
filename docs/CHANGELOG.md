@@ -199,6 +199,42 @@ All notable changes, decisions, and client requirements for this project.
 - **Access:** Technician (continue/resume), Admin/Supervisor (overtime toggle, view escalations)
 - **Note:** Escalation check runs on Dashboard load (MVP). Upgrade to Edge Function cron with Supabase Pro for automatic 8 AM daily checks.
 
+#### #8 Deferred Acknowledgement - ✔️ COMPLETED
+- **Files created:**
+  - `database/migrations/add_deferred_acknowledgement.sql` - Schema + customer_acknowledgements table
+- **Files modified:**
+  - `types_with_invoice_tracking.ts`:
+    - Added `CustomerAcknowledgement` interface
+    - Added Job fields: `verification_type`, `deferred_reason`, `evidence_photo_ids`, `customer_notified_at`, `customer_response_deadline`, `auto_completed_at`, `dispute_notes`, `disputed_at`, `dispute_resolved_at`, `dispute_resolution`
+  - `services/supabaseService.ts`:
+    - `deferJobCompletion()` - Complete job without customer signature
+    - `getJobAcknowledgement()` - Get ack record for job
+    - `acknowledgeJob()` - Customer acknowledges via portal/phone/email
+    - `disputeJob()` - Customer disputes completion
+    - `resolveDispute()` - Admin resolves dispute
+    - `checkAndAutoCompleteJobs()` - Auto-complete expired deferred jobs
+    - `getJobsAwaitingAck()` - List jobs pending acknowledgement
+    - `getDisputedJobs()` - List disputed jobs
+  - `pages/JobDetail.tsx`:
+    - "Customer Unavailable" button (In Progress → Completed Awaiting Acknowledgement)
+    - Deferred Completion modal with reason + evidence photo selection
+    - Acknowledgement Status panel showing deadline, reason, dispute info
+    - Admin dispute resolution buttons (Accept & Complete / Reopen Job)
+  - `pages/Dashboard.tsx`:
+    - Auto-complete check runs on load (same as escalation check)
+- **Schema changes:**
+  - `jobs` table: verification_type, deferred_reason, evidence_photo_ids, customer_notified_at, customer_response_deadline, auto_completed_at, dispute_notes, disputed_at, dispute_resolved_at, dispute_resolution
+  - `customer_acknowledgements` table: access_token for customer portal, signature, response tracking
+  - Index for deferred jobs pending auto-completion
+- **Business rules:**
+  - SLA: Configurable business days (default 5) for customer response
+  - Auto-complete: Jobs past deadline auto-complete with verification_type='auto_completed'
+  - Disputes: Customer can dispute, Admin resolves by completing or reopening
+  - Evidence: Photos selected from job's existing media as proof of work
+- **Verification types:** signed_onsite, deferred, auto_completed, disputed
+- **DB Migration Required:** Run `add_deferred_acknowledgement.sql` in Supabase SQL Editor
+- **Access:** Technician (defer), Customer (acknowledge/dispute), Admin/Supervisor (resolve disputes)
+
 ### Bugfixes (2026-01-04) - Request System Schema & UI Fixes
 - ✔️ **Fixed Spare Part Approval** - Was writing to non-existent `jobs.parts_used` column
   - Now correctly inserts into `job_parts` table

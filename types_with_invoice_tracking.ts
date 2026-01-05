@@ -330,6 +330,23 @@ export interface AppSetting {
   updated_by?: string;
 }
 
+// Customer Acknowledgement for deferred completion (#8)
+export interface CustomerAcknowledgement {
+  ack_id: string;
+  job_id: string;
+  customer_id: string;
+  status: 'pending' | 'acknowledged' | 'disputed' | 'auto_completed';
+  access_token?: string;
+  token_expires_at?: string;
+  responded_at?: string;
+  response_method?: 'portal' | 'email' | 'phone' | 'auto';
+  response_notes?: string;
+  customer_signature?: string;
+  signed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface JobMedia {
   media_id: string;
   job_id: string;
@@ -454,6 +471,18 @@ export interface Job {
   cutoff_time?: string; // When tech marked job to continue next day
   is_overtime?: boolean; // Saturday OT jobs don't escalate
   escalation_triggered_at?: string; // When escalation notification was sent
+  
+  // Deferred Acknowledgement (#8)
+  verification_type?: 'signed_onsite' | 'deferred' | 'auto_completed' | 'disputed';
+  deferred_reason?: string;
+  evidence_photo_ids?: string[];
+  customer_notified_at?: string;
+  customer_response_deadline?: string;
+  auto_completed_at?: string;
+  dispute_notes?: string;
+  disputed_at?: string;
+  dispute_resolved_at?: string;
+  dispute_resolution?: string;
 }
 
 // Quotation specific types

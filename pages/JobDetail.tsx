@@ -290,6 +290,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [continueTomorrowReason, setContinueTomorrowReason] = useState('');
   const [submittingContinue, setSubmittingContinue] = useState(false);
 
+  // Deferred acknowledgement states (#8)
+  const [showDeferredModal, setShowDeferredModal] = useState(false);
+  const [deferredReason, setDeferredReason] = useState('');
+  const [selectedEvidenceIds, setSelectedEvidenceIds] = useState<string[]>([]);
+  const [submittingDeferred, setSubmittingDeferred] = useState(false);
+  const [jobAcknowledgement, setJobAcknowledgement] = useState<any>(null);
+
   useEffect(() => {
     loadJob();
     loadParts();
@@ -535,6 +542,52 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       showToast.error('Error resuming job');
     }
   };
+
+  // Handle Deferred Completion (#8)
+  const handleDeferredCompletion = async () => {
+    if (!job || !deferredReason.trim()) return;
+    setSubmittingDeferred(true);
+
+    try {
+      const result = await MockDb.deferJobCompletion(
+        job.job_id,
+        deferredReason,
+        selectedEvidenceIds,
+        currentUserId,
+        currentUserName
+      );
+
+      if (result.success) {
+        showToast.success('Job marked as completed (pending customer acknowledgement)');
+        setShowDeferredModal(false);
+        setDeferredReason('');
+        setSelectedEvidenceIds([]);
+        loadJob();
+      } else {
+        showToast.error(result.error || 'Failed to defer completion');
+      }
+    } catch (e) {
+      console.error('Deferred completion error:', e);
+      showToast.error('Error processing deferred completion');
+    } finally {
+      setSubmittingDeferred(false);
+    }
+  };
+
+  // Load acknowledgement data for deferred jobs
+  const loadAcknowledgement = async () => {
+    if (job && (job.status === 'Completed Awaiting Acknowledgement' || job.status === 'Disputed')) {
+      const ack = await MockDb.getJobAcknowledgement(job.job_id);
+      setJobAcknowledgement(ack);
+    }
+  };
+
+  // Load ack when job changes
+  useEffect(() => {
+    if (job) {
+      loadAcknowledgement();
+    }
+  }, [job?.status]);
 
   // Handle opening the Start Job modal
   const handleOpenStartJobModal = () => {
@@ -1152,6 +1205,10 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const isIncompleteReassigned = normalizedStatus === 'incomplete - reassigned' || normalizedStatus === 'incomplete_reassigned';
   const isEscalated = !!job.escalation_triggered_at;
   const isOvertime = job.is_overtime || false;
+  // Deferred acknowledgement statuses (#8)
+  const isAwaitingAck = normalizedStatus === 'completed awaiting acknowledgement' || normalizedStatus === 'completed_awaiting_ack';
+  const isDisputed = normalizedStatus === 'disputed';
+  const isDeferred = job.verification_type === 'deferred' || job.verification_type === 'auto_completed';
 
   // Check if both signatures are present
   const hasBothSignatures = !!(job.technician_signature && job.customer_signature);
@@ -1256,6 +1313,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                   Continuing
                 </span>
               )}
+              {/* Awaiting Acknowledgement Badge (#8) */}
+              {isAwaitingAck && (
+                <span className="text-xs px-2 py-1 rounded-full font-medium bg-orange-100 text-orange-700">
+                  Awaiting Customer Ack
+                </span>
+              )}
+              {/* Disputed Badge (#8) */}
+              {isDisputed && (
+                <span className="text-xs px-2 py-1 rounded-full font-medium bg-red-100 text-red-700 animate-pulse">
+                  ⚠️ Disputed
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -1288,6 +1357,12 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
            {(isTechnician || isAdmin || isSupervisor) && isIncompleteContinuing && !isHelperOnly && (
              <button type="button" onClick={handleResumeJob} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-blue-700 flex items-center gap-2">
                <Play className="w-4 h-4" /> Resume Job
+             </button>
+           )}
+           {/* Deferred Completion (#8) - when customer unavailable */}
+           {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && job.technician_signature && !job.customer_signature && (
+             <button type="button" onClick={() => setShowDeferredModal(true)} className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-orange-600 flex items-center gap-2">
+               <UserCheck className="w-4 h-4" /> Complete (Customer Unavailable)
              </button>
            )}
            {(isAccountant || isAdmin) && isAwaitingFinalization && (
@@ -1622,6 +1697,88 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                     <p className="text-xs text-red-700">
                       <strong>⚠️ Escalated:</strong> {new Date(job.escalation_triggered_at!).toLocaleString()}
                     </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Deferred Acknowledgement Status (#8) */}
+            {(isAwaitingAck || isDisputed) && (
+              <div className={`p-4 rounded-lg border mt-4 ${isDisputed ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'}`}>
+                <h4 className={`text-sm font-bold flex items-center gap-2 mb-3 ${isDisputed ? 'text-red-800' : 'text-orange-800'}`}>
+                  {isDisputed ? (
+                    <><AlertTriangle className="w-4 h-4" /> Disputed</>
+                  ) : (
+                    <><Clock className="w-4 h-4" /> Awaiting Customer Acknowledgement</>
+                  )}
+                </h4>
+                
+                {/* Deferred Reason */}
+                {job.deferred_reason && (
+                  <div className="mb-2">
+                    <p className="text-xs text-slate-600">Reason:</p>
+                    <p className="text-sm text-slate-800">{job.deferred_reason}</p>
+                  </div>
+                )}
+                
+                {/* Deadline */}
+                {job.customer_response_deadline && !isDisputed && (
+                  <div className="mb-2">
+                    <p className="text-xs text-slate-600">Deadline:</p>
+                    <p className="text-sm text-orange-700 font-medium">
+                      {new Date(job.customer_response_deadline).toLocaleDateString('en-MY', {
+                        weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Dispute Notes */}
+                {isDisputed && job.dispute_notes && (
+                  <div className="mb-2 bg-red-100 p-2 rounded">
+                    <p className="text-xs text-red-600">Customer's dispute:</p>
+                    <p className="text-sm text-red-800">{job.dispute_notes}</p>
+                  </div>
+                )}
+                
+                {/* Admin Actions for Dispute */}
+                {isDisputed && (isAdmin || isSupervisor) && (
+                  <div className="mt-3 pt-3 border-t border-red-200">
+                    <p className="text-xs text-red-600 mb-2">Resolve this dispute:</p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const resolution = prompt('Enter resolution notes:');
+                          if (resolution) {
+                            const success = await MockDb.resolveDispute(job.job_id, resolution, 'Completed');
+                            if (success) {
+                              showToast.success('Dispute resolved - job marked complete');
+                              loadJob();
+                            }
+                          }
+                        }}
+                        className="flex-1 bg-green-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-green-700"
+                      >
+                        Accept & Complete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const resolution = prompt('Enter resolution notes:');
+                          if (resolution) {
+                            const success = await MockDb.resolveDispute(job.job_id, resolution, 'In Progress');
+                            if (success) {
+                              showToast.success('Dispute resolved - job reopened');
+                              loadJob();
+                            }
+                          }
+                        }}
+                        className="flex-1 bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-blue-700"
+                      >
+                        Reopen Job
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -2588,6 +2745,98 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 className="flex-1 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <Clock className="w-4 h-4" /> {submittingContinue ? 'Saving...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deferred Completion Modal (#8) */}
+      {showDeferredModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h4 className="font-bold text-lg mb-4 text-orange-700 flex items-center gap-2">
+              <UserIcon className="w-5 h-5" /> Complete Without Customer Signature
+            </h4>
+            <div className="bg-orange-50 rounded-lg p-3 mb-4">
+              <p className="text-sm text-orange-800 font-medium">{job?.title}</p>
+              <p className="text-xs text-orange-600 mt-1">
+                Customer will be notified and has 5 business days to acknowledge or dispute.
+              </p>
+            </div>
+            
+            {/* Reason */}
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Reason customer cannot sign <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                className="w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/25 resize-none h-20"
+                value={deferredReason}
+                onChange={(e) => setDeferredReason(e.target.value)}
+                placeholder="e.g., Customer not on-site, Office closed, Customer requested remote confirmation..."
+              />
+            </div>
+
+            {/* Evidence Photos Selection */}
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Evidence Photos (select from job photos)
+              </label>
+              {jobMedia && jobMedia.length > 0 ? (
+                <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-2 bg-slate-50 rounded-lg">
+                  {jobMedia.map((media: any) => (
+                    <div 
+                      key={media.media_id}
+                      onClick={() => {
+                        setSelectedEvidenceIds(prev => 
+                          prev.includes(media.media_id)
+                            ? prev.filter(id => id !== media.media_id)
+                            : [...prev, media.media_id]
+                        );
+                      }}
+                      className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                        selectedEvidenceIds.includes(media.media_id)
+                          ? 'border-orange-500 ring-2 ring-orange-500/30'
+                          : 'border-transparent hover:border-orange-300'
+                      }`}
+                    >
+                      <img 
+                        src={media.url} 
+                        alt="Evidence" 
+                        className="w-full h-16 object-cover"
+                      />
+                      {selectedEvidenceIds.includes(media.media_id) && (
+                        <div className="absolute inset-0 bg-orange-500/30 flex items-center justify-center">
+                          <CheckCircle className="w-6 h-6 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 italic">No photos available. Consider uploading evidence photos first.</p>
+              )}
+              {selectedEvidenceIds.length > 0 && (
+                <p className="text-xs text-orange-600 mt-1">{selectedEvidenceIds.length} photo(s) selected as evidence</p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                type="button" 
+                onClick={() => { setShowDeferredModal(false); setDeferredReason(''); setSelectedEvidenceIds([]); }} 
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleDeferredCompletion}
+                disabled={!deferredReason.trim() || submittingDeferred}
+                className="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {submittingDeferred ? 'Processing...' : 'Complete & Notify Customer'}
               </button>
             </div>
           </div>

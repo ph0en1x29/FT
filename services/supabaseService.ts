@@ -4056,6 +4056,353 @@ export const SupabaseDb = {
       return { checked: 0, escalated: 0, jobs: [] };
     }
   },
+
+  // ==========================================================================
+  // DEFERRED ACKNOWLEDGEMENT (#8)
+  // ==========================================================================
+
+  // Defer job completion (customer not available to sign)
+  deferJobCompletion: async (
+    jobId: string,
+    reason: string,
+    evidencePhotoIds: string[],
+    userId: string,
+    userName: string
+  ): Promise<{ success: boolean; ackId?: string; error?: string }> => {
+    try {
+      // Get SLA days from settings
+      const slaDays = await SupabaseDb.getAppSetting('deferred_ack_sla_days');
+      const slaBusinessDays = parseInt(slaDays || '5', 10);
+
+      // Get holidays for deadline calculation
+      const currentYear = new Date().getFullYear();
+      const { data: holidayData } = await supabase
+        .from('public_holidays')
+        .select('holiday_date')
+        .gte('year', currentYear)
+        .lte('year', currentYear + 1);
+      const holidays = (holidayData || []).map(h => h.holiday_date);
+
+      // Calculate deadline (SLA business days from now)
+      const now = new Date();
+      const deadline = addBusinessDaysMalaysia(now, slaBusinessDays, holidays);
+
+      // Get job's customer_id
+      const { data: job, error: jobFetchError } = await supabase
+        .from('jobs')
+        .select('customer_id, notes')
+        .eq('job_id', jobId)
+        .single();
+
+      if (jobFetchError || !job?.customer_id) {
+        return { success: false, error: 'Job not found or no customer assigned' };
+      }
+
+      // Update job
+      const currentNotes = Array.isArray(job.notes) ? job.notes : [];
+      const updatedNotes = [...currentNotes, {
+        text: `Deferred completion: ${reason}`,
+        created_at: now.toISOString(),
+        created_by: userName
+      }];
+
+      const { error: updateError } = await supabase
+        .from('jobs')
+        .update({
+          status: 'Completed Awaiting Acknowledgement',
+          verification_type: 'deferred',
+          deferred_reason: reason,
+          evidence_photo_ids: evidencePhotoIds,
+          customer_notified_at: now.toISOString(),
+          customer_response_deadline: deadline.toISOString(),
+          notes: updatedNotes
+        })
+        .eq('job_id', jobId);
+
+      if (updateError) {
+        return { success: false, error: updateError.message };
+      }
+
+      // Create customer acknowledgement record
+      const tokenExpiry = new Date(deadline);
+      tokenExpiry.setDate(tokenExpiry.getDate() + 7); // Token valid 7 days after deadline
+
+      const { data: ack, error: ackError } = await supabase
+        .from('customer_acknowledgements')
+        .insert({
+          job_id: jobId,
+          customer_id: job.customer_id,
+          status: 'pending',
+          token_expires_at: tokenExpiry.toISOString()
+        })
+        .select('ack_id, access_token')
+        .single();
+
+      if (ackError) {
+        console.error('Failed to create ack record:', ackError.message);
+        // Job is updated but ack record failed - still return success
+        return { success: true };
+      }
+
+      return { success: true, ackId: ack.ack_id };
+    } catch (e) {
+      console.error('Defer job completion error:', e);
+      return { success: false, error: 'Unexpected error' };
+    }
+  },
+
+  // Get acknowledgement record for a job
+  getJobAcknowledgement: async (jobId: string): Promise<any | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('customer_acknowledgements')
+        .select('*, customer:customers(name, email, phone)')
+        .eq('job_id', jobId)
+        .single();
+
+      if (error) {
+        if (error.code !== 'PGRST116') { // Not found is OK
+          console.error('Failed to get ack:', error.message);
+        }
+        return null;
+      }
+      return data;
+    } catch (e) {
+      console.error('Get ack error:', e);
+      return null;
+    }
+  },
+
+  // Customer acknowledges job (via portal/phone/email)
+  acknowledgeJob: async (
+    jobId: string,
+    method: 'portal' | 'email' | 'phone',
+    signature?: string,
+    notes?: string
+  ): Promise<boolean> => {
+    try {
+      const now = new Date().toISOString();
+
+      // Update acknowledgement record
+      const { error: ackError } = await supabase
+        .from('customer_acknowledgements')
+        .update({
+          status: 'acknowledged',
+          responded_at: now,
+          response_method: method,
+          response_notes: notes || null,
+          customer_signature: signature || null,
+          signed_at: signature ? now : null,
+          updated_at: now
+        })
+        .eq('job_id', jobId);
+
+      if (ackError) {
+        console.error('Failed to update ack:', ackError.message);
+        return false;
+      }
+
+      // Update job status
+      const { error: jobError } = await supabase
+        .from('jobs')
+        .update({
+          status: 'Completed',
+          verification_type: 'deferred' // Keep as deferred to show it was deferred originally
+        })
+        .eq('job_id', jobId);
+
+      if (jobError) {
+        console.error('Failed to update job:', jobError.message);
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      console.error('Acknowledge job error:', e);
+      return false;
+    }
+  },
+
+  // Customer disputes job completion
+  disputeJob: async (jobId: string, disputeNotes: string): Promise<boolean> => {
+    try {
+      const now = new Date().toISOString();
+
+      // Update acknowledgement record
+      const { error: ackError } = await supabase
+        .from('customer_acknowledgements')
+        .update({
+          status: 'disputed',
+          responded_at: now,
+          response_method: 'portal',
+          response_notes: disputeNotes,
+          updated_at: now
+        })
+        .eq('job_id', jobId);
+
+      if (ackError) {
+        console.error('Failed to update ack:', ackError.message);
+        return false;
+      }
+
+      // Update job status
+      const { error: jobError } = await supabase
+        .from('jobs')
+        .update({
+          status: 'Disputed',
+          verification_type: 'disputed',
+          dispute_notes: disputeNotes,
+          disputed_at: now
+        })
+        .eq('job_id', jobId);
+
+      if (jobError) {
+        console.error('Failed to update job:', jobError.message);
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      console.error('Dispute job error:', e);
+      return false;
+    }
+  },
+
+  // Admin resolves dispute
+  resolveDispute: async (
+    jobId: string,
+    resolution: string,
+    finalStatus: 'Completed' | 'In Progress'
+  ): Promise<boolean> => {
+    try {
+      const now = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('jobs')
+        .update({
+          status: finalStatus,
+          dispute_resolved_at: now,
+          dispute_resolution: resolution,
+          verification_type: finalStatus === 'Completed' ? 'disputed' : 'signed_onsite'
+        })
+        .eq('job_id', jobId);
+
+      if (error) {
+        console.error('Failed to resolve dispute:', error.message);
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      console.error('Resolve dispute error:', e);
+      return false;
+    }
+  },
+
+  // Check and auto-complete expired deferred jobs
+  checkAndAutoCompleteJobs: async (): Promise<{ checked: number; completed: number }> => {
+    try {
+      const now = new Date();
+
+      // Get jobs past deadline
+      const { data: jobs, error } = await supabase
+        .from('jobs')
+        .select('job_id')
+        .eq('verification_type', 'deferred')
+        .eq('status', 'Completed Awaiting Acknowledgement')
+        .is('auto_completed_at', null)
+        .lt('customer_response_deadline', now.toISOString());
+
+      if (error || !jobs) {
+        console.error('Failed to get expired jobs:', error?.message);
+        return { checked: 0, completed: 0 };
+      }
+
+      let completed = 0;
+      for (const job of jobs) {
+        // Update job to auto-completed
+        const { error: updateError } = await supabase
+          .from('jobs')
+          .update({
+            status: 'Completed',
+            verification_type: 'auto_completed',
+            auto_completed_at: now.toISOString()
+          })
+          .eq('job_id', job.job_id);
+
+        if (!updateError) {
+          // Update ack record
+          await supabase
+            .from('customer_acknowledgements')
+            .update({
+              status: 'auto_completed',
+              responded_at: now.toISOString(),
+              response_method: 'auto',
+              updated_at: now.toISOString()
+            })
+            .eq('job_id', job.job_id);
+
+          completed++;
+        }
+      }
+
+      return { checked: jobs.length, completed };
+    } catch (e) {
+      console.error('Auto-complete check error:', e);
+      return { checked: 0, completed: 0 };
+    }
+  },
+
+  // Get jobs awaiting acknowledgement
+  getJobsAwaitingAck: async (): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          job_id, title, status, deferred_reason, 
+          customer_notified_at, customer_response_deadline,
+          customer:customers(name, email, phone),
+          forklift:forklifts(serial_number, model)
+        `)
+        .eq('status', 'Completed Awaiting Acknowledgement')
+        .is('deleted_at', null)
+        .order('customer_response_deadline', { ascending: true });
+
+      if (error) {
+        console.error('Failed to get awaiting ack jobs:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (e) {
+      console.error('Get awaiting ack error:', e);
+      return [];
+    }
+  },
+
+  // Get disputed jobs
+  getDisputedJobs: async (): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          job_id, title, status, dispute_notes, disputed_at,
+          customer:customers(name, email, phone),
+          assigned_technician_name
+        `)
+        .eq('status', 'Disputed')
+        .is('deleted_at', null)
+        .order('disputed_at', { ascending: false });
+
+      if (error) {
+        console.error('Failed to get disputed jobs:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (e) {
+      console.error('Get disputed jobs error:', e);
+      return [];
+    }
+  },
 };
 
 // ==========================================================================
@@ -4117,4 +4464,19 @@ function getNextBusinessDay8AM(date: Date, holidays: string[]): Date {
   const myt8am = new Date(`${dateStr}T00:00:00.000Z`);
   
   return myt8am;
+}
+
+// Add business days to a date (Malaysia timezone)
+function addBusinessDaysMalaysia(date: Date, days: number, holidays: string[]): Date {
+  const result = new Date(date);
+  let added = 0;
+  
+  while (added < days) {
+    result.setDate(result.getDate() + 1);
+    if (!isSundayMalaysia(result) && !isHolidayMalaysia(result, holidays)) {
+      added++;
+    }
+  }
+  
+  return result;
 }

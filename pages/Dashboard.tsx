@@ -37,6 +37,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
 
   const checkEscalations = async () => {
     try {
+      // Check escalations
       const result = await MockDb.checkAndTriggerEscalations();
       if (result.escalated > 0) {
         showToast.warning(
@@ -47,6 +48,16 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
       // Load all escalated jobs for display
       const allEscalated = await MockDb.getEscalatedJobs();
       setEscalatedJobs(allEscalated);
+      
+      // Check auto-complete for deferred jobs (#8)
+      const autoResult = await MockDb.checkAndAutoCompleteJobs();
+      if (autoResult.completed > 0) {
+        showToast.info(
+          `${autoResult.completed} job(s) auto-completed`,
+          'Customer acknowledgement deadline passed'
+        );
+      }
+      
       setEscalationChecked(true);
     } catch (e) {
       console.error('Escalation check error:', e);

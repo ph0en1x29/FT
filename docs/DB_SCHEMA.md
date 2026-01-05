@@ -165,6 +165,16 @@ Core work orders.
 | `cutoff_time` | TIMESTAMPTZ | YES | | Multi-day: when tech marked to continue |
 | `is_overtime` | BOOLEAN | YES | `false` | OT jobs don't escalate |
 | `escalation_triggered_at` | TIMESTAMPTZ | YES | | When escalation notification sent |
+| `verification_type` | TEXT | YES | `'signed_onsite'` | How completion was verified |
+| `deferred_reason` | TEXT | YES | | Why customer couldn't sign |
+| `evidence_photo_ids` | UUID[] | YES | | References to job_media |
+| `customer_notified_at` | TIMESTAMPTZ | YES | | When customer was notified |
+| `customer_response_deadline` | TIMESTAMPTZ | YES | | SLA deadline for response |
+| `auto_completed_at` | TIMESTAMPTZ | YES | | When auto-completed |
+| `dispute_notes` | TEXT | YES | | Customer's dispute reason |
+| `disputed_at` | TIMESTAMPTZ | YES | | When disputed |
+| `dispute_resolved_at` | TIMESTAMPTZ | YES | | When resolved |
+| `dispute_resolution` | TEXT | YES | | Resolution notes |
 
 Constraints:
 - PK: `job_id`
@@ -1077,6 +1087,48 @@ RLS:
 
 Default settings:
 - `deferred_ack_sla_days` = '5' (business days for customer acknowledgement)
+
+---
+
+### `customer_acknowledgements`
+Customer acknowledgement records for deferred job completion (#8).
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `ack_id` | UUID | NO | `gen_random_uuid()` |
+| `job_id` | UUID | NO | |
+| `customer_id` | UUID | NO | |
+| `status` | TEXT | NO | `'pending'` |
+| `access_token` | TEXT | YES | Generated |
+| `token_expires_at` | TIMESTAMPTZ | YES | |
+| `responded_at` | TIMESTAMPTZ | YES | |
+| `response_method` | TEXT | YES | |
+| `response_notes` | TEXT | YES | |
+| `customer_signature` | TEXT | YES | |
+| `signed_at` | TIMESTAMPTZ | YES | |
+| `created_at` | TIMESTAMPTZ | YES | `now()` |
+| `updated_at` | TIMESTAMPTZ | YES | `now()` |
+
+Constraints:
+- PK: `ack_id`
+- UNIQUE: `access_token`
+- CHECK: `status` IN ('pending', 'acknowledged', 'disputed', 'auto_completed')
+- CHECK: `response_method` IN ('portal', 'email', 'phone', 'auto')
+
+Foreign keys:
+- `job_id` -> `jobs.job_id` (CASCADE)
+- `customer_id` -> `customers.customer_id`
+
+Indexes:
+- `idx_customer_acks_job` on `job_id`
+- `idx_customer_acks_token` on `access_token`
+- `idx_customer_acks_status` on `status`
+- `idx_customer_acks_pending` on `job_id` WHERE status = 'pending'
+
+RLS:
+- All authenticated users: SELECT
+- Admin/Supervisor: ALL
+- Technician: INSERT only
 
 ---
 
