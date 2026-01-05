@@ -28,6 +28,12 @@ All notable changes, decisions, and client requirements for this project.
 📋 **Requirements Confirmed** — Ready to begin implementation
 
 ### Bugfixes (2026-01-05) - #8 Deferred Acknowledgement Hardening
+- ✔️ **Migration Fix: NOW() in index** - `idx_customer_ack_token` used `WHERE token_expires_at > NOW()` but NOW() isn't IMMUTABLE
+  - Removed WHERE clause, expiry check done in application layer
+  - File: `database/migrations/add_deferred_acknowledgement.sql`
+- ✔️ **Migration Fix: Non-existent column** - `idx_jobs_disputed` referenced `updated_at` which doesn't exist on jobs table
+  - Changed to `disputed_at` (added in same migration)
+  - File: `database/migrations/add_deferred_acknowledgement.sql`
 - ✔️ **Evidence Photo Enforcement** - Now requires minimum 1 photo for deferred completion
   - Handler validates `selectedEvidenceIds.length > 0`
   - Service layer returns error if array empty/null
