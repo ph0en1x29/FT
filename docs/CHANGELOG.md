@@ -36,6 +36,10 @@ All notable changes, decisions, and client requirements for this project.
   - Supabase can't auto-resolve which FK to use for embeds
   - Added explicit `!employee_leaves_user_id_fkey` to all 9 user:users embeds in hrService.ts
   - File: `services/hrService.ts`
+- ✔️ **Migration Fix: employees table conditional** - Migration failed if `employees` table doesn't exist
+  - Wrapped backup, data migration, DROP POLICY/TRIGGER in `IF EXISTS` checks
+  - Migration now works whether employees table exists or not
+  - File: `database/migration_merge_employees_into_users.sql`
 
 ### Bugfixes (2026-01-05) - #8 Deferred Acknowledgement Hardening
 - ✔️ **Migration Fix: NOW() in index** - `idx_customer_ack_token` used `WHERE token_expires_at > NOW()` but NOW() isn't IMMUTABLE
