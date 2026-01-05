@@ -71,8 +71,9 @@ CREATE TABLE IF NOT EXISTS customer_acknowledgements (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_ack_job ON customer_acknowledgements(job_id);
 
 -- Index for token lookup (customer portal access)
-CREATE INDEX IF NOT EXISTS idx_customer_ack_token ON customer_acknowledgements(access_token)
-WHERE token_expires_at > NOW();
+-- Note: Can't use WHERE token_expires_at > NOW() as NOW() isn't IMMUTABLE
+-- Expiry check done in application layer
+CREATE INDEX IF NOT EXISTS idx_customer_ack_token ON customer_acknowledgements(access_token);
 
 -- =============================================================================
 -- STEP 3: RLS for customer_acknowledgements
