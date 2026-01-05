@@ -64,6 +64,14 @@ All notable changes, decisions, and client requirements for this project.
   - `completedJobs` filter now includes: Completed, Awaiting Finalization, Completed Awaiting Acknowledgement, Disputed
   - All "work done" statuses now count toward technician KPIs
 
+### Data Cleanup (2026-01-05) - Duplicate Service Intervals
+- ✔️ **Duplicate records in service_intervals table**
+  - Same service type appeared multiple times per forklift type
+  - Cleaned up duplicates (keeping oldest record by created_at)
+  - Added unique partial index to prevent future duplicates
+  - Index: `idx_service_intervals_unique_active` on (forklift_type, service_type, hourmeter_interval) WHERE is_active = true
+  - File: `database/migrations/fix_duplicate_service_intervals.sql`
+
 ### Security Fixes (2026-01-05) - Supabase Linter Warnings
 - ✔️ **SECURITY DEFINER views** - 4 HR views flagged as security risk
   - Views: `v_pending_leaves`, `v_expiring_permits`, `v_todays_leave`, `v_expiring_licenses`
