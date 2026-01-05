@@ -1,6 +1,6 @@
 -- =============================================
 -- MERGE EMPLOYEES INTO USERS TABLE
--- Version: 1.0
+-- Version: 1.1
 -- Description: Eliminates the separate employees table by adding 
 --              all HR fields directly to users table.
 --              This ensures 1:1 relationship by design (same table!)
@@ -11,7 +11,14 @@
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS _backup_users_before_merge AS SELECT * FROM users;
-CREATE TABLE IF NOT EXISTS _backup_employees_before_merge AS SELECT * FROM employees;
+
+-- Only backup employees if the table exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'employees') THEN
+    EXECUTE 'CREATE TABLE IF NOT EXISTS _backup_employees_before_merge AS SELECT * FROM employees';
+  END IF;
+END $$;
 
 -- =============================================
 -- STEP 2: ADD HR COLUMNS TO USERS TABLE
@@ -51,30 +58,36 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS notes TEXT;
 -- STEP 3: MIGRATE DATA FROM EMPLOYEES TO USERS
 -- =============================================
 
-UPDATE users u
-SET 
-    employee_code = e.employee_code,
-    full_name = COALESCE(e.full_name, u.name),
-    phone = e.phone,
-    ic_number = e.ic_number,
-    address = e.address,
-    department = e.department,
-    position = e.position,
-    joined_date = e.joined_date,
-    employment_type = e.employment_type,
-    employment_status = e.status,
-    emergency_contact_name = e.emergency_contact_name,
-    emergency_contact_phone = e.emergency_contact_phone,
-    emergency_contact_relationship = e.emergency_contact_relationship,
-    profile_photo_url = COALESCE(e.profile_photo_url, u.avatar),
-    updated_at = COALESCE(e.updated_at, NOW()),
-    created_by_id = e.created_by_id,
-    created_by_name = e.created_by_name,
-    updated_by_id = e.updated_by_id,
-    updated_by_name = e.updated_by_name,
-    notes = e.notes
-FROM employees e
-WHERE u.user_id = e.user_id;
+-- Only migrate if employees table exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'employees') THEN
+    UPDATE users u
+    SET 
+        employee_code = e.employee_code,
+        full_name = COALESCE(e.full_name, u.name),
+        phone = e.phone,
+        ic_number = e.ic_number,
+        address = e.address,
+        department = e.department,
+        position = e.position,
+        joined_date = e.joined_date,
+        employment_type = e.employment_type,
+        employment_status = e.status,
+        emergency_contact_name = e.emergency_contact_name,
+        emergency_contact_phone = e.emergency_contact_phone,
+        emergency_contact_relationship = e.emergency_contact_relationship,
+        profile_photo_url = COALESCE(e.profile_photo_url, u.avatar),
+        updated_at = COALESCE(e.updated_at, NOW()),
+        created_by_id = e.created_by_id,
+        created_by_name = e.created_by_name,
+        updated_by_id = e.updated_by_id,
+        updated_by_name = e.updated_by_name,
+        notes = e.notes
+    FROM employees e
+    WHERE u.user_id = e.user_id;
+  END IF;
+END $$;
 
 -- Set defaults for users without employee records
 UPDATE users 
@@ -89,18 +102,21 @@ WHERE full_name IS NULL OR joined_date IS NULL;
 -- STEP 4: DROP OLD POLICIES AND CONSTRAINTS ON EMPLOYEES
 -- =============================================
 
--- Drop RLS policies on employees
-DROP POLICY IF EXISTS "employees_select_own" ON employees;
-DROP POLICY IF EXISTS "employees_update_own" ON employees;
-DROP POLICY IF EXISTS "employees_admin_all" ON employees;
-DROP POLICY IF EXISTS "employees_hr_select" ON employees;
+-- Drop RLS policies on employees (only if table exists)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'employees') THEN
+    DROP POLICY IF EXISTS "employees_select_own" ON employees;
+    DROP POLICY IF EXISTS "employees_update_own" ON employees;
+    DROP POLICY IF EXISTS "employees_admin_all" ON employees;
+    DROP POLICY IF EXISTS "employees_hr_select" ON employees;
+    DROP TRIGGER IF EXISTS trigger_employee_updated_at ON employees;
+  END IF;
+END $$;
 
 -- Drop trigger that auto-creates employee (no longer needed!)
 DROP TRIGGER IF EXISTS trigger_create_employee_on_user_insert ON users;
 DROP FUNCTION IF EXISTS create_employee_on_user_insert();
-
--- Drop employee update trigger
-DROP TRIGGER IF EXISTS trigger_employee_updated_at ON employees;
 
 -- =============================================
 -- STEP 5: UPDATE FOREIGN KEYS TO POINT TO USERS TABLE
