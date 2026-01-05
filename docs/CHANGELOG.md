@@ -27,6 +27,16 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### Bugfixes (2026-01-05) - HR Dashboard & Migration Fixes
+- ✔️ **Migration Fix: EXTRACT on integer** - `EXTRACT(DAY FROM date - date)` fails because date subtraction returns integer, not interval
+  - Changed `EXTRACT(DAY FROM ...)` to just `(date - date)` in v_expiring_licenses and v_expiring_permits views
+  - File: `database/migration_merge_employees_into_users.sql`
+- ✔️ **HR Dashboard Fix: Multiple FK error** - "Could not embed because more than one relationship was found for employee_leaves and users"
+  - `employee_leaves` has 4 FKs to users: user_id, requested_by_user_id, approved_by_user_id, rejected_by_user_id
+  - Supabase can't auto-resolve which FK to use for embeds
+  - Added explicit `!employee_leaves_user_id_fkey` to all 9 user:users embeds in hrService.ts
+  - File: `services/hrService.ts`
+
 ### Bugfixes (2026-01-05) - #8 Deferred Acknowledgement Hardening
 - ✔️ **Migration Fix: NOW() in index** - `idx_customer_ack_token` used `WHERE token_expires_at > NOW()` but NOW() isn't IMMUTABLE
   - Removed WHERE clause, expiry check done in application layer
