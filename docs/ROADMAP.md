@@ -1,6 +1,27 @@
 # FieldPro Roadmap
 
-**Last Updated:** January 5, 2026
+**Last Updated:** January 6, 2026
+
+---
+
+## ✅ Recently Completed (January 6, 2026)
+
+### Bundle Optimization
+- [x] Route-level lazy loading with React.lazy + Suspense
+- [x] Vendor chunking (react, supabase, charts, ui)
+- [x] Initial bundle reduced from ~1.5MB to ~290KB
+- [x] Added `npm run typecheck` script
+
+### Dashboard 3-Panel Redesign
+- [x] Service Automation Widget - cleaner layout with gradient icons
+- [x] Recent Jobs Panel - compact list with status dots
+- [x] Notifications Panel - icon backgrounds, unread dots
+
+### Real-time Notification System
+- [x] Dashboard notification panel
+- [x] Supabase Realtime subscriptions
+- [x] Sound alerts + browser notifications
+- [x] Fixed subscription loop bug
 
 ---
 

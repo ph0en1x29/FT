@@ -85,6 +85,13 @@ All notable changes, decisions, and client requirements for this project.
 - ✔️ **Favicon for web + notifications** - Added `public/favicon.svg`, linked from `index.html`, and used for browser notifications (`utils/useRealtimeNotifications.ts`)
 - ⚠️ **Tailwind note** - Tailwind utilities are currently loaded via `cdn.tailwindcss.com` in `index.html` for demo reliability; move to compiled Tailwind when ready to ship
 
+### Performance Improvements (2026-01-06) - Bundle Optimization (author: Claude)
+- ✔️ **Route-level lazy loading** - All pages now use `React.lazy()` with Suspense, reducing initial bundle from ~1.5MB to ~290KB
+- ✔️ **Vendor chunking** - Split into vendor-react (49KB), vendor-supabase (171KB), vendor-charts (359KB), vendor-ui (75KB)
+- ✔️ **Removed ineffective dynamic import** - `EmployeesPage.tsx` was dynamically importing supabaseService which was already in main bundle
+- ✔️ **Added typecheck script** - `npm run typecheck` and `npm run lint` for catching type errors
+- ✔️ **PageLoader component** - Loading spinner shown during lazy chunk loading
+
 ### UI Improvements (2026-01-06) - Dashboard 3-Panel Redesign (author: Claude)
 - ✔️ **Service Automation Widget** - Cleaner layout with gradient header icon, row-based stats with hover arrows, improved button styling
 - ✔️ **Recent Jobs Panel** - Compact list view with status dots, hover states, cleaner typography, gradient header icon

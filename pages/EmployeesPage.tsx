@@ -10,6 +10,7 @@ import {
 } from '../types_with_invoice_tracking';
 import { HRService } from '../services/hrService';
 import { showToast } from '../services/toastService';
+import { supabase } from '../services/supabaseService';
 import {
   Users,
   Plus,
@@ -414,9 +415,6 @@ function AddEmployeeModal({ onClose, onSave }: AddEmployeeModalProps) {
   const loadAvailableUsers = async () => {
     try {
       setLoadingUsers(true);
-      // Import supabase to fetch users
-      const { supabase } = await import('../services/supabaseService');
-      
       // Get all active users - with merged table, all users have HR fields
       // Filter to those with incomplete HR data (no ic_number or department)
       const { data: users } = await supabase

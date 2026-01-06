@@ -1,35 +1,48 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Sun, Moon } from 'lucide-react';
 import { User, UserRole, ROLE_PERMISSIONS } from './types_with_invoice_tracking';
-import Dashboard from './pages/Dashboard';
-import JobBoard from './pages/JobBoard';
-import JobDetail from './pages/JobDetail';
-import CreateJob from './pages/CreateJob';
-import LoginPage from './pages/LoginPage';
-import UserManagement from './pages/UserManagement';
-import Customers from './pages/Customers';
-import CustomerProfile from './pages/CustomerProfile';
-import Forklifts from './pages/Forklifts';
-import ForkliftProfile from './pages/ForkliftProfile';
-import ServiceRecords from './pages/ServiceRecords';
-import Invoices from './pages/Invoices';
-import InventoryPage from './pages/InventoryPage';
-import TechnicianKPIPage from './pages/TechnicianKPIPageV2';
-import EmployeesPage from './pages/EmployeesPage';
-import EmployeeProfile from './pages/EmployeeProfile';
-import HRDashboard from './pages/HRDashboard';
-import MyLeaveRequests from './pages/MyLeaveRequests';
-import ServiceDue from './pages/ServiceDue';
-import ServiceIntervalsConfig from './pages/ServiceIntervalsConfig';
+
+// Lazy load all pages for better initial bundle size
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const JobBoard = lazy(() => import('./pages/JobBoard'));
+const JobDetail = lazy(() => import('./pages/JobDetail'));
+const CreateJob = lazy(() => import('./pages/CreateJob'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
+const Customers = lazy(() => import('./pages/Customers'));
+const CustomerProfile = lazy(() => import('./pages/CustomerProfile'));
+const Forklifts = lazy(() => import('./pages/Forklifts'));
+const ForkliftProfile = lazy(() => import('./pages/ForkliftProfile'));
+const ServiceRecords = lazy(() => import('./pages/ServiceRecords'));
+const Invoices = lazy(() => import('./pages/Invoices'));
+const InventoryPage = lazy(() => import('./pages/InventoryPage'));
+const TechnicianKPIPage = lazy(() => import('./pages/TechnicianKPIPageV2'));
+const EmployeesPage = lazy(() => import('./pages/EmployeesPage'));
+const EmployeeProfile = lazy(() => import('./pages/EmployeeProfile'));
+const HRDashboard = lazy(() => import('./pages/HRDashboard'));
+const MyLeaveRequests = lazy(() => import('./pages/MyLeaveRequests'));
+const ServiceDue = lazy(() => import('./pages/ServiceDue'));
+const ServiceIntervalsConfig = lazy(() => import('./pages/ServiceIntervalsConfig'));
+
 import NotificationBell from './components/NotificationBell';
 import { SupabaseDb as MockDb } from './services/supabaseService';
 import { 
   LayoutDashboard, List, Package, LogOut, Users as UsersIcon, 
   Building2, Truck, ClipboardList, FileText, BarChart3, Menu, X, User as UserIcon,
-  UserCog, CalendarDays, ChevronLeft, ChevronDown, Settings, Zap
+  UserCog, CalendarDays, ChevronLeft, ChevronDown, Settings, Zap, Loader2
 } from 'lucide-react';
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-full min-h-[400px]">
+    <div className="flex flex-col items-center gap-3">
+      <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)]" />
+      <p className="text-sm text-[var(--text-muted)]">Loading...</p>
+    </div>
+  </div>
+);
 
 // Helper to check permissions
 const hasPermission = (role: UserRole, permission: keyof typeof ROLE_PERMISSIONS[UserRole]) => {
@@ -545,6 +558,7 @@ export default function App() {
         />
         <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64'} p-4 md:p-6 lg:p-8 pb-20 md:pb-8`}>
           <TopHeader currentUser={currentUser} isDark={isDarkTheme} onToggleTheme={toggleTheme} />
+          <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={
               !canViewDashboard
@@ -615,6 +629,7 @@ export default function App() {
             
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
+          </Suspense>
         </main>
         <MobileNav currentUser={currentUser} onOpenDrawer={() => setMobileDrawerOpen(true)} />
         <MobileDrawer
