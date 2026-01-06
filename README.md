@@ -58,6 +58,7 @@
 
 ### v1.1 (In Development)
 ACWER Industrial workflow implementation — [View details →](./docs/User_Manual_v1.1.md)
+- Stability hardening: added error handling across pages to prevent uncaught backend errors (see [Changelog](./docs/CHANGELOG.md))
 
 ### v1.0.1
 - Job Type Classification (Service/Repair/Checking/Accident)

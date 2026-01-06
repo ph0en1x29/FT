@@ -107,22 +107,27 @@ const ServiceIntervalsConfig: React.FC<Props> = ({ currentUser }) => {
       return;
     }
 
-    const result = await SupabaseDb.createServiceInterval({
-      forklift_type: formData.forklift_type,
-      service_type: formData.service_type,
-      hourmeter_interval: formData.hourmeter_interval,
-      calendar_interval_days: formData.calendar_interval_days || undefined,
-      priority: formData.priority,
-      estimated_duration_hours: formData.estimated_duration_hours || undefined,
-      name: formData.name || formData.service_type,
-    });
+    try {
+      const result = await SupabaseDb.createServiceInterval({
+        forklift_type: formData.forklift_type,
+        service_type: formData.service_type,
+        hourmeter_interval: formData.hourmeter_interval,
+        calendar_interval_days: formData.calendar_interval_days || undefined,
+        priority: formData.priority,
+        estimated_duration_hours: formData.estimated_duration_hours || undefined,
+        name: formData.name || formData.service_type,
+      });
 
-    if (result) {
-      showToast.success('Service interval created');
-      setShowAddModal(false);
-      resetForm();
-      loadIntervals();
-    } else {
+      if (result) {
+        showToast.success('Service interval created');
+        setShowAddModal(false);
+        resetForm();
+        loadIntervals();
+      } else {
+        showToast.error('Failed to create service interval');
+      }
+    } catch (error) {
+      console.error('Error creating service interval:', error);
       showToast.error('Failed to create service interval');
     }
   };
@@ -146,22 +151,27 @@ const ServiceIntervalsConfig: React.FC<Props> = ({ currentUser }) => {
       return;
     }
 
-    const result = await SupabaseDb.updateServiceInterval(intervalId, {
-      forklift_type: formData.forklift_type,
-      service_type: formData.service_type,
-      hourmeter_interval: formData.hourmeter_interval,
-      calendar_interval_days: formData.calendar_interval_days,
-      priority: formData.priority,
-      estimated_duration_hours: formData.estimated_duration_hours,
-      name: formData.name || formData.service_type,
-    });
+    try {
+      const result = await SupabaseDb.updateServiceInterval(intervalId, {
+        forklift_type: formData.forklift_type,
+        service_type: formData.service_type,
+        hourmeter_interval: formData.hourmeter_interval,
+        calendar_interval_days: formData.calendar_interval_days,
+        priority: formData.priority,
+        estimated_duration_hours: formData.estimated_duration_hours,
+        name: formData.name || formData.service_type,
+      });
 
-    if (result) {
-      showToast.success('Service interval updated');
-      setEditingId(null);
-      resetForm();
-      loadIntervals();
-    } else {
+      if (result) {
+        showToast.success('Service interval updated');
+        setEditingId(null);
+        resetForm();
+        loadIntervals();
+      } else {
+        showToast.error('Failed to update service interval');
+      }
+    } catch (error) {
+      console.error('Error updating service interval:', error);
       showToast.error('Failed to update service interval');
     }
   };
@@ -169,11 +179,16 @@ const ServiceIntervalsConfig: React.FC<Props> = ({ currentUser }) => {
   const handleDelete = async (intervalId: string, serviceName: string) => {
     if (!confirm(`Delete service interval "${serviceName}"?`)) return;
 
-    const success = await SupabaseDb.deleteServiceInterval(intervalId);
-    if (success) {
-      showToast.success('Service interval deactivated');
-      loadIntervals();
-    } else {
+    try {
+      const success = await SupabaseDb.deleteServiceInterval(intervalId);
+      if (success) {
+        showToast.success('Service interval deactivated');
+        loadIntervals();
+      } else {
+        showToast.error('Failed to delete service interval');
+      }
+    } catch (error) {
+      console.error('Error deleting service interval:', error);
       showToast.error('Failed to delete service interval');
     }
   };

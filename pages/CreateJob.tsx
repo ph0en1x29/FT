@@ -50,11 +50,25 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
   });
 
   useEffect(() => {
-    MockDb.getCustomers().then(setCustomers);
-    MockDb.getForklifts().then(setForklifts);
-    if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR) {
-      MockDb.getTechnicians().then(setTechnicians);
-    }
+    const loadFormData = async () => {
+      try {
+        const [customerData, forkliftData, technicianData] = await Promise.all([
+          MockDb.getCustomers(),
+          MockDb.getForklifts(),
+          currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR
+            ? MockDb.getTechnicians()
+            : Promise.resolve([]),
+        ]);
+        setCustomers(customerData);
+        setForklifts(forkliftData);
+        setTechnicians(technicianData);
+      } catch (error) {
+        console.error('Error loading job form data:', error);
+        showToast.error('Failed to load job form data');
+      }
+    };
+
+    loadFormData();
   }, [currentUser.role]);
 
   useEffect(() => {

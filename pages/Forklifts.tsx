@@ -90,10 +90,16 @@ const Forklifts: React.FC<ForkliftsProps> = ({ currentUser }) => {
       console.error('Error loading data:', error);
       showToast.error('Failed to load forklifts');
       // Fallback to basic forklift load
-      const data = await MockDb.getForklifts();
-      setForklifts(data);
+      try {
+        const data = await MockDb.getForklifts();
+        setForklifts(data);
+      } catch (fallbackError) {
+        console.error('Error loading forklifts fallback:', fallbackError);
+        showToast.error('Failed to load forklifts fallback');
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Get unique makes for filter dropdown

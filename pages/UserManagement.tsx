@@ -34,9 +34,15 @@ const UserManagement: React.FC = () => {
 
   const loadUsers = async () => {
     setLoading(true);
-    const data = await MockDb.getUsers();
-    setUsers(data);
-    setLoading(false);
+    try {
+      const data = await MockDb.getUsers();
+      setUsers(data);
+    } catch (error: any) {
+      console.error('Error loading users:', error);
+      showToast.error('Failed to load users', error?.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOpenModal = (user?: User) => {

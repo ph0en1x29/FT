@@ -128,35 +128,50 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
   };
 
   const handleAcknowledgeEscalation = async (jobId: string) => {
-    const success = await MockDb.acknowledgeEscalation(jobId, currentUser.user_id);
-    if (success) {
-      showToast.success('Escalation acknowledged');
-      const updated = await MockDb.getEscalatedJobs();
-      setEscalatedJobs(updated);
-    } else {
+    try {
+      const success = await MockDb.acknowledgeEscalation(jobId, currentUser.user_id);
+      if (success) {
+        showToast.success('Escalation acknowledged');
+        const updated = await MockDb.getEscalatedJobs();
+        setEscalatedJobs(updated);
+      } else {
+        showToast.error('Failed to acknowledge escalation');
+      }
+    } catch (error) {
+      console.error('Error acknowledging escalation:', error);
       showToast.error('Failed to acknowledge escalation');
     }
   };
 
   const handleSaveNotes = async (jobId: string) => {
-    const success = await MockDb.updateEscalationNotes(jobId, notesInput);
-    if (success) {
-      showToast.success('Notes saved');
-      setEditingNotesId(null);
-      const updated = await MockDb.getEscalatedJobs();
-      setEscalatedJobs(updated);
-    } else {
+    try {
+      const success = await MockDb.updateEscalationNotes(jobId, notesInput);
+      if (success) {
+        showToast.success('Notes saved');
+        setEditingNotesId(null);
+        const updated = await MockDb.getEscalatedJobs();
+        setEscalatedJobs(updated);
+      } else {
+        showToast.error('Failed to save notes');
+      }
+    } catch (error) {
+      console.error('Error saving escalation notes:', error);
       showToast.error('Failed to save notes');
     }
   };
 
   const handleMarkOvertime = async (jobId: string) => {
-    const success = await MockDb.markJobAsOvertime(jobId, true);
-    if (success) {
-      showToast.success('Job marked as overtime (escalation disabled)');
-      const updated = await MockDb.getEscalatedJobs();
-      setEscalatedJobs(updated);
-    } else {
+    try {
+      const success = await MockDb.markJobAsOvertime(jobId, true);
+      if (success) {
+        showToast.success('Job marked as overtime (escalation disabled)');
+        const updated = await MockDb.getEscalatedJobs();
+        setEscalatedJobs(updated);
+      } else {
+        showToast.error('Failed to mark as overtime');
+      }
+    } catch (error) {
+      console.error('Error marking overtime:', error);
       showToast.error('Failed to mark as overtime');
     }
   };

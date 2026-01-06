@@ -27,6 +27,25 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### Stability & Error-Handling Hardening (2026-01-07)
+- **Updated:** 2026-01-07 (author: Codex)
+- **Status:** ✅ Implemented
+
+#### Changes Made:
+1. **Page-level data loading guards**
+   - Added try/catch + user feedback for Create Job, Job Board, Job Detail, User Management
+   - Ensures backend failures surface as toasts instead of uncaught console errors
+2. **Dashboard escalation actions**
+   - Hardened acknowledge/save notes/overtime actions with error handling
+3. **Service intervals reliability**
+   - Wrapped create/update/delete actions with error handling to avoid failed saves
+4. **Forklifts fallback safety**
+   - Added guarded fallback load for forklift list to prevent unhandled errors
+5. **Employees query handling**
+   - Supabase user lookup now checks query errors explicitly
+6. **Job Detail dependency cleanup**
+   - Photo category refresh now tracks `started_at` (removes stale field)
+
 ### Real-Time Notification System (2026-01-06)
 - **Updated:** 2026-01-06 (author: Claude)
 - **Source:** ACWER Customer Feedback Implementation

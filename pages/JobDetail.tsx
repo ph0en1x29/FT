@@ -254,35 +254,69 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       const defaultCategory = getDefaultPhotoCategory(job);
       setUploadPhotoCategory(defaultCategory);
     }
-  }, [job?.status, job?.actual_start_time]);
+  }, [job?.status, job?.started_at]);
 
   const loadJob = async () => {
     if (!id) return;
     setLoading(true);
-    const data = await MockDb.getJobById(id);
-    setJob(data ? { ...data } : null);
-    if (data) {
-      const serviceRecord = await MockDb.getJobServiceRecord(id);
-      if (serviceRecord) setNoPartsUsed(serviceRecord.no_parts_used || false);
-      if (data.forklift_id) {
-        const rental = await MockDb.getActiveRentalForForklift(data.forklift_id);
-        setActiveRental(rental);
+    try {
+      const data = await MockDb.getJobById(id);
+      setJob(data ? { ...data } : null);
+      if (data) {
+        const serviceRecord = await MockDb.getJobServiceRecord(id);
+        if (serviceRecord) setNoPartsUsed(serviceRecord.no_parts_used || false);
+        if (data.forklift_id) {
+          const rental = await MockDb.getActiveRentalForForklift(data.forklift_id);
+          setActiveRental(rental);
+        }
+        if (data.helper_assignment) {
+          const isHelper = data.helper_assignment.technician_id === currentUserId;
+          setIsCurrentUserHelper(isHelper);
+          if (isHelper) setHelperAssignmentId(data.helper_assignment.assignment_id);
+        } else {
+          setIsCurrentUserHelper(false);
+          setHelperAssignmentId(null);
+        }
       }
-      if (data.helper_assignment) {
-        const isHelper = data.helper_assignment.technician_id === currentUserId;
-        setIsCurrentUserHelper(isHelper);
-        if (isHelper) setHelperAssignmentId(data.helper_assignment.assignment_id);
-      } else {
-        setIsCurrentUserHelper(false);
-        setHelperAssignmentId(null);
-      }
+    } catch (error) {
+      console.error('Error loading job:', error);
+      showToast.error('Failed to load job');
+      setJob(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const loadParts = async () => { const data = await MockDb.getParts(); setParts(data); };
-  const loadTechnicians = async () => { const data = await MockDb.getTechnicians(); setTechnicians(data); };
-  const loadRequests = async () => { if (!id) return; const requests = await MockDb.getJobRequests(id); setJobRequests(requests); };
+  const loadParts = async () => {
+    try {
+      const data = await MockDb.getParts();
+      setParts(data);
+    } catch (error) {
+      console.error('Error loading parts:', error);
+      showToast.error('Failed to load parts');
+    }
+  };
+
+  const loadTechnicians = async () => {
+    try {
+      const data = await MockDb.getTechnicians();
+      setTechnicians(data);
+    } catch (error) {
+      console.error('Error loading technicians:', error);
+      showToast.error('Failed to load technicians');
+    }
+  };
+
+  const loadRequests = async () => {
+    if (!id) return;
+    try {
+      const requests = await MockDb.getJobRequests(id);
+      setJobRequests(requests);
+    } catch (error) {
+      console.error('Error loading requests:', error);
+      showToast.error('Failed to load requests');
+    }
+  };
 
   const handleSubmitRequest = async () => {
     if (!job || !requestDescription.trim()) { showToast.error('Please enter a description'); return; }
@@ -422,7 +456,17 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     }
   };
 
-  const handleAddNote = async () => { if (!job || !noteInput.trim()) return; const updated = await MockDb.addNote(job.job_id, noteInput); setJob({ ...updated } as Job); setNoteInput(''); };
+  const handleAddNote = async () => {
+    if (!job || !noteInput.trim()) return;
+    try {
+      const updated = await MockDb.addNote(job.job_id, noteInput);
+      setJob({ ...updated } as Job);
+      setNoteInput('');
+    } catch (error) {
+      console.error('Error adding note:', error);
+      showToast.error('Could not add note', (error as Error).message);
+    }
+  };
 
   const handleAddPart = async () => {
     if (!job || !selectedPartId) return;

@@ -417,11 +417,14 @@ function AddEmployeeModal({ onClose, onSave }: AddEmployeeModalProps) {
       setLoadingUsers(true);
       // Get all active users - with merged table, all users have HR fields
       // Filter to those with incomplete HR data (no ic_number or department)
-      const { data: users } = await supabase
+      const { data: users, error } = await supabase
         .from('users')
         .select('user_id, name, email, role, ic_number, department')
         .eq('is_active', true)
         .order('name');
+      if (error) {
+        throw new Error(error.message);
+      }
       
       // Filter users without complete HR profiles (no IC or department)
       const usersWithIncompleteHR = (users || []).filter(u => !u.ic_number || !u.department);

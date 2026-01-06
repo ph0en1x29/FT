@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Job, JobStatus, JobType, User, DeletedJob, UserRole } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
+import { showToast } from '../services/toastService';
 import { Briefcase, Calendar, MapPin, User as UserIcon, Search, Filter, X, ChevronDown, AlertTriangle, Trash2, ChevronRight, Clock } from 'lucide-react';
 
 interface JobBoardProps {
@@ -31,16 +32,26 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
   useEffect(() => {
     const fetchJobs = async () => {
       setLoading(true);
-      const data = await MockDb.getJobs(currentUser);
-      setJobs(data);
-      
-      // Fetch recently deleted jobs for admin/supervisor
-      if (canViewDeleted) {
-        const deleted = await MockDb.getRecentlyDeletedJobs();
-        setDeletedJobs(deleted);
+      try {
+        const data = await MockDb.getJobs(currentUser);
+        setJobs(data);
+        
+        // Fetch recently deleted jobs for admin/supervisor
+        if (canViewDeleted) {
+          try {
+            const deleted = await MockDb.getRecentlyDeletedJobs();
+            setDeletedJobs(deleted);
+          } catch (error) {
+            console.error('Error loading deleted jobs:', error);
+            showToast.error('Failed to load deleted jobs');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading jobs:', error);
+        showToast.error('Failed to load jobs');
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
     fetchJobs();
   }, [currentUser, canViewDeleted]);

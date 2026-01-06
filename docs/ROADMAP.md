@@ -1,12 +1,23 @@
 # FieldPro Roadmap
 
-**Last Updated:** January 6, 2026
+**Last Updated:** January 7, 2026
 
 ---
 
-## ✅ Recently Completed (January 6, 2026)
+## ✅ Recently Completed
 
-### Bundle Optimization
+### January 7, 2026
+- [x] **Stability & Error-Handling Hardening**
+  - Page-level data loading guards (Create Job, Job Board, Job Detail, User Management)
+  - Dashboard escalation actions hardened (acknowledge/save notes/overtime)
+  - Service intervals reliability (create/update/delete wrapped)
+  - Forklifts fallback safety (guarded fallback load)
+  - Employees query handling (explicit error checks)
+  - Job Detail dependency cleanup (photo category → started_at)
+
+### January 6, 2026
+
+#### Bundle Optimization
 - [x] Route-level lazy loading with React.lazy + Suspense
 - [x] Vendor chunking (react, supabase, charts, ui)
 - [x] Initial bundle reduced from ~1.5MB to ~290KB
