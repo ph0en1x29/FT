@@ -55,6 +55,15 @@ The `.env.local` file is in `.gitignore` and will not be committed.
 - [x] **Fix RLS on all tables** ✅ (2026-01-03)
   - Enabled RLS + policies on: `quotations`, `service_intervals`, `scheduled_services`, `notifications`, `technician_kpi_snapshots`
   - See `database/migrations/security_fix_linter_issues.sql`
+- [x] **Fix role case mismatch in RLS** ✅ (2026-01-05)
+  - Bug: Role functions returned lowercase but policies compared Title case
+  - Also fixed: `get_current_user_role()` used wrong column (`user_id` → `auth_id`)
+  - See `database/migrations/fix_role_case_mismatch.sql`
+- [x] **Fix missing RLS policies on job_parts/job_media** ✅ (2026-01-05)
+  - Bug: RLS redesign enabled RLS but forgot to create new policies
+  - Fixed: Added role-based policies for Admin, Supervisor, Accountant, Technician
+  - Tables: `job_parts`, `job_media`, `extra_charges`
+  - See `database/migrations/fix_missing_rls_policies.sql`
 - [x] **Fix Security Definer views** ✅ (2026-01-05 - Re-fixed after merge migration)
   - HR views were recreated during user-employee merge without `security_invoker`
   - Converted 4 views to SECURITY INVOKER: `v_todays_leave`, `v_expiring_licenses`, `v_pending_leaves`, `v_expiring_permits`

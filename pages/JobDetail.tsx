@@ -15,7 +15,7 @@ import {
   ShieldCheck, UserCheck, UserPlus, Edit2, Trash2, Save, X, FileText, 
   Info, FileDown, Truck, Gauge, ClipboardList, Receipt, Play, Clock, 
   AlertTriangle, CheckSquare, Square, FileCheck, RefreshCw, Download, Filter,
-  HandHelping, Wrench, MessageSquarePlus, HelpCircle, Send
+  HandHelping, Wrench, MessageSquarePlus, HelpCircle, Send, MoreVertical, ChevronRight
 } from 'lucide-react';
 
 interface JobDetailProps {
@@ -136,47 +136,28 @@ const CHECKLIST_CATEGORIES = [
 
 // Photo categories for ACWER workflow
 const PHOTO_CATEGORIES = [
-  { value: 'before', label: 'Before Service', color: 'bg-blue-500' },
-  { value: 'after', label: 'After Service', color: 'bg-green-500' },
-  { value: 'spare_part', label: 'Spare Parts', color: 'bg-amber-500' },
-  { value: 'condition', label: 'Condition Check', color: 'bg-purple-500' },
+  { value: 'before', label: 'Before', color: 'bg-blue-500' },
+  { value: 'after', label: 'After', color: 'bg-green-500' },
+  { value: 'spare_part', label: 'Parts', color: 'bg-amber-500' },
+  { value: 'condition', label: 'Condition', color: 'bg-purple-500' },
   { value: 'evidence', label: 'Evidence', color: 'bg-red-500' },
   { value: 'other', label: 'Other', color: 'bg-slate-500' },
 ];
 
-// Status-linked default category for photo uploads (ACWER workflow)
-// - New / Assigned → before
-// - In Progress (first 30 min) → before
-// - In Progress (after 30 min) → other (user picks)
-// - Awaiting Finalization → after
 const getDefaultPhotoCategory = (job: Job | null): MediaCategory => {
   if (!job) return 'other';
-  
   const status = job.status;
-  
-  // New or Assigned: default to "before" (pre-service documentation)
-  if (status === JobStatus.NEW || status === JobStatus.ASSIGNED) {
-    return 'before';
-  }
-  
-  // In Progress: check if within first 30 minutes
+  if (status === JobStatus.NEW || status === JobStatus.ASSIGNED) return 'before';
   if (status === JobStatus.IN_PROGRESS) {
     const startTime = job.actual_start_time ? new Date(job.actual_start_time) : null;
     if (startTime) {
       const now = new Date();
       const minutesSinceStart = (now.getTime() - startTime.getTime()) / (1000 * 60);
-      if (minutesSinceStart <= 30) {
-        return 'before'; // Still in early phase, likely documenting initial state
-      }
+      if (minutesSinceStart <= 30) return 'before';
     }
-    return 'other'; // After 30 min, let user pick
+    return 'other';
   }
-  
-  // Awaiting Finalization: default to "after" (post-service documentation)
-  if (status === JobStatus.AWAITING_FINALIZATION) {
-    return 'after';
-  }
-  
+  if (status === JobStatus.AWAITING_FINALIZATION) return 'after';
   return 'other';
 };
 
@@ -192,7 +173,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [parts, setParts] = useState<Part[]>([]);
   const [technicians, setTechnicians] = useState<User[]>([]);
   
-  // Interaction States
+  // All existing state variables
   const [noteInput, setNoteInput] = useState('');
   const [selectedPartId, setSelectedPartId] = useState('');
   const [selectedPartPrice, setSelectedPartPrice] = useState<string>('');
@@ -201,82 +182,46 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [showCustSigPad, setShowCustSigPad] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
   const [generatingAi, setGeneratingAi] = useState(false);
-  
-  // Price editing states
   const [editingPartId, setEditingPartId] = useState<string | null>(null);
   const [editingPrice, setEditingPrice] = useState<string>('');
-  
-  // Labor cost editing
   const [editingLabor, setEditingLabor] = useState(false);
   const [laborCostInput, setLaborCostInput] = useState<string>('');
-  
-  // Extra charges
   const [showAddCharge, setShowAddCharge] = useState(false);
   const [chargeName, setChargeName] = useState('');
   const [chargeDescription, setChargeDescription] = useState('');
   const [chargeAmount, setChargeAmount] = useState<string>('');
-
-  // Invoice modals
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
-
-  // Hourmeter editing
   const [editingHourmeter, setEditingHourmeter] = useState(false);
   const [hourmeterInput, setHourmeterInput] = useState<string>('');
-
-  // NEW: Start Job Modal with Condition Checklist
   const [showStartJobModal, setShowStartJobModal] = useState(false);
   const [startJobHourmeter, setStartJobHourmeter] = useState<string>('');
   const [conditionChecklist, setConditionChecklist] = useState<ForkliftConditionChecklist>({});
-  
-  // NEW: Job Carried Out and Recommendation editing
   const [editingJobCarriedOut, setEditingJobCarriedOut] = useState(false);
   const [jobCarriedOutInput, setJobCarriedOutInput] = useState('');
   const [recommendationInput, setRecommendationInput] = useState('');
-
-  // NEW: Condition Checklist editing
   const [editingChecklist, setEditingChecklist] = useState(false);
   const [checklistEditData, setChecklistEditData] = useState<ForkliftConditionChecklist>({});
-
-  // NEW: No parts used flag
   const [noPartsUsed, setNoPartsUsed] = useState(false);
-
-  // Photo categorization states
   const [photoCategoryFilter, setPhotoCategoryFilter] = useState<string>('all');
   const [uploadPhotoCategory, setUploadPhotoCategory] = useState<string>('other');
   const [downloadingPhotos, setDownloadingPhotos] = useState(false);
-
-  // NEW: Job Reassignment Modal
+  const [isPhotoDragActive, setIsPhotoDragActive] = useState(false);
   const [showReassignModal, setShowReassignModal] = useState(false);
   const [reassignTechId, setReassignTechId] = useState('');
-
-  // NEW: Active rental info for forklift
-  const [activeRental, setActiveRental] = useState<{
-    rental_id: string;
-    customer_name: string;
-    rental_location: string;
-    start_date: string;
-  } | null>(null);
-
-  // NEW: Delete job modal with reason
+  const [activeRental, setActiveRental] = useState<{ rental_id: string; customer_name: string; rental_location: string; start_date: string; } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletionReason, setDeletionReason] = useState('');
-
-  // Helper Technician states
   const [showAssignHelperModal, setShowAssignHelperModal] = useState(false);
   const [selectedHelperId, setSelectedHelperId] = useState('');
   const [helperNotes, setHelperNotes] = useState('');
   const [isCurrentUserHelper, setIsCurrentUserHelper] = useState(false);
   const [helperAssignmentId, setHelperAssignmentId] = useState<string | null>(null);
-
-  // Job Request states (In-Job Request System)
   const [jobRequests, setJobRequests] = useState<JobRequest[]>([]);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [requestType, setRequestType] = useState<JobRequestType>('spare_part');
   const [requestDescription, setRequestDescription] = useState('');
   const [requestPhotoUrl, setRequestPhotoUrl] = useState('');
   const [submittingRequest, setSubmittingRequest] = useState(false);
-
-  // Admin approval states
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [approvalRequest, setApprovalRequest] = useState<JobRequest | null>(null);
   const [approvalPartId, setApprovalPartId] = useState('');
@@ -284,13 +229,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [approvalNotes, setApprovalNotes] = useState('');
   const [approvalHelperId, setApprovalHelperId] = useState('');
   const [submittingApproval, setSubmittingApproval] = useState(false);
-
-  // Multi-day escalation states (#7)
   const [showContinueTomorrowModal, setShowContinueTomorrowModal] = useState(false);
   const [continueTomorrowReason, setContinueTomorrowReason] = useState('');
   const [submittingContinue, setSubmittingContinue] = useState(false);
-
-  // Deferred acknowledgement states (#8)
   const [showDeferredModal, setShowDeferredModal] = useState(false);
   const [deferredReason, setDeferredReason] = useState('');
   const [deferredHourmeter, setDeferredHourmeter] = useState('');
@@ -298,17 +239,16 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [submittingDeferred, setSubmittingDeferred] = useState(false);
   const [jobAcknowledgement, setJobAcknowledgement] = useState<any>(null);
 
+  // All existing useEffect hooks and handler functions remain the same
   useEffect(() => {
     loadJob();
     loadParts();
     loadRequests();
     if (currentUserRole === UserRole.ADMIN || currentUserRole === UserRole.SUPERVISOR) {
-        loadTechnicians();
+      loadTechnicians();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, currentUserRole]);
 
-  // Update default photo category when job loads or status changes
   useEffect(() => {
     if (job) {
       const defaultCategory = getDefaultPhotoCategory(job);
@@ -321,284 +261,105 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     setLoading(true);
     const data = await MockDb.getJobById(id);
     setJob(data ? { ...data } : null);
-    
-    // Load service record to get no_parts_used flag
     if (data) {
       const serviceRecord = await MockDb.getJobServiceRecord(id);
-      if (serviceRecord) {
-        setNoPartsUsed(serviceRecord.no_parts_used || false);
-      }
-      
-      // Load active rental info if forklift exists
+      if (serviceRecord) setNoPartsUsed(serviceRecord.no_parts_used || false);
       if (data.forklift_id) {
         const rental = await MockDb.getActiveRentalForForklift(data.forklift_id);
         setActiveRental(rental);
       }
-
-      // Check if current user is helper on this job
       if (data.helper_assignment) {
         const isHelper = data.helper_assignment.technician_id === currentUserId;
         setIsCurrentUserHelper(isHelper);
-        if (isHelper) {
-          setHelperAssignmentId(data.helper_assignment.assignment_id);
-        }
+        if (isHelper) setHelperAssignmentId(data.helper_assignment.assignment_id);
       } else {
         setIsCurrentUserHelper(false);
         setHelperAssignmentId(null);
       }
     }
-    
     setLoading(false);
   };
 
-  const loadParts = async () => {
-    const data = await MockDb.getParts();
-    setParts(data);
-  };
+  const loadParts = async () => { const data = await MockDb.getParts(); setParts(data); };
+  const loadTechnicians = async () => { const data = await MockDb.getTechnicians(); setTechnicians(data); };
+  const loadRequests = async () => { if (!id) return; const requests = await MockDb.getJobRequests(id); setJobRequests(requests); };
 
-  const loadTechnicians = async () => {
-      const data = await MockDb.getTechnicians();
-      setTechnicians(data);
-  };
-
-  // Load job requests
-  const loadRequests = async () => {
-    if (!id) return;
-    const requests = await MockDb.getJobRequests(id);
-    setJobRequests(requests);
-  };
-
-  // Handle submitting a job request
   const handleSubmitRequest = async () => {
-    if (!job || !requestDescription.trim()) {
-      showToast.error('Please enter a description');
-      return;
-    }
-
+    if (!job || !requestDescription.trim()) { showToast.error('Please enter a description'); return; }
     setSubmittingRequest(true);
     try {
-      const result = await MockDb.createJobRequest(
-        job.job_id,
-        requestType,
-        currentUserId,
-        requestDescription.trim(),
-        requestPhotoUrl || undefined
-      );
-
-      if (result) {
-        showToast.success('Request submitted', 'Admin will review your request');
-        setShowRequestModal(false);
-        setRequestDescription('');
-        setRequestPhotoUrl('');
-        loadRequests();
-      } else {
-        showToast.error('Failed to submit request');
-      }
-    } catch (e) {
-      showToast.error('Error submitting request');
-    } finally {
-      setSubmittingRequest(false);
-    }
+      const result = await MockDb.createJobRequest(job.job_id, requestType, currentUserId, requestDescription.trim(), requestPhotoUrl || undefined);
+      if (result) { showToast.success('Request submitted', 'Admin will review your request'); setShowRequestModal(false); setRequestDescription(''); setRequestPhotoUrl(''); loadRequests(); }
+      else { showToast.error('Failed to submit request'); }
+    } catch (e) { showToast.error('Error submitting request'); }
+    finally { setSubmittingRequest(false); }
   };
 
-  // Open request modal with specific type
-  const openRequestModal = (type: JobRequestType) => {
-    setRequestType(type);
-    setRequestDescription('');
-    setRequestPhotoUrl('');
-    setShowRequestModal(true);
-  };
+  const openRequestModal = (type: JobRequestType) => { setRequestType(type); setRequestDescription(''); setRequestPhotoUrl(''); setShowRequestModal(true); };
+  const openApprovalModal = (request: JobRequest) => { setApprovalRequest(request); setApprovalPartId(''); setApprovalQuantity('1'); setApprovalNotes(''); setApprovalHelperId(''); setShowApprovalModal(true); };
 
-  // Open approval modal for admin/supervisor
-  const openApprovalModal = (request: JobRequest) => {
-    setApprovalRequest(request);
-    setApprovalPartId('');
-    setApprovalQuantity('1');
-    setApprovalNotes('');
-    setApprovalHelperId('');
-    setShowApprovalModal(true);
-  };
-
-  // Handle approval submission
   const handleApproval = async (approve: boolean) => {
     if (!approvalRequest || !job) return;
     setSubmittingApproval(true);
-
     try {
       let success = false;
-
       if (approve) {
         if (approvalRequest.request_type === 'spare_part') {
-          if (!approvalPartId || !approvalQuantity) {
-            showToast.error('Please select a part and quantity');
-            setSubmittingApproval(false);
-            return;
-          }
-          success = await MockDb.approveSparePartRequest(
-            approvalRequest.request_id,
-            currentUserId,
-            approvalPartId,
-            parseInt(approvalQuantity),
-            approvalNotes || undefined
-          );
+          if (!approvalPartId || !approvalQuantity) { showToast.error('Please select a part and quantity'); setSubmittingApproval(false); return; }
+          success = await MockDb.approveSparePartRequest(approvalRequest.request_id, currentUserId, approvalPartId, parseInt(approvalQuantity), approvalNotes || undefined);
         } else if (approvalRequest.request_type === 'assistance') {
-          if (!approvalHelperId) {
-            showToast.error('Please select a helper technician');
-            setSubmittingApproval(false);
-            return;
-          }
-          success = await MockDb.approveAssistanceRequest(
-            approvalRequest.request_id,
-            currentUserId,
-            approvalHelperId,
-            approvalNotes || undefined
-          );
+          if (!approvalHelperId) { showToast.error('Please select a helper technician'); setSubmittingApproval(false); return; }
+          success = await MockDb.approveAssistanceRequest(approvalRequest.request_id, currentUserId, approvalHelperId, approvalNotes || undefined);
         } else if (approvalRequest.request_type === 'skillful_technician') {
-          // For skillful tech, mark as approved/acknowledged - actual reassignment is separate
-          success = await MockDb.acknowledgeSkillfulTechRequest(
-            approvalRequest.request_id,
-            currentUserId,
-            approvalNotes || 'Acknowledged - Job will be reassigned'
-          );
+          success = await MockDb.acknowledgeSkillfulTechRequest(approvalRequest.request_id, currentUserId, approvalNotes || 'Acknowledged - Job will be reassigned');
           showToast.info('Request acknowledged. Use Job Reassignment to assign a new technician.');
         }
       } else {
-        // Reject
-        if (!approvalNotes) {
-          showToast.error('Please provide a reason for rejection');
-          setSubmittingApproval(false);
-          return;
-        }
-        success = await MockDb.rejectRequest(
-          approvalRequest.request_id,
-          currentUserId,
-          approvalNotes
-        );
+        if (!approvalNotes) { showToast.error('Please provide a reason for rejection'); setSubmittingApproval(false); return; }
+        success = await MockDb.rejectRequest(approvalRequest.request_id, currentUserId, approvalNotes);
       }
-
-      if (success) {
-        showToast.success(approve ? 'Request approved' : 'Request rejected');
-        setShowApprovalModal(false);
-        loadRequests();
-        loadJob(); // Refresh job to show new parts
-      } else {
-        showToast.error('Failed to process request');
-      }
-    } catch (e) {
-      console.error('Approval error:', e);
-      showToast.error('Error processing request');
-    } finally {
-      setSubmittingApproval(false);
-    }
+      if (success) { showToast.success(approve ? 'Request approved' : 'Request rejected'); setShowApprovalModal(false); loadRequests(); loadJob(); }
+      else { showToast.error('Failed to process request'); }
+    } catch (e) { console.error('Approval error:', e); showToast.error('Error processing request'); }
+    finally { setSubmittingApproval(false); }
   };
 
-  // Handle Continue Tomorrow (Multi-day #7)
   const handleContinueTomorrow = async () => {
     if (!job || !continueTomorrowReason.trim()) return;
     setSubmittingContinue(true);
-
     try {
-      const success = await MockDb.markJobContinueTomorrow(
-        job.job_id,
-        continueTomorrowReason,
-        currentUserId,
-        currentUserName
-      );
-
-      if (success) {
-        showToast.success('Job marked to continue tomorrow');
-        setShowContinueTomorrowModal(false);
-        setContinueTomorrowReason('');
-        loadJob();
-      } else {
-        showToast.error('Failed to update job');
-      }
-    } catch (e) {
-      console.error('Continue tomorrow error:', e);
-      showToast.error('Error updating job');
-    } finally {
-      setSubmittingContinue(false);
-    }
+      const success = await MockDb.markJobContinueTomorrow(job.job_id, continueTomorrowReason, currentUserId, currentUserName);
+      if (success) { showToast.success('Job marked to continue tomorrow'); setShowContinueTomorrowModal(false); setContinueTomorrowReason(''); loadJob(); }
+      else { showToast.error('Failed to update job'); }
+    } catch (e) { console.error('Continue tomorrow error:', e); showToast.error('Error updating job'); }
+    finally { setSubmittingContinue(false); }
   };
 
-  // Handle Resume Job (Multi-day #7)
   const handleResumeJob = async () => {
     if (!job) return;
-
     try {
-      const success = await MockDb.resumeMultiDayJob(
-        job.job_id,
-        currentUserId,
-        currentUserName
-      );
-
-      if (success) {
-        showToast.success('Job resumed');
-        loadJob();
-      } else {
-        showToast.error('Failed to resume job');
-      }
-    } catch (e) {
-      console.error('Resume job error:', e);
-      showToast.error('Error resuming job');
-    }
+      const success = await MockDb.resumeMultiDayJob(job.job_id, currentUserId, currentUserName);
+      if (success) { showToast.success('Job resumed'); loadJob(); }
+      else { showToast.error('Failed to resume job'); }
+    } catch (e) { console.error('Resume job error:', e); showToast.error('Error resuming job'); }
   };
 
-  // Handle Deferred Completion (#8)
   const handleDeferredCompletion = async () => {
     if (!job || !deferredReason.trim()) return;
-    
-    // Require hourmeter reading
     const hourmeterValue = parseFloat(deferredHourmeter);
-    if (!deferredHourmeter.trim() || isNaN(hourmeterValue)) {
-      showToast.error('Please enter a valid hourmeter reading');
-      return;
-    }
-    
-    // Validate hourmeter >= start hourmeter
+    if (!deferredHourmeter.trim() || isNaN(hourmeterValue)) { showToast.error('Please enter a valid hourmeter reading'); return; }
     const startHourmeter = job.start_hourmeter || job.forklift?.hourmeter || 0;
-    if (hourmeterValue < startHourmeter) {
-      showToast.error(`Hourmeter must be >= start reading (${startHourmeter})`);
-      return;
-    }
-    
-    // Require at least 1 evidence photo
-    if (selectedEvidenceIds.length === 0) {
-      showToast.error('Please select at least 1 evidence photo');
-      return;
-    }
-    
+    if (hourmeterValue < startHourmeter) { showToast.error(`Hourmeter must be >= start reading (${startHourmeter})`); return; }
+    if (selectedEvidenceIds.length === 0) { showToast.error('Please select at least 1 evidence photo'); return; }
     setSubmittingDeferred(true);
-
     try {
-      const result = await MockDb.deferJobCompletion(
-        job.job_id,
-        deferredReason,
-        selectedEvidenceIds,
-        currentUserId,
-        currentUserName,
-        hourmeterValue
-      );
-
-      if (result.success) {
-        showToast.success('Job marked as completed (pending customer acknowledgement)');
-        setShowDeferredModal(false);
-        setDeferredReason('');
-        setDeferredHourmeter('');
-        setSelectedEvidenceIds([]);
-        loadJob();
-      } else {
-        showToast.error(result.error || 'Failed to defer completion');
-      }
-    } catch (e) {
-      console.error('Deferred completion error:', e);
-      showToast.error('Error processing deferred completion');
-    } finally {
-      setSubmittingDeferred(false);
-    }
+      const result = await MockDb.deferJobCompletion(job.job_id, deferredReason, selectedEvidenceIds, currentUserId, currentUserName, hourmeterValue);
+      if (result.success) { showToast.success('Job marked as completed (pending customer acknowledgement)'); setShowDeferredModal(false); setDeferredReason(''); setDeferredHourmeter(''); setSelectedEvidenceIds([]); loadJob(); }
+      else { showToast.error(result.error || 'Failed to defer completion'); }
+    } catch (e) { console.error('Deferred completion error:', e); showToast.error('Error processing deferred completion'); }
+    finally { setSubmittingDeferred(false); }
   };
 
-  // Load acknowledgement data for deferred jobs
   const loadAcknowledgement = async () => {
     if (job && (job.status === 'Completed Awaiting Acknowledgement' || job.status === 'Disputed')) {
       const ack = await MockDb.getJobAcknowledgement(job.job_id);
@@ -606,14 +367,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     }
   };
 
-  // Load ack when job changes
-  useEffect(() => {
-    if (job) {
-      loadAcknowledgement();
-    }
-  }, [job?.status]);
+  useEffect(() => { if (job) loadAcknowledgement(); }, [job?.status]);
 
-  // Handle opening the Start Job modal
   const handleOpenStartJobModal = () => {
     if (!job) return;
     setStartJobHourmeter((job.forklift?.hourmeter || 0).toString());
@@ -621,434 +376,174 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     setShowStartJobModal(true);
   };
 
-  // Handle condition checklist toggle
-  const handleChecklistToggle = (key: string) => {
-    setConditionChecklist(prev => ({
-      ...prev,
-      [key]: !prev[key as keyof ForkliftConditionChecklist]
-    }));
-  };
+  const handleChecklistToggle = (key: string) => { setConditionChecklist(prev => ({ ...prev, [key]: !prev[key as keyof ForkliftConditionChecklist] })); };
 
-  // Handle starting job with condition check
   const handleStartJobWithCondition = async () => {
     if (!job) return;
-    
     const hourmeter = parseInt(startJobHourmeter);
-    if (isNaN(hourmeter) || hourmeter < 0) {
-      showToast.error('Please enter a valid hourmeter reading');
-      return;
-    }
-    
-    // Client-side validation: must be >= forklift's current reading
+    if (isNaN(hourmeter) || hourmeter < 0) { showToast.error('Please enter a valid hourmeter reading'); return; }
     const currentForkliftHourmeter = job.forklift?.hourmeter || 0;
-    if (hourmeter < currentForkliftHourmeter) {
-      showToast.error(`Hourmeter must be ≥ ${currentForkliftHourmeter} (forklift's current reading)`);
-      return;
-    }
-
+    if (hourmeter < currentForkliftHourmeter) { showToast.error(`Hourmeter must be ≥ ${currentForkliftHourmeter} (forklift's current reading)`); return; }
     try {
-      const updated = await MockDb.startJobWithCondition(
-        job.job_id, 
-        hourmeter, 
-        conditionChecklist,
-        currentUserId,    // Started by ID
-        currentUserName   // Started by Name
-      );
+      const updated = await MockDb.startJobWithCondition(job.job_id, hourmeter, conditionChecklist, currentUserId, currentUserName);
       setJob({ ...updated } as Job);
       setShowStartJobModal(false);
       showToast.success('Job started', 'Status changed to In Progress');
-    } catch (error) {
-      showToast.error('Failed to start job', (error as Error).message);
-    }
+    } catch (error) { showToast.error('Failed to start job', (error as Error).message); }
   };
 
   const handleStatusChange = async (newStatus: JobStatus) => {
     if (!job) return;
-    
     try {
-      const updated = await MockDb.updateJobStatus(
-        job.job_id, 
-        newStatus,
-        currentUserId,    // Completed by ID (for AWAITING_FINALIZATION)
-        currentUserName   // Completed by Name
-      );
+      const updated = await MockDb.updateJobStatus(job.job_id, newStatus, currentUserId, currentUserName);
       setJob({ ...updated } as Job);
       showToast.success(`Status updated to ${newStatus}`);
-    } catch (error) {
-      showToast.error('Failed to update status', (error as Error).message);
-    }
+    } catch (error) { showToast.error('Failed to update status', (error as Error).message); }
   };
 
   const handleAssignJob = async () => {
-      if (!job || !selectedTechId) return;
-      const tech = technicians.find(t => t.user_id === selectedTechId);
-      if (tech) {
-        const updated = await MockDb.assignJob(
-          job.job_id, 
-          tech.user_id, 
-          tech.name,
-          currentUserId,    // Assigned by ID
-          currentUserName   // Assigned by Name
-        );
-        setJob({ ...updated } as Job);
-        setSelectedTechId('');
-      }
+    if (!job || !selectedTechId) return;
+    const tech = technicians.find(t => t.user_id === selectedTechId);
+    if (tech) {
+      const updated = await MockDb.assignJob(job.job_id, tech.user_id, tech.name, currentUserId, currentUserName);
+      setJob({ ...updated } as Job);
+      setSelectedTechId('');
+    }
   };
 
-  // Handle job reassignment
   const handleReassignJob = async () => {
     if (!job || !reassignTechId) return;
     const tech = technicians.find(t => t.user_id === reassignTechId);
     if (tech) {
       try {
-        const updated = await MockDb.reassignJob(
-          job.job_id,
-          tech.user_id,
-          tech.name,
-          currentUserId,
-          currentUserName
-        );
-        if (updated) {
-          setJob({ ...updated } as Job);
-          setShowReassignModal(false);
-          setReassignTechId('');
-          showToast.success(`Job reassigned to ${tech.name}`);
-        }
-      } catch (e) {
-        showToast.error('Failed to reassign job', (e as Error).message);
-      }
+        const updated = await MockDb.reassignJob(job.job_id, tech.user_id, tech.name, currentUserId, currentUserName);
+        if (updated) { setJob({ ...updated } as Job); setShowReassignModal(false); setReassignTechId(''); showToast.success(`Job reassigned to ${tech.name}`); }
+      } catch (e) { showToast.error('Failed to reassign job', (e as Error).message); }
     }
   };
 
-  const handleAddNote = async () => {
-    if (!job || !noteInput.trim()) return;
-    const updated = await MockDb.addNote(job.job_id, noteInput);
-    setJob({ ...updated } as Job);
-    setNoteInput('');
-  };
+  const handleAddNote = async () => { if (!job || !noteInput.trim()) return; const updated = await MockDb.addNote(job.job_id, noteInput); setJob({ ...updated } as Job); setNoteInput(''); };
 
   const handleAddPart = async () => {
     if (!job || !selectedPartId) return;
-    
     let finalPrice = undefined;
-    if (selectedPartPrice !== '') {
-        const parsed = parseFloat(selectedPartPrice);
-        if (isNaN(parsed) || parsed < 0) {
-            showToast.error('Please enter a valid price');
-            return;
-        }
-        finalPrice = parsed;
-    }
-
-    try {
-      const updated = await MockDb.addPartToJob(job.job_id, selectedPartId, 1, finalPrice);
-      setJob({ ...updated } as Job);
-      setSelectedPartId('');
-      setSelectedPartPrice('');
-      showToast.success('Part added to job');
-    } catch (e) {
-      showToast.error('Could not add part', 'Check stock availability');
-    }
+    if (selectedPartPrice !== '') { const parsed = parseFloat(selectedPartPrice); if (isNaN(parsed) || parsed < 0) { showToast.error('Please enter a valid price'); return; } finalPrice = parsed; }
+    try { const updated = await MockDb.addPartToJob(job.job_id, selectedPartId, 1, finalPrice); setJob({ ...updated } as Job); setSelectedPartId(''); setSelectedPartPrice(''); showToast.success('Part added to job'); }
+    catch (e) { showToast.error('Could not add part', 'Check stock availability'); }
   };
 
-  const handleStartEditPrice = (jobPartId: string, currentPrice: number) => {
-    setEditingPartId(jobPartId);
-    setEditingPrice(currentPrice.toString());
-  };
-
+  const handleStartEditPrice = (jobPartId: string, currentPrice: number) => { setEditingPartId(jobPartId); setEditingPrice(currentPrice.toString()); };
   const handleSavePartPrice = async (jobPartId: string) => {
     if (!job) return;
-    
     const parsed = parseFloat(editingPrice);
-    if (isNaN(parsed) || parsed < 0) {
-      showToast.error('Please enter a valid price');
-      return;
-    }
-
-    try {
-      const updated = await MockDb.updatePartPrice(job.job_id, jobPartId, parsed);
-      setJob({ ...updated } as Job);
-      setEditingPartId(null);
-      setEditingPrice('');
-      showToast.success('Price updated');
-    } catch (e) {
-      showToast.error('Could not update price');
-    }
+    if (isNaN(parsed) || parsed < 0) { showToast.error('Please enter a valid price'); return; }
+    try { const updated = await MockDb.updatePartPrice(job.job_id, jobPartId, parsed); setJob({ ...updated } as Job); setEditingPartId(null); setEditingPrice(''); showToast.success('Price updated'); }
+    catch (e) { showToast.error('Could not update price'); }
   };
-
-  const handleCancelEdit = () => {
-    setEditingPartId(null);
-    setEditingPrice('');
-  };
-
+  const handleCancelEdit = () => { setEditingPartId(null); setEditingPrice(''); };
   const handleRemovePart = async (jobPartId: string) => {
     if (!job) return;
     if (!confirm('Remove this part from the job?')) return;
-
-    try {
-      const updated = await MockDb.removePartFromJob(job.job_id, jobPartId);
-      setJob({ ...updated } as Job);
-      showToast.success('Part removed from job');
-    } catch (e) {
-      showToast.error('Could not remove part');
-    }
+    try { const updated = await MockDb.removePartFromJob(job.job_id, jobPartId); setJob({ ...updated } as Job); showToast.success('Part removed from job'); }
+    catch (e) { showToast.error('Could not remove part'); }
   };
 
-  const handleStartEditLabor = () => {
-    if (!job) return;
-    setEditingLabor(true);
-    setLaborCostInput((job.labor_cost || 150).toString());
-  };
-
+  const handleStartEditLabor = () => { if (!job) return; setEditingLabor(true); setLaborCostInput((job.labor_cost || 150).toString()); };
   const handleSaveLabor = async () => {
     if (!job) return;
-    
     const parsed = parseFloat(laborCostInput);
-    if (isNaN(parsed) || parsed < 0) {
-      showToast.error('Please enter a valid labor cost');
-      return;
-    }
-
-    try {
-      const updated = await MockDb.updateLaborCost(job.job_id, parsed);
-      setJob({ ...updated } as Job);
-      setEditingLabor(false);
-      setLaborCostInput('');
-      showToast.success('Labor cost updated');
-    } catch (e) {
-      showToast.error('Could not update labor cost');
-    }
+    if (isNaN(parsed) || parsed < 0) { showToast.error('Please enter a valid labor cost'); return; }
+    try { const updated = await MockDb.updateLaborCost(job.job_id, parsed); setJob({ ...updated } as Job); setEditingLabor(false); setLaborCostInput(''); showToast.success('Labor cost updated'); }
+    catch (e) { showToast.error('Could not update labor cost'); }
   };
-
-  const handleCancelLaborEdit = () => {
-    setEditingLabor(false);
-    setLaborCostInput('');
-  };
+  const handleCancelLaborEdit = () => { setEditingLabor(false); setLaborCostInput(''); };
 
   const handleAddExtraCharge = async () => {
     if (!job) return;
-    
-    if (!chargeName.trim()) {
-      showToast.error('Please enter a charge name');
-      return;
-    }
-
+    if (!chargeName.trim()) { showToast.error('Please enter a charge name'); return; }
     const parsed = parseFloat(chargeAmount);
-    if (isNaN(parsed) || parsed < 0) {
-      showToast.error('Please enter a valid amount');
-      return;
-    }
-
-    try {
-      const updated = await MockDb.addExtraCharge(job.job_id, {
-        name: chargeName.trim(),
-        description: chargeDescription.trim(),
-        amount: parsed
-      });
-      setJob({ ...updated } as Job);
-      
-      setChargeName('');
-      setChargeDescription('');
-      setChargeAmount('');
-      setShowAddCharge(false);
-      showToast.success('Extra charge added');
-    } catch (e) {
-      showToast.error('Could not add extra charge');
-    }
+    if (isNaN(parsed) || parsed < 0) { showToast.error('Please enter a valid amount'); return; }
+    try { const updated = await MockDb.addExtraCharge(job.job_id, { name: chargeName.trim(), description: chargeDescription.trim(), amount: parsed }); setJob({ ...updated } as Job); setChargeName(''); setChargeDescription(''); setChargeAmount(''); setShowAddCharge(false); showToast.success('Extra charge added'); }
+    catch (e) { showToast.error('Could not add extra charge'); }
   };
-
   const handleRemoveExtraCharge = async (chargeId: string) => {
     if (!job) return;
     if (!confirm('Remove this charge?')) return;
-
-    try {
-      const updated = await MockDb.removeExtraCharge(job.job_id, chargeId);
-      setJob({ ...updated } as Job);
-      showToast.success('Extra charge removed');
-    } catch (e) {
-      showToast.error('Could not remove charge');
-    }
+    try { const updated = await MockDb.removeExtraCharge(job.job_id, chargeId); setJob({ ...updated } as Job); showToast.success('Extra charge removed'); }
+    catch (e) { showToast.error('Could not remove charge'); }
   };
 
-  // Handle hourmeter update
-  const handleStartEditHourmeter = () => {
-    if (!job) return;
-    setEditingHourmeter(true);
-    setHourmeterInput((job.hourmeter_reading || job.forklift?.hourmeter || 0).toString());
-  };
-
+  const handleStartEditHourmeter = () => { if (!job) return; setEditingHourmeter(true); setHourmeterInput((job.hourmeter_reading || job.forklift?.hourmeter || 0).toString()); };
   const handleSaveHourmeter = async () => {
     if (!job) return;
-    
     const parsed = parseInt(hourmeterInput);
-    if (isNaN(parsed) || parsed < 0) {
-      showToast.error('Please enter a valid hourmeter reading');
-      return;
-    }
-    
-    // Client-side validation: must be >= forklift's current reading
+    if (isNaN(parsed) || parsed < 0) { showToast.error('Please enter a valid hourmeter reading'); return; }
     const currentForkliftHourmeter = job.forklift?.hourmeter || 0;
-    if (parsed < currentForkliftHourmeter) {
-      showToast.error(`Hourmeter must be ≥ ${currentForkliftHourmeter} (forklift's current reading)`);
-      return;
-    }
-
-    try {
-      const updated = await MockDb.updateJobHourmeter(job.job_id, parsed);
-      setJob({ ...updated } as Job);
-      setEditingHourmeter(false);
-      setHourmeterInput('');
-      showToast.success('Hourmeter updated');
-    } catch (e: any) {
-      showToast.error(e.message || 'Could not update hourmeter');
-    }
+    if (parsed < currentForkliftHourmeter) { showToast.error(`Hourmeter must be ≥ ${currentForkliftHourmeter} (forklift's current reading)`); return; }
+    try { const updated = await MockDb.updateJobHourmeter(job.job_id, parsed); setJob({ ...updated } as Job); setEditingHourmeter(false); setHourmeterInput(''); showToast.success('Hourmeter updated'); }
+    catch (e: any) { showToast.error(e.message || 'Could not update hourmeter'); }
   };
+  const handleCancelHourmeterEdit = () => { setEditingHourmeter(false); setHourmeterInput(''); };
 
-  const handleCancelHourmeterEdit = () => {
-    setEditingHourmeter(false);
-    setHourmeterInput('');
-  };
-
-  // Handle Job Carried Out and Recommendation editing
-  const handleStartEditJobCarriedOut = () => {
-    if (!job) return;
-    setEditingJobCarriedOut(true);
-    setJobCarriedOutInput(job.job_carried_out || '');
-    setRecommendationInput(job.recommendation || '');
-  };
-
+  const handleStartEditJobCarriedOut = () => { if (!job) return; setEditingJobCarriedOut(true); setJobCarriedOutInput(job.job_carried_out || ''); setRecommendationInput(job.recommendation || ''); };
   const handleSaveJobCarriedOut = async () => {
     if (!job) return;
-    
-    try {
-      const updated = await MockDb.updateJobCarriedOut(
-        job.job_id, 
-        jobCarriedOutInput, 
-        recommendationInput
-      );
-      setJob({ ...updated } as Job);
-      setEditingJobCarriedOut(false);
-      showToast.success('Job details saved');
-    } catch (e) {
-      showToast.error('Could not save job details');
-    }
+    try { const updated = await MockDb.updateJobCarriedOut(job.job_id, jobCarriedOutInput, recommendationInput); setJob({ ...updated } as Job); setEditingJobCarriedOut(false); showToast.success('Job details saved'); }
+    catch (e) { showToast.error('Could not save job details'); }
   };
+  const handleCancelJobCarriedOutEdit = () => { setEditingJobCarriedOut(false); setJobCarriedOutInput(''); setRecommendationInput(''); };
 
-  const handleCancelJobCarriedOutEdit = () => {
-    setEditingJobCarriedOut(false);
-    setJobCarriedOutInput('');
-    setRecommendationInput('');
-  };
-
-  // Handle Condition Checklist editing
-  const handleStartEditChecklist = () => {
-    if (!job) return;
-    setEditingChecklist(true);
-    setChecklistEditData(job.condition_checklist || {});
-  };
-
+  const handleStartEditChecklist = () => { if (!job) return; setEditingChecklist(true); setChecklistEditData(job.condition_checklist || {}); };
   const handleSaveChecklist = async () => {
     if (!job) return;
-    try {
-      const updated = await MockDb.updateConditionChecklist(job.job_id, checklistEditData, currentUserId);
-      setJob({ ...updated } as Job);
-      setEditingChecklist(false);
-      showToast.success('Checklist saved');
-    } catch (e) {
-      showToast.error('Could not save checklist', (e as Error).message);
-    }
+    try { const updated = await MockDb.updateConditionChecklist(job.job_id, checklistEditData, currentUserId); setJob({ ...updated } as Job); setEditingChecklist(false); showToast.success('Checklist saved'); }
+    catch (e) { showToast.error('Could not save checklist', (e as Error).message); }
   };
+  const handleCancelChecklistEdit = () => { setEditingChecklist(false); setChecklistEditData({}); };
+  const toggleChecklistItem = (key: string) => { setChecklistEditData(prev => ({ ...prev, [key]: !prev[key as keyof ForkliftConditionChecklist] })); };
 
-  const handleCancelChecklistEdit = () => {
-    setEditingChecklist(false);
-    setChecklistEditData({});
-  };
-
-  const toggleChecklistItem = (key: string) => {
-    setChecklistEditData(prev => ({
-      ...prev,
-      [key]: !prev[key as keyof ForkliftConditionChecklist]
-    }));
-  };
-
-  // Handle no parts used toggle
   const handleToggleNoPartsUsed = async () => {
     if (!job) return;
     const newValue = !noPartsUsed;
-    try {
-      await MockDb.setNoPartsUsed(job.job_id, newValue);
-      setNoPartsUsed(newValue);
-    } catch (e) {
-      showToast.error('Could not update', (e as Error).message);
-    }
+    try { await MockDb.setNoPartsUsed(job.job_id, newValue); setNoPartsUsed(newValue); }
+    catch (e) { showToast.error('Could not update', (e as Error).message); }
   };
 
-  // Handle invoice finalization
   const handleFinalizeInvoice = async () => {
     if (!job) return;
-    
-    try {
-      const updated = await MockDb.finalizeInvoice(job.job_id, currentUserId, currentUserName);
-      setJob({ ...updated } as Job);
-      setShowFinalizeModal(false);
-      showToast.success('Invoice finalized');
-    } catch (e) {
-      showToast.error('Could not finalize invoice', (e as Error).message);
-    }
+    try { const updated = await MockDb.finalizeInvoice(job.job_id, currentUserId, currentUserName); setJob({ ...updated } as Job); setShowFinalizeModal(false); showToast.success('Invoice finalized'); }
+    catch (e) { showToast.error('Could not finalize invoice', (e as Error).message); }
   };
 
-  // Handle delete job (Admin/Supervisor only, not if Completed)
   const handleDeleteJob = async () => {
     if (!job) return;
-    
-    if (!deletionReason.trim()) {
-      showToast.error('Please provide a reason for deleting this job');
+    if (!deletionReason.trim()) { showToast.error('Please provide a reason for deleting this job'); return; }
+    try { await MockDb.deleteJob(job.job_id, currentUserId, currentUserName, deletionReason.trim()); setShowDeleteModal(false); showToast.success('Job deleted'); navigate('/jobs'); }
+    catch (e) { showToast.error('Could not delete job', (e as Error).message); }
+  };
+
+  const handlePrintServiceReport = () => { if (!job) return; printServiceReport(job); };
+  const handlePrintQuotation = () => { if (!job) return; const quotation = generateQuotationFromJob(job); const quotationNumber = `Q-${new Date().getFullYear()}-${job.job_id.slice(0, 6).toUpperCase()}`; printQuotation(quotation, quotationNumber); };
+  const handleExportPDF = () => { if (!job) return; printInvoice(job); };
+
+  const uploadPhotoFile = async (file: File) => {
+    if (!job) return;
+    if (!file.type.startsWith('image/')) {
+      showToast.error('Please upload an image file');
       return;
     }
-    
-    try {
-      await MockDb.deleteJob(job.job_id, currentUserId, currentUserName, deletionReason.trim());
-      setShowDeleteModal(false);
-      showToast.success('Job deleted');
-      navigate('/jobs');
-    } catch (e) {
-      showToast.error('Could not delete job', (e as Error).message);
-    }
-  };
 
-  // Handle print service report
-  const handlePrintServiceReport = () => {
-    if (!job) return;
-    printServiceReport(job);
-  };
-
-  // Handle print quotation
-  const handlePrintQuotation = () => {
-    if (!job) return;
-    const quotation = generateQuotationFromJob(job);
-    const quotationNumber = `Q-${new Date().getFullYear()}-${job.job_id.slice(0, 6).toUpperCase()}`;
-    printQuotation(quotation, quotationNumber);
-  };
-
-  // Handle export invoice as PDF (print)
-  const handleExportPDF = () => {
-    if (!job) return;
-    printInvoice(job);
-  };
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0] && job) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onloadend = async () => {
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      try {
         const updated = await MockDb.addMedia(
-          job.job_id, 
+          job.job_id,
           {
             type: 'photo',
             url: reader.result as string,
             description: file.name,
             created_at: new Date().toISOString(),
-            category: uploadPhotoCategory as MediaCategory,
+            category: uploadPhotoCategory as MediaCategory
           },
           currentUserId,
           currentUserName,
@@ -1058,52 +553,59 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
         setJob({ ...updated } as Job);
         const categoryLabel = PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other';
         showToast.success('Photo uploaded', `Category: ${categoryLabel}${isCurrentUserHelper ? ' (Helper)' : ''}`);
-      };
-      reader.readAsDataURL(file);
-    }
+      } catch (e) {
+        showToast.error('Photo upload failed', (e as Error).message);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
-  // Download all photos as ZIP
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    await uploadPhotoFile(file);
+  };
+
+  const handlePhotoDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handlePhotoDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsPhotoDragActive(true);
+  };
+
+  const handlePhotoDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsPhotoDragActive(false);
+  };
+
+  const handlePhotoDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsPhotoDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    await uploadPhotoFile(file);
+  };
+
   const handleDownloadPhotos = async () => {
-    if (!job || job.media.length === 0) {
-      showToast.error('No photos to download');
-      return;
-    }
-    
+    if (!job || job.media.length === 0) { showToast.error('No photos to download'); return; }
     setDownloadingPhotos(true);
     try {
-      // Dynamic import JSZip
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
-      
-      // Group photos by category
-      const photosToDownload = photoCategoryFilter === 'all' 
-        ? job.media 
-        : job.media.filter(m => m.category === photoCategoryFilter);
-      
-      if (photosToDownload.length === 0) {
-        showToast.error('No photos in selected category');
-        setDownloadingPhotos(false);
-        return;
-      }
-      
-      // Add photos to ZIP organized by category
+      const photosToDownload = photoCategoryFilter === 'all' ? job.media : job.media.filter(m => m.category === photoCategoryFilter);
+      if (photosToDownload.length === 0) { showToast.error('No photos in selected category'); setDownloadingPhotos(false); return; }
       for (const photo of photosToDownload) {
         const category = photo.category || 'other';
         const folder = zip.folder(category);
-        
-        // Convert data URL to blob
         const response = await fetch(photo.url);
         const blob = await response.blob();
-        
-        // Generate filename
         const timestamp = new Date(photo.created_at).toISOString().replace(/[:.]/g, '-');
         const filename = `${timestamp}_${photo.description || 'photo'}.jpg`;
-        
         folder?.file(filename, blob);
       }
-      
-      // Generate and download ZIP
       const content = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
@@ -1113,86 +615,32 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
       showToast.success('Photos downloaded', `${photosToDownload.length} photos`);
-    } catch (e: any) {
-      console.error('Failed to download photos:', e);
-      showToast.error('Download failed', e.message);
-    } finally {
-      setDownloadingPhotos(false);
-    }
+    } catch (e: any) { console.error('Failed to download photos:', e); showToast.error('Download failed', e.message); }
+    finally { setDownloadingPhotos(false); }
   };
 
-  // Helper Technician handlers
   const handleAssignHelper = async () => {
-    if (!job || !selectedHelperId) {
-      showToast.error('Please select a helper technician');
-      return;
-    }
-    
-    // Can't assign same person as lead and helper
-    if (selectedHelperId === job.assigned_technician_id) {
-      showToast.error('Cannot assign lead technician as helper');
-      return;
-    }
-    
-    const result = await MockDb.assignHelper(
-      job.job_id,
-      selectedHelperId,
-      currentUserId,
-      helperNotes || undefined
-    );
-    
-    if (result) {
-      showToast.success('Helper assigned');
-      setShowAssignHelperModal(false);
-      setSelectedHelperId('');
-      setHelperNotes('');
-      loadJob(); // Reload to get updated helper info
-    } else {
-      showToast.error('Failed to assign helper');
-    }
+    if (!job || !selectedHelperId) { showToast.error('Please select a helper technician'); return; }
+    if (selectedHelperId === job.assigned_technician_id) { showToast.error('Cannot assign lead technician as helper'); return; }
+    const result = await MockDb.assignHelper(job.job_id, selectedHelperId, currentUserId, helperNotes || undefined);
+    if (result) { showToast.success('Helper assigned'); setShowAssignHelperModal(false); setSelectedHelperId(''); setHelperNotes(''); loadJob(); }
+    else { showToast.error('Failed to assign helper'); }
   };
 
   const handleRemoveHelper = async () => {
     if (!job) return;
-    
     const confirmed = window.confirm('Remove helper technician from this job?');
     if (!confirmed) return;
-    
     const success = await MockDb.removeHelper(job.job_id);
-    if (success) {
-      showToast.success('Helper removed');
-      loadJob();
-    } else {
-      showToast.error('Failed to remove helper');
-    }
+    if (success) { showToast.success('Helper removed'); loadJob(); }
+    else { showToast.error('Failed to remove helper'); }
   };
 
-  const handleTechnicianSignature = async (dataUrl: string) => {
-    if (!job) return;
-    const updated = await MockDb.signJob(job.job_id, 'technician', currentUserName, dataUrl);
-    setJob({ ...updated } as Job);
-    setShowTechSigPad(false);
-  };
+  const handleTechnicianSignature = async (dataUrl: string) => { if (!job) return; const updated = await MockDb.signJob(job.job_id, 'technician', currentUserName, dataUrl); setJob({ ...updated } as Job); setShowTechSigPad(false); };
+  const handleCustomerSignature = async (dataUrl: string) => { if (!job) return; const customerName = job.customer?.name || 'Customer'; const updated = await MockDb.signJob(job.job_id, 'customer', customerName, dataUrl); setJob({ ...updated } as Job); setShowCustSigPad(false); };
+  const handleAiSummary = async () => { if (!job) return; setGeneratingAi(true); const summary = await generateJobSummary(job); setAiSummary(summary); setGeneratingAi(false); };
 
-  const handleCustomerSignature = async (dataUrl: string) => {
-    if (!job) return;
-    const customerName = job.customer?.name || 'Customer';
-    const updated = await MockDb.signJob(job.job_id, 'customer', customerName, dataUrl);
-    setJob({ ...updated } as Job);
-    setShowCustSigPad(false);
-  };
-
-  const handleAiSummary = async () => {
-    if (!job) return;
-    setGeneratingAi(true);
-    const summary = await generateJobSummary(job);
-    setAiSummary(summary);
-    setGeneratingAi(false);
-  };
-
-  // Calculate repair duration
   const getRepairDuration = () => {
     if (!job?.repair_start_time) return null;
     const start = new Date(job.repair_start_time);
@@ -1203,10 +651,32 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     return { hours, minutes, total: diffMs };
   };
 
-  if (loading) return <div className="p-8 text-center text-slate-500">Loading Job Details...</div>;
-  if (!job) return <div className="p-8 text-center text-red-500">Job not found</div>;
+  // Loading and not found states
+  if (loading) return (
+    <div className="max-w-5xl mx-auto p-6 fade-in">
+      <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-[var(--text-muted)] text-sm">Loading job details...</p>
+        </div>
+      </div>
+    </div>
+  );
 
-  // Normalize status and role for comparison
+  if (!job) return (
+    <div className="max-w-5xl mx-auto p-6 fade-in">
+      <div className="text-center py-20">
+        <AlertTriangle className="w-12 h-12 text-[var(--error)] mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-[var(--text)]">Job not found</h2>
+        <p className="text-[var(--text-muted)] mt-2">This job may have been deleted or you don't have access.</p>
+        <button onClick={() => navigate('/jobs')} className="btn-premium btn-premium-primary mt-4">
+          <ArrowLeft className="w-4 h-4" /> Back to Jobs
+        </button>
+      </div>
+    </div>
+  );
+
+  // Status flags
   const normalizedStatus = (job.status || '').toString().toLowerCase().trim();
   const normalizedRole = (currentUserRole || '').toString().toLowerCase().trim();
   
@@ -1215,8 +685,6 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const isTechnician = normalizedRole === 'technician';
   const isAccountant = normalizedRole === 'accountant';
   const canReassign = isAdmin || isSupervisor;
-  
-  // Helper can only upload photos - restrict other actions
   const isHelperOnly = isCurrentUserHelper && !isAdmin && !isSupervisor;
   
   const isNew = normalizedStatus === 'new';
@@ -1224,328 +692,411 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const isInProgress = normalizedStatus === 'in progress' || normalizedStatus === 'in_progress';
   const isAwaitingFinalization = normalizedStatus === 'awaiting finalization' || normalizedStatus === 'awaiting_finalization';
   const isCompleted = normalizedStatus === 'completed';
-  // Multi-day statuses (#7)
   const isIncompleteContinuing = normalizedStatus === 'incomplete - continuing' || normalizedStatus === 'incomplete_continuing';
   const isIncompleteReassigned = normalizedStatus === 'incomplete - reassigned' || normalizedStatus === 'incomplete_reassigned';
   const isEscalated = !!job.escalation_triggered_at;
   const isOvertime = job.is_overtime || false;
-  // Deferred acknowledgement statuses (#8)
   const isAwaitingAck = normalizedStatus === 'completed awaiting acknowledgement' || normalizedStatus === 'completed_awaiting_ack';
   const isDisputed = normalizedStatus === 'disputed';
   const isDeferred = job.verification_type === 'deferred' || job.verification_type === 'auto_completed';
-
-  // Check if both signatures are present
   const hasBothSignatures = !!(job.technician_signature && job.customer_signature);
 
   const totalPartsCost = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
-  const laborCost = job.labor_cost || 150; 
+  const laborCost = job.labor_cost || 150;
   const extraChargesCost = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
   const totalCost = totalPartsCost + laborCost + extraChargesCost;
 
-  const partOptions: ComboboxOption[] = parts.map(p => ({
-      id: p.part_id,
-      label: p.part_name,
-      subLabel: `RM${p.sell_price} | Stock: ${p.stock_quantity} | ${p.category}`
-  }));
-
-  const techOptions: ComboboxOption[] = technicians.map(t => ({
-      id: t.user_id,
-      label: t.name,
-      subLabel: t.email
-  }));
-
+  const partOptions: ComboboxOption[] = parts.map(p => ({ id: p.part_id, label: p.part_name, subLabel: `RM${p.sell_price} | Stock: ${p.stock_quantity} | ${p.category}` }));
+  const techOptions: ComboboxOption[] = technicians.map(t => ({ id: t.user_id, label: t.name, subLabel: t.email }));
   const canEditPrices = !isCompleted && !isHelperOnly && (!isAwaitingFinalization || isAdmin || isAccountant);
   const repairDuration = getRepairDuration();
+  const jobMedia = job.media || [];
 
-  const inputClassName = "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/25 placeholder-slate-400 transition-all duration-200";
-
-  const renderSignatureBlock = (
-    title: string, 
-    signature: SignatureEntry | undefined, 
-    onSignClick: () => void,
-    icon: React.ReactNode,
-    canSign: boolean
-  ) => (
-    <div className="bg-white rounded-xl shadow p-5 border border-slate-100">
-        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-            {icon} {title}
-        </h3>
-        {signature ? (
-            <div className="bg-slate-50 border border-slate-200 rounded p-3">
-                <div className="flex items-center gap-2 mb-2 text-green-600 font-bold text-sm">
-                    <CheckCircle className="w-4 h-4" /> Signed
-                </div>
-                <img src={signature.signature_url} alt={`${title}`} className="w-full h-24 object-contain border-b border-slate-200 mb-2 bg-white" />
-                <div className="text-xs text-slate-500">
-                    <p><strong>Signed by:</strong> {signature.signed_by_name}</p>
-                    <p><strong>Date:</strong> {new Date(signature.signed_at).toLocaleString()}</p>
-                </div>
-            </div>
-        ) : (
-            canSign ? (
-                <button onClick={onSignClick} className="w-full py-3 border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:text-blue-600 hover:border-blue-400 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
-                    <PenTool className="w-4 h-4" /> Click to Sign
-                </button>
-            ) : (
-                <div className="text-center py-4 bg-slate-50 rounded border border-slate-100 text-slate-400 text-sm">
-                    Waiting for job completion or assignment.
-                </div>
-            )
-        )}
-    </div>
-  );
+  // Premium status badge styling
+  const getStatusBadge = () => {
+    if (isCompleted) return 'badge-success';
+    if (isAwaitingFinalization) return 'bg-purple-100 text-purple-700';
+    if (isInProgress) return 'badge-info';
+    if (isAwaitingAck) return 'badge-warning';
+    if (isDisputed) return 'badge-error';
+    if (isIncompleteContinuing) return 'bg-amber-100 text-amber-700';
+    return 'badge-neutral';
+  };
 
   return (
-    <div className="max-w-4xl mx-auto pb-20">
-      {/* Header */}
-      <div className="bg-white shadow-sm p-4 sticky top-0 z-10 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full">
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">{job.title}</h1>
-            <div className="flex gap-2 flex-wrap">
-              {job.job_type && (
-                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  job.job_type === JobType.ACCIDENT ? 'bg-red-100 text-red-700' :
-                  job.job_type === JobType.REPAIR ? 'bg-orange-100 text-orange-700' :
-                  job.job_type === JobType.CHECKING ? 'bg-purple-100 text-purple-700' :
-                  'bg-green-100 text-green-700'
-                }`}>
-                  {job.job_type}
-                </span>
-              )}
-              <span className={`text-xs px-2 py-1 rounded-full font-medium ${job.priority === JobPriority.EMERGENCY ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                {job.priority}
-              </span>
-              {/* Escalation Badge (#7) */}
-              {isEscalated && (
-                <span className="text-xs px-2 py-1 rounded-full font-medium bg-red-500 text-white animate-pulse">
-                  ⚠️ Escalated
-                </span>
-              )}
-              {/* Overtime Badge (#7) */}
-              {isOvertime && (
-                <span className="text-xs px-2 py-1 rounded-full font-medium bg-purple-100 text-purple-700">
-                  OT Job
-                </span>
-              )}
-              {/* Continuing Badge (#7) */}
-              {isIncompleteContinuing && (
-                <span className="text-xs px-2 py-1 rounded-full font-medium bg-amber-100 text-amber-700">
-                  Continuing
-                </span>
-              )}
-              {/* Awaiting Acknowledgement Badge (#8) */}
-              {isAwaitingAck && (
-                <span className="text-xs px-2 py-1 rounded-full font-medium bg-orange-100 text-orange-700">
-                  Awaiting Customer Ack
-                </span>
-              )}
-              {/* Disputed Badge (#8) */}
-              {isDisputed && (
-                <span className="text-xs px-2 py-1 rounded-full font-medium bg-red-100 text-red-700 animate-pulse">
-                  ⚠️ Disputed
-                </span>
-              )}
+    <div className="max-w-5xl mx-auto pb-20 fade-in">
+      {/* Premium Header */}
+      <div className="bg-[var(--surface)] border-b border-[var(--border)] -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 py-4 sticky top-0 z-30 shadow-premium-xs">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <button 
+              onClick={() => navigate(-1)} 
+              className="p-2 hover:bg-[var(--bg-subtle)] rounded-lg transition-colors mt-0.5"
+            >
+              <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
+            </button>
+            <div>
+              <h1 className="text-xl font-semibold text-[var(--text)]">{job.title}</h1>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <span className={`badge ${getStatusBadge()}`}>{job.status}</span>
+                {job.job_type && (
+                  <span className={`badge ${
+                    job.job_type === JobType.ACCIDENT ? 'badge-error' :
+                    job.job_type === JobType.REPAIR ? 'badge-warning' :
+                    job.job_type === JobType.CHECKING ? 'bg-purple-100 text-purple-700' :
+                    'badge-success'
+                  }`}>{job.job_type}</span>
+                )}
+                {job.priority === JobPriority.EMERGENCY && (
+                  <span className="badge badge-error">Emergency</span>
+                )}
+                {isEscalated && (
+                  <span className="badge badge-error animate-pulse">⚠️ Escalated</span>
+                )}
+                {isOvertime && (
+                  <span className="badge bg-purple-100 text-purple-700">OT Job</span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-           {(isTechnician || isAdmin || isSupervisor) && isAssigned && !isHelperOnly && (
-             <button type="button" onClick={handleOpenStartJobModal} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-blue-700 flex items-center gap-2">
-               <Play className="w-4 h-4" /> Start Job
-             </button>
-           )}
-           {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && (
-             <div className="relative group">
-               <button type="button" onClick={() => handleStatusChange(JobStatus.AWAITING_FINALIZATION)} disabled={!hasBothSignatures}
-                 className={`px-4 py-2 rounded-lg text-sm font-semibold shadow ${hasBothSignatures ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
-                 Complete
-               </button>
-               {!hasBothSignatures && (
-                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                   Both signatures required
-                 </div>
-               )}
-             </div>
-           )}
-           {/* Continue Tomorrow - Multi-day (#7) */}
-           {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && (
-             <button type="button" onClick={() => setShowContinueTomorrowModal(true)} className="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-amber-600 flex items-center gap-2">
-               <Clock className="w-4 h-4" /> Continue Tomorrow
-             </button>
-           )}
-           {/* Resume Job - Multi-day (#7) */}
-           {(isTechnician || isAdmin || isSupervisor) && isIncompleteContinuing && !isHelperOnly && (
-             <button type="button" onClick={handleResumeJob} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-blue-700 flex items-center gap-2">
-               <Play className="w-4 h-4" /> Resume Job
-             </button>
-           )}
-           {/* Deferred Completion (#8) - when customer unavailable */}
-           {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && job.technician_signature && !job.customer_signature && (
-             <button type="button" onClick={() => setShowDeferredModal(true)} className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-orange-600 flex items-center gap-2">
-               <UserCheck className="w-4 h-4" /> Complete (Customer Unavailable)
-             </button>
-           )}
-           {(isAccountant || isAdmin) && isAwaitingFinalization && (
-             <button type="button" onClick={() => setShowFinalizeModal(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-purple-700">
-               Finalize Invoice
-             </button>
-           )}
-           {(isTechnician || isAdmin || isSupervisor) && (isInProgress || isAwaitingFinalization || isCompleted || isAwaitingAck || isDisputed) && (
-             <button type="button" onClick={handlePrintServiceReport} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-amber-700 flex items-center gap-2">
-               <FileCheck className="w-4 h-4" /> Service Report
-             </button>
-           )}
-           {(isAccountant || isAdmin) && (isAwaitingFinalization || isCompleted) && (
-             <button type="button" onClick={handleExportPDF} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-blue-700 flex items-center gap-2">
-               <FileDown className="w-4 h-4" /> Invoice
-             </button>
-           )}
-           {(isAdmin || isSupervisor) && !isCompleted && (
-             <button type="button" onClick={() => setShowDeleteModal(true)} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow hover:bg-red-700 flex items-center gap-2">
-               <Trash2 className="w-4 h-4" /> Delete
-             </button>
-           )}
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {(isTechnician || isAdmin || isSupervisor) && isAssigned && !isHelperOnly && (
+              <button onClick={handleOpenStartJobModal} className="btn-premium btn-premium-primary">
+                <Play className="w-4 h-4" /> Start Job
+              </button>
+            )}
+            {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && (
+              <div className="relative group">
+                <button 
+                  onClick={() => handleStatusChange(JobStatus.AWAITING_FINALIZATION)} 
+                  disabled={!hasBothSignatures}
+                  className={`btn-premium ${hasBothSignatures ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
+                >
+                  <CheckCircle className="w-4 h-4" /> Complete
+                </button>
+                {!hasBothSignatures && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[var(--text)] text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                    Both signatures required
+                  </div>
+                )}
+              </div>
+            )}
+            {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && (
+              <button onClick={() => setShowContinueTomorrowModal(true)} className="btn-premium btn-premium-secondary">
+                <Clock className="w-4 h-4" /> Continue Tomorrow
+              </button>
+            )}
+            {(isTechnician || isAdmin || isSupervisor) && isIncompleteContinuing && !isHelperOnly && (
+              <button onClick={handleResumeJob} className="btn-premium btn-premium-primary">
+                <Play className="w-4 h-4" /> Resume Job
+              </button>
+            )}
+            {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && job.technician_signature && !job.customer_signature && (
+              <button
+                onClick={() => setShowDeferredModal(true)}
+                className="btn-premium btn-premium-secondary border-[var(--warning)] text-[var(--warning)] hover:bg-[var(--warning-bg)] hover:border-[var(--warning)] hover:text-[var(--warning)]"
+              >
+                <UserCheck className="w-4 h-4" /> Customer Unavailable
+              </button>
+            )}
+            {(isAccountant || isAdmin) && isAwaitingFinalization && (
+              <button onClick={() => setShowFinalizeModal(true)} className="btn-premium btn-premium-primary">
+                Finalize Invoice
+              </button>
+            )}
+            {(isTechnician || isAdmin || isSupervisor) && (isInProgress || isAwaitingFinalization || isCompleted || isAwaitingAck || isDisputed) && (
+              <button onClick={handlePrintServiceReport} className="btn-premium btn-premium-secondary">
+                <FileCheck className="w-4 h-4" /> Report
+              </button>
+            )}
+            {(isAccountant || isAdmin) && (isAwaitingFinalization || isCompleted) && (
+              <button onClick={handleExportPDF} className="btn-premium btn-premium-secondary">
+                <FileDown className="w-4 h-4" /> Invoice
+              </button>
+            )}
+            {(isAdmin || isSupervisor) && !isCompleted && (
+              <button onClick={() => setShowDeleteModal(true)} className="btn-premium btn-premium-ghost text-[var(--error)] hover:bg-[var(--error-bg)] hover:text-[var(--error)]">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Main Column */}
-        <div className="md:col-span-2 space-y-6">
-
-          {/* Forklift/Equipment Info Card */}
+      {/* Main Content */}
+      <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 mt-2">
+        {/* Left Column - Main Content */}
+        <div className="lg:col-span-2 space-y-5">
+          
+          {/* Equipment Card */}
           {job.forklift && (
-            <div className="bg-amber-50 rounded-xl shadow p-5 border border-amber-200">
-              <h3 className="text-lg font-semibold text-amber-900 mb-4 flex items-center gap-2">
-                <Truck className="w-5 h-5" /> Equipment Being Serviced
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-xs text-amber-700 uppercase">Serial Number</span>
-                  <div className="font-mono font-bold text-slate-800">{job.forklift.serial_number}</div>
+            <div className="card-premium card-tint-warning p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-[var(--warning-bg)] flex items-center justify-center">
+                  <Truck className="w-5 h-5 text-[var(--warning)]" />
                 </div>
                 <div>
-                  <span className="text-xs text-amber-700 uppercase">Make / Model</span>
-                  <div className="font-bold text-slate-800">{job.forklift.make} {job.forklift.model}</div>
+                  <h3 className="font-semibold text-[var(--text)]">Equipment</h3>
+                  <p className="text-xs text-[var(--text-muted)]">{job.forklift.make} {job.forklift.model}</p>
+                </div>
+              </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                  <p className="label-premium mb-1">Serial Number</p>
+                  <p className="font-mono value-premium">{job.forklift.serial_number}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-amber-700 uppercase">Type</span>
-                  <div className="text-slate-700">{job.forklift.type}</div>
+                  <p className="label-premium mb-1">Type</p>
+                  <p className="value-premium-secondary">{job.forklift.type}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-amber-700 uppercase flex items-center gap-1">
-                    <Gauge className="w-3 h-3" /> Hourmeter Reading
-                  </span>
+                  <p className="label-premium mb-1 flex items-center gap-1">
+                    <Gauge className="w-3 h-3" /> Hourmeter
+                  </p>
                   {editingHourmeter ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <input type="number" className="w-24 px-2 py-1 text-sm border border-blue-500 rounded" value={hourmeterInput} onChange={(e) => setHourmeterInput(e.target.value)} autoFocus />
-                      <span className="text-xs text-slate-500">hrs</span>
-                      <button type="button" onClick={handleSaveHourmeter} className="p-1 text-green-600 hover:bg-green-50 rounded"><Save className="w-4 h-4" /></button>
-                      <button type="button" onClick={handleCancelHourmeterEdit} className="p-1 text-slate-400 hover:bg-slate-100 rounded"><X className="w-4 h-4" /></button>
+                    <div className="flex items-center gap-1">
+                      <input type="number" className="input-premium w-20 text-sm py-1" value={hourmeterInput} onChange={(e) => setHourmeterInput(e.target.value)} autoFocus />
+                      <button onClick={handleSaveHourmeter} className="p-1 text-[var(--success)] hover:bg-[var(--success-bg)] rounded"><Save className="w-3.5 h-3.5" /></button>
+                      <button onClick={handleCancelHourmeterEdit} className="p-1 text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] rounded"><X className="w-3.5 h-3.5" /></button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-800">{(job.hourmeter_reading || job.forklift.hourmeter).toLocaleString()} hrs</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold text-[var(--text)]">{(job.hourmeter_reading || job.forklift.hourmeter).toLocaleString()} hrs</span>
                       {(isInProgress || (isAdmin && !isCompleted)) && (
-                        <button type="button" onClick={handleStartEditHourmeter} className="p-1 text-amber-600 hover:bg-amber-100 rounded"><Edit2 className="w-3 h-3" /></button>
+                        <button onClick={handleStartEditHourmeter} className="p-1 text-[var(--warning)] hover:bg-[var(--warning-bg)] rounded"><Edit2 className="w-3 h-3" /></button>
                       )}
                     </div>
                   )}
                 </div>
-              </div>
-              
-              {/* Active Rental Info */}
-              {activeRental && (
-                <div className="mt-4 pt-4 border-t border-amber-200">
-                  <h4 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
-                    <MapPin className="w-4 h-4" /> Current Rental Location
-                  </h4>
-                  <div className="bg-white/50 rounded-lg p-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <UserIcon className="w-4 h-4 text-amber-600" />
-                      <span className="font-medium text-slate-800">{activeRental.customer_name}</span>
-                    </div>
-                    {activeRental.rental_location && (
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 text-amber-600 mt-0.5" />
-                        <span className="text-slate-700">{activeRental.rental_location}</span>
-                      </div>
-                    )}
-                    <div className="text-xs text-amber-600">
-                      Rental started: {new Date(activeRental.start_date).toLocaleDateString()}
-                    </div>
+                {activeRental && (
+                  <div>
+                    <p className="label-premium mb-1">Location</p>
+                    <p className="text-[var(--text-secondary)] text-sm">{activeRental.rental_location || activeRental.customer_name}</p>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 
-          {/* Repair Time Tracking */}
+          {/* Repair Time Card */}
           {(isInProgress || isAwaitingFinalization || isCompleted) && job.repair_start_time && (
-            <div className="bg-blue-50 rounded-xl shadow p-5 border border-blue-200">
-              <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
-                <Clock className="w-5 h-5" /> Repair Time
-              </h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <span className="text-xs text-blue-700 uppercase">Started</span>
-                  <div className="font-mono text-slate-800">{new Date(job.repair_start_time).toLocaleTimeString()}</div>
-                  <div className="text-xs text-slate-500">{new Date(job.repair_start_time).toLocaleDateString()}</div>
+            <div className="card-premium card-tint-info p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-[var(--info-bg)] flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-[var(--info)]" />
                 </div>
                 <div>
-                  <span className="text-xs text-blue-700 uppercase">Ended</span>
+                  <h3 className="font-semibold text-[var(--text)]">Repair Time</h3>
+                  {repairDuration && (
+                    <p className="text-xs text-[var(--accent)] font-medium">{repairDuration.hours}h {repairDuration.minutes}m</p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="label-premium mb-1">Started</p>
+                  <p className="font-mono text-sm text-[var(--text)]">{new Date(job.repair_start_time).toLocaleTimeString()}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{new Date(job.repair_start_time).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="label-premium mb-1">Ended</p>
                   {job.repair_end_time ? (
                     <>
-                      <div className="font-mono text-slate-800">{new Date(job.repair_end_time).toLocaleTimeString()}</div>
-                      <div className="text-xs text-slate-500">{new Date(job.repair_end_time).toLocaleDateString()}</div>
+                      <p className="font-mono text-sm text-[var(--text)]">{new Date(job.repair_end_time).toLocaleTimeString()}</p>
+                      <p className="text-xs text-[var(--text-muted)]">{new Date(job.repair_end_time).toLocaleDateString()}</p>
                     </>
                   ) : (
-                    <div className="text-slate-500 italic">In Progress</div>
-                  )}
-                </div>
-                <div>
-                  <span className="text-xs text-blue-700 uppercase">Duration</span>
-                  {repairDuration && (
-                    <div className="font-bold text-blue-800">{repairDuration.hours}h {repairDuration.minutes}m</div>
+                    <p className="text-[var(--text-muted)] italic text-sm">In Progress</p>
                   )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Condition Checklist Display */}
+          {/* Customer & Assignment Card */}
+          <div className="card-premium p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
+                  <UserIcon className="w-5 h-5 text-[var(--text-muted)]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[var(--text)]">Customer</h3>
+                  {job.customer ? (
+                    <p className="text-sm text-[var(--text-secondary)]">{job.customer.name}</p>
+                  ) : (
+                    <p className="text-sm text-[var(--warning)]">No customer assigned</p>
+                  )}
+                </div>
+              </div>
+              {job.customer?.phone && (
+                <a href={`tel:${job.customer.phone}`} className="btn-premium btn-premium-ghost text-xs">
+                  <Phone className="w-3.5 h-3.5" /> Call
+                </a>
+              )}
+            </div>
+            
+            {job.customer && (
+              <div className="space-y-2 mb-4">
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin className="w-4 h-4 text-[var(--text-muted)] mt-0.5 flex-shrink-0" />
+                  <span className="text-[var(--text-secondary)]">{job.customer.address}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="divider"></div>
+
+            <div>
+              <p className="label-premium mb-2">Description</p>
+              <p className="text-[var(--text-secondary)] text-sm">{job.description}</p>
+            </div>
+
+            {/* Assign Technician */}
+            {(isAdmin || isSupervisor) && isNew && (
+              <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+                <p className="text-xs font-medium text-[var(--text-muted)] mb-2 flex items-center gap-1">
+                  <UserPlus className="w-3.5 h-3.5" /> Assign Technician
+                </p>
+                <div className="flex gap-2">
+                  <div className="flex-1"><Combobox options={techOptions} value={selectedTechId} onChange={setSelectedTechId} placeholder="Select Technician..." /></div>
+                  <button onClick={handleAssignJob} disabled={!selectedTechId} className="btn-premium btn-premium-primary disabled:opacity-50">Assign</button>
+                </div>
+              </div>
+            )}
+
+            {/* Current Assignment */}
+            {canReassign && job.assigned_technician_id && !isCompleted && (
+              <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--accent-subtle)] p-3 flex justify-between items-center">
+                  <div>
+                    <p className="label-premium mb-1">Assigned Technician</p>
+                    <p className="value-premium">{job.assigned_technician_name}</p>
+                  </div>
+                  <button onClick={() => setShowReassignModal(true)} className="chip-premium chip-premium-accent">
+                    <RefreshCw className="w-3.5 h-3.5" /> Reassign
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Helper Section */}
+            {(isInProgress || isAwaitingFinalization) && (
+              <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+                <div className={`rounded-xl border border-[var(--border-subtle)] p-3 flex justify-between items-center ${
+                  job.helper_assignment ? 'bg-[var(--bg-subtle)]' : 'bg-[var(--warning-bg)]'
+                }`}>
+                  <div>
+                    <p className="label-premium mb-1">Helper Technician</p>
+                    {job.helper_assignment ? (
+                      <p className="value-premium">{job.helper_assignment.technician?.name || 'Unknown'}</p>
+                    ) : (
+                      <p className="text-[var(--text-muted)] text-sm">No helper assigned</p>
+                    )}
+                  </div>
+                  {canReassign && (
+                    <>
+                      {job.helper_assignment ? (
+                        <button onClick={handleRemoveHelper} className="chip-premium chip-premium-danger">
+                          <X className="w-3.5 h-3.5" /> Remove
+                        </button>
+                      ) : (
+                        <button onClick={() => setShowAssignHelperModal(true)} className="chip-premium chip-premium-warning">
+                          <UserPlus className="w-3.5 h-3.5" /> Add Helper
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+                {isCurrentUserHelper && (
+                  <div className="mt-2 p-2 bg-[var(--warning-bg)] rounded-lg text-xs text-[var(--warning)]">
+                    <strong>You are the helper.</strong> You can upload photos only.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Job Details Card */}
+          <div className="card-premium p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-[var(--text-muted)]" />
+                </div>
+                <h3 className="font-semibold text-[var(--text)]">Job Details</h3>
+              </div>
+              {(isInProgress || isAwaitingFinalization) && !editingJobCarriedOut && !isHelperOnly && (
+                <button onClick={handleStartEditJobCarriedOut} className="btn-premium btn-premium-ghost text-xs">
+                  <Edit2 className="w-3.5 h-3.5" /> Edit
+                </button>
+              )}
+            </div>
+            
+            {editingJobCarriedOut ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-medium text-[var(--text-muted)] mb-1 block">Job Carried Out</label>
+                  <textarea className="input-premium min-h-[100px] resize-none" placeholder="Describe the work performed..." value={jobCarriedOutInput} onChange={(e) => setJobCarriedOutInput(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[var(--text-muted)] mb-1 block">Recommendation</label>
+                  <textarea className="input-premium min-h-[80px] resize-none" placeholder="Any recommendations..." value={recommendationInput} onChange={(e) => setRecommendationInput(e.target.value)} />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={handleSaveJobCarriedOut} className="btn-premium btn-premium-primary flex-1">Save</button>
+                  <button onClick={handleCancelJobCarriedOutEdit} className="btn-premium btn-premium-secondary">Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <p className="label-premium mb-1">Job Carried Out</p>
+                  <p className="text-[var(--text-secondary)] text-sm">{job.job_carried_out || <span className="italic text-[var(--text-muted)]">Not specified</span>}</p>
+                </div>
+                <div>
+                  <p className="label-premium mb-1">Recommendation</p>
+                  <p className="text-[var(--text-secondary)] text-sm">{job.recommendation || <span className="italic text-[var(--text-muted)]">None</span>}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Condition Checklist */}
           {job.condition_checklist && Object.keys(job.condition_checklist).length > 0 && (
-            <div className="bg-white rounded-xl shadow p-5">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                  <ClipboardList className="w-5 h-5" /> Condition Checklist
-                </h3>
+            <div className="card-premium p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
+                    <ClipboardList className="w-5 h-5 text-[var(--text-muted)]" />
+                  </div>
+                  <h3 className="font-semibold text-[var(--text)]">Condition Checklist</h3>
+                </div>
                 {(isInProgress || isAwaitingFinalization) && !editingChecklist && !isHelperOnly && (
-                  <button type="button" onClick={handleStartEditChecklist} className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-100 flex items-center gap-1">
-                    <Edit2 className="w-3 h-3" /> Edit
+                  <button onClick={handleStartEditChecklist} className="btn-premium btn-premium-ghost text-xs">
+                    <Edit2 className="w-3.5 h-3.5" /> Edit
                   </button>
                 )}
               </div>
               
               {editingChecklist ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {CHECKLIST_CATEGORIES.map(cat => (
-                      <div key={cat.name} className="bg-slate-50 p-3 rounded-lg">
-                        <div className="font-medium text-slate-700 text-sm mb-2">{cat.name}</div>
+                      <div key={cat.name} className="bg-[var(--surface)] border border-[var(--border)] p-3 rounded-xl">
+                        <p className="font-medium text-[var(--text-secondary)] text-xs mb-2">{cat.name}</p>
                         <div className="space-y-1">
                           {cat.items.map(item => (
-                            <label key={item.key} className="flex items-center gap-2 cursor-pointer text-sm">
+                            <label key={item.key} className="flex items-center gap-2 cursor-pointer text-xs">
                               <input
                                 type="checkbox"
                                 checked={!!checklistEditData[item.key as keyof ForkliftConditionChecklist]}
                                 onChange={() => toggleChecklistItem(item.key)}
-                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                className="rounded border-[var(--border)] text-[var(--accent)]"
                               />
-                              <span className={checklistEditData[item.key as keyof ForkliftConditionChecklist] ? 'text-green-600' : 'text-slate-600'}>
+                              <span className={checklistEditData[item.key as keyof ForkliftConditionChecklist] ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'}>
                                 {item.label}
                               </span>
                             </label>
@@ -1555,20 +1106,20 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                     ))}
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" onClick={handleSaveChecklist} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">Save</button>
-                    <button type="button" onClick={handleCancelChecklistEdit} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Cancel</button>
+                    <button onClick={handleSaveChecklist} className="btn-premium btn-premium-primary flex-1">Save</button>
+                    <button onClick={handleCancelChecklistEdit} className="btn-premium btn-premium-secondary">Cancel</button>
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
                   {CHECKLIST_CATEGORIES.map(cat => {
                     const checkedItems = cat.items.filter(item => job.condition_checklist?.[item.key as keyof ForkliftConditionChecklist]);
                     if (checkedItems.length === 0) return null;
                     return (
-                      <div key={cat.name} className="bg-slate-50 p-2 rounded">
-                        <div className="font-medium text-slate-700 text-xs mb-1">{cat.name}</div>
+                      <div key={cat.name} className="bg-[var(--surface)] border border-[var(--border)] p-2 rounded-lg">
+                        <p className="font-medium text-[var(--text-secondary)] text-[10px] uppercase tracking-wide mb-1">{cat.name}</p>
                         {checkedItems.map(item => (
-                          <div key={item.key} className="flex items-center gap-1 text-green-600 text-xs">
+                          <div key={item.key} className="flex items-center gap-1 text-[var(--success)] text-xs">
                             <CheckCircle className="w-3 h-3" /> {item.label}
                           </div>
                         ))}
@@ -1580,488 +1131,44 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             </div>
           )}
 
-          {/* Job Carried Out & Recommendation */}
-          <div className="bg-white rounded-xl shadow p-5">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                <FileText className="w-5 h-5" /> Job Details
-              </h3>
-              {(isInProgress || isAwaitingFinalization) && !editingJobCarriedOut && !isHelperOnly && (
-                <button type="button" onClick={handleStartEditJobCarriedOut} className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-100 flex items-center gap-1">
-                  <Edit2 className="w-3 h-3" /> Edit
-                </button>
-              )}
-            </div>
-            
-            {editingJobCarriedOut ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-medium text-slate-600 mb-1 block">Job Carried Out</label>
-                  <textarea className={`${inputClassName} min-h-[100px]`} placeholder="Describe the work performed..." value={jobCarriedOutInput} onChange={(e) => setJobCarriedOutInput(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-slate-600 mb-1 block">Recommendation</label>
-                  <textarea className={`${inputClassName} min-h-[80px]`} placeholder="Any recommendations for the customer..." value={recommendationInput} onChange={(e) => setRecommendationInput(e.target.value)} />
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={handleSaveJobCarriedOut} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">Save</button>
-                  <button type="button" onClick={handleCancelJobCarriedOutEdit} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Cancel</button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <span className="text-xs text-slate-500 uppercase">Job Carried Out</span>
-                  <p className="text-slate-700 mt-1">{job.job_carried_out || <span className="italic text-slate-400">Not specified</span>}</p>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500 uppercase">Recommendation</span>
-                  <p className="text-slate-700 mt-1">{job.recommendation || <span className="italic text-slate-400">None</span>}</p>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {/* Customer Info Card */}
-          <div className="bg-white rounded-xl shadow p-5 space-y-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800">Customer Details</h3>
-                {job.customer ? (
-                  <>
-                    <div className="flex items-center gap-2 text-slate-600 mt-2"><UserIcon className="w-4 h-4" /> <span>{job.customer.name}</span></div>
-                    <div className="flex items-center gap-2 text-slate-600 mt-1"><MapPin className="w-4 h-4" /> <span>{job.customer.address}</span></div>
-                    <div className="flex items-center gap-2 text-slate-600 mt-1"><Phone className="w-4 h-4" /> <a href={`tel:${job.customer.phone}`} className="text-blue-600">{job.customer.phone}</a></div>
-                  </>
-                ) : (
-                  <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-                    <AlertTriangle className="w-4 h-4 text-amber-500" />
-                    <span className="text-amber-700 font-medium">No Customer Assigned</span>
-                  </div>
-                )}
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-slate-500">Status</div>
-                <div className="font-bold text-slate-800">{job.status}</div>
-                {job.assigned_technician_name && (<div className="text-xs text-slate-500 mt-1">Tech: {job.assigned_technician_name}</div>)}
-              </div>
-            </div>
-            <hr />
-            <div>
-              <h4 className="text-sm font-semibold text-slate-500 mb-1">Description</h4>
-              <p className="text-slate-700">{job.description}</p>
-            </div>
-            {(isAdmin || isSupervisor) && isNew && (
-                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100 mt-4">
-                    <h4 className="text-sm font-bold text-yellow-800 mb-2 flex items-center gap-2"><UserPlus className="w-4 h-4" /> Assign Technician</h4>
-                    <div className="flex gap-2">
-                        <div className="flex-1"><Combobox options={techOptions} value={selectedTechId} onChange={setSelectedTechId} placeholder="Select Technician..." /></div>
-                        <button type="button" onClick={handleAssignJob} disabled={!selectedTechId} className="bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-yellow-700 disabled:opacity-50">Assign</button>
-                    </div>
-                </div>
-            )}
-            {canReassign && job.assigned_technician_id && !isCompleted && (
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-4">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2"><UserIcon className="w-4 h-4" /> Assigned Technician</h4>
-                            <p className="text-slate-700 mt-1">{job.assigned_technician_name}</p>
-                        </div>
-                        <button type="button" onClick={() => setShowReassignModal(true)} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-1">
-                            <RefreshCw className="w-3 h-3" /> Reassign
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Multi-Day Job Controls (#7) */}
-            {(isAdmin || isSupervisor) && (isAssigned || isInProgress || isIncompleteContinuing) && (
-              <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 mt-4">
-                <h4 className="text-sm font-bold text-purple-800 flex items-center gap-2 mb-3">
-                  <Clock className="w-4 h-4" /> Multi-Day Controls
-                </h4>
-                
-                {/* Overtime Toggle */}
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-purple-700">Overtime Job</span>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const success = await MockDb.markJobAsOvertime(job.job_id, !isOvertime);
-                      if (success) {
-                        showToast.success(isOvertime ? 'Overtime disabled' : 'Marked as overtime');
-                        loadJob();
-                      }
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      isOvertime ? 'bg-purple-600' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      isOvertime ? 'translate-x-6' : 'translate-x-1'
-                    }`} />
-                  </button>
-                </div>
-                <p className="text-xs text-purple-600 mb-3">
-                  {isOvertime ? 'Escalation disabled for this job' : 'Enable for Saturday OT jobs'}
-                </p>
-
-                {/* Cutoff Time Display */}
-                {job.cutoff_time && (
-                  <div className="bg-white p-2 rounded border border-purple-200">
-                    <p className="text-xs text-purple-700">
-                      <strong>Cutoff:</strong> {new Date(job.cutoff_time).toLocaleString()}
-                    </p>
-                  </div>
-                )}
-
-                {/* Escalation Info */}
-                {isEscalated && (
-                  <div className="bg-red-100 p-2 rounded border border-red-200 mt-2">
-                    <p className="text-xs text-red-700">
-                      <strong>⚠️ Escalated:</strong> {new Date(job.escalation_triggered_at!).toLocaleString()}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Deferred Acknowledgement Status (#8) */}
-            {(isAwaitingAck || isDisputed) && (
-              <div className={`p-4 rounded-lg border mt-4 ${isDisputed ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'}`}>
-                <h4 className={`text-sm font-bold flex items-center gap-2 mb-3 ${isDisputed ? 'text-red-800' : 'text-orange-800'}`}>
-                  {isDisputed ? (
-                    <><AlertTriangle className="w-4 h-4" /> Disputed</>
-                  ) : (
-                    <><Clock className="w-4 h-4" /> Awaiting Customer Acknowledgement</>
-                  )}
-                </h4>
-                
-                {/* Deferred Reason */}
-                {job.deferred_reason && (
-                  <div className="mb-2">
-                    <p className="text-xs text-slate-600">Reason:</p>
-                    <p className="text-sm text-slate-800">{job.deferred_reason}</p>
-                  </div>
-                )}
-                
-                {/* Deadline */}
-                {job.customer_response_deadline && !isDisputed && (
-                  <div className="mb-2">
-                    <p className="text-xs text-slate-600">Deadline:</p>
-                    <p className="text-sm text-orange-700 font-medium">
-                      {new Date(job.customer_response_deadline).toLocaleDateString('en-MY', {
-                        weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                )}
-                
-                {/* Dispute Notes */}
-                {isDisputed && job.dispute_notes && (
-                  <div className="mb-2 bg-red-100 p-2 rounded">
-                    <p className="text-xs text-red-600">Customer's dispute:</p>
-                    <p className="text-sm text-red-800">{job.dispute_notes}</p>
-                  </div>
-                )}
-                
-                {/* Admin Actions for Dispute */}
-                {isDisputed && (isAdmin || isSupervisor) && (
-                  <div className="mt-3 pt-3 border-t border-red-200">
-                    <p className="text-xs text-red-600 mb-2">Resolve this dispute:</p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const resolution = prompt('Enter resolution notes:');
-                          if (resolution) {
-                            const success = await MockDb.resolveDispute(job.job_id, resolution, 'Completed');
-                            if (success) {
-                              showToast.success('Dispute resolved - job marked complete');
-                              loadJob();
-                            }
-                          }
-                        }}
-                        className="flex-1 bg-green-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-green-700"
-                      >
-                        Accept & Complete
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const resolution = prompt('Enter resolution notes:');
-                          if (resolution) {
-                            const success = await MockDb.resolveDispute(job.job_id, resolution, 'In Progress');
-                            if (success) {
-                              showToast.success('Dispute resolved - job reopened');
-                              loadJob();
-                            }
-                          }
-                        }}
-                        className="flex-1 bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-blue-700"
-                      >
-                        Reopen Job
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Admin Actions for Awaiting Ack - Acknowledge on behalf */}
-                {isAwaitingAck && (isAdmin || isSupervisor) && (
-                  <div className="mt-3 pt-3 border-t border-orange-200">
-                    <p className="text-xs text-orange-600 mb-2">Customer confirmed via phone/email?</p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const method = await new Promise<'phone' | 'email' | null>((resolve) => {
-                            const choice = prompt('How did customer confirm? (phone/email):');
-                            if (choice?.toLowerCase() === 'phone') resolve('phone');
-                            else if (choice?.toLowerCase() === 'email') resolve('email');
-                            else resolve(null);
-                          });
-                          if (method) {
-                            const notes = prompt('Add any notes (optional):') || '';
-                            const success = await MockDb.acknowledgeJob(job.job_id, method, undefined, notes);
-                            if (success) {
-                              showToast.success('Customer acknowledgement recorded');
-                              loadJob();
-                            } else {
-                              showToast.error('Failed to record acknowledgement');
-                            }
-                          }
-                        }}
-                        className="flex-1 bg-green-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-green-700"
-                      >
-                        Record Acknowledgement
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const method = await new Promise<'phone' | 'email' | null>((resolve) => {
-                            const choice = prompt('How did customer communicate dispute? (phone/email):');
-                            if (choice?.toLowerCase() === 'phone') resolve('phone');
-                            else if (choice?.toLowerCase() === 'email') resolve('email');
-                            else resolve(null);
-                          });
-                          if (method) {
-                            const notes = prompt('Enter dispute reason from customer:');
-                            if (notes) {
-                              const success = await MockDb.disputeJob(job.job_id, notes, method);
-                              if (success) {
-                                showToast.warning('Dispute recorded');
-                                loadJob();
-                              } else {
-                                showToast.error('Failed to record dispute');
-                              }
-                            }
-                          }
-                        }}
-                        className="flex-1 bg-red-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-red-700"
-                      >
-                        Record Dispute
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Helper Technician Section */}
-            {(isInProgress || isAwaitingFinalization) && (
-              <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 mt-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h4 className="text-sm font-bold text-amber-800 flex items-center gap-2">
-                      <UserPlus className="w-4 h-4" /> Helper Technician
-                    </h4>
-                    {job.helper_assignment ? (
-                      <div className="mt-1">
-                        <p className="text-slate-700">{job.helper_assignment.technician?.name || 'Unknown'}</p>
-                        <p className="text-xs text-slate-500">
-                          Assigned {new Date(job.helper_assignment.assigned_at).toLocaleString()}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-slate-500 text-sm mt-1">No helper assigned</p>
-                    )}
-                  </div>
-                  {canReassign && (
-                    <div className="flex gap-2">
-                      {job.helper_assignment ? (
-                        <button 
-                          type="button" 
-                          onClick={handleRemoveHelper}
-                          className="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-200 flex items-center gap-1"
-                        >
-                          <X className="w-3 h-3" /> Remove
-                        </button>
-                      ) : (
-                        <button 
-                          type="button" 
-                          onClick={() => setShowAssignHelperModal(true)}
-                          className="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-amber-700 flex items-center gap-1"
-                        >
-                          <UserPlus className="w-3 h-3" /> Add Helper
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {isCurrentUserHelper && (
-                  <div className="mt-3 p-2 bg-amber-100 rounded text-xs text-amber-800">
-                    <strong>You are the helper on this job.</strong> You can upload photos only.
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Requests Section - Lead technician can request assistance/parts/skillful tech */}
-          {isInProgress && !isHelperOnly && (
-            <div className="bg-white rounded-xl shadow p-5">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                  <MessageSquarePlus className="w-5 h-5" /> Requests
-                </h3>
-                {jobRequests.filter(r => r.status === 'pending').length > 0 && (
-                  <span className="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full">
-                    {jobRequests.filter(r => r.status === 'pending').length} pending
-                  </span>
-                )}
-              </div>
-              
-              {/* Request Buttons */}
-              {(isTechnician || isAdmin || isSupervisor) && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <button
-                    type="button"
-                    onClick={() => openRequestModal('assistance')}
-                    className="flex items-center gap-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm hover:bg-blue-100"
-                  >
-                    <HandHelping className="w-4 h-4" /> Request Assistance
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openRequestModal('spare_part')}
-                    className="flex items-center gap-1 px-3 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm hover:bg-amber-100"
-                  >
-                    <Wrench className="w-4 h-4" /> Request Spare Part
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openRequestModal('skillful_technician')}
-                    className="flex items-center gap-1 px-3 py-2 bg-purple-50 text-purple-700 rounded-lg text-sm hover:bg-purple-100"
-                  >
-                    <HelpCircle className="w-4 h-4" /> Request Skillful Tech
-                  </button>
-                </div>
-              )}
-
-              {/* Existing Requests */}
-              {jobRequests.length > 0 ? (
-                <div className="space-y-2">
-                  {jobRequests.map(req => (
-                    <div key={req.request_id} className={`p-3 rounded-lg border ${
-                      req.status === 'pending' ? 'bg-amber-50 border-amber-200' :
-                      req.status === 'approved' ? 'bg-green-50 border-green-200' :
-                      'bg-red-50 border-red-200'
-                    }`}>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                            req.request_type === 'assistance' ? 'bg-blue-100 text-blue-700' :
-                            req.request_type === 'spare_part' ? 'bg-amber-100 text-amber-700' :
-                            'bg-purple-100 text-purple-700'
-                          }`}>
-                            {req.request_type === 'assistance' ? 'Assistance' :
-                             req.request_type === 'spare_part' ? 'Spare Part' : 'Skillful Tech'}
-                          </span>
-                          <span className={`ml-2 px-2 py-0.5 rounded text-xs ${
-                            req.status === 'pending' ? 'bg-amber-200 text-amber-800' :
-                            req.status === 'approved' ? 'bg-green-200 text-green-800' :
-                            'bg-red-200 text-red-800'
-                          }`}>
-                            {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
-                          </span>
-                        </div>
-                        <span className="text-xs text-slate-500">
-                          {new Date(req.created_at).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-700 mt-2">{req.description}</p>
-                      {req.photo_url && (
-                        <img src={req.photo_url} alt="Request" className="mt-2 h-20 w-20 object-cover rounded" />
-                      )}
-                      {req.admin_response_notes && (
-                        <p className="text-xs text-slate-600 mt-2 italic">
-                          Admin: {req.admin_response_notes}
-                        </p>
-                      )}
-                      {req.admin_response_part && (
-                        <p className="text-xs text-green-700 mt-1">
-                          Approved: {req.admin_response_quantity}x {req.admin_response_part.part_name}
-                        </p>
-                      )}
-                      {/* Admin/Supervisor approval buttons for pending requests */}
-                      {req.status === 'pending' && (isAdmin || isSupervisor) && (
-                        <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200">
-                          <button
-                            type="button"
-                            onClick={() => openApprovalModal(req)}
-                            className="flex-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                          >
-                            Review & Approve
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setApprovalRequest(req);
-                              setApprovalNotes('');
-                              setShowApprovalModal(true);
-                            }}
-                            className="px-3 py-1.5 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-slate-400 text-sm text-center py-2">No requests yet</p>
-              )}
-            </div>
-          )}
-
           {/* Parts Section */}
-          <div className="bg-white rounded-xl shadow p-5">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2"><Box className="w-5 h-5" /> Parts Used</h3>
-              {canEditPrices && (<span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">Prices Editable</span>)}
+          <div className="card-premium p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
+                  <Box className="w-5 h-5 text-[var(--text-muted)]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[var(--text)]">Parts Used</h3>
+                  <p className="text-xs text-[var(--text-muted)]">{job.parts_used.length} items</p>
+                </div>
+              </div>
+              {canEditPrices && <span className="badge badge-info text-[10px]">Editable</span>}
             </div>
+
             {job.parts_used.length > 0 ? (
               <div className="space-y-2 mb-4">
                 {job.parts_used.map(p => (
-                  <div key={p.job_part_id} className="flex items-center gap-2 bg-slate-50 p-3 rounded border border-slate-100">
-                    <div className="flex-1"><span className="font-medium">{p.quantity}x {p.part_name}</span></div>
+                  <div key={p.job_part_id} className="flex items-center justify-between p-3 bg-[var(--bg-subtle)] rounded-xl">
+                    <div>
+                      <span className="font-medium text-[var(--text)]">{p.quantity}× {p.part_name}</span>
+                    </div>
                     {editingPartId === p.job_part_id ? (
                       <div className="flex items-center gap-2">
                         <div className="relative w-24">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs">RM</span>
-                          <input type="number" className="w-full pl-8 pr-2 py-1 text-sm border border-blue-500 rounded" value={editingPrice} onChange={(e) => setEditingPrice(e.target.value)} autoFocus />
+                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs">RM</span>
+                          <input type="number" className="input-premium input-premium-prefix text-sm" value={editingPrice} onChange={(e) => setEditingPrice(e.target.value)} autoFocus />
                         </div>
-                        <button type="button" onClick={() => handleSavePartPrice(p.job_part_id)} className="p-1 text-green-600 hover:bg-green-50 rounded"><Save className="w-4 h-4" /></button>
-                        <button type="button" onClick={handleCancelEdit} className="p-1 text-slate-400 hover:bg-slate-100 rounded"><X className="w-4 h-4" /></button>
+                        <button onClick={() => handleSavePartPrice(p.job_part_id)} className="p-1 text-[var(--success)] hover:bg-[var(--success-bg)] rounded"><Save className="w-4 h-4" /></button>
+                        <button onClick={handleCancelEdit} className="p-1 text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] rounded"><X className="w-4 h-4" /></button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-slate-600 min-w-[70px] text-right">RM{p.sell_price_at_time.toFixed(2)}</span>
+                        <span className="font-mono text-[var(--text-secondary)]">RM{p.sell_price_at_time.toFixed(2)}</span>
                         {canEditPrices && (
                           <>
-                            <button type="button" onClick={() => handleStartEditPrice(p.job_part_id, p.sell_price_at_time)} className="p-1 text-blue-600 hover:bg-blue-50 rounded"><Edit2 className="w-4 h-4" /></button>
-                            <button type="button" onClick={() => handleRemovePart(p.job_part_id)} className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                            <button onClick={() => handleStartEditPrice(p.job_part_id, p.sell_price_at_time)} className="p-1 text-[var(--accent)] hover:bg-[var(--accent-subtle)] rounded"><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={() => handleRemovePart(p.job_part_id)} className="p-1 text-[var(--error)] hover:bg-[var(--error-bg)] rounded"><Trash2 className="w-4 h-4" /></button>
                           </>
                         )}
                       </div>
@@ -2071,378 +1178,535 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               </div>
             ) : (
               <div className="mb-4">
-                <p className="text-slate-400 italic mb-3">No parts added yet.</p>
-                {/* No parts used checkbox */}
+                <p className="text-[var(--text-muted)] italic text-sm mb-3">No parts added yet.</p>
                 {(isInProgress || isAwaitingFinalization) && !isHelperOnly && (
-                  <label className="flex items-center gap-2 cursor-pointer text-sm bg-amber-50 p-3 rounded-lg border border-amber-200">
-                    <input
-                      type="checkbox"
-                      checked={noPartsUsed}
-                      onChange={handleToggleNoPartsUsed}
-                      className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
-                    />
-                    <span className={noPartsUsed ? 'text-amber-700 font-medium' : 'text-slate-600'}>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm bg-[var(--warning-bg)] p-3 rounded-xl border border-[var(--warning)] border-opacity-20">
+                    <input type="checkbox" checked={noPartsUsed} onChange={handleToggleNoPartsUsed} className="rounded border-[var(--border)] text-[var(--warning)]" />
+                    <span className={noPartsUsed ? 'text-[var(--warning)] font-medium' : 'text-[var(--text-secondary)]'}>
                       No parts were used for this job
                     </span>
-                    {noPartsUsed && <CheckCircle className="w-4 h-4 text-amber-600 ml-auto" />}
+                    {noPartsUsed && <CheckCircle className="w-4 h-4 text-[var(--warning)] ml-auto" />}
                   </label>
                 )}
               </div>
             )}
+
             {isInProgress && !isHelperOnly && (
-              <div className="border-t pt-4 mt-4">
-                <p className="text-xs text-slate-500 mb-2">Add New Part</p>
+              <div className="border-t border-[var(--border-subtle)] pt-4">
+                <p className="text-xs font-medium text-[var(--text-muted)] mb-2">Add Part</p>
                 <div className="flex gap-2 items-start">
-                  <div className="flex-grow">
-                      <Combobox options={partOptions} value={selectedPartId} onChange={(val) => { setSelectedPartId(val); const p = parts.find(x => x.part_id === val); if (p) setSelectedPartPrice(p.sell_price.toString()); }} placeholder="Search parts..." />
+                  <div className="flex-1"><Combobox options={partOptions} value={selectedPartId} onChange={(val) => { setSelectedPartId(val); const p = parts.find(x => x.part_id === val); if (p) setSelectedPartPrice(p.sell_price.toString()); }} placeholder="Search parts..." /></div>
+                  <div className="w-24">
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs">RM</span>
+                      <input type="number" className="input-premium input-premium-prefix text-sm" placeholder="Price" value={selectedPartPrice} onChange={(e) => setSelectedPartPrice(e.target.value)} />
+                    </div>
                   </div>
-                  <div className="w-28">
-                       <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">RM</span>
-                          <input type="number" className={`${inputClassName} pl-9 text-sm`} placeholder="Price" value={selectedPartPrice} onChange={(e) => setSelectedPartPrice(e.target.value)} />
-                       </div>
-                  </div>
-                  <button type="button" onClick={handleAddPart} className="bg-slate-800 text-white px-4 py-2.5 rounded-lg hover:bg-slate-700 shadow-sm"><Plus className="w-5 h-5" /></button>
+                  <button onClick={handleAddPart} className="btn-premium btn-premium-primary"><Plus className="w-5 h-5" /></button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Extra Charges Section */}
-          <div className="bg-white rounded-xl shadow p-5">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2"><FileText className="w-5 h-5" /> Extra Charges</h3>
+          {/* Extra Charges */}
+          <div className="card-premium p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
+                  <Receipt className="w-5 h-5 text-[var(--text-muted)]" />
+                </div>
+                <h3 className="font-semibold text-[var(--text)]">Extra Charges</h3>
+              </div>
               {canEditPrices && !showAddCharge && (
-                <button type="button" onClick={() => setShowAddCharge(true)} className="text-xs bg-green-50 text-green-600 px-3 py-1.5 rounded hover:bg-green-100 flex items-center gap-1"><Plus className="w-3 h-3" /> Add Charge</button>
+                <button onClick={() => setShowAddCharge(true)} className="btn-premium btn-premium-ghost text-xs">
+                  <Plus className="w-3.5 h-3.5" /> Add
+                </button>
               )}
             </div>
+
             {job.extra_charges && job.extra_charges.length > 0 ? (
               <div className="space-y-2 mb-4">
                 {job.extra_charges.map(charge => (
-                  <div key={charge.charge_id} className="flex items-center gap-2 bg-amber-50 p-3 rounded border border-amber-100">
-                    <div className="flex-1">
-                      <div className="font-medium text-slate-800">{charge.name}</div>
-                      {charge.description && (<div className="text-xs text-slate-500 mt-0.5">{charge.description}</div>)}
+                  <div key={charge.charge_id} className="flex items-center justify-between p-3 bg-[var(--warning-bg)] rounded-xl">
+                    <div>
+                      <p className="font-medium text-[var(--text)]">{charge.name}</p>
+                      {charge.description && <p className="text-xs text-[var(--text-muted)]">{charge.description}</p>}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-slate-600 min-w-[70px] text-right">RM{charge.amount.toFixed(2)}</span>
-                      {canEditPrices && (<button type="button" onClick={() => handleRemoveExtraCharge(charge.charge_id)} className="p-1 text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>)}
+                      <span className="font-mono text-[var(--text-secondary)]">RM{charge.amount.toFixed(2)}</span>
+                      {canEditPrices && (
+                        <button onClick={() => handleRemoveExtraCharge(charge.charge_id)} className="p-1 text-[var(--error)] hover:bg-[var(--error-bg)] rounded"><Trash2 className="w-4 h-4" /></button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
-            ) : (<p className="text-slate-400 italic text-sm mb-4">No extra charges added.</p>)}
+            ) : (
+              <p className="text-[var(--text-muted)] italic text-sm mb-4">No extra charges added.</p>
+            )}
+
             {showAddCharge && canEditPrices && (
-              <div className="border-t pt-4 space-y-3">
-                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Charge Name *</label><input type="text" className={inputClassName} placeholder="e.g., Emergency Call-Out Fee" value={chargeName} onChange={(e) => setChargeName(e.target.value)} /></div>
-                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Description / Notes</label><input type="text" className={inputClassName} placeholder="Optional details..." value={chargeDescription} onChange={(e) => setChargeDescription(e.target.value)} /></div>
-                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Amount *</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">RM</span><input type="number" className={`${inputClassName} pl-10`} placeholder="0.00" value={chargeAmount} onChange={(e) => setChargeAmount(e.target.value)} /></div></div>
+              <div className="border-t border-[var(--border-subtle)] pt-4 space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-[var(--text-muted)] mb-1 block">Name *</label>
+                  <input type="text" className="input-premium" placeholder="e.g., Emergency Call-Out Fee" value={chargeName} onChange={(e) => setChargeName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[var(--text-muted)] mb-1 block">Description</label>
+                  <input type="text" className="input-premium" placeholder="Optional details..." value={chargeDescription} onChange={(e) => setChargeDescription(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[var(--text-muted)] mb-1 block">Amount *</label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">RM</span>
+                    <input type="number" className="input-premium input-premium-prefix" placeholder="0.00" value={chargeAmount} onChange={(e) => setChargeAmount(e.target.value)} />
+                  </div>
+                </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={handleAddExtraCharge} className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium">Add Charge</button>
-                  <button type="button" onClick={() => { setShowAddCharge(false); setChargeName(''); setChargeDescription(''); setChargeAmount(''); }} className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Cancel</button>
+                  <button onClick={handleAddExtraCharge} className="btn-premium btn-premium-primary flex-1">Add Charge</button>
+                  <button onClick={() => { setShowAddCharge(false); setChargeName(''); setChargeDescription(''); setChargeAmount(''); }} className="btn-premium btn-premium-secondary">Cancel</button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Photos with Category Filter */}
+          {/* Photos Section */}
           {(isTechnician || isAdmin || isSupervisor) && (
-            <div className="bg-white rounded-xl shadow p-5">
-              {/* Header with Download Button */}
+            <div className="card-premium p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                  <Camera className="w-5 h-5" /> Photos
-                  <span className="text-sm font-normal text-slate-500">({job.media.length})</span>
-                </h3>
-                {job.media.length > 0 && (
-                  <button
-                    onClick={handleDownloadPhotos}
-                    disabled={downloadingPhotos}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition disabled:opacity-50"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    {downloadingPhotos ? 'Downloading...' : 'Download ZIP'}
-                  </button>
-                )}
-              </div>
-
-              {/* Category Filter Tabs */}
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                <button
-                  onClick={() => setPhotoCategoryFilter('all')}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-full transition ${
-                    photoCategoryFilter === 'all' 
-                      ? 'bg-slate-800 text-white' 
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  All ({job.media.length})
-                </button>
-                {PHOTO_CATEGORIES.map(cat => {
-                  const count = job.media.filter(m => m.category === cat.value).length;
-                  if (count === 0) return null;
-                  return (
-                    <button
-                      key={cat.value}
-                      onClick={() => setPhotoCategoryFilter(cat.value)}
-                      className={`px-2.5 py-1 text-xs font-medium rounded-full transition ${
-                        photoCategoryFilter === cat.value 
-                          ? `${cat.color} text-white` 
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      {cat.label} ({count})
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
+                    <Camera className="w-5 h-5 text-[var(--text-muted)]" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[var(--text)]">Photos</h3>
+                    <p className="text-xs text-[var(--text-muted)]">{job.media.length} uploaded</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(isNew || isAssigned || isInProgress || isAwaitingFinalization || isIncompleteContinuing || isIncompleteReassigned) && (
+                    <>
+                      <select
+                        value={uploadPhotoCategory}
+                        onChange={(e) => setUploadPhotoCategory(e.target.value)}
+                        className="text-xs px-2 py-1 border border-[var(--border)] rounded-lg bg-[var(--surface)] text-[var(--text-secondary)]"
+                      >
+                        {PHOTO_CATEGORIES.map(cat => (<option key={cat.value} value={cat.value}>{cat.label}</option>))}
+                      </select>
+                    </>
+                  )}
+                  {job.media.length > 0 && (
+                    <button onClick={handleDownloadPhotos} disabled={downloadingPhotos} className="btn-premium btn-premium-ghost text-xs">
+                      <Download className="w-3.5 h-3.5" /> {downloadingPhotos ? 'Downloading...' : 'ZIP'}
                     </button>
-                  );
-                })}
+                  )}
+                </div>
               </div>
 
-              {/* Photo Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
-                {job.media
-                  .filter(m => photoCategoryFilter === 'all' || m.category === photoCategoryFilter)
-                  .map(m => {
-                    const catInfo = PHOTO_CATEGORIES.find(c => c.value === m.category) || PHOTO_CATEGORIES.find(c => c.value === 'other');
-                    return (
-                      <div key={m.media_id} className="relative group">
-                        <img src={m.url} alt="Job" className="w-full h-24 object-cover rounded border" />
-                        {/* Category Badge */}
-                        <span className={`absolute top-1 left-1 px-1.5 py-0.5 text-[9px] font-medium text-white rounded ${catInfo?.color || 'bg-slate-500'}`}>
-                          {catInfo?.label || 'Other'}
-                        </span>
-                        {/* Hover Info */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] px-1.5 py-1 rounded-b opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {new Date(m.created_at).toLocaleString()}
-                          </div>
-                          {m.uploaded_by_name && (
-                            <div className="text-slate-300 truncate">By: {m.uploaded_by_name}</div>
-                          )}
+              {job.media.length === 0 ? (
+                <div
+                  className={`rounded-xl border-2 border-dashed p-6 transition-colors ${
+                    isPhotoDragActive
+                      ? 'border-[var(--accent)] bg-[var(--accent-subtle)]'
+                      : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg-subtle)]'
+                  }`}
+                  onDragOver={handlePhotoDragOver}
+                  onDragEnter={handlePhotoDragEnter}
+                  onDragLeave={handlePhotoDragLeave}
+                  onDrop={handlePhotoDrop}
+                >
+                  {(isNew || isAssigned || isInProgress || isAwaitingFinalization || isIncompleteContinuing || isIncompleteReassigned) ? (
+                    <>
+                      <label className="cursor-pointer flex flex-col items-center justify-center text-center min-h-[180px]">
+                        <div className="w-14 h-14 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center mb-3">
+                          <Camera className="w-7 h-7 text-[var(--text-muted)]" />
                         </div>
-                      </div>
-                    );
-                  })}
-                {/* Upload Button with Category Selector - Available for active jobs */}
-                {(isNew || isAssigned || isInProgress || isAwaitingFinalization) && (
-                  <div className="border-2 border-dashed border-slate-300 rounded flex flex-col items-center justify-center h-24 text-slate-400">
-                    <select
-                      value={uploadPhotoCategory}
-                      onChange={(e) => setUploadPhotoCategory(e.target.value)}
-                      className="text-[10px] mb-1 px-1 py-0.5 border rounded bg-white text-slate-600 w-24"
-                    >
-                      {PHOTO_CATEGORIES.map(cat => (
-                        <option key={cat.value} value={cat.value}>{cat.label}</option>
-                      ))}
-                    </select>
-                    <label className="cursor-pointer hover:text-slate-600 transition-colors flex flex-col items-center">
+                        <p className="text-sm font-semibold text-[var(--text)]">Drop photos here</p>
+                        <p className="text-xs text-[var(--text-muted)] mt-1">or click to upload</p>
+                        <p className="text-xs text-[var(--text-muted)] mt-3">
+                          Uploads default to <span className="font-medium text-[var(--text-secondary)]">{PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}</span>
+                        </p>
+                        <span className="btn-premium btn-premium-primary mt-4 text-xs">Upload Photo</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                      </label>
+                    </>
+                  ) : (
+                    <div className="text-center py-10">
+                      <p className="text-sm text-[var(--text-muted)]">Photos can be uploaded once the job is active.</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Category Filter */}
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    <button onClick={() => setPhotoCategoryFilter('all')} className={`px-2.5 py-1 text-xs font-medium rounded-full transition ${photoCategoryFilter === 'all' ? 'bg-[var(--text)] text-white' : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]'}`}>
+                      All ({job.media.length})
+                    </button>
+                    {PHOTO_CATEGORIES.map(cat => {
+                      const count = job.media.filter(m => m.category === cat.value).length;
+                      if (count === 0) return null;
+                      return (
+                        <button key={cat.value} onClick={() => setPhotoCategoryFilter(cat.value)} className={`px-2.5 py-1 text-xs font-medium rounded-full transition ${photoCategoryFilter === cat.value ? `${cat.color} text-white` : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]'}`}>
+                          {cat.label} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Photo Grid */}
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {job.media.filter(m => photoCategoryFilter === 'all' || m.category === photoCategoryFilter).map(m => {
+                      const catInfo = PHOTO_CATEGORIES.find(c => c.value === m.category) || PHOTO_CATEGORIES.find(c => c.value === 'other');
+                      return (
+                        <div key={m.media_id} className="relative group aspect-square">
+                          <img src={m.url} alt="Job" className="w-full h-full object-cover rounded-xl border border-[var(--border)]" />
+                          <span className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 text-[9px] font-medium text-white rounded ${catInfo?.color || 'bg-slate-500'}`}>
+                            {catInfo?.label || 'Other'}
+                          </span>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[9px] px-2 py-1.5 rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="truncate">{new Date(m.created_at).toLocaleString()}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* Upload Button */}
+                    {(isNew || isAssigned || isInProgress || isAwaitingFinalization || isIncompleteContinuing || isIncompleteReassigned) && (
+                  <div className="aspect-square border-2 border-dashed border-[var(--border)] rounded-xl flex flex-col items-center justify-center text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors">
+                    <label className="cursor-pointer flex flex-col items-center">
                       <Camera className="w-5 h-5 mb-0.5" />
-                      <span className="text-[10px]">Add Photo</span>
+                      <span className="text-[9px]">Add</span>
+                      <span className="text-[9px] text-[var(--text-muted)] mt-0.5">{PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}</span>
                       <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                     </label>
                   </div>
                 )}
-              </div>
-
-              {/* Empty state */}
-              {job.media.length === 0 && (
-                <p className="text-center text-slate-400 text-sm py-4">No photos uploaded yet</p>
+                  </div>
+                </>
               )}
             </div>
           )}
 
-          {/* Notes */}
+          {/* Notes Section */}
           {(isTechnician || isAdmin || isSupervisor) && (
-            <div className="bg-white rounded-xl shadow p-5">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2"><PenTool className="w-5 h-5" /> Job Notes</h3>
-              <div className="max-h-40 overflow-y-auto space-y-2 mb-4 text-sm">
-                {job.notes.map((note, idx) => (<div key={idx} className="bg-slate-50 p-3 rounded border-l-4 border-blue-400 text-slate-700">{note}</div>))}
+            <div className="card-premium p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
+                  <PenTool className="w-5 h-5 text-[var(--text-muted)]" />
+                </div>
+                <h3 className="font-semibold text-[var(--text)]">Notes</h3>
               </div>
+              
+              <div className="max-h-40 overflow-y-auto space-y-2 mb-4 scrollbar-premium">
+                {job.notes.map((note, idx) => (
+                  <div key={idx} className="p-3 bg-[var(--bg-subtle)] rounded-xl border-l-2 border-[var(--accent)] text-sm text-[var(--text-secondary)]">
+                    {note}
+                  </div>
+                ))}
+                {job.notes.length === 0 && (
+                  <p className="text-[var(--text-muted)] italic text-sm">No notes yet.</p>
+                )}
+              </div>
+
               {isInProgress && !isHelperOnly && (
                 <div className="flex gap-2">
-                  <input type="text" placeholder="Add a note..." className={inputClassName} value={noteInput} onChange={(e) => setNoteInput(e.target.value)} />
-                  <button type="button" onClick={handleAddNote} className="bg-slate-800 text-white px-4 rounded-lg text-sm font-medium hover:bg-slate-700">Add</button>
+                  <input type="text" placeholder="Add a note..." className="input-premium flex-1" value={noteInput} onChange={(e) => setNoteInput(e.target.value)} />
+                  <button onClick={handleAddNote} className="btn-premium btn-premium-primary">Add</button>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Requests Section */}
+          {isInProgress && !isHelperOnly && (
+            <div className="card-premium p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
+                    <MessageSquarePlus className="w-5 h-5 text-[var(--text-muted)]" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[var(--text)]">Requests</h3>
+                    {jobRequests.filter(r => r.status === 'pending').length > 0 && (
+                      <span className="badge badge-warning text-[10px]">{jobRequests.filter(r => r.status === 'pending').length} pending</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Request Buttons */}
+              {(isTechnician || isAdmin || isSupervisor) && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <button onClick={() => openRequestModal('assistance')} className="btn-premium btn-premium-secondary text-xs">
+                    <HandHelping className="w-3.5 h-3.5" /> Assistance
+                  </button>
+                  <button onClick={() => openRequestModal('spare_part')} className="btn-premium btn-premium-secondary text-xs">
+                    <Wrench className="w-3.5 h-3.5" /> Spare Part
+                  </button>
+                  <button onClick={() => openRequestModal('skillful_technician')} className="btn-premium btn-premium-secondary text-xs">
+                    <HelpCircle className="w-3.5 h-3.5" /> Skillful Tech
+                  </button>
+                </div>
+              )}
+
+              {/* Existing Requests */}
+              {jobRequests.length > 0 ? (
+                <div className="space-y-2">
+                  {jobRequests.map(req => (
+                    <div key={req.request_id} className={`p-3 rounded-xl border ${req.status === 'pending' ? 'bg-[var(--warning-bg)] border-[var(--warning)] border-opacity-30' : req.status === 'approved' ? 'bg-[var(--success-bg)] border-[var(--success)] border-opacity-30' : 'bg-[var(--error-bg)] border-[var(--error)] border-opacity-30'}`}>
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`badge text-[10px] ${req.request_type === 'assistance' ? 'badge-info' : req.request_type === 'spare_part' ? 'badge-warning' : 'bg-purple-100 text-purple-700'}`}>
+                            {req.request_type === 'assistance' ? 'Assistance' : req.request_type === 'spare_part' ? 'Spare Part' : 'Skillful Tech'}
+                          </span>
+                          <span className={`badge text-[10px] ${req.status === 'pending' ? 'badge-warning' : req.status === 'approved' ? 'badge-success' : 'badge-error'}`}>
+                            {req.status}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[var(--text-muted)]">{new Date(req.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-sm text-[var(--text-secondary)]">{req.description}</p>
+                      {req.admin_response_notes && (
+                        <p className="text-xs text-[var(--text-muted)] mt-2 italic">Admin: {req.admin_response_notes}</p>
+                      )}
+                      {req.status === 'pending' && (isAdmin || isSupervisor) && (
+                        <div className="flex gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)]">
+                          <button onClick={() => openApprovalModal(req)} className="btn-premium btn-premium-primary text-xs flex-1">Review</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[var(--text-muted)] text-sm text-center py-2">No requests yet</p>
               )}
             </div>
           )}
         </div>
 
-        {/* Sidebar / Summary Column */}
-        <div className="space-y-6">
+        {/* Right Sidebar */}
+        <div className="space-y-5">
           {/* Financial Summary */}
-          <div className="bg-white rounded-xl shadow p-5">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2"><DollarSign className="w-5 h-5" /> Summary</h3>
+          <div className="card-premium-elevated card-tint-success p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-[var(--success-bg)] flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-[var(--success)]" />
+              </div>
+              <h3 className="font-semibold text-[var(--text)]">Summary</h3>
+            </div>
+
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
-                <span className="font-medium">Labor</span>
+                <span className="text-[var(--text-muted)]">Labor</span>
                 {editingLabor ? (
-                  <div className="flex items-center gap-2">
-                    <div className="relative w-24">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs">RM</span>
-                      <input type="number" className="w-full pl-8 pr-2 py-1 text-sm border border-blue-500 rounded" value={laborCostInput} onChange={(e) => setLaborCostInput(e.target.value)} autoFocus />
-                    </div>
-                    <button type="button" onClick={handleSaveLabor} className="p-1 text-green-600 hover:bg-green-50 rounded"><Save className="w-3 h-3" /></button>
-                    <button type="button" onClick={handleCancelLaborEdit} className="p-1 text-slate-400 hover:bg-slate-100 rounded"><X className="w-3 h-3" /></button>
+                  <div className="flex items-center gap-1">
+                    <input type="number" className="input-premium w-20 text-sm py-1 pl-2" value={laborCostInput} onChange={(e) => setLaborCostInput(e.target.value)} autoFocus />
+                    <button onClick={handleSaveLabor} className="p-1 text-[var(--success)]"><Save className="w-3 h-3" /></button>
+                    <button onClick={handleCancelLaborEdit} className="p-1 text-[var(--text-muted)]"><X className="w-3 h-3" /></button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <span>RM{laborCost.toFixed(2)}</span>
-                    {canEditPrices && (<button type="button" onClick={handleStartEditLabor} className="p-1 text-blue-600 hover:bg-blue-50 rounded"><Edit2 className="w-3 h-3" /></button>)}
+                  <div className="flex items-center gap-1">
+                    <span className="text-[var(--text)]">RM{laborCost.toFixed(2)}</span>
+                    {canEditPrices && <button onClick={handleStartEditLabor} className="p-1 text-[var(--accent)]"><Edit2 className="w-3 h-3" /></button>}
                   </div>
                 )}
               </div>
-              <div className="flex justify-between"><span>Parts</span><span>RM{totalPartsCost.toFixed(2)}</span></div>
-              {extraChargesCost > 0 && (<div className="flex justify-between"><span>Extra Charges</span><span>RM{extraChargesCost.toFixed(2)}</span></div>)}
-              <hr className="my-2" />
-              <div className="flex justify-between font-bold text-lg"><span>Total</span><span>RM{totalCost.toFixed(2)}</span></div>
-            </div>
-          </div>
-
-          {/* Invoice Information */}
-          {isCompleted && (
-            <div className="bg-purple-50 rounded-xl shadow p-5 border border-purple-100">
-              <h3 className="text-sm font-bold text-purple-900 uppercase tracking-wider mb-3 flex items-center gap-2"><Info className="w-4 h-4" /> Invoice Information</h3>
-              <div className="space-y-2 text-sm">
-                {job.invoiced_by_name && (<div><span className="text-slate-500">Finalized by:</span><div className="font-medium text-slate-800">{job.invoiced_by_name}</div></div>)}
-                {job.invoiced_at && (<div><span className="text-slate-500">Finalized on:</span><div className="font-medium text-slate-800">{new Date(job.invoiced_at).toLocaleString()}</div></div>)}
+              <div className="flex justify-between">
+                <span className="text-[var(--text-muted)]">Parts</span>
+                <span className="text-[var(--text)]">RM{totalPartsCost.toFixed(2)}</span>
+              </div>
+              {extraChargesCost > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-[var(--text-muted)]">Extra</span>
+                  <span className="text-[var(--text)]">RM{extraChargesCost.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="divider"></div>
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-[var(--text)]">Total</span>
+                <span className="text-xl font-bold text-[var(--success)]">RM{totalCost.toFixed(2)}</span>
               </div>
             </div>
-          )}
+	          </div>
 
-          {/* Job Audit Trail */}
-          <div className="bg-slate-50 rounded-xl shadow p-5 border border-slate-200">
-            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Calendar className="w-4 h-4" /> Job Audit Trail
-            </h3>
-            <div className="space-y-3 text-sm">
-              {/* Created */}
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
-                <div className="flex-1">
-                  <div className="font-medium text-slate-800">Job Created</div>
-                  <div className="text-slate-500 text-xs">
-                    {job.created_at && new Date(job.created_at).toLocaleString()}
-                  </div>
-                  {job.created_by_name && (
-                    <div className="text-slate-600 text-xs mt-0.5">By: {job.created_by_name}</div>
-                  )}
-                </div>
+	          {/* Timeline */}
+	          <div className="card-premium p-5">
+	            <div className="flex items-center gap-3 mb-4">
+	              <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
+	                <Clock className="w-5 h-5 text-[var(--text-muted)]" />
+	              </div>
+	              <h3 className="font-semibold text-[var(--text)]">Timeline</h3>
+	            </div>
+	            <div className="space-y-3">
+	              {job.created_at && (
+	                <div className="flex items-start gap-3">
+	                  <div className="w-2 h-2 rounded-full bg-[var(--accent)] mt-1.5 flex-shrink-0"></div>
+	                  <div>
+	                    <p className="text-sm font-medium text-[var(--text)]">Created</p>
+	                    <p className="text-xs text-[var(--text-muted)]">{new Date(job.created_at).toLocaleString()}</p>
+	                    {job.created_by_name && <p className="text-xs text-[var(--text-muted)]">By {job.created_by_name}</p>}
+	                  </div>
+	                </div>
+	              )}
+	              {job.assigned_at && (
+	                <div className="flex items-start gap-3">
+	                  <div className="w-2 h-2 rounded-full bg-[var(--warning)] mt-1.5 flex-shrink-0"></div>
+	                  <div>
+	                    <p className="text-sm font-medium text-[var(--text)]">Assigned</p>
+	                    <p className="text-xs text-[var(--text-muted)]">{new Date(job.assigned_at).toLocaleString()}</p>
+	                    {job.assigned_technician_name && <p className="text-xs text-[var(--text-muted)]">To {job.assigned_technician_name}</p>}
+	                  </div>
+	                </div>
+	              )}
+	              {job.started_at && (
+	                <div className="flex items-start gap-3">
+	                  <div className="w-2 h-2 rounded-full bg-[var(--success)] mt-1.5 flex-shrink-0"></div>
+	                  <div>
+	                    <p className="text-sm font-medium text-[var(--text)]">Started</p>
+	                    <p className="text-xs text-[var(--text-muted)]">{new Date(job.started_at).toLocaleString()}</p>
+	                  </div>
+	                </div>
+	              )}
+	              {job.completed_at && (
+	                <div className="flex items-start gap-3">
+	                  <div className="w-2 h-2 rounded-full bg-[var(--success)] mt-1.5 flex-shrink-0"></div>
+	                  <div>
+	                    <p className="text-sm font-medium text-[var(--text)]">Completed</p>
+	                    <p className="text-xs text-[var(--text-muted)]">{new Date(job.completed_at).toLocaleString()}</p>
+	                    {job.completed_by_name && <p className="text-xs text-[var(--text-muted)]">By {job.completed_by_name}</p>}
+	                  </div>
+	                </div>
+	              )}
+	            </div>
+	          </div>
+
+	          {/* Signatures */}
+	          <div className="card-premium p-5">
+	            <div className="flex items-center gap-3 mb-4">
+	              <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
+                <PenTool className="w-5 h-5 text-[var(--text-muted)]" />
               </div>
-              
-              {/* Assigned */}
-              {job.assigned_at && (
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-yellow-500 mt-1.5 flex-shrink-0"></div>
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-800">Job Assigned</div>
-                    <div className="text-slate-500 text-xs">
-                      {new Date(job.assigned_at).toLocaleString()}
-                    </div>
-                    {job.assigned_by_name && (
-                      <div className="text-slate-600 text-xs mt-0.5">By: {job.assigned_by_name}</div>
-                    )}
-                    {job.assigned_technician_name && (
-                      <div className="text-slate-600 text-xs">To: {job.assigned_technician_name}</div>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Started */}
-              {job.started_at && (
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></div>
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-800">Job Started</div>
-                    <div className="text-slate-500 text-xs">
-                      {new Date(job.started_at).toLocaleString()}
-                    </div>
-                    {job.started_by_name && (
-                      <div className="text-slate-600 text-xs mt-0.5">By: {job.started_by_name}</div>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Completed */}
-              {job.completed_at && (
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-purple-500 mt-1.5 flex-shrink-0"></div>
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-800">Job Completed</div>
-                    <div className="text-slate-500 text-xs">
-                      {new Date(job.completed_at).toLocaleString()}
-                    </div>
-                    {job.completed_by_name && (
-                      <div className="text-slate-600 text-xs mt-0.5">By: {job.completed_by_name}</div>
-                    )}
-                  </div>
-                </div>
-              )}
+              <h3 className="font-semibold text-[var(--text)]">Signatures</h3>
             </div>
-          </div>
 
-          {/* Signatures */}
-          <div className="space-y-4">
             {isInProgress && !hasBothSignatures && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-                <strong>Required to complete job:</strong>
+              <div className="p-3 bg-[var(--warning-bg)] rounded-xl text-xs text-[var(--warning)] mb-4">
+                <strong>Required:</strong>
                 <ul className="mt-1 ml-4 list-disc">
                   {!job.technician_signature && <li>Technician signature</li>}
                   {!job.customer_signature && <li>Customer signature</li>}
                 </ul>
               </div>
             )}
-            {renderSignatureBlock("Technician Sign-off", job.technician_signature, () => setShowTechSigPad(true), <ShieldCheck className="w-4 h-4 text-blue-600" />, isTechnician && !isHelperOnly && (isInProgress || isAwaitingFinalization))}
-            {renderSignatureBlock("Customer Acceptance", job.customer_signature, () => setShowCustSigPad(true), <UserCheck className="w-4 h-4 text-green-600" />, !isHelperOnly && (isInProgress || isAwaitingFinalization))}
+
+            <div className="space-y-4">
+              {/* Technician Signature */}
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <ShieldCheck className="w-4 h-4 text-[var(--accent)]" />
+                  <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">Technician</span>
+                </div>
+                {job.technician_signature ? (
+                  <div>
+                    <div className="flex items-center gap-1 text-[var(--success)] text-xs font-medium mb-2">
+                      <CheckCircle className="w-3.5 h-3.5" /> Signed
+                    </div>
+                    <img src={job.technician_signature.signature_url} alt="Tech Signature" className="w-full h-16 object-contain bg-white rounded border border-[var(--border)]" />
+                    <p className="text-[10px] text-[var(--text-muted)] mt-1">{job.technician_signature.signed_by_name}</p>
+                  </div>
+                ) : (
+                  isTechnician && !isHelperOnly && (isInProgress || isAwaitingFinalization) ? (
+                    <button onClick={() => setShowTechSigPad(true)} className="w-full py-3 border-2 border-dashed border-[var(--border)] rounded-xl text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors flex items-center justify-center gap-2">
+                      <PenTool className="w-4 h-4" /> Sign
+                    </button>
+                  ) : (
+                    <div className="text-center py-3 text-[var(--text-muted)] text-xs">Waiting...</div>
+                  )
+                )}
+              </div>
+
+              {/* Customer Signature */}
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <UserCheck className="w-4 h-4 text-[var(--success)]" />
+                  <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">Customer</span>
+                </div>
+                {job.customer_signature ? (
+                  <div>
+                    <div className="flex items-center gap-1 text-[var(--success)] text-xs font-medium mb-2">
+                      <CheckCircle className="w-3.5 h-3.5" /> Signed
+                    </div>
+                    <img src={job.customer_signature.signature_url} alt="Customer Signature" className="w-full h-16 object-contain bg-white rounded border border-[var(--border)]" />
+                    <p className="text-[10px] text-[var(--text-muted)] mt-1">{job.customer_signature.signed_by_name}</p>
+                  </div>
+                ) : (
+                  !isHelperOnly && (isInProgress || isAwaitingFinalization) ? (
+                    <button onClick={() => setShowCustSigPad(true)} className="w-full py-3 border-2 border-dashed border-[var(--border)] rounded-xl text-[var(--text-muted)] hover:text-[var(--success)] hover:border-[var(--success)] transition-colors flex items-center justify-center gap-2">
+                      <PenTool className="w-4 h-4" /> Collect Signature
+                    </button>
+                  ) : (
+                    <div className="text-center py-3 text-[var(--text-muted)] text-xs">Waiting...</div>
+                  )
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* AI Assistant */}
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl shadow p-5 border border-indigo-100">
-            <h3 className="text-lg font-semibold text-indigo-900 mb-2 flex items-center gap-2"><BrainCircuit className="w-5 h-5 text-indigo-600" /> AI Assistant</h3>
-            {aiSummary ? (<div className="bg-white p-3 rounded text-sm text-slate-700 italic border shadow-sm">"{aiSummary}"</div>
-            ) : (<p className="text-xs text-indigo-700 mb-3">Generate a professional job summary for the invoice.</p>)}
-            {!aiSummary && (<button type="button" onClick={handleAiSummary} disabled={generatingAi} className="w-full bg-indigo-600 text-white text-xs py-2 rounded hover:bg-indigo-700 disabled:opacity-50">{generatingAi ? 'Thinking...' : 'Generate Job Summary'}</button>)}
-          </div>
+	          {/* AI Assistant */}
+	          <div className="card-premium card-tint-info p-5">
+	            <div className="flex items-center gap-3 mb-3">
+	              <div className="w-10 h-10 rounded-xl bg-[var(--info-bg)] flex items-center justify-center">
+	                <BrainCircuit className="w-5 h-5 text-[var(--info)]" />
+	              </div>
+	              <h3 className="font-semibold text-[var(--text)]">AI Assistant</h3>
+	            </div>
+	            {aiSummary ? (
+	              <div className="bg-[var(--surface)] p-3 rounded-xl text-sm text-[var(--text-secondary)] italic border border-[var(--border)]">
+	                "{aiSummary}"
+	              </div>
+	            ) : (
+	              <>
+	                <p className="text-xs text-[var(--text-muted)] mb-3">Generate a professional job summary.</p>
+	                <button onClick={handleAiSummary} disabled={generatingAi} className="btn-premium btn-premium-secondary w-full text-xs disabled:opacity-50">
+	                  {generatingAi ? 'Thinking...' : 'Generate Summary'}
+	                </button>
+	              </>
+	            )}
+	          </div>
         </div>
       </div>
 
-      {/* Start Job Modal with Condition Checklist */}
+      {/* All Modals */}
+      {/* Start Job Modal */}
       {showStartJobModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <h4 className="font-bold text-xl mb-4 text-slate-900 flex items-center gap-2">
-              <Play className="w-5 h-5 text-blue-600" /> Start Job - Condition Check
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-premium-elevated">
+            <h4 className="font-bold text-xl mb-4 text-[var(--text)] flex items-center gap-2">
+              <Play className="w-5 h-5 text-[var(--accent)]" /> Start Job - Condition Check
             </h4>
-            
-            {/* Hourmeter Input */}
-            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 mb-6">
-              <label className="text-sm font-bold text-amber-800 mb-2 block flex items-center gap-2">
-                <Gauge className="w-4 h-4" /> Current Hourmeter Reading *
+            <div className="bg-[var(--warning-bg)] p-4 rounded-xl border border-[var(--warning)] border-opacity-20 mb-6">
+              <label className="text-sm font-bold text-[var(--warning)] mb-2 block flex items-center gap-2">
+                <Gauge className="w-4 h-4" /> Current Hourmeter *
               </label>
               <div className="flex items-center gap-2">
-                <input type="number" className="w-40 px-3 py-2 border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" value={startJobHourmeter} onChange={(e) => setStartJobHourmeter(e.target.value)} placeholder="e.g., 5230" />
-                <span className="text-slate-500">hours</span>
+                <input type="number" className="input-premium w-40" value={startJobHourmeter} onChange={(e) => setStartJobHourmeter(e.target.value)} placeholder="e.g., 5230" />
+                <span className="text-[var(--text-muted)]">hours</span>
               </div>
             </div>
-
-            {/* Condition Checklist */}
             <div className="mb-6">
-              <h5 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
-                <ClipboardList className="w-5 h-5" /> Forklift Condition Checklist
+              <h5 className="font-bold text-[var(--text)] mb-3 flex items-center gap-2">
+                <ClipboardList className="w-5 h-5" /> Condition Checklist
               </h5>
-              <p className="text-sm text-slate-500 mb-4">Check all items that are in good/working condition:</p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <p className="text-sm text-[var(--text-muted)] mb-4">Check items in good condition:</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {CHECKLIST_CATEGORIES.map(category => (
-                  <div key={category.name} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <h6 className="font-semibold text-slate-700 text-sm mb-2 border-b border-slate-200 pb-1">{category.name}</h6>
+                  <div key={category.name} className="bg-[var(--bg-subtle)] p-3 rounded-xl border border-[var(--border)]">
+                    <h6 className="font-semibold text-[var(--text-secondary)] text-xs mb-2 border-b border-[var(--border-subtle)] pb-1">{category.name}</h6>
                     <div className="space-y-1">
                       {category.items.map(item => (
-                        <label key={item.key} className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded text-sm">
-                          <input type="checkbox" checked={!!conditionChecklist[item.key as keyof ForkliftConditionChecklist]} onChange={() => handleChecklistToggle(item.key)} className="w-4 h-4 text-blue-600 rounded border-slate-300" />
-                          <span className="text-slate-600">{item.label}</span>
+                        <label key={item.key} className="flex items-center gap-2 cursor-pointer hover:bg-[var(--surface-2)] p-1 rounded text-xs">
+                          <input type="checkbox" checked={!!conditionChecklist[item.key as keyof ForkliftConditionChecklist]} onChange={() => handleChecklistToggle(item.key)} className="w-3.5 h-3.5 rounded border-[var(--border)] text-[var(--accent)]" />
+                          <span className="text-[var(--text-secondary)]">{item.label}</span>
                         </label>
                       ))}
                     </div>
@@ -2450,11 +1714,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 ))}
               </div>
             </div>
-
-            {/* Actions */}
-            <div className="flex gap-3 justify-end border-t pt-4">
-              <button type="button" onClick={() => setShowStartJobModal(false)} className="px-6 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 font-medium">Cancel</button>
-              <button type="button" onClick={handleStartJobWithCondition} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2">
+            <div className="flex gap-3 justify-end border-t border-[var(--border)] pt-4">
+              <button onClick={() => setShowStartJobModal(false)} className="btn-premium btn-premium-secondary">Cancel</button>
+              <button onClick={handleStartJobWithCondition} className="btn-premium btn-premium-primary">
                 <Play className="w-4 h-4" /> Start Job
               </button>
             </div>
@@ -2465,81 +1727,62 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       {/* Signature Modals */}
       {showTechSigPad && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl p-4 w-full max-w-md">
-                <h4 className="font-bold mb-4">Technician Signature</h4>
-                <p className="text-xs text-slate-500 mb-2">I certify that this work has been completed according to standards.</p>
-                <SignaturePad onSave={handleTechnicianSignature} />
-                <button onClick={() => setShowTechSigPad(false)} className="mt-4 text-sm text-red-500 underline w-full text-center">Cancel</button>
-            </div>
+          <div className="bg-[var(--surface)] rounded-2xl p-4 w-full max-w-md shadow-premium-elevated">
+            <h4 className="font-bold mb-4 text-[var(--text)]">Technician Signature</h4>
+            <p className="text-xs text-[var(--text-muted)] mb-2">I certify that this work has been completed according to standards.</p>
+            <SignaturePad onSave={handleTechnicianSignature} />
+            <button onClick={() => setShowTechSigPad(false)} className="mt-4 text-sm text-[var(--error)] underline w-full text-center">Cancel</button>
+          </div>
         </div>
       )}
 
       {showCustSigPad && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl p-4 w-full max-w-md">
-                <h4 className="font-bold mb-4">Customer Acceptance</h4>
-                <p className="text-xs text-slate-500 mb-2">I acknowledge the service performed and agree to the charges.</p>
-                <SignaturePad onSave={handleCustomerSignature} />
-                <button onClick={() => setShowCustSigPad(false)} className="mt-4 text-sm text-red-500 underline w-full text-center">Cancel</button>
-            </div>
-        </div>
-      )}
-
-      {/* Finalize Invoice Modal */}
-      {showFinalizeModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h4 className="font-bold text-lg mb-4 text-slate-900">Finalize Invoice</h4>
-            <p className="text-sm text-slate-600 mb-6">Are you sure you want to finalize this invoice? This action cannot be undone.</p>
-            <div className="bg-slate-50 rounded-lg p-3 mb-6 text-sm">
-              <div className="flex justify-between mb-1"><span className="text-slate-600">Total Amount:</span><span className="font-bold text-lg">RM{totalCost.toFixed(2)}</span></div>
-              <div className="text-xs text-slate-500 mt-2">Finalized by: {currentUserName}</div>
-            </div>
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setShowFinalizeModal(false)} className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50">Cancel</button>
-              <button type="button" onClick={handleFinalizeInvoice} className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium">Finalize Invoice</button>
-            </div>
+          <div className="bg-[var(--surface)] rounded-2xl p-4 w-full max-w-md shadow-premium-elevated">
+            <h4 className="font-bold mb-4 text-[var(--text)]">Customer Acceptance</h4>
+            <p className="text-xs text-[var(--text-muted)] mb-2">I acknowledge the service performed and agree to the charges.</p>
+            <SignaturePad onSave={handleCustomerSignature} />
+            <button onClick={() => setShowCustSigPad(false)} className="mt-4 text-sm text-[var(--error)] underline w-full text-center">Cancel</button>
           </div>
         </div>
       )}
 
-      {/* Reassign Job Modal */}
+      {/* Finalize Modal */}
+      {showFinalizeModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+            <h4 className="font-bold text-lg mb-4 text-[var(--text)]">Finalize Invoice</h4>
+            <p className="text-sm text-[var(--text-muted)] mb-6">This action cannot be undone.</p>
+            <div className="bg-[var(--bg-subtle)] rounded-xl p-3 mb-6">
+              <div className="flex justify-between mb-1"><span className="text-[var(--text-muted)]">Total:</span><span className="font-bold text-xl text-[var(--success)]">RM{totalCost.toFixed(2)}</span></div>
+              <div className="text-xs text-[var(--text-muted)]">Finalized by: {currentUserName}</div>
+            </div>
+	            <div className="flex gap-3">
+	              <button onClick={() => setShowFinalizeModal(false)} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
+	              <button onClick={handleFinalizeInvoice} className="btn-premium btn-premium-primary flex-1">Finalize</button>
+	            </div>
+	          </div>
+	        </div>
+	      )}
+
+      {/* Reassign Modal */}
       {showReassignModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h4 className="font-bold text-lg mb-4 text-slate-900 flex items-center gap-2">
-              <RefreshCw className="w-5 h-5 text-blue-600" /> Reassign Job
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+            <h4 className="font-bold text-lg mb-4 text-[var(--text)] flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-[var(--accent)]" /> Reassign Job
             </h4>
-            <p className="text-sm text-slate-600 mb-4">
-              Change the technician assigned to this job. The new technician will be notified.
-            </p>
-            <div className="bg-slate-50 rounded-lg p-3 mb-4 text-sm">
-              <div className="text-slate-500">Currently assigned to:</div>
-              <div className="font-medium text-slate-800">{job?.assigned_technician_name || 'Unassigned'}</div>
+            <div className="bg-[var(--bg-subtle)] rounded-xl p-3 mb-4 text-sm">
+              <div className="text-[var(--text-muted)]">Currently assigned:</div>
+              <div className="font-medium text-[var(--text)]">{job?.assigned_technician_name || 'Unassigned'}</div>
             </div>
             <div className="mb-6">
-              <label className="text-sm font-medium text-slate-700 mb-2 block">New Technician</label>
-              <Combobox 
-                options={techOptions.filter(t => t.id !== job?.assigned_technician_id)} 
-                value={reassignTechId} 
-                onChange={setReassignTechId} 
-                placeholder="Select new technician..." 
-              />
+              <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">New Technician</label>
+              <Combobox options={techOptions.filter(t => t.id !== job?.assigned_technician_id)} value={reassignTechId} onChange={setReassignTechId} placeholder="Select technician..." />
             </div>
             <div className="flex gap-3">
-              <button 
-                type="button" 
-                onClick={() => { setShowReassignModal(false); setReassignTechId(''); }} 
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                onClick={handleReassignJob} 
-                disabled={!reassignTechId}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-              >
+              <button onClick={() => { setShowReassignModal(false); setReassignTechId(''); }} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
+              <button onClick={handleReassignJob} disabled={!reassignTechId} className="btn-premium btn-premium-primary flex-1 disabled:opacity-50">
                 <RefreshCw className="w-4 h-4" /> Reassign
               </button>
             </div>
@@ -2547,54 +1790,123 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
         </div>
       )}
 
-      {/* Assign Helper Modal */}
+      {/* Helper Modal */}
       {showAssignHelperModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h4 className="font-bold text-lg mb-4 text-amber-800 flex items-center gap-2">
-              <UserPlus className="w-5 h-5" /> Assign Helper Technician
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+            <h4 className="font-bold text-lg mb-4 text-[var(--warning)] flex items-center gap-2">
+              <UserPlus className="w-5 h-5" /> Assign Helper
             </h4>
-            <p className="text-sm text-slate-600 mb-4">
-              Helper can upload photos only. Cannot modify hourmeter, parts, or complete the job.
-            </p>
-            <div className="bg-slate-50 rounded-lg p-3 mb-4 text-sm">
-              <div className="text-slate-500">Lead Technician:</div>
-              <div className="font-medium text-slate-800">{job?.assigned_technician_name || 'Unassigned'}</div>
-            </div>
+            <p className="text-sm text-[var(--text-muted)] mb-4">Helper can upload photos only.</p>
             <div className="mb-4">
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Helper Technician</label>
-              <Combobox 
-                options={techOptions.filter(t => t.id !== job?.assigned_technician_id)} 
-                value={selectedHelperId} 
-                onChange={setSelectedHelperId} 
-                placeholder="Select helper..." 
-              />
+              <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">Helper</label>
+              <Combobox options={techOptions.filter(t => t.id !== job?.assigned_technician_id)} value={selectedHelperId} onChange={setSelectedHelperId} placeholder="Select helper..." />
             </div>
             <div className="mb-6">
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Notes (optional)</label>
-              <input
-                type="text"
-                value={helperNotes}
-                onChange={(e) => setHelperNotes(e.target.value)}
-                placeholder="e.g., Assist with heavy lifting"
-                className="w-full px-3 py-2 border rounded-lg text-sm"
-              />
+              <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">Notes (optional)</label>
+              <input type="text" value={helperNotes} onChange={(e) => setHelperNotes(e.target.value)} placeholder="e.g., Assist with heavy lifting" className="input-premium" />
             </div>
             <div className="flex gap-3">
-              <button 
-                type="button" 
-                onClick={() => { setShowAssignHelperModal(false); setSelectedHelperId(''); setHelperNotes(''); }} 
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-              >
-                Cancel
+              <button onClick={() => { setShowAssignHelperModal(false); setSelectedHelperId(''); setHelperNotes(''); }} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
+              <button onClick={handleAssignHelper} disabled={!selectedHelperId} className="btn-premium bg-[var(--warning)] text-white hover:opacity-90 flex-1 disabled:opacity-50">
+                <UserPlus className="w-4 h-4" /> Assign
               </button>
-              <button 
-                type="button" 
-                onClick={handleAssignHelper} 
-                disabled={!selectedHelperId}
-                className="flex-1 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <UserPlus className="w-4 h-4" /> Assign Helper
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Continue Tomorrow Modal */}
+      {showContinueTomorrowModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+            <h4 className="font-bold text-lg mb-4 text-[var(--warning)] flex items-center gap-2">
+              <Clock className="w-5 h-5" /> Continue Tomorrow
+            </h4>
+            <div className="bg-[var(--warning-bg)] rounded-xl p-3 mb-4">
+              <p className="text-sm text-[var(--warning)] font-medium">{job?.title}</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1">Job will be marked incomplete and can resume tomorrow.</p>
+            </div>
+            <div className="mb-6">
+              <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">Reason *</label>
+              <textarea className="input-premium resize-none h-24" value={continueTomorrowReason} onChange={(e) => setContinueTomorrowReason(e.target.value)} placeholder="e.g., Waiting for parts..." />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => { setShowContinueTomorrowModal(false); setContinueTomorrowReason(''); }} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
+              <button onClick={handleContinueTomorrow} disabled={!continueTomorrowReason.trim() || submittingContinue} className="btn-premium bg-[var(--warning)] text-white hover:opacity-90 flex-1 disabled:opacity-50">
+                {submittingContinue ? 'Saving...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deferred Completion Modal */}
+      {showDeferredModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-premium-elevated">
+            <h4 className="font-bold text-lg mb-4 text-[var(--warning)] flex items-center gap-2">
+              <UserIcon className="w-5 h-5" /> Complete Without Customer Signature
+            </h4>
+            <div className="bg-[var(--warning-bg)] rounded-xl p-3 mb-4">
+              <p className="text-sm text-[var(--warning)] font-medium">{job?.title}</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1">Customer has 5 business days to acknowledge.</p>
+            </div>
+            <div className="mb-4">
+              <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">Reason *</label>
+              <textarea className="input-premium resize-none h-20" value={deferredReason} onChange={(e) => setDeferredReason(e.target.value)} placeholder="e.g., Customer not on-site..." />
+            </div>
+            <div className="mb-4">
+              <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">End Hourmeter *</label>
+              <input type="number" className="input-premium" value={deferredHourmeter} onChange={(e) => setDeferredHourmeter(e.target.value)} placeholder="Enter reading" />
+            </div>
+            <div className="mb-4">
+              <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">Evidence Photos * (min 1)</label>
+              {jobMedia.length > 0 ? (
+                <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto p-2 bg-[var(--bg-subtle)] rounded-xl">
+                  {jobMedia.map((media: any) => (
+                    <div key={media.media_id} onClick={() => setSelectedEvidenceIds(prev => prev.includes(media.media_id) ? prev.filter(id => id !== media.media_id) : [...prev, media.media_id])}
+                      className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedEvidenceIds.includes(media.media_id) ? 'border-[var(--warning)] ring-2 ring-[var(--warning)]/30' : 'border-transparent hover:border-[var(--warning)]/50'}`}>
+                      <img src={media.url} alt="Evidence" className="w-full h-14 object-cover" />
+                      {selectedEvidenceIds.includes(media.media_id) && (
+                        <div className="absolute inset-0 bg-[var(--warning)]/30 flex items-center justify-center"><CheckCircle className="w-5 h-5 text-white" /></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--text-muted)] italic">No photos. Upload evidence first.</p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => { setShowDeferredModal(false); setDeferredReason(''); setDeferredHourmeter(''); setSelectedEvidenceIds([]); }} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
+              <button onClick={handleDeferredCompletion} disabled={!deferredReason.trim() || selectedEvidenceIds.length === 0 || submittingDeferred} className="btn-premium bg-[var(--warning)] text-white hover:opacity-90 flex-1 disabled:opacity-50">
+                {submittingDeferred ? 'Processing...' : 'Complete & Notify'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+            <h4 className="font-bold text-lg mb-4 text-[var(--error)] flex items-center gap-2">
+              <Trash2 className="w-5 h-5" /> Delete Job
+            </h4>
+            <div className="bg-[var(--error-bg)] rounded-xl p-3 mb-4">
+              <p className="text-sm text-[var(--error)] font-medium">{job?.title}</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1">This will mark the job as cancelled.</p>
+            </div>
+            <div className="mb-6">
+              <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">Reason *</label>
+              <textarea className="input-premium resize-none h-24" value={deletionReason} onChange={(e) => setDeletionReason(e.target.value)} placeholder="e.g., Customer cancelled..." />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => { setShowDeleteModal(false); setDeletionReason(''); }} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
+              <button onClick={handleDeleteJob} disabled={!deletionReason.trim()} className="btn-premium bg-[var(--error)] text-white hover:opacity-90 flex-1 disabled:opacity-50">
+                <Trash2 className="w-4 h-4" /> Delete
               </button>
             </div>
           </div>
@@ -2604,390 +1916,66 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       {/* Request Modal */}
       {showRequestModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
             <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
-              {requestType === 'assistance' && <><HandHelping className="w-5 h-5 text-blue-600" /> Request Assistance</>}
-              {requestType === 'spare_part' && <><Wrench className="w-5 h-5 text-amber-600" /> Request Spare Part</>}
-              {requestType === 'skillful_technician' && <><HelpCircle className="w-5 h-5 text-purple-600" /> Request Skillful Technician</>}
+              {requestType === 'assistance' && <><HandHelping className="w-5 h-5 text-[var(--info)]" /> Request Assistance</>}
+              {requestType === 'spare_part' && <><Wrench className="w-5 h-5 text-[var(--warning)]" /> Request Spare Part</>}
+              {requestType === 'skillful_technician' && <><HelpCircle className="w-5 h-5 text-purple-600" /> Request Skillful Tech</>}
             </h4>
-            <p className="text-sm text-slate-600 mb-4">
-              {requestType === 'assistance' && 'Request a helper technician to assist with this job.'}
-              {requestType === 'spare_part' && 'Describe the part needed. Admin will select from inventory and approve.'}
-              {requestType === 'skillful_technician' && 'Request job reassignment to a more skilled technician.'}
-            </p>
             <div className="mb-4">
-              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Description <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={requestDescription}
-                onChange={(e) => setRequestDescription(e.target.value)}
-                placeholder={
-                  requestType === 'assistance' ? 'e.g., Need help with heavy lifting, complex wiring...' :
-                  requestType === 'spare_part' ? 'e.g., Hydraulic seal leaking, need replacement. Part looks like...' :
-                  'e.g., Electrical issue beyond my expertise, need certified electrician...'
-                }
-                className="w-full px-3 py-2 border rounded-lg text-sm resize-none h-24"
-              />
+              <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">Description *</label>
+              <textarea value={requestDescription} onChange={(e) => setRequestDescription(e.target.value)} placeholder="Describe what you need..." className="input-premium resize-none h-24" />
             </div>
-            {requestType === 'spare_part' && (
-              <div className="mb-4">
-                <label className="text-sm font-medium text-slate-700 mb-2 block">Photo URL (optional)</label>
-                <input
-                  type="text"
-                  value={requestPhotoUrl}
-                  onChange={(e) => setRequestPhotoUrl(e.target.value)}
-                  placeholder="Paste image URL of the faulty component"
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                />
-                <p className="text-xs text-slate-500 mt-1">Tip: Upload photo to job first, then copy URL</p>
-              </div>
-            )}
             <div className="flex gap-3">
-              <button 
-                type="button" 
-                onClick={() => { setShowRequestModal(false); setRequestDescription(''); setRequestPhotoUrl(''); }} 
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                onClick={handleSubmitRequest}
-                disabled={!requestDescription.trim() || submittingRequest}
-                className={`flex-1 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2 ${
-                  requestType === 'assistance' ? 'bg-blue-600 hover:bg-blue-700' :
-                  requestType === 'spare_part' ? 'bg-amber-600 hover:bg-amber-700' :
-                  'bg-purple-600 hover:bg-purple-700'
-                }`}
-              >
-                <Send className="w-4 h-4" /> {submittingRequest ? 'Submitting...' : 'Submit Request'}
+              <button onClick={() => { setShowRequestModal(false); setRequestDescription(''); setRequestPhotoUrl(''); }} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
+              <button onClick={handleSubmitRequest} disabled={!requestDescription.trim() || submittingRequest} className="btn-premium btn-premium-primary flex-1 disabled:opacity-50">
+                <Send className="w-4 h-4" /> {submittingRequest ? 'Submitting...' : 'Submit'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Approval Modal - Admin/Supervisor */}
+      {/* Approval Modal */}
       {showApprovalModal && approvalRequest && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
-              {approvalRequest.request_type === 'assistance' && <><HandHelping className="w-5 h-5 text-blue-600" /> Review Assistance Request</>}
-              {approvalRequest.request_type === 'spare_part' && <><Wrench className="w-5 h-5 text-amber-600" /> Review Spare Part Request</>}
-              {approvalRequest.request_type === 'skillful_technician' && <><HelpCircle className="w-5 h-5 text-purple-600" /> Review Skillful Tech Request</>}
-            </h4>
-            
-            {/* Request details */}
-            <div className="bg-slate-50 rounded-lg p-3 mb-4">
-              <p className="text-sm text-slate-700">{approvalRequest.description}</p>
-              {approvalRequest.photo_url && (
-                <img src={approvalRequest.photo_url} alt="Request" className="mt-2 h-24 w-24 object-cover rounded" />
-              )}
-              <p className="text-xs text-slate-500 mt-2">
-                Requested {new Date(approvalRequest.created_at).toLocaleString()}
-              </p>
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+            <h4 className="font-bold text-lg mb-4">Review Request</h4>
+            <div className="bg-[var(--bg-subtle)] rounded-xl p-3 mb-4">
+              <p className="text-sm text-[var(--text-secondary)]">{approvalRequest.description}</p>
             </div>
-
-            {/* Spare Part: Part picker + quantity */}
             {approvalRequest.request_type === 'spare_part' && (
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="text-sm font-medium text-slate-700 mb-1 block">Select Part <span className="text-red-500">*</span></label>
-                  <select
-                    value={approvalPartId}
-                    onChange={(e) => setApprovalPartId(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
-                  >
+                  <label className="text-sm font-medium text-[var(--text-muted)] mb-1 block">Select Part *</label>
+                  <select value={approvalPartId} onChange={(e) => setApprovalPartId(e.target.value)} className="input-premium">
                     <option value="">-- Select Part --</option>
-                    {parts.map(p => (
-                      <option key={p.part_id} value={p.part_id}>
-                        {p.part_name} (Stock: {p.stock_quantity}) - RM{p.sell_price}
-                      </option>
-                    ))}
+                    {parts.map(p => (<option key={p.part_id} value={p.part_id}>{p.part_name} (Stock: {p.stock_quantity})</option>))}
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-slate-700 mb-1 block">Quantity <span className="text-red-500">*</span></label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={approvalQuantity}
-                    onChange={(e) => setApprovalQuantity(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  />
+                  <label className="text-sm font-medium text-[var(--text-muted)] mb-1 block">Quantity *</label>
+                  <input type="number" min="1" value={approvalQuantity} onChange={(e) => setApprovalQuantity(e.target.value)} className="input-premium" />
                 </div>
               </div>
             )}
-
-            {/* Assistance: Helper picker */}
             {approvalRequest.request_type === 'assistance' && (
               <div className="mb-4">
-                <label className="text-sm font-medium text-slate-700 mb-1 block">Assign Helper <span className="text-red-500">*</span></label>
-                <select
-                  value={approvalHelperId}
-                  onChange={(e) => setApprovalHelperId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
-                >
+                <label className="text-sm font-medium text-[var(--text-muted)] mb-1 block">Assign Helper *</label>
+                <select value={approvalHelperId} onChange={(e) => setApprovalHelperId(e.target.value)} className="input-premium">
                   <option value="">-- Select Technician --</option>
-                  {technicians.filter(t => t.user_id !== job?.assigned_technician_id).map(t => (
-                    <option key={t.user_id} value={t.user_id}>
-                      {t.full_name || t.name}
-                    </option>
-                  ))}
+                  {technicians.filter(t => t.user_id !== job?.assigned_technician_id).map(t => (<option key={t.user_id} value={t.user_id}>{t.full_name || t.name}</option>))}
                 </select>
               </div>
             )}
-
-            {/* Skillful Tech: Info */}
-            {approvalRequest.request_type === 'skillful_technician' && (
-              <div className="bg-purple-50 rounded-lg p-3 mb-4">
-                <p className="text-sm text-purple-800">
-                  This request indicates a skill escalation is needed. Approving will acknowledge the request. 
-                  Use the <strong>Job Reassignment</strong> feature to assign a different technician.
-                </p>
-              </div>
-            )}
-
-            {/* Notes */}
             <div className="mb-4">
-              <label className="text-sm font-medium text-slate-700 mb-1 block">
-                Notes {approvalRequest.request_type !== 'spare_part' && approvalRequest.request_type !== 'assistance' ? '' : '(optional)'}
-              </label>
-              <textarea
-                value={approvalNotes}
-                onChange={(e) => setApprovalNotes(e.target.value)}
-                placeholder="Add notes or reason..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg resize-none h-20"
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <button 
-                type="button" 
-                onClick={() => { setShowApprovalModal(false); setApprovalRequest(null); }} 
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                onClick={() => handleApproval(false)}
-                disabled={submittingApproval}
-                className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium disabled:opacity-50"
-              >
-                Reject
-              </button>
-              <button 
-                type="button" 
-                onClick={() => handleApproval(true)}
-                disabled={submittingApproval}
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
-              >
-                {submittingApproval ? 'Processing...' : 'Approve'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Continue Tomorrow Modal (#7 Multi-day) */}
-      {showContinueTomorrowModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h4 className="font-bold text-lg mb-4 text-amber-700 flex items-center gap-2">
-              <Clock className="w-5 h-5" /> Continue Tomorrow
-            </h4>
-            <div className="bg-amber-50 rounded-lg p-3 mb-4">
-              <p className="text-sm text-amber-800 font-medium">{job?.title}</p>
-              <p className="text-xs text-amber-600 mt-1">This job will be marked as incomplete and can be resumed tomorrow.</p>
-            </div>
-            <div className="mb-4">
-              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Reason for continuation <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                className="w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/25 resize-none h-24"
-                value={continueTomorrowReason}
-                onChange={(e) => setContinueTomorrowReason(e.target.value)}
-                placeholder="e.g., Waiting for parts, End of work day, Complex repair needs more time..."
-              />
+              <label className="text-sm font-medium text-[var(--text-muted)] mb-1 block">Notes</label>
+              <textarea value={approvalNotes} onChange={(e) => setApprovalNotes(e.target.value)} placeholder="Add notes..." className="input-premium resize-none h-20" />
             </div>
             <div className="flex gap-3">
-              <button 
-                type="button" 
-                onClick={() => { setShowContinueTomorrowModal(false); setContinueTomorrowReason(''); }} 
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                onClick={handleContinueTomorrow}
-                disabled={!continueTomorrowReason.trim() || submittingContinue}
-                className="flex-1 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <Clock className="w-4 h-4" /> {submittingContinue ? 'Saving...' : 'Confirm'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Deferred Completion Modal (#8) */}
-      {showDeferredModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <h4 className="font-bold text-lg mb-4 text-orange-700 flex items-center gap-2">
-              <UserIcon className="w-5 h-5" /> Complete Without Customer Signature
-            </h4>
-            <div className="bg-orange-50 rounded-lg p-3 mb-4">
-              <p className="text-sm text-orange-800 font-medium">{job?.title}</p>
-              <p className="text-xs text-orange-600 mt-1">
-                Customer will be notified and has 5 business days to acknowledge or dispute.
-              </p>
-            </div>
-            
-            {/* Reason */}
-            <div className="mb-4">
-              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Reason customer cannot sign <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                className="w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/25 resize-none h-20"
-                value={deferredReason}
-                onChange={(e) => setDeferredReason(e.target.value)}
-                placeholder="e.g., Customer not on-site, Office closed, Customer requested remote confirmation..."
-              />
-            </div>
-
-            {/* Hourmeter Reading */}
-            <div className="mb-4">
-              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                End Hourmeter <span className="text-red-500">*</span>
-              </label>
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1">
-                  <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="number"
-                    step="0.1"
-                    className="w-full pl-10 pr-4 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/25"
-                    value={deferredHourmeter}
-                    onChange={(e) => setDeferredHourmeter(e.target.value)}
-                    placeholder="Enter current hourmeter"
-                  />
-                </div>
-                <span className="text-xs text-slate-500">
-                  Start: {job?.start_hourmeter || job?.forklift?.hourmeter || 0} hrs
-                </span>
-              </div>
-            </div>
-
-            {/* Evidence Photos Selection */}
-            <div className="mb-4">
-              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Evidence Photos <span className="text-red-500">*</span> <span className="text-slate-500 font-normal">(min. 1 required)</span>
-              </label>
-              {jobMedia && jobMedia.length > 0 ? (
-                <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-2 bg-slate-50 rounded-lg">
-                  {jobMedia.map((media: any) => (
-                    <div 
-                      key={media.media_id}
-                      onClick={() => {
-                        setSelectedEvidenceIds(prev => 
-                          prev.includes(media.media_id)
-                            ? prev.filter(id => id !== media.media_id)
-                            : [...prev, media.media_id]
-                        );
-                      }}
-                      className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                        selectedEvidenceIds.includes(media.media_id)
-                          ? 'border-orange-500 ring-2 ring-orange-500/30'
-                          : 'border-transparent hover:border-orange-300'
-                      }`}
-                    >
-                      <img 
-                        src={media.url} 
-                        alt="Evidence" 
-                        className="w-full h-16 object-cover"
-                      />
-                      {selectedEvidenceIds.includes(media.media_id) && (
-                        <div className="absolute inset-0 bg-orange-500/30 flex items-center justify-center">
-                          <CheckCircle className="w-6 h-6 text-white" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-500 italic">No photos available. Consider uploading evidence photos first.</p>
-              )}
-              {selectedEvidenceIds.length > 0 && (
-                <p className="text-xs text-orange-600 mt-1">{selectedEvidenceIds.length} photo(s) selected as evidence</p>
-              )}
-            </div>
-
-            <div className="flex gap-3">
-              <button 
-                type="button" 
-                onClick={() => { setShowDeferredModal(false); setDeferredReason(''); setDeferredHourmeter(''); setSelectedEvidenceIds([]); }} 
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                onClick={handleDeferredCompletion}
-                disabled={!deferredReason.trim() || selectedEvidenceIds.length === 0 || submittingDeferred}
-                className="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {submittingDeferred ? 'Processing...' : 'Complete & Notify Customer'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Job Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h4 className="font-bold text-lg mb-4 text-red-700 flex items-center gap-2">
-              <Trash2 className="w-5 h-5" /> Cancel / Delete Job
-            </h4>
-            <div className="bg-red-50 rounded-lg p-3 mb-4">
-              <p className="text-sm text-red-800 font-medium">{job?.title}</p>
-              <p className="text-xs text-red-600 mt-1">This action will mark the job as cancelled.</p>
-            </div>
-            <p className="text-sm text-slate-600 mb-4">
-              The job will be removed from active views but preserved for audit. If this job recorded a hourmeter reading, it will be invalidated.
-            </p>
-            <div className="mb-6">
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Reason for Cancellation <span className="text-red-500">*</span></label>
-              <textarea
-                className="w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/25 resize-none h-24"
-                value={deletionReason}
-                onChange={(e) => setDeletionReason(e.target.value)}
-                placeholder="e.g., Customer cancelled request, Duplicate entry, Test job..."
-              />
-            </div>
-            <div className="flex gap-3">
-              <button 
-                type="button" 
-                onClick={() => { setShowDeleteModal(false); setDeletionReason(''); }} 
-                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                onClick={handleDeleteJob} 
-                disabled={!deletionReason.trim()}
-                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" /> Delete Job
-              </button>
+              <button onClick={() => setShowApprovalModal(false)} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
+              <button onClick={() => handleApproval(false)} disabled={submittingApproval} className="btn-premium bg-[var(--error)] text-white hover:opacity-90 disabled:opacity-50">Reject</button>
+              <button onClick={() => handleApproval(true)} disabled={submittingApproval} className="btn-premium btn-premium-primary flex-1 disabled:opacity-50">Approve</button>
             </div>
           </div>
         </div>

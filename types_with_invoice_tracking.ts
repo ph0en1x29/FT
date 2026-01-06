@@ -640,6 +640,13 @@ export enum NotificationType {
   LEAVE_REQUEST = 'leave_request',
   LEAVE_APPROVED = 'leave_approved',
   LEAVE_REJECTED = 'leave_rejected',
+  // New notification types for customer feedback
+  HELPER_REQUEST = 'helper_request',
+  SPARE_PART_REQUEST = 'spare_part_request',
+  SKILLFUL_TECH_REQUEST = 'skillful_tech_request',
+  REQUEST_APPROVED = 'request_approved',
+  REQUEST_REJECTED = 'request_rejected',
+  JOB_REASSIGNED = 'job_reassigned',
 }
 
 export interface Notification {

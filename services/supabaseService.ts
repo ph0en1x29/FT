@@ -2208,6 +2208,126 @@ export const SupabaseDb = {
     }
   },
 
+  // Get all admins and supervisors for notifications
+  getAdminsAndSupervisors: async (): Promise<User[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .in('role', [UserRole.ADMIN, UserRole.SUPERVISOR])
+        .eq('is_active', true);
+
+      if (error) {
+        console.warn('Failed to get admins/supervisors:', error.message);
+        return [];
+      }
+      return data as User[];
+    } catch (e) {
+      console.warn('Admins/supervisors fetch failed:', e);
+      return [];
+    }
+  },
+
+  // Notify all admins/supervisors of a new job request (helper, spare part, etc.)
+  notifyAdminsOfRequest: async (
+    requestType: 'assistance' | 'spare_part' | 'skillful_technician',
+    technicianName: string,
+    jobId: string,
+    description: string
+  ): Promise<void> => {
+    try {
+      const admins = await SupabaseDb.getAdminsAndSupervisors();
+      
+      const typeLabels: Record<string, { title: string; type: NotificationType }> = {
+        'assistance': { title: 'Helper Request', type: NotificationType.HELPER_REQUEST },
+        'spare_part': { title: 'Spare Part Request', type: NotificationType.SPARE_PART_REQUEST },
+        'skillful_technician': { title: 'Skillful Technician Request', type: NotificationType.SKILLFUL_TECH_REQUEST },
+      };
+
+      const { title, type } = typeLabels[requestType] || { title: 'New Request', type: NotificationType.JOB_PENDING };
+
+      for (const admin of admins) {
+        await SupabaseDb.createNotification({
+          user_id: admin.user_id,
+          type: type,
+          title: title,
+          message: `${technicianName} requests ${requestType.replace('_', ' ')}: ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`,
+          reference_type: 'job',
+          reference_id: jobId,
+          priority: requestType === 'assistance' ? 'high' : 'normal',
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to notify admins of request:', e);
+    }
+  },
+
+  // Notify technician when their request is approved
+  notifyRequestApproved: async (
+    technicianId: string,
+    requestType: string,
+    jobId: string,
+    adminNotes?: string
+  ): Promise<void> => {
+    try {
+      await SupabaseDb.createNotification({
+        user_id: technicianId,
+        type: NotificationType.REQUEST_APPROVED,
+        title: 'Request Approved ✓',
+        message: `Your ${requestType.replace('_', ' ')} request has been approved.${adminNotes ? ` Note: ${adminNotes}` : ''}`,
+        reference_type: 'job',
+        reference_id: jobId,
+        priority: 'high',
+      });
+    } catch (e) {
+      console.warn('Failed to notify request approved:', e);
+    }
+  },
+
+  // Notify technician when their request is rejected
+  notifyRequestRejected: async (
+    technicianId: string,
+    requestType: string,
+    jobId: string,
+    reason: string
+  ): Promise<void> => {
+    try {
+      await SupabaseDb.createNotification({
+        user_id: technicianId,
+        type: NotificationType.REQUEST_REJECTED,
+        title: 'Request Rejected',
+        message: `Your ${requestType.replace('_', ' ')} request was rejected. Reason: ${reason}`,
+        reference_type: 'job',
+        reference_id: jobId,
+        priority: 'high',
+      });
+    } catch (e) {
+      console.warn('Failed to notify request rejected:', e);
+    }
+  },
+
+  // Notify technician when job is reassigned to them
+  notifyJobReassigned: async (
+    newTechnicianId: string,
+    jobTitle: string,
+    jobId: string,
+    previousTechnicianName?: string
+  ): Promise<void> => {
+    try {
+      await SupabaseDb.createNotification({
+        user_id: newTechnicianId,
+        type: NotificationType.JOB_REASSIGNED,
+        title: 'Job Reassigned to You',
+        message: `Job "${jobTitle}" has been reassigned to you${previousTechnicianName ? ` from ${previousTechnicianName}` : ''}.`,
+        reference_type: 'job',
+        reference_id: jobId,
+        priority: 'high',
+      });
+    } catch (e) {
+      console.warn('Failed to notify job reassigned:', e);
+    }
+  },
+
   // =====================
   // SCHEDULED SERVICE OPERATIONS
   // =====================
@@ -3453,6 +3573,17 @@ export const SupabaseDb = {
         console.error('Failed to create job request:', error.message);
         return null;
       }
+
+      // Notify admins/supervisors of the new request
+      const { data: technician } = await supabase
+        .from('users')
+        .select('name, full_name')
+        .eq('user_id', requestedBy)
+        .single();
+      
+      const techName = technician?.full_name || technician?.name || 'Technician';
+      await SupabaseDb.notifyAdminsOfRequest(requestType, techName, jobId, description);
+
       return data;
     } catch (e) {
       console.error('Job request create error:', e);
@@ -3594,6 +3725,14 @@ export const SupabaseDb = {
         // Part was added but stock not updated - log but don't fail
       }
 
+      // Notify technician that their spare part request was approved
+      await SupabaseDb.notifyRequestApproved(
+        request.requested_by,
+        'spare_part',
+        request.job_id,
+        notes || `${quantity}x ${part.part_name} added to your job`
+      );
+
       return true;
     } catch (e) {
       console.error('Approve spare part request error:', e);
@@ -3608,6 +3747,18 @@ export const SupabaseDb = {
     reason: string
   ): Promise<boolean> => {
     try {
+      // First get the request details for notification
+      const { data: request, error: reqError } = await supabase
+        .from('job_requests')
+        .select('job_id, requested_by, request_type')
+        .eq('request_id', requestId)
+        .single();
+
+      if (reqError || !request) {
+        console.error('Request not found for rejection:', reqError?.message);
+        return false;
+      }
+
       const { error } = await supabase
         .from('job_requests')
         .update({
@@ -3622,6 +3773,15 @@ export const SupabaseDb = {
         console.error('Failed to reject request:', error.message);
         return false;
       }
+
+      // Notify technician that their request was rejected
+      await SupabaseDb.notifyRequestRejected(
+        request.requested_by,
+        request.request_type,
+        request.job_id,
+        reason
+      );
+
       return true;
     } catch (e) {
       console.error('Reject request error:', e);
@@ -3636,6 +3796,18 @@ export const SupabaseDb = {
     notes?: string
   ): Promise<boolean> => {
     try {
+      // First get the request details for notification
+      const { data: request, error: reqError } = await supabase
+        .from('job_requests')
+        .select('job_id, requested_by, request_type')
+        .eq('request_id', requestId)
+        .single();
+
+      if (reqError || !request) {
+        console.error('Request not found:', reqError?.message);
+        return false;
+      }
+
       const { error } = await supabase
         .from('job_requests')
         .update({
@@ -3650,6 +3822,15 @@ export const SupabaseDb = {
         console.error('Failed to acknowledge skillful tech request:', error.message);
         return false;
       }
+
+      // Notify technician that their skillful tech request was acknowledged
+      await SupabaseDb.notifyRequestApproved(
+        request.requested_by,
+        'skillful_technician',
+        request.job_id,
+        notes || 'Your request has been acknowledged. Job will be reassigned.'
+      );
+
       return true;
     } catch (e) {
       console.error('Acknowledge skillful tech request error:', e);
@@ -3665,10 +3846,10 @@ export const SupabaseDb = {
     notes?: string
   ): Promise<boolean> => {
     try {
-      // Get the request to find job_id
+      // Get the request to find job_id and requester
       const { data: request, error: reqError } = await supabase
         .from('job_requests')
-        .select('job_id')
+        .select('job_id, requested_by')
         .eq('request_id', requestId)
         .single();
 
@@ -3676,6 +3857,23 @@ export const SupabaseDb = {
         console.error('Request not found:', reqError?.message);
         return false;
       }
+
+      // Get job details for notifications
+      const { data: job } = await supabase
+        .from('jobs')
+        .select('title, description')
+        .eq('job_id', request.job_id)
+        .single();
+
+      // Get helper technician name
+      const { data: helper } = await supabase
+        .from('users')
+        .select('name, full_name')
+        .eq('user_id', helperTechnicianId)
+        .single();
+
+      const helperName = helper?.full_name || helper?.name || 'Helper';
+      const jobTitle = job?.title || 'Job';
 
       // Update request status
       const { error: updateError } = await supabase
@@ -3700,6 +3898,27 @@ export const SupabaseDb = {
         adminUserId,
         notes || 'Assigned via assistance request'
       );
+
+      if (result) {
+        // Notify the original technician that their request was approved
+        await SupabaseDb.notifyRequestApproved(
+          request.requested_by,
+          'assistance',
+          request.job_id,
+          `${helperName} has been assigned to help you.`
+        );
+
+        // Notify the helper technician that they've been assigned
+        await SupabaseDb.createNotification({
+          user_id: helperTechnicianId,
+          type: NotificationType.JOB_ASSIGNED,
+          title: 'Helper Assignment',
+          message: `You have been assigned to help with: ${jobTitle}`,
+          reference_type: 'job',
+          reference_id: request.job_id,
+          priority: 'high',
+        });
+      }
 
       return result !== null;
     } catch (e) {

@@ -9,19 +9,24 @@
 ### Priority: High
 
 #### 1. Dashboard Redesign
-- [ ] Reorganize layout for better information hierarchy
-- [ ] Escalation panel improvements (expand/collapse done ✅)
-- [ ] Better visual grouping of alerts (Escalated, Awaiting Ack, Disputed)
+- [x] Reorganize layout for better information hierarchy (KPI grid, Action Required queue, charts, automation + recent jobs)
+- [x] Escalation management improvements (acknowledge, notes, quick actions, expand/collapse)
+- [x] Better visual grouping of alerts (combined “Action Required” queue with tabs)
 - [ ] Stats cards - review what metrics matter most
 - [ ] Charts - consider if both pie and bar are needed
 - [ ] Mobile responsiveness check
 
 #### 2. Job Detail Page Redesign
+- [x] Hero card contrast + surface hierarchy (Equipment/Repair Time/Summary tints)
+- [x] Media gallery improvements (empty-state dropzone + drag/drop)
+- [x] Right-rail card consistency (Summary/Signatures/Timeline/AI header patterns)
+- [x] Header button hierarchy (single primary + outline exceptions)
+- [x] Typography contrast (labels/subtitles) + clearer secondary buttons
+- [x] Assignment mini-panels + action chips (Reassign/Add Helper)
 - [ ] Information architecture review
 - [ ] Better visual flow for job lifecycle
 - [ ] Action buttons placement
-- [ ] Media gallery improvements
-- [ ] Timeline/activity log presentation
+- [ ] Timeline/activity log presentation (full audit/event stream)
 - [ ] Mobile-first layout
 
 #### 3. User/HR/Employee Page Consolidation
@@ -39,6 +44,18 @@
 ---
 
 ## 📋 Backlog
+
+### 🔔 Notification System (Customer Feedback - ✅ COMPLETED)
+- [x] **Dashboard notification panel** - Show notifications on dashboard, not just bell icon
+- [x] **Real-time updates** - Supabase Realtime subscriptions for instant updates
+  - [x] Subscribe to `notifications` table changes
+  - [x] Subscribe to `jobs` table for assignment changes
+  - [x] Subscribe to `job_requests` table for request status changes
+- [x] **Sound/visual alerts** - Browser notifications with sound for:
+  - [x] Technician → Admin: Helper request, spare part request
+  - [x] Admin → Technician: Request approved/rejected, job assigned
+- [x] **Job appears immediately** - When Admin assigns job, it shows in Technician's app instantly
+- [ ] **Push notifications** - Mobile push support (future)
 
 ### Features
 - [ ] AutoCount API integration
@@ -62,8 +79,18 @@
 
 ## ✅ Completed (Recent)
 
+### January 6, 2026
+- [x] **Real-Time Notification System** (Customer Feedback Implementation)
+  - Dashboard notification panel with live connection status
+  - Supabase Realtime subscriptions for notifications, jobs, requests
+  - Sound alerts and browser notifications
+  - Request workflow notifications (tech→admin, admin→tech)
+
 ### January 5, 2026
+- [x] **Critical RLS Fix:** Role case mismatch (`'admin'` vs `'Admin'`)
+- [x] **Critical RLS Fix:** Missing policies on `job_parts`, `job_media`, `extra_charges`
 - [x] Enhanced escalation management (acknowledge, notes, actions)
+- [x] Job Detail premium polish (hero tints, photo dropzone, right-rail headers)
 - [x] Duplicate service intervals cleanup + unique constraint
 - [x] Security linter fixes (views, functions, RLS)
 - [x] #7/#8 status UI consistency across all pages

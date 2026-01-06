@@ -5,7 +5,7 @@ import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { 
   Bell, BellRing, Check, CheckCheck, Clock, 
   AlertTriangle, Wrench, Truck, Package, X, CalendarDays, CalendarCheck, CalendarX,
-  ChevronRight
+  ChevronRight, UserPlus, UserCheck, Cog, CheckCircle, XCircle
 } from 'lucide-react';
 
 interface NotificationBellProps {
@@ -110,6 +110,19 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
         return <CalendarCheck className="w-4 h-4 text-green-500" />;
       case NotificationType.LEAVE_REJECTED:
         return <CalendarX className="w-4 h-4 text-red-500" />;
+      // New notification types for request system
+      case NotificationType.HELPER_REQUEST:
+        return <UserPlus className="w-4 h-4 text-blue-500" />;
+      case NotificationType.SPARE_PART_REQUEST:
+        return <Cog className="w-4 h-4 text-orange-500" />;
+      case NotificationType.SKILLFUL_TECH_REQUEST:
+        return <UserPlus className="w-4 h-4 text-purple-500" />;
+      case NotificationType.REQUEST_APPROVED:
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case NotificationType.REQUEST_REJECTED:
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      case NotificationType.JOB_REASSIGNED:
+        return <UserCheck className="w-4 h-4 text-indigo-500" />;
       default:
         return <Bell className="w-4 h-4 text-slate-500" />;
     }

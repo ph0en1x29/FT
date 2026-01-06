@@ -27,6 +27,121 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### Real-Time Notification System (2026-01-06)
+- **Updated:** 2026-01-06 (author: Claude)
+- **Source:** ACWER Customer Feedback Implementation
+- **Status:** ✅ Implemented
+
+#### Changes Made:
+1. **New Files Created:**
+   - `utils/useRealtimeNotifications.ts` - Real-time hook with Supabase subscriptions, sound alerts, browser notifications
+   - `components/NotificationPanel.tsx` - Dashboard notification panel component
+
+2. **Dashboard Notifications Panel:**
+   - ✅ Added NotificationPanel to Dashboard (Row 4, 3-column grid)
+   - ✅ Shows real-time connection status (Live/Offline indicator)
+   - ✅ Displays notifications with mark-as-read functionality
+   - ✅ Auto-refreshes when new notifications arrive
+
+3. **Sound & Browser Notifications:**
+   - ✅ Audio notification sound on new alerts
+   - ✅ Browser notification permission request
+   - ✅ Desktop notifications with click-to-navigate
+
+4. **Real-Time Subscriptions (Supabase Realtime):**
+   - ✅ Subscribe to `notifications` table for user-specific alerts
+   - ✅ Subscribe to `jobs` table for technician job assignments
+   - ✅ Subscribe to `job_requests` table for request status changes
+   - ✅ Admin/Supervisor: notified of new requests from technicians
+   - ✅ Technician: notified when assigned, request approved/rejected
+
+5. **Notification Service Updates:**
+   - ✅ `approveAssistanceRequest` now notifies both requester AND helper technician
+   - ✅ All request types (helper, spare part, skillful tech) trigger admin notifications
+   - ✅ All approval/rejection actions trigger technician notifications
+
+6. **New Notification Types Added:**
+   - `HELPER_REQUEST`, `SPARE_PART_REQUEST`, `SKILLFUL_TECH_REQUEST`
+   - `REQUEST_APPROVED`, `REQUEST_REJECTED`, `JOB_REASSIGNED`
+   - Updated NotificationPanel & NotificationBell with new icons
+
+### Customer Feedback Report (2026-01-05)
+- **Source:** ACWER User Testing
+- **Status:** ✅ Implemented (see above)
+
+#### 1. Dashboard Notifications
+| Current | Expected |
+|---------|----------|
+| Notifications only appear on bell icon at top | All notifications should be listed on dashboard for easy visibility |
+
+#### 2. Notification Alerts for Requests
+- **Issue 1:** No sound or visible notification triggered for Admin when Technician requests helper or spare part; same issue vice versa when Admin accepts/rejects
+- **Issue 2:** When Admin assigns a request to Technician B, there is no notification and job does not appear in Technician B's app
+
+#### 3. Real-Time Updates on Technician App
+| Current | Expected |
+|---------|----------|
+| No immediate update visible in technician's app once Admin approves a request | Technician's app should display on-the-spot updates reflecting Admin's actions |
+
+**Technical Requirements:**
+- Implement Supabase Realtime subscriptions for `notifications`, `jobs`, `job_requests` tables
+- Add browser/push notification support with sound
+- Dashboard notification panel (not just bell icon)
+- Ensure RLS policies allow realtime subscriptions
+
+### Critical RLS Fix (2026-01-05)
+- **Updated:** 2026-01-05 (author: Claude)
+- 🔨 **Bug Fix: Role Case Mismatch Breaking All Write Operations**
+  - **Issue:** Database stores roles as lowercase (`'admin'`, `'supervisor'`) but RLS policies compare against Title case (`'Admin'`, `'Supervisor'`)
+  - **Additional Issue:** `get_current_user_role()` used `user_id = auth.uid()` but should use `auth_id = auth.uid()`
+  - **Symptom:** Creating jobs, adding parts, updating stock all failed with "violates row level security policy" error
+  - **Root Cause:** `fix_rls_performance.sql` policies check `get_my_role() = 'Admin'` but function returns `'admin'`
+  - **Fix:** Updated role helper functions to use `initcap()` and correct column reference:
+    - `get_my_role()` → returns `'Admin'` instead of `'admin'`
+    - `get_current_user_role()` → fixed to use `auth_id` column + `initcap()`
+    - `has_role()` → compares using `initcap()` on input
+  - **File:** `database/migrations/fix_role_case_mismatch.sql`
+- 🔨 **Bug Fix: Missing RLS Policies on job_parts and job_media tables**
+  - **Issue:** RLS redesign dropped old policies and enabled RLS but never created new policies
+  - **Fix:** Created role-based policies for Admin, Supervisor, Accountant, Technician
+  - **Workflow Clarification:** Per WORKFLOW_SPECIFICATION.md:
+    - **Technicians** can only REQUEST parts (via spare_part_requests)
+    - **Admin/Supervisor** actually SELECT and ADD parts to jobs
+    - Technicians get SELECT only on job_parts (not INSERT)
+  - **File:** `database/migrations/fix_missing_rls_policies.sql`
+
+### Dashboard Premium UI Polish (2026-01-05)
+- **Updated:** 2026-01-05 11:38:37 CST (author: Codex)
+- ✔️ **Border consistency fix** - Replaced hardcoded `#e2e8f0` with theme tokens `var(--border)`, `var(--border-subtle)`, `var(--border-strong)`
+- ✔️ **Complete status coverage** - Added `STATUS_CONFIG` and `CHART_COLORS` for all 10 job statuses; chart shows all statuses with values > 0
+- ✔️ **Action Required count fix** - KPI now includes: escalated + disputed + awaiting ack (was missing awaiting ack)
+- ✔️ **Inline style cleanup** - Replaced inline styles with `.card-premium`, `.btn-premium`, `.input-premium` classes
+- ✔️ **Notes discoverability** - Added `StickyNote` icon in collapsed Action Required rows; highlighted if notes exist
+- ✔️ **Premium theme enabled** - `index.tsx` imports `./index.css` so premium tokens/classes actually apply at runtime
+- ✔️ **Surface hierarchy tuning** - Adjusted `--bg`, `--bg-subtle`, and border tokens in `index.css` so cards “lift” off the page (less white-on-white)
+- ✔️ **Chart empty states** - Job Status + Revenue Trend cards collapse to compact empty states when there’s no data (no giant blank slabs)
+- ✔️ **Recent Jobs scanability** - Switched to row-card list (status rail + chevron + keyboard support) and removed inner-scroll “table” feel
+- ✔️ **Service Automation spacing fix** - Dashboard row uses `items-start` so the widget doesn’t stretch to match the adjacent card height
+- ✔️ **Contrast improvements**:
+  - Action Required header: added `bg-[var(--bg-subtle)]` tint for visual anchor
+  - Recent Jobs: row-card hover states + clearer separation (without heavy boxing)
+  - Service Automation inner tiles: already have light tint via `bg-[var(--bg-subtle)]`
+
+### Job Detail Premium UI Polish (2026-01-05)
+- **Updated:** 2026-01-05 15:09:41 CST (author: Codex)
+- ✔️ **Hero card contrast** - Scan anchors use semantic accent rails (Equipment/Repair Time/Summary) instead of large gradients
+- ✔️ **Right-rail hierarchy** - Summary → Timeline → Signatures → AI (better scan path, less “where do I look?”)
+- ✔️ **Right-rail cohesion** - Timeline/Signatures/AI use the same header pattern (icon tile + title); AI uses semantic info rail (no gradients)
+- ✔️ **Header action hierarchy** - Primary action uses brand accent; exception actions are outline; Delete is ghost-danger; Finalize Invoice uses primary accent
+- ✔️ **Assignment actions** - Reassign / Add Helper / Remove Helper use high-signal chip buttons + mini-panels (more discoverable, less “hidden text”)
+- ✔️ **RM input prefix fix** - Added `.input-premium-prefix` and updated currency inputs so “RM” never overlaps placeholder/value
+- ✔️ **Photos upload hierarchy** - Category dropdown lives in Photos header; empty state is a full-size dropzone (drag & drop + click) with a single Upload CTA (no duplicates)
+- ✔️ **Reduced “everything tinted” noise** - Signatures + Checklist category tiles use white surfaces + border; tints reserved for callouts
+- ✔️ **Label/subtitle contrast** - Added `.label-premium` / `.value-premium` helpers and removed low-contrast `--text-subtle` labels/empties in Job Detail
+- ✔️ **Secondary button clarity** - `.btn-premium-secondary` now uses `--border-strong` + subtle shadow so outline actions read as clickable
+- ✔️ **Theme tuning** - Neutralized `--bg` / `--bg-subtle` in `index.css` (less blue cast)
+- ✔️ **New theme classes** - `.card-tint-*` now render as accent rails (not gradients)
+
 ### UI Consistency Updates (2026-01-05) - #7/#8 Status Integration Across Pages
 - ✔️ **JobBoard.tsx** - Added new statuses to filters, counts, and badges
   - Status filter dropdown includes: Incomplete - Continuing, Incomplete - Reassigned, Completed Awaiting Acknowledgement, Disputed

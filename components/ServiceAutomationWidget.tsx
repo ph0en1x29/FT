@@ -27,7 +27,6 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
 
   const loadStats = async () => {
     try {
-      // Get forklifts due within 7 days
       const dueForklifts = await SupabaseDb.getForkliftsDueForService(7);
       
       setStats({
@@ -50,7 +49,7 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
     try {
       const result = await SupabaseDb.runDailyServiceCheck();
       setLastResult(`✅ Created ${result.jobs_created} jobs, ${result.notifications_created} notifications`);
-      await loadStats(); // Refresh stats
+      await loadStats();
     } catch (e: any) {
       setLastResult(`❌ Error: ${e.message}`);
     } finally {
@@ -60,68 +59,69 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
 
   if (loading) {
     return (
-      <div className="card-theme p-6 rounded-xl theme-transition animate-pulse">
-        <div className="h-6 bg-theme-surface-2 rounded w-48 mb-4"></div>
-        <div className="h-20 bg-theme-surface-2 rounded"></div>
+      <div className="card-premium p-6 animate-pulse">
+        <div className="h-6 rounded w-48 mb-4 bg-[var(--bg-subtle)]"></div>
+        <div className="h-20 rounded bg-[var(--bg-subtle)]"></div>
       </div>
     );
   }
 
   return (
-    <div className="card-theme p-6 rounded-xl theme-transition">
+    <div className="card-premium p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Settings className="w-5 h-5 text-blue-500" />
-          <h3 className="text-lg font-semibold text-theme">Service Automation</h3>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--accent-subtle)]">
+            <Settings className="w-4 h-4 text-[var(--accent)]" />
+          </div>
+          <h3 className="font-semibold text-[var(--text)]">Service Automation</h3>
         </div>
-        <div className="flex items-center gap-2 text-xs text-theme-muted">
+        <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
           <Clock className="w-3 h-3" />
           <span>Runs daily at 8:00 AM</span>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-3 gap-3 mb-4">
         <div 
           onClick={() => navigate('/service-due?filter=overdue')}
-          className="bg-theme-surface-2 rounded-lg p-3 text-center border border-theme cursor-pointer hover:border-red-300 hover:shadow-md transition-all group"
+          className="rounded-xl p-3 text-center cursor-pointer transition-all hover:shadow-md bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--error)]"
         >
-          <div className="text-2xl font-bold text-red-500 group-hover:text-red-600">{stats?.overdue || 0}</div>
-          <div className="text-xs text-theme-muted flex items-center justify-center gap-1">
+          <div className="text-2xl font-bold text-[var(--error)]">{stats?.overdue || 0}</div>
+          <div className="text-xs flex items-center justify-center gap-1 text-[var(--text-muted)]">
             <AlertTriangle className="w-3 h-3" />
             Overdue
           </div>
-          <ChevronRight className="w-3 h-3 mx-auto mt-1 text-slate-300 group-hover:text-red-400 transition-colors" />
         </div>
         <div 
           onClick={() => navigate('/service-due?filter=due_soon')}
-          className="bg-theme-surface-2 rounded-lg p-3 text-center border border-theme cursor-pointer hover:border-yellow-300 hover:shadow-md transition-all group"
+          className="rounded-xl p-3 text-center cursor-pointer transition-all hover:shadow-md bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--warning)]"
         >
-          <div className="text-2xl font-bold text-yellow-500 group-hover:text-yellow-600">{stats?.dueSoon || 0}</div>
-          <div className="text-xs text-theme-muted flex items-center justify-center gap-1">
+          <div className="text-2xl font-bold text-[var(--warning)]">{stats?.dueSoon || 0}</div>
+          <div className="text-xs flex items-center justify-center gap-1 text-[var(--text-muted)]">
             <Calendar className="w-3 h-3" />
-            Due in 7 days
+            Due Soon
           </div>
-          <ChevronRight className="w-3 h-3 mx-auto mt-1 text-slate-300 group-hover:text-yellow-400 transition-colors" />
         </div>
         <div 
           onClick={() => navigate('/service-due?filter=job_created')}
-          className="bg-theme-surface-2 rounded-lg p-3 text-center border border-theme cursor-pointer hover:border-green-300 hover:shadow-md transition-all group"
+          className="rounded-xl p-3 text-center cursor-pointer transition-all hover:shadow-md bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--success)]"
         >
-          <div className="text-2xl font-bold text-green-500 group-hover:text-green-600">{stats?.withOpenJobs || 0}</div>
-          <div className="text-xs text-theme-muted flex items-center justify-center gap-1">
+          <div className="text-2xl font-bold text-[var(--success)]">{stats?.withOpenJobs || 0}</div>
+          <div className="text-xs flex items-center justify-center gap-1 text-[var(--text-muted)]">
             <CheckCircle className="w-3 h-3" />
             Jobs Created
           </div>
-          <ChevronRight className="w-3 h-3 mx-auto mt-1 text-slate-300 group-hover:text-green-400 transition-colors" />
         </div>
       </div>
 
       {/* Last Result */}
       {lastResult && (
-        <div className={`text-sm p-2 rounded mb-4 ${
-          lastResult.startsWith('✅') ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'
+        <div className={`text-sm p-3 rounded-xl mb-4 ${
+          lastResult.startsWith('✅') 
+            ? 'bg-[var(--success-bg)] text-[var(--success)]' 
+            : 'bg-[var(--error-bg)] text-[var(--error)]'
         }`}>
           {lastResult}
         </div>
@@ -132,7 +132,7 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
         <button
           onClick={runDailyCheck}
           disabled={running}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
+          className="btn-premium btn-premium-primary flex-1 disabled:opacity-50"
         >
           <Play className="w-4 h-4" />
           {running ? 'Running...' : 'Run Check Now'}
@@ -140,7 +140,7 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
         {onViewAll && (
           <button
             onClick={onViewAll}
-            className="px-4 py-2 bg-theme-surface-2 hover:bg-theme-surface-3 text-theme border border-theme rounded-lg text-sm font-medium transition-colors"
+            className="btn-premium btn-premium-secondary"
           >
             View Details
           </button>
