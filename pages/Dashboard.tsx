@@ -115,11 +115,13 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
 
   const loadDashboardData = async () => {
     try {
+      console.log('[Dashboard] Loading data for user:', currentUser?.user_id, currentUser?.role);
       const jobsData = await MockDb.getJobs(currentUser);
-      setJobs(jobsData);
-    } catch (error) {
-      console.error('Error loading dashboard:', error);
-      showToast.error('Failed to load dashboard data', 'Please refresh the page');
+      console.log('[Dashboard] Jobs loaded:', jobsData?.length || 0);
+      setJobs(jobsData || []);
+    } catch (error: any) {
+      console.error('[Dashboard] Error loading jobs:', error);
+      showToast.error('Failed to load dashboard data', error?.message || 'Please refresh the page');
     } finally {
       setLoading(false);
     }
@@ -171,11 +173,43 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
   const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
   const jobsThisWeek = jobs.filter(j => new Date(j.created_at) >= oneWeekAgo);
   
-  // Count by status
-  const statusCounts = Object.values(JobStatus).reduce((acc, status) => {
-    acc[status] = jobs.filter(j => j.status === status).length;
+  const normalizeStatusKey = (status?: string): string => {
+    const raw = (status || '').toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+    switch (raw) {
+      case 'new':
+        return JobStatus.NEW;
+      case 'assigned':
+        return JobStatus.ASSIGNED;
+      case 'in progress':
+        return JobStatus.IN_PROGRESS;
+      case 'awaiting finalization':
+        return JobStatus.AWAITING_FINALIZATION;
+      case 'completed':
+        return JobStatus.COMPLETED;
+      case 'completed awaiting acknowledgement':
+        return JobStatus.COMPLETED_AWAITING_ACK;
+      case 'incomplete - continuing':
+      case 'incomplete continuing':
+        return JobStatus.INCOMPLETE_CONTINUING;
+      case 'incomplete - reassigned':
+      case 'incomplete reassigned':
+        return JobStatus.INCOMPLETE_REASSIGNED;
+      case 'disputed':
+        return JobStatus.DISPUTED;
+      default:
+        return status || 'Unknown';
+    }
+  };
+
+  // Count by status (normalized for legacy values)
+  const statusCounts = jobs.reduce((acc, job) => {
+    const key = normalizeStatusKey(job.status);
+    acc[key] = (acc[key] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>);
+  }, Object.values(JobStatus).reduce((acc, status) => {
+    acc[status] = 0;
+    return acc;
+  }, {} as Record<string, number>));
 
   const awaitingAckJobs = jobs.filter(j => j.status === JobStatus.COMPLETED_AWAITING_ACK);
   const disputedJobs = jobs.filter(j => j.status === JobStatus.DISPUTED);
@@ -191,7 +225,8 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
 
   const laborRate = 150;
   const totalRevenue = jobs.reduce((acc, job) => {
-    const partsCost = job.parts_used.reduce((sum, p) => sum + (p.sell_price_at_time * p.quantity), 0);
+    const partsUsed = job.parts_used || [];
+    const partsCost = partsUsed.reduce((sum, p) => sum + ((p.sell_price_at_time || 0) * (p.quantity || 0)), 0);
     return acc + partsCost + (job.status !== JobStatus.NEW ? laborRate : 0);
   }, 0);
 
@@ -217,7 +252,8 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
       return jobDate.toDateString() === date.toDateString();
     });
     const dayRevenue = dayJobs.reduce((acc, job) => {
-      const partsCost = job.parts_used.reduce((sum, p) => sum + (p.sell_price_at_time * p.quantity), 0);
+      const partsUsed = job.parts_used || [];
+      const partsCost = partsUsed.reduce((sum, p) => sum + ((p.sell_price_at_time || 0) * (p.quantity || 0)), 0);
       return acc + partsCost + laborRate;
     }, 0);
     return { name: dayName, revenue: Math.round(dayRevenue) };
@@ -556,9 +592,9 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
             <h3 className="font-semibold text-[var(--text)]">Job Status</h3>
             <p className="text-xs mt-0.5 text-[var(--text-muted)]">Current distribution</p>
           </div>
-          <div className={dataStatus.length > 0 ? "h-64" : "h-44"}>
+          <div className={dataStatus.length > 0 ? "h-64 min-h-[256px] w-full" : "h-44 min-h-[176px] w-full"}>
             {dataStatus.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={256}>
                 <PieChart>
                   <Pie
                     data={dataStatus}
@@ -621,7 +657,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
               <span className="font-medium">Active</span>
             </div>
           </div>
-          <div className={hasRevenueData ? "h-64" : "h-44"}>
+          <div className={hasRevenueData ? "h-64 min-h-[256px] w-full" : "h-44 min-h-[176px] w-full"}>
             {hasRevenueData ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={dataRevenue}>
@@ -678,31 +714,26 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
       </div>
 
       {/* Row 4: Service Automation, Recent Jobs & Notifications */}
-      <div
-        className={`grid grid-cols-1 ${showServiceAutomation ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-6 lg:h-[560px]`}
-      >
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* Service Automation Widget */}
         {showServiceAutomation && (
-          <ServiceAutomationWidget onViewAll={() => navigate('/service-due')} />
+          <div className="lg:col-span-4 lg:h-[560px]">
+            <ServiceAutomationWidget onViewAll={() => navigate('/service-due')} />
+          </div>
         )}
 
         {/* Recent Jobs - FIX: Now uses STATUS_CONFIG for all statuses */}
-        <div className="card-premium p-6 flex flex-col h-full">
-          <div className="flex items-center justify-between mb-4">
+        <div className={`${showServiceAutomation ? 'lg:col-span-4' : 'lg:col-span-6'} lg:h-[560px]`}>
+          <div className="card-premium p-6 flex flex-col h-full">
+            <div className="flex items-center justify-between pb-4 border-b border-[var(--border-subtle)]">
             <div>
               <h3 className="font-semibold text-[var(--text)]">Recent Jobs</h3>
               <p className="text-xs mt-0.5 text-[var(--text-muted)]">Latest activity</p>
             </div>
-            <button 
-              onClick={() => navigate('/jobs')}
-              className="btn-premium btn-premium-ghost text-xs"
-            >
-              View all <ArrowRight className="w-3 h-3" />
-            </button>
           </div>
           
           {/* Recent Jobs List (Row-card style; no inner scrollbar) */}
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
+            <div className="mt-4 flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
             {jobs.slice(0, 20).map((job) => {
               const chipStyle = getStatusChip(job.status);
               const statusColor = CHART_COLORS[job.status] || 'var(--border-strong)';
@@ -768,18 +799,30 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
               </div>
             )}
           </div>
+
+            <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] flex justify-end">
+              <button 
+                onClick={() => navigate('/jobs')}
+                className="btn-premium btn-premium-ghost text-xs"
+              >
+                View all <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Notifications Panel - Customer Feedback: Show on dashboard (kept compact & rightmost) */}
-        <NotificationPanel
-          notifications={notifications}
-          unreadCount={unreadCount}
-          isConnected={isConnected}
-          onMarkRead={markAsRead}
-          onMarkAllRead={markAllAsRead}
-          currentUser={currentUser}
-          maxItems={5}
-        />
+        <div className={`${showServiceAutomation ? 'lg:col-span-4' : 'lg:col-span-6'} lg:h-[560px]`}>
+          <NotificationPanel
+            notifications={notifications}
+            unreadCount={unreadCount}
+            isConnected={isConnected}
+            onMarkRead={markAsRead}
+            onMarkAllRead={markAllAsRead}
+            currentUser={currentUser}
+            maxItems={20}
+          />
+        </div>
       </div>
     </div>
   );

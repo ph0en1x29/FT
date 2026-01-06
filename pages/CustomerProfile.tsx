@@ -499,13 +499,15 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
               <Truck className="w-4 h-4" />
               Rent Forklift
             </button>
-            <button
-              onClick={() => navigate(`/jobs/create?customer=${customer.customer_id}`)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium shadow-sm"
-            >
-              <Briefcase className="w-4 h-4" />
-              Create Job
-            </button>
+            {(isAdmin || isSupervisor) && (
+              <button
+                onClick={() => navigate(`/jobs/new?customer_id=${customer.customer_id}`)}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium shadow-sm"
+              >
+                <Briefcase className="w-4 h-4" />
+                Create Job
+              </button>
+            )}
             <button
               onClick={() => navigate(`/customers/${customer.customer_id}/edit`)}
               className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-200 text-sm font-medium"

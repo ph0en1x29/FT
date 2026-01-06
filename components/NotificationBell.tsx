@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Notification, NotificationType, User, ROLE_PERMISSIONS } from '../types_with_invoice_tracking';
+import { NotificationType, ROLE_PERMISSIONS } from '../types_with_invoice_tracking';
+import type { Notification, User } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { 
   Bell, BellRing, Check, CheckCheck, Clock, 

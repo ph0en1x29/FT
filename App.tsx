@@ -158,6 +158,7 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
   const canManageInventory = hasPermission(currentUser.role, 'canManageInventory');
   const canViewServiceRecords = hasPermission(currentUser.role, 'canViewServiceRecords');
   const canFinalizeInvoices = hasPermission(currentUser.role, 'canFinalizeInvoices');
+  const canCreateJobs = hasPermission(currentUser.role, 'canCreateJobs');
   const canViewHR = hasPermission(currentUser.role, 'canViewHR');
   const canViewOwnProfile = hasPermission(currentUser.role, 'canViewOwnProfile');
 
@@ -519,6 +520,7 @@ export default function App() {
   const canManageInventory = hasPermission(currentUser.role, 'canManageInventory');
   const canViewServiceRecords = hasPermission(currentUser.role, 'canViewServiceRecords');
   const canFinalizeInvoices = hasPermission(currentUser.role, 'canFinalizeInvoices');
+  const canCreateJobs = hasPermission(currentUser.role, 'canCreateJobs');
   const canViewHR = hasPermission(currentUser.role, 'canViewHR');
   const canViewOwnProfile = hasPermission(currentUser.role, 'canViewOwnProfile');
 
@@ -550,7 +552,7 @@ export default function App() {
                 : <Dashboard role={currentUser.role} currentUser={currentUser} />
             } />
             <Route path="/jobs" element={<JobBoard currentUser={currentUser} />} />
-            <Route path="/jobs/new" element={<CreateJob currentUser={currentUser} />} />
+            <Route path="/jobs/new" element={canCreateJobs ? <CreateJob currentUser={currentUser} /> : <Navigate to="/" />} />
             <Route path="/jobs/:id" element={<JobDetail currentUser={currentUser} />} />
             
             <Route path="/inventory" element={

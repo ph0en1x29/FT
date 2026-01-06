@@ -5,7 +5,8 @@ import {
   AlertTriangle, Wrench, Truck, Package, CalendarDays, CalendarCheck, CalendarX,
   ChevronRight, Wifi, WifiOff, UserPlus, UserCheck, UserX, Cog, CheckCircle, XCircle
 } from 'lucide-react';
-import { Notification, NotificationType, User, ROLE_PERMISSIONS } from '../types_with_invoice_tracking';
+import { NotificationType, ROLE_PERMISSIONS } from '../types_with_invoice_tracking';
+import type { Notification, User } from '../types_with_invoice_tracking';
 
 interface NotificationPanelProps {
   notifications: Notification[];

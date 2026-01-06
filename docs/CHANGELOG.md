@@ -66,10 +66,35 @@ All notable changes, decisions, and client requirements for this project.
    - Updated NotificationPanel & NotificationBell with new icons
 
 #### Bug Fixes:
-- ✔️ Fixed login/runtime crash caused by importing `Notification` as a runtime export (type-only) and shadowing the browser `Notification` API
-  - `utils/useRealtimeNotifications.ts`: switched to `import type { Notification as AppNotification }` and updated all usages
+- ✔️ Fixed login/runtime crash caused by importing the `Notification` interface as a runtime export (ESM can’t import TS interfaces at runtime)
+  - Switched to `import type` in:
+    - `utils/useRealtimeNotifications.ts`
+    - `components/NotificationPanel.tsx`
+    - `components/NotificationBell.tsx`
+    - `services/supabaseService.ts`
 - ✔️ Prevented duplicate sound/toast alerts by treating `jobs`/`job_requests` realtime subscriptions as UI refresh only
   - User-facing alerts now come from the `notifications` table subscription (single source of truth)
+
+#### UX/RLS Guardrails (2026-01-06) (author: Codex)
+- ✔️ **Create Job permissions** - `pages/CreateJob.tsx` is now Admin/Supervisor-only (prevents “violates row level security policy” for Technician/Accountant)
+- ✔️ **Customer → Create Job deep-link** - `pages/CustomerProfile.tsx` now routes to `/jobs/new?customer_id=...` and only shows the button for Admin/Supervisor
+- ✔️ **Inventory stock updates** - `services/supabaseService.ts` only updates `parts.stock_quantity` for Admin/Technician; other roles can still add/remove job parts without triggering RLS failures
+- ✔️ **Parts UI permission alignment** - `pages/JobDetail.tsx` now hides Add/Edit/Remove part actions for Supervisor (avoids job_parts RLS violations); technicians can edit in-progress, admins/accountants can amend at finalization
+- ✔️ **Fix `canCreateJobs` crash** - Defined `canCreateJobs` in `App.tsx` to prevent `ReferenceError: canCreateJobs is not defined`
+- ✔️ **Create Job insert response hardening** - `services/supabaseService.ts:createJob()` no longer embeds `job_parts` / `job_media` / `extra_charges` in the insert response (avoids Supervisor embed-RLS failures); defaults `parts_used`, `media`, `extra_charges` to `[]`
+- ✔️ **Favicon for web + notifications** - Added `public/favicon.svg`, linked from `index.html`, and used for browser notifications (`utils/useRealtimeNotifications.ts`)
+- ⚠️ **Tailwind note** - Tailwind utilities are currently loaded via `cdn.tailwindcss.com` in `index.html` for demo reliability; move to compiled Tailwind when ready to ship
+
+### Bugfixes (2026-01-06) - Dashboard Stability (author: Claude)
+- ✔️ **Null safety for parts_used** - Dashboard revenue calculations now handle null/undefined `parts_used` arrays
+- ✔️ **Better debug logging** - `loadDashboardData` now logs user info and job count for debugging
+
+### Bugfixes (2026-01-06) - Realtime + Embed Disambiguation (author: Codex)
+- ✔️ **Realtime notification import** - `utils/useRealtimeNotifications.ts` now inlines `AppNotification` type to avoid runtime import error
+- ✔️ **Jobs ↔ forklifts embed ambiguity** - Explicit FK added to all `forklift:forklifts(...)` embeds in `services/supabaseService.ts`
+  - Affected: getRecentlyDeletedJobs, getCustomerJobsWithCancelled, getPendingRequests, getEscalatedJobs, getJobsAwaitingAck
+- ✔️ **Helper assignment fetch** - `services/supabaseService.ts:getJobById()` uses `maybeSingle()` to avoid 406 when no helper assignment exists
+- ✔️ **Chart containers** - `pages/Dashboard.tsx` chart wrappers now include `min-h` + `w-full` to prevent Recharts width/height -1 warnings
 
 ### Customer Feedback Report (2026-01-05)
 - **Source:** ACWER User Testing

@@ -428,8 +428,15 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     if (!job || !selectedPartId) return;
     let finalPrice = undefined;
     if (selectedPartPrice !== '') { const parsed = parseFloat(selectedPartPrice); if (isNaN(parsed) || parsed < 0) { showToast.error('Please enter a valid price'); return; } finalPrice = parsed; }
-    try { const updated = await MockDb.addPartToJob(job.job_id, selectedPartId, 1, finalPrice); setJob({ ...updated } as Job); setSelectedPartId(''); setSelectedPartPrice(''); showToast.success('Part added to job'); }
-    catch (e) { showToast.error('Could not add part', 'Check stock availability'); }
+    try {
+      const updated = await MockDb.addPartToJob(job.job_id, selectedPartId, 1, finalPrice, currentUserRole);
+      setJob({ ...updated } as Job);
+      setSelectedPartId('');
+      setSelectedPartPrice('');
+      showToast.success('Part added to job');
+    } catch (e) {
+      showToast.error('Could not add part', (e as Error).message);
+    }
   };
 
   const handleStartEditPrice = (jobPartId: string, currentPrice: number) => { setEditingPartId(jobPartId); setEditingPrice(currentPrice.toString()); };
@@ -444,8 +451,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const handleRemovePart = async (jobPartId: string) => {
     if (!job) return;
     if (!confirm('Remove this part from the job?')) return;
-    try { const updated = await MockDb.removePartFromJob(job.job_id, jobPartId); setJob({ ...updated } as Job); showToast.success('Part removed from job'); }
-    catch (e) { showToast.error('Could not remove part'); }
+    try {
+      const updated = await MockDb.removePartFromJob(job.job_id, jobPartId, currentUserRole);
+      setJob({ ...updated } as Job);
+      showToast.success('Part removed from job');
+    } catch (e) {
+      showToast.error('Could not remove part', (e as Error).message);
+    }
   };
 
   const handleStartEditLabor = () => { if (!job) return; setEditingLabor(true); setLaborCostInput((job.labor_cost || 150).toString()); };
@@ -708,7 +720,14 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
 
   const partOptions: ComboboxOption[] = parts.map(p => ({ id: p.part_id, label: p.part_name, subLabel: `RM${p.sell_price} | Stock: ${p.stock_quantity} | ${p.category}` }));
   const techOptions: ComboboxOption[] = technicians.map(t => ({ id: t.user_id, label: t.name, subLabel: t.email }));
-  const canEditPrices = !isCompleted && !isHelperOnly && (!isAwaitingFinalization || isAdmin || isAccountant);
+  const canEditPrices =
+    !isCompleted &&
+    !isHelperOnly &&
+    ((isTechnician && !isAwaitingFinalization) || isAdmin || isAccountant);
+  const canAddParts =
+    !isHelperOnly &&
+    ((isInProgress && (isTechnician || isAdmin)) ||
+      (isAwaitingFinalization && (isAdmin || isAccountant)));
   const repairDuration = getRepairDuration();
   const jobMedia = job.media || [];
 
@@ -1191,7 +1210,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               </div>
             )}
 
-            {isInProgress && !isHelperOnly && (
+            {canAddParts && (
               <div className="border-t border-[var(--border-subtle)] pt-4">
                 <p className="text-xs font-medium text-[var(--text-muted)] mb-2">Add Part</p>
                 <div className="flex gap-2 items-start">

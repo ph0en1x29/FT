@@ -16,20 +16,22 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [technicians, setTechnicians] = useState<User[]>([]);
   const [forklifts, setForklifts] = useState<Forklift[]>([]);
+
+  const canCreateJobs = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR;
   
   // Check for pre-filled data from scheduled service
   const scheduledServiceId = searchParams.get('scheduled_id');
   const prefilledForkliftId = searchParams.get('forklift_id');
   const prefilledServiceType = searchParams.get('service_type');
+  const prefilledCustomerId = searchParams.get('customer_id');
   
   const [formData, setFormData] = useState({
-    customer_id: '',
+    customer_id: prefilledCustomerId || '',
     title: prefilledServiceType ? `${prefilledServiceType} - Scheduled Maintenance` : '',
     description: prefilledServiceType ? `Scheduled ${prefilledServiceType} service` : '',
     priority: JobPriority.MEDIUM,
     job_type: JobType.SERVICE,
     assigned_technician_id: '',
-    assignToMe: currentUser.role === UserRole.TECHNICIAN,
     forklift_id: prefilledForkliftId || '',
     hourmeter_reading: '',
   });
@@ -50,10 +52,17 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
   useEffect(() => {
     MockDb.getCustomers().then(setCustomers);
     MockDb.getForklifts().then(setForklifts);
-    if (currentUser.role === UserRole.ADMIN) {
-        MockDb.getTechnicians().then(setTechnicians);
+    if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR) {
+      MockDb.getTechnicians().then(setTechnicians);
     }
   }, [currentUser.role]);
+
+  useEffect(() => {
+    if (!canCreateJobs) {
+      showToast.error('Permission denied', 'Only Admin/Supervisor can create jobs');
+      navigate('/');
+    }
+  }, [canCreateJobs, navigate]);
 
   // Update selected forklift when forklift_id changes
   useEffect(() => {
@@ -76,6 +85,10 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreateJobs) {
+      showToast.error('Permission denied', 'Only Admin/Supervisor can create jobs');
+      return;
+    }
     if (!formData.customer_id) {
       showToast.error('Please select a customer');
       return;
@@ -86,15 +99,11 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
     let assignedName = '';
     let status = JobStatus.NEW;
 
-    if (currentUser.role === UserRole.TECHNICIAN && formData.assignToMe) {
-        assignedId = currentUser.user_id;
-        assignedName = currentUser.name;
-        status = JobStatus.ASSIGNED;
-    } else if (currentUser.role === UserRole.ADMIN && formData.assigned_technician_id) {
-        assignedId = formData.assigned_technician_id;
-        const tech = technicians.find(t => t.user_id === assignedId);
-        assignedName = tech ? tech.name : '';
-        status = JobStatus.ASSIGNED;
+    if ((currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR) && formData.assigned_technician_id) {
+      assignedId = formData.assigned_technician_id;
+      const tech = technicians.find(t => t.user_id === assignedId);
+      assignedName = tech ? tech.name : '';
+      status = JobStatus.ASSIGNED;
     }
 
     // Parse hourmeter reading
@@ -305,24 +314,7 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
                     ))}
                 </select>
             </div>
-            
-             {currentUser.role === UserRole.TECHNICIAN && (
-                <div className="flex items-center pt-8">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                        <div className="relative flex items-center">
-                          <input 
-                              type="checkbox" 
-                              className="peer w-5 h-5 border-2 border-slate-300 rounded text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                              checked={formData.assignToMe}
-                              onChange={e => setFormData({...formData, assignToMe: e.target.checked})}
-                          />
-                        </div>
-                        <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 select-none">Assign to me automatically</span>
-                    </label>
-                </div>
-            )}
-
-            {currentUser.role === UserRole.ADMIN && (
+            {(currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR) && (
                 <div>
                      <Combobox 
                         label="Assign Technician (Optional)"

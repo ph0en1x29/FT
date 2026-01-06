@@ -1,5 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
-import { Job, JobStatus, JobPriority, JobType, Part, User, UserRole, Customer, JobMedia, SignatureEntry, Forklift, ForkliftStatus, ForkliftRental, RentalStatus, Notification, NotificationType, ScheduledService, JobAssignment } from '../types_with_invoice_tracking';
+import {
+  Customer,
+  Forklift,
+  ForkliftRental,
+  ForkliftStatus,
+  Job,
+  JobAssignment,
+  JobMedia,
+  JobPriority,
+  JobStatus,
+  JobType,
+  NotificationType,
+  Part,
+  RentalStatus,
+  ScheduledService,
+  SignatureEntry,
+  User,
+  UserRole,
+} from '../types_with_invoice_tracking';
+import type { Notification } from '../types_with_invoice_tracking';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -411,7 +430,7 @@ export const SupabaseDb = {
     }
 
     // Fetch active helper assignment
-    const { data: helperData } = await supabase
+    const { data: helperData, error: helperError } = await supabase
       .from('job_assignments')
       .select(`
         *,
@@ -420,7 +439,11 @@ export const SupabaseDb = {
       .eq('job_id', jobId)
       .eq('assignment_type', 'assistant')
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
+
+    if (helperError) {
+      console.warn('Failed to fetch helper assignment:', helperError.message);
+    }
 
     const job = data as Job;
     if (helperData) {
@@ -457,16 +480,16 @@ export const SupabaseDb = {
       .select(`
         *,
         customer:customers(*),
-        forklift:forklifts!forklift_id(*),
-        parts_used:job_parts(*),
-        media:job_media(*),
-        extra_charges:extra_charges(*)
+        forklift:forklifts!forklift_id(*)
       `)
       .single();
 
     if (error) throw new Error(error.message);
     
     const job = data as Job;
+    (job as any).parts_used = (job as any).parts_used ?? [];
+    (job as any).media = (job as any).media ?? [];
+    (job as any).extra_charges = (job as any).extra_charges ?? [];
     
     // Notify technician if one was assigned during job creation
     if (jobData.assigned_technician_id) {
@@ -690,7 +713,8 @@ export const SupabaseDb = {
     jobId: string,
     partId: string,
     quantity: number,
-    customPrice?: number
+    customPrice?: number,
+    actorRole?: UserRole
   ): Promise<Job> => {
     const { data: part, error: partError } = await supabase
       .from('parts')
@@ -713,10 +737,18 @@ export const SupabaseDb = {
 
     if (insertError) throw new Error(insertError.message);
 
-    await supabase
-      .from('parts')
-      .update({ stock_quantity: part.stock_quantity - quantity })
-      .eq('part_id', partId);
+    // Stock updates may be restricted by RLS (e.g. accountant/supervisor roles).
+    // If the job_part insert succeeded, keep the UX unblocked and only update stock
+    // when the acting role is allowed to modify inventory.
+    if (actorRole === UserRole.ADMIN || actorRole === UserRole.TECHNICIAN) {
+      const { error: stockError } = await supabase
+        .from('parts')
+        .update({ stock_quantity: part.stock_quantity - quantity })
+        .eq('part_id', partId);
+      if (stockError) {
+        console.warn('Part added, but stock update failed (RLS?):', stockError.message);
+      }
+    }
 
     return SupabaseDb.getJobById(jobId) as Promise<Job>;
   },
@@ -813,14 +845,14 @@ export const SupabaseDb = {
     return SupabaseDb.getJobById(jobId) as Promise<Job>;
   },
 
-  removePartFromJob: async (jobId: string, jobPartId: string): Promise<Job> => {
+  removePartFromJob: async (jobId: string, jobPartId: string, actorRole?: UserRole): Promise<Job> => {
     const { data: jobPart } = await supabase
       .from('job_parts')
       .select('part_id, quantity')
       .eq('job_part_id', jobPartId)
       .single();
 
-    if (jobPart) {
+    if (jobPart && (actorRole === UserRole.ADMIN || actorRole === UserRole.TECHNICIAN)) {
       const { data: part } = await supabase
         .from('parts')
         .select('stock_quantity')
@@ -828,10 +860,13 @@ export const SupabaseDb = {
         .single();
 
       if (part) {
-        await supabase
+        const { error: stockError } = await supabase
           .from('parts')
           .update({ stock_quantity: part.stock_quantity + jobPart.quantity })
           .eq('part_id', jobPart.part_id);
+        if (stockError) {
+          console.warn('Removed part, but stock restore failed (RLS?):', stockError.message);
+        }
       }
     }
 
@@ -1100,7 +1135,7 @@ export const SupabaseDb = {
         assigned_technician_name,
         created_at,
         customer:customers(name),
-        forklift:forklifts(serial_number, make, model)
+        forklift:forklifts!forklift_id(serial_number, make, model)
       `)
       .not('deleted_at', 'is', null)
       .gte('deleted_at', thirtyDaysAgo.toISOString())
@@ -2030,7 +2065,7 @@ export const SupabaseDb = {
         .select(`
           *,
           customer:customers(*),
-          forklift:forklifts(*),
+          forklift:forklifts!forklift_id(*),
           parts_used:job_parts(*),
           media:job_media(*),
           extra_charges:extra_charges(*)
@@ -3349,9 +3384,9 @@ export const SupabaseDb = {
         .eq('job_id', jobId)
         .eq('assignment_type', 'assistant')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+      if (error) {
         console.error('Failed to get active helper:', error.message);
         return null;
       }
@@ -3623,7 +3658,7 @@ export const SupabaseDb = {
         .from('job_requests')
         .select(`
           *,
-          job:jobs(job_id, description, status, forklift:forklifts(serial_number, make, model)),
+          job:jobs(job_id, description, status, forklift:forklifts!forklift_id(serial_number, make, model)),
           requested_by_user:users!job_requests_requested_by_fkey(user_id, name, full_name)
         `)
         .eq('status', 'pending')
@@ -4187,7 +4222,7 @@ export const SupabaseDb = {
           escalation_acknowledged_by, escalation_notes,
           assigned_technician_id, assigned_technician_name,
           customer:customers(name, phone, email),
-          forklift:forklifts(serial_number, model),
+          forklift:forklifts!forklift_id(serial_number, model),
           technician:users!jobs_assigned_technician_id_fkey(phone)
         `)
         .not('escalation_triggered_at', 'is', null)
@@ -4656,7 +4691,7 @@ export const SupabaseDb = {
           job_id, title, status, deferred_reason, 
           customer_notified_at, customer_response_deadline,
           customer:customers(name, email, phone),
-          forklift:forklifts(serial_number, model)
+          forklift:forklifts!forklift_id(serial_number, model)
         `)
         .eq('status', 'Completed Awaiting Acknowledgement')
         .is('deleted_at', null)

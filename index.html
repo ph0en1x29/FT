@@ -4,38 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FieldPro Service App</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Demo-only: Tailwind via CDN. For production, install Tailwind as a PostCSS plugin/CLI and remove this. -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              brand: {
-                50: '#eff6ff',
-                100: '#dbeafe',
-                500: '#3b82f6',
-                600: '#2563eb',
-                700: '#1d4ed8',
-                900: '#1e3a8a',
-              },
-              // Theme-aware colors using CSS variables
-              theme: {
-                bg: 'var(--bg)',
-                surface: 'var(--surface)',
-                'surface-2': 'var(--surface-2)',
-                border: 'var(--border)',
-                text: 'var(--text)',
-                muted: 'var(--muted)',
-              }
-            },
-            boxShadow: {
-              'theme': 'var(--shadow)',
-              'theme-sm': 'var(--shadow-sm)',
-            }
-          }
-        }
-      }
-    </script>
     <style>
       /* ========================================
          SOFT LIGHT THEME (Default)
