@@ -157,7 +157,7 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
 
     setRentProcessing(true);
     try {
-      const forkliftIds = Array.from(selectedForkliftIds);
+      const forkliftIds: string[] = Array.from(selectedForkliftIds);
       
       if (forkliftIds.length === 1) {
         await MockDb.assignForkliftToCustomer(

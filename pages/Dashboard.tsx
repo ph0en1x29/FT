@@ -215,7 +215,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
   const disputedJobs = jobs.filter(j => j.status === JobStatus.DISPUTED);
 
   // Build chart data for ALL statuses with values > 0
-  const dataStatus = Object.entries(statusCounts)
+  const dataStatus = (Object.entries(statusCounts) as [string, number][])
     .filter(([_, count]) => count > 0)
     .map(([status, count]) => ({
       name: STATUS_CONFIG[status]?.label || status.replace(/_/g, ' '),

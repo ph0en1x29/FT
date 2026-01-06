@@ -60,11 +60,13 @@ export async function asyncToast<T>(
     error = 'Something went wrong',
   } = options;
 
-  return toast.promise(promise, {
+  toast.promise(promise, {
     loading,
     success: (data) => typeof success === 'function' ? success(data) : success,
     error: (err) => typeof error === 'function' ? error(err) : `${error}: ${err.message || err}`,
   });
+  
+  return promise;
 }
 
 // Common operation toasts for consistency

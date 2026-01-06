@@ -149,7 +149,7 @@ const getDefaultPhotoCategory = (job: Job | null): MediaCategory => {
   const status = job.status;
   if (status === JobStatus.NEW || status === JobStatus.ASSIGNED) return 'before';
   if (status === JobStatus.IN_PROGRESS) {
-    const startTime = job.actual_start_time ? new Date(job.actual_start_time) : null;
+    const startTime = job.started_at ? new Date(job.started_at) : null;
     if (startTime) {
       const now = new Date();
       const minutesSinceStart = (now.getTime() - startTime.getTime()) / (1000 * 60);
@@ -559,8 +559,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
           },
           currentUserId,
           currentUserName,
-          isCurrentUserHelper,
-          helperAssignmentId || undefined
+          isCurrentUserHelper
         );
         setJob({ ...updated } as Job);
         const categoryLabel = PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other';

@@ -1206,7 +1206,7 @@ function LeavesTab({
     }
   };
 
-  const LeaveCard = ({ leave }: { leave: EmployeeLeave }) => {
+  const LeaveCard: React.FC<{ leave: EmployeeLeave }> = ({ leave }) => {
     const isUpcoming = new Date(leave.start_date) > today;
     const isCurrent = new Date(leave.start_date) <= today && new Date(leave.end_date) >= today;
     

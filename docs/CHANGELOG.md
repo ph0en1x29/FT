@@ -85,6 +85,16 @@ All notable changes, decisions, and client requirements for this project.
 - ✔️ **Favicon for web + notifications** - Added `public/favicon.svg`, linked from `index.html`, and used for browser notifications (`utils/useRealtimeNotifications.ts`)
 - ⚠️ **Tailwind note** - Tailwind utilities are currently loaded via `cdn.tailwindcss.com` in `index.html` for demo reliability; move to compiled Tailwind when ready to ship
 
+### TypeScript Fixes (2026-01-06) - Type Safety (author: Claude)
+- ✔️ **Added JobStatus.CANCELLED** - Missing enum value added to `types_with_invoice_tracking.ts`
+- ✔️ **Fixed actual_start_time → started_at** - `JobDetail.tsx` was referencing non-existent field
+- ✔️ **Fixed addMedia signature** - Removed extra `helperAssignmentId` argument from call
+- ✔️ **Fixed forklift ID types** - Explicit `string[]` typing for `Array.from()` in `CustomerProfile.tsx`
+- ✔️ **Fixed Object.entries typing** - Cast to `[string, number][]` in `Dashboard.tsx`
+- ✔️ **Fixed LeaveCard props** - Used `React.FC<>` type for component in `EmployeeProfile.tsx`
+- ✔️ **Fixed employee → user** - `hrService.ts` was accessing wrong relation field
+- ✔️ **Fixed asyncToast return** - Return original promise instead of toast result in `toastService.ts`
+
 ### Performance Improvements (2026-01-06) - Bundle Optimization (author: Claude)
 - ✔️ **Route-level lazy loading** - All pages now use `React.lazy()` with Suspense, reducing initial bundle from ~1.5MB to ~290KB
 - ✔️ **Vendor chunking** - Split into vendor-react (49KB), vendor-supabase (171KB), vendor-charts (359KB), vendor-ui (75KB)

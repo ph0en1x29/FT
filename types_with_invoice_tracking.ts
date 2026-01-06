@@ -11,6 +11,7 @@ export enum JobStatus {
   IN_PROGRESS = 'In Progress',
   AWAITING_FINALIZATION = 'Awaiting Finalization',
   COMPLETED = 'Completed',
+  CANCELLED = 'Cancelled',
   // Multi-day & Deferred Acknowledgement statuses (ACWER #7, #8)
   COMPLETED_AWAITING_ACK = 'Completed Awaiting Acknowledgement',
   INCOMPLETE_CONTINUING = 'Incomplete - Continuing',

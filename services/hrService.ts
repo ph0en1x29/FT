@@ -549,8 +549,8 @@ export const HRService = {
         (u) => (u.role === UserRole.SUPERVISOR || u.role === UserRole.ADMIN) && u.is_active
       );
       
-      const employeeName = (leaveRequest.employee as any)?.full_name || 'An employee';
-      const leaveTypeName = (leaveRequest.leave_type as any)?.name || 'Leave';
+      const employeeName = leaveRequest.user?.name || 'An employee';
+      const leaveTypeName = leaveRequest.leave_type?.name || 'Leave';
       const startDate = new Date(leaveRequest.start_date).toLocaleDateString();
       const endDate = new Date(leaveRequest.end_date).toLocaleDateString();
       const dateRange = leaveRequest.start_date === leaveRequest.end_date 
