@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { supabase } from '../services/supabaseService';
-import { Notification, User } from '../types_with_invoice_tracking';
+import type { Notification as AppNotification, User } from '../types_with_invoice_tracking';
 import { showToast } from '../services/toastService';
 
 // Notification sound - a short pleasant chime
@@ -74,7 +74,7 @@ export const showBrowserNotification = (title: string, body: string, onClick?: (
 };
 
 interface UseRealtimeNotificationsOptions {
-  onNewNotification?: (notification: Notification) => void;
+  onNewNotification?: (notification: AppNotification) => void;
   onJobUpdate?: (job: any) => void;
   onRequestUpdate?: (request: any) => void;
   playSound?: boolean;
@@ -93,7 +93,7 @@ export const useRealtimeNotifications = (
     showBrowserNotifications = true,
   } = options;
   
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const channelRef = useRef<any>(null);
@@ -117,7 +117,7 @@ export const useRealtimeNotifications = (
   
   // Handle new notification
   const handleNewNotification = useCallback((payload: any) => {
-    const newNotification = payload.new as Notification;
+    const newNotification = payload.new as AppNotification;
     
     // Update state
     setNotifications(prev => [newNotification, ...prev].slice(0, 50));
@@ -142,35 +142,17 @@ export const useRealtimeNotifications = (
     onNewNotification?.(newNotification);
   }, [playSound, showBrowserNotifications, onNewNotification]);
   
-  // Handle job updates (for real-time job appearance)
+  // Handle job updates (for real-time UI refresh; user-facing alerts come from `notifications` table)
   const handleJobUpdate = useCallback((payload: any) => {
     const job = payload.new;
-    
-    // If job was just assigned to current user
-    if (job.assigned_technician_id === currentUser?.user_id && payload.old?.assigned_technician_id !== job.assigned_technician_id) {
-      if (playSound) playNotificationSound();
-      showToast.info('New Job Assigned', `Job: ${job.title}`);
-    }
-    
     onJobUpdate?.(job);
-  }, [currentUser, playSound, onJobUpdate]);
+  }, [onJobUpdate]);
   
-  // Handle request updates (for admin approval responses)
+  // Handle request updates (for real-time UI refresh; user-facing alerts come from `notifications` table)
   const handleRequestUpdate = useCallback((payload: any) => {
     const request = payload.new;
-    
-    if (request.status !== payload.old?.status) {
-      if (playSound) playNotificationSound();
-      
-      if (request.status === 'approved') {
-        showToast.success('Request Approved', request.admin_notes || 'Your request has been approved');
-      } else if (request.status === 'rejected') {
-        showToast.error('Request Rejected', request.admin_notes || 'Your request has been rejected');
-      }
-    }
-    
     onRequestUpdate?.(request);
-  }, [playSound, onRequestUpdate]);
+  }, [onRequestUpdate]);
   
   // Setup realtime subscriptions
   useEffect(() => {
@@ -217,7 +199,7 @@ export const useRealtimeNotifications = (
       );
     }
     
-    // Subscribe to job_requests for admins (new requests)
+    // Subscribe to job_requests for admins (new requests) - for UI refresh only
     if (currentUser.role === 'admin' || currentUser.role === 'supervisor') {
       channel.on(
         'postgres_changes',
@@ -227,9 +209,7 @@ export const useRealtimeNotifications = (
           table: 'job_requests',
         },
         (payload) => {
-          if (playSound) playNotificationSound();
           const request = payload.new as any;
-          showToast.warning('New Request', `${request.request_type} request from technician`);
           onRequestUpdate?.(request);
         }
       );
@@ -268,7 +248,7 @@ export const useRealtimeNotifications = (
           .limit(50);
         
         if (!error && data) {
-          setNotifications(data as Notification[]);
+          setNotifications(data as AppNotification[]);
           setUnreadCount(data.filter((n: any) => !n.is_read).length);
         }
       } catch (e) {
@@ -318,7 +298,7 @@ export const useRealtimeNotifications = (
       .limit(50);
     
     if (data) {
-      setNotifications(data as Notification[]);
+      setNotifications(data as AppNotification[]);
       setUnreadCount(data.filter((n: any) => !n.is_read).length);
     }
   }, [currentUser?.user_id]);

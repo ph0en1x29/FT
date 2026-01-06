@@ -65,6 +65,12 @@ All notable changes, decisions, and client requirements for this project.
    - `REQUEST_APPROVED`, `REQUEST_REJECTED`, `JOB_REASSIGNED`
    - Updated NotificationPanel & NotificationBell with new icons
 
+#### Bug Fixes:
+- ✔️ Fixed login/runtime crash caused by importing `Notification` as a runtime export (type-only) and shadowing the browser `Notification` API
+  - `utils/useRealtimeNotifications.ts`: switched to `import type { Notification as AppNotification }` and updated all usages
+- ✔️ Prevented duplicate sound/toast alerts by treating `jobs`/`job_requests` realtime subscriptions as UI refresh only
+  - User-facing alerts now come from the `notifications` table subscription (single source of truth)
+
 ### Customer Feedback Report (2026-01-05)
 - **Source:** ACWER User Testing
 - **Status:** ✅ Implemented (see above)
