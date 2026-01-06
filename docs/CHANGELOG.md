@@ -27,6 +27,38 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### UI/UX: Sidebar Consolidation (2026-01-07)
+- **Updated:** 2026-01-07 (author: Claude)
+- **Status:** ✅ Implemented
+
+#### Changes Made:
+1. **New Tabbed Pages**
+   - `ForkliftsTabs.tsx`: Combines Fleet list + Service Intervals + Service Due into one page with tabs
+   - `People.tsx`: Combines Users + Employees + Leave management into one page with tabs
+
+2. **Sidebar Simplification**
+   - Reduced from nested collapsible sections to flat 6-8 top-level items
+   - Removed bullet points and heavy visual boxing
+   - Cleaner, workflow-oriented navigation:
+     - Dashboard, Jobs, Forklifts, Customers, Inventory
+     - Service Records, Invoices (with divider)
+     - Reports, People (with divider)
+     - My Leave, My Profile, Sign Out (footer)
+
+3. **Route Updates**
+   - `/forklifts` now uses tabbed page (Fleet | Service Intervals | Service Due)
+   - `/people` now uses tabbed page (Users | Employees | Leave)
+   - `/reports` now points to Technician KPI page
+   - Legacy routes redirect: `/users` → `/people?tab=users`, `/hr` → `/people?tab=employees`, etc.
+
+4. **Design Improvements**
+   - Narrower sidebar width (260px → 240px)
+   - More compact header/logo section
+   - Subtle dividers instead of collapsible sections
+   - Tab-based navigation inside pages for related features
+
+---
+
 ### Stability & Error-Handling Hardening (2026-01-07)
 - **Updated:** 2026-01-07 (author: Codex)
 - **Status:** ✅ Implemented
