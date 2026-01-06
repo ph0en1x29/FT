@@ -132,6 +132,7 @@ All notable changes, decisions, and client requirements for this project.
   - Action Required header: added `bg-[var(--bg-subtle)]` tint for visual anchor
   - Recent Jobs: row-card hover states + clearer separation (without heavy boxing)
   - Service Automation inner tiles: already have light tint via `bg-[var(--bg-subtle)]`
+- ✔️ **Notifications hierarchy fix** - Removed duplicate `NotificationPanel` render and kept notifications compact in the rightmost column (prevents notifications from dominating the dashboard)
 
 ### Job Detail Premium UI Polish (2026-01-05)
 - **Updated:** 2026-01-05 15:09:41 CST (author: Codex)

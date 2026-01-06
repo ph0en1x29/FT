@@ -361,20 +361,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
         </div>
       </div>
 
-      {/* Row 2: Notifications Panel (Customer Feedback: Show on Dashboard, not just bell icon) */}
-      {notifications.length > 0 && (
-        <NotificationPanel
-          notifications={notifications}
-          unreadCount={unreadCount}
-          isConnected={isConnected}
-          onMarkRead={markAsRead}
-          onMarkAllRead={markAllAsRead}
-          currentUser={currentUser}
-          maxItems={5}
-        />
-      )}
-
-      {/* Row 3: Action Required Queue (Combined) */}
+      {/* Row 2: Action Required Queue (Combined) */}
       {(isAdmin || isSupervisor) && totalActionItems > 0 && (
         <div id="action-queue" className="card-premium overflow-hidden">
           {/* Header - tinted for visual anchor */}
@@ -689,19 +676,8 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
         </div>
       </div>
 
-      {/* Row 4: Notifications, Service Automation & Recent Jobs */}
+      {/* Row 4: Service Automation, Recent Jobs & Notifications */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Notifications Panel - Customer Feedback: Show on dashboard */}
-        <NotificationPanel
-          notifications={notifications}
-          unreadCount={unreadCount}
-          isConnected={isConnected}
-          onMarkRead={markAsRead}
-          onMarkAllRead={markAllAsRead}
-          currentUser={currentUser}
-          maxItems={5}
-        />
-
         {/* Service Automation Widget */}
         {(role === UserRole.ADMIN || role === UserRole.SUPERVISOR) && (
           <ServiceAutomationWidget onViewAll={() => navigate('/service-due')} />
@@ -790,6 +766,17 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
             )}
           </div>
         </div>
+
+        {/* Notifications Panel - Customer Feedback: Show on dashboard (kept compact & rightmost) */}
+        <NotificationPanel
+          notifications={notifications}
+          unreadCount={unreadCount}
+          isConnected={isConnected}
+          onMarkRead={markAsRead}
+          onMarkAllRead={markAllAsRead}
+          currentUser={currentUser}
+          maxItems={5}
+        />
       </div>
     </div>
   );
