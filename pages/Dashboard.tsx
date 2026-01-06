@@ -714,105 +714,111 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
       </div>
 
       {/* Row 4: Service Automation, Recent Jobs & Notifications */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Service Automation Widget */}
         {showServiceAutomation && (
-          <div className="lg:col-span-4 lg:h-[560px]">
+          <div className="lg:col-span-4 lg:h-[480px]">
             <ServiceAutomationWidget onViewAll={() => navigate('/service-due')} />
           </div>
         )}
 
-        {/* Recent Jobs - FIX: Now uses STATUS_CONFIG for all statuses */}
-        <div className={`${showServiceAutomation ? 'lg:col-span-4' : 'lg:col-span-6'} lg:h-[560px]`}>
-          <div className="card-premium p-6 flex flex-col h-full">
-            <div className="flex items-center justify-between pb-4 border-b border-[var(--border-subtle)]">
-            <div>
-              <h3 className="font-semibold text-[var(--text)]">Recent Jobs</h3>
-              <p className="text-xs mt-0.5 text-[var(--text-muted)]">Latest activity</p>
-            </div>
-          </div>
-          
-          {/* Recent Jobs List (Row-card style; no inner scrollbar) */}
-            <div className="mt-4 flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
-            {jobs.slice(0, 20).map((job) => {
-              const chipStyle = getStatusChip(job.status);
-              const statusColor = CHART_COLORS[job.status] || 'var(--border-strong)';
-              const safeTitle = (job.title || '').trim() || '(Untitled job)';
-
-              return (
-                <div
-                  key={job.job_id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => navigate(`/jobs/${job.job_id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      navigate(`/jobs/${job.job_id}`);
-                    }
-                  }}
-                  className="group flex items-center gap-3 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] cursor-pointer transition-all hover:bg-[var(--surface-2)] hover:border-[var(--border-strong)] active:scale-[0.99]"
-                >
-                  {/* Status color rail */}
-                  <div
-                    className="w-1.5 self-stretch rounded-full"
-                    style={{ background: statusColor }}
-                    aria-hidden="true"
-                  />
-
-                  {/* Main text */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">
-                      {safeTitle}
-                    </p>
-                    <p className="text-xs mt-0.5 text-[var(--text-muted)]">
-                      {job.customer ? (
-                        <span>{job.customer.name}</span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[var(--warning)]">
-                          <AlertTriangle className="w-3 h-3" /> No Customer
-                        </span>
-                      )}
-                      <span className="mx-1.5">•</span>
-                      {new Date(job.created_at).toLocaleDateString()}
-                    </p>
+        {/* Recent Jobs - Redesigned */}
+        <div className={`${showServiceAutomation ? 'lg:col-span-4' : 'lg:col-span-6'} lg:h-[480px]`}>
+          <div className="card-premium flex flex-col h-full overflow-hidden">
+            {/* Header */}
+            <div className="p-4 pb-3 border-b border-[var(--border-subtle)]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600">
+                    <Briefcase className="w-4 h-4 text-white" />
                   </div>
-
-                  {/* Status + chevron */}
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap border border-[var(--border-subtle)]"
-                      style={chipStyle}
-                    >
-                      {STATUS_CONFIG[job.status]?.label || job.status.replace(/_/g, ' ')}
-                    </span>
-                    <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] group-hover:text-[var(--accent)] transition-colors" />
+                  <div>
+                    <h3 className="font-semibold text-[var(--text)] text-sm">Recent Jobs</h3>
+                    <p className="text-[10px] text-[var(--text-muted)]">{jobs.length} total jobs</p>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            </div>
+          
+            {/* Jobs List */}
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              {jobs.length > 0 ? (
+                <div className="divide-y divide-[var(--border-subtle)]">
+                  {jobs.slice(0, 15).map((job) => {
+                    const statusColor = CHART_COLORS[job.status] || 'var(--border-strong)';
+                    const safeTitle = (job.title || '').trim() || '(Untitled)';
 
-            {jobs.length === 0 && (
-              <div className="text-center py-10 text-[var(--text-muted)]">
-                <Briefcase className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                <p>No jobs found</p>
+                    return (
+                      <div
+                        key={job.job_id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => navigate(`/jobs/${job.job_id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            navigate(`/jobs/${job.job_id}`);
+                          }
+                        }}
+                        className="flex items-center gap-3 p-3 cursor-pointer transition-all hover:bg-[var(--bg-subtle)] group"
+                      >
+                        {/* Status indicator */}
+                        <div
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ background: statusColor }}
+                        />
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">
+                            {safeTitle}
+                          </p>
+                          <p className="text-[10px] text-[var(--text-muted)] truncate mt-0.5">
+                            {job.customer?.name || 'No customer'}
+                          </p>
+                        </div>
+
+                        {/* Status badge */}
+                        <span
+                          className="text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap flex-shrink-0"
+                          style={{ 
+                            background: `${statusColor}15`,
+                            color: statusColor 
+                          }}
+                        >
+                          {STATUS_CONFIG[job.status]?.label || job.status.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full py-10 text-center">
+                  <div className="w-12 h-12 rounded-full bg-[var(--bg-subtle)] flex items-center justify-center mb-3">
+                    <Briefcase className="w-6 h-6 text-[var(--text-muted)] opacity-50" />
+                  </div>
+                  <p className="text-sm font-medium text-[var(--text)]">No jobs yet</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">Create your first job to get started</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {jobs.length > 0 && (
+              <div className="p-3 border-t border-[var(--border-subtle)]">
+                <button 
+                  onClick={() => navigate('/jobs')}
+                  className="w-full text-xs text-[var(--accent)] hover:opacity-80 transition-opacity"
+                >
+                  View all {jobs.length} jobs →
+                </button>
               </div>
             )}
           </div>
-
-            <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] flex justify-end">
-              <button 
-                onClick={() => navigate('/jobs')}
-                className="btn-premium btn-premium-ghost text-xs"
-              >
-                View all <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
         </div>
 
-        {/* Notifications Panel - Customer Feedback: Show on dashboard (kept compact & rightmost) */}
-        <div className={`${showServiceAutomation ? 'lg:col-span-4' : 'lg:col-span-6'} lg:h-[560px]`}>
+        {/* Notifications Panel */}
+        <div className={`${showServiceAutomation ? 'lg:col-span-4' : 'lg:col-span-6'} lg:h-[480px]`}>
           <NotificationPanel
             notifications={notifications}
             unreadCount={unreadCount}
@@ -820,7 +826,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
             onMarkRead={markAsRead}
             onMarkAllRead={markAllAsRead}
             currentUser={currentUser}
-            maxItems={20}
+            maxItems={15}
           />
         </div>
       </div>

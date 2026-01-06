@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SupabaseDb } from '../services/supabaseService';
-import { Calendar, AlertTriangle, CheckCircle, Clock, Settings, Play, ChevronRight } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Settings, Play, ArrowRight, Zap } from 'lucide-react';
 
 interface ServiceStats {
   totalActive: number;
@@ -48,10 +48,10 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
     
     try {
       const result = await SupabaseDb.runDailyServiceCheck();
-      setLastResult(`✅ Created ${result.jobs_created} jobs, ${result.notifications_created} notifications`);
+      setLastResult(`Created ${result.jobs_created} jobs, ${result.notifications_created} notifications`);
       await loadStats();
     } catch (e: any) {
-      setLastResult(`❌ Error: ${e.message}`);
+      setLastResult(`Error: ${e.message}`);
     } finally {
       setRunning(false);
     }
@@ -59,93 +59,126 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
 
   if (loading) {
     return (
-      <div className="card-premium p-6 animate-pulse h-full flex flex-col">
-        <div className="h-6 rounded w-48 mb-4 bg-[var(--bg-subtle)]"></div>
-        <div className="h-20 rounded bg-[var(--bg-subtle)]"></div>
-        <div className="mt-auto h-10 rounded bg-[var(--bg-subtle)]"></div>
+      <div className="card-premium p-5 animate-pulse h-full flex flex-col">
+        <div className="h-5 rounded w-40 mb-4 bg-[var(--bg-subtle)]"></div>
+        <div className="flex-1 rounded bg-[var(--bg-subtle)]"></div>
       </div>
     );
   }
 
+  const totalIssues = (stats?.overdue || 0) + (stats?.dueSoon || 0);
+
   return (
-    <div className="card-premium p-6 flex flex-col h-full">
+    <div className="card-premium flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--accent-subtle)]">
-            <Settings className="w-4 h-4 text-[var(--accent)]" />
+      <div className="p-4 pb-3 border-b border-[var(--border-subtle)]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-[var(--accent)] to-[var(--accent-hover)]">
+              <Settings className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-[var(--text)] text-sm">Service Automation</h3>
+              <p className="text-[10px] text-[var(--text-muted)]">Daily at 8:00 AM</p>
+            </div>
           </div>
-          <h3 className="font-semibold text-[var(--text)]">Service Automation</h3>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-          <Clock className="w-3 h-3" />
-          <span>Runs daily at 8:00 AM</span>
+          {totalIssues > 0 && (
+            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--warning-bg)] text-[var(--warning)]">
+              {totalIssues} pending
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="flex-1">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-3">
-          <div 
-            onClick={() => navigate('/service-due?filter=overdue')}
-            className="rounded-xl p-3 text-center cursor-pointer transition-all hover:shadow-md bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--error)]"
-          >
-            <div className="text-2xl font-bold text-[var(--error)]">{stats?.overdue || 0}</div>
-            <div className="text-xs flex items-center justify-center gap-1 text-[var(--text-muted)]">
-              <AlertTriangle className="w-3 h-3" />
-              Overdue
+      {/* Stats */}
+      <div className="flex-1 p-4 flex flex-col gap-3">
+        {/* Stat Items */}
+        <div 
+          onClick={() => navigate('/service-due?filter=overdue')}
+          className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--error)] hover:shadow-sm group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-red-50 dark:bg-red-500/10">
+              <AlertTriangle className="w-4 h-4 text-[var(--error)]" />
+            </div>
+            <div>
+              <p className="text-xs text-[var(--text-muted)]">Overdue</p>
+              <p className="text-lg font-bold text-[var(--error)]">{stats?.overdue || 0}</p>
             </div>
           </div>
-          <div 
-            onClick={() => navigate('/service-due?filter=due_soon')}
-            className="rounded-xl p-3 text-center cursor-pointer transition-all hover:shadow-md bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--warning)]"
-          >
-            <div className="text-2xl font-bold text-[var(--warning)]">{stats?.dueSoon || 0}</div>
-            <div className="text-xs flex items-center justify-center gap-1 text-[var(--text-muted)]">
-              <Calendar className="w-3 h-3" />
-              Due Soon
+          <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+
+        <div 
+          onClick={() => navigate('/service-due?filter=due_soon')}
+          className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--warning)] hover:shadow-sm group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-50 dark:bg-amber-500/10">
+              <Clock className="w-4 h-4 text-[var(--warning)]" />
+            </div>
+            <div>
+              <p className="text-xs text-[var(--text-muted)]">Due Soon</p>
+              <p className="text-lg font-bold text-[var(--warning)]">{stats?.dueSoon || 0}</p>
             </div>
           </div>
-          <div 
-            onClick={() => navigate('/service-due?filter=job_created')}
-            className="rounded-xl p-3 text-center cursor-pointer transition-all hover:shadow-md bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--success)]"
-          >
-            <div className="text-2xl font-bold text-[var(--success)]">{stats?.withOpenJobs || 0}</div>
-            <div className="text-xs flex items-center justify-center gap-1 text-[var(--text-muted)]">
-              <CheckCircle className="w-3 h-3" />
-              Jobs Created
+          <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+
+        <div 
+          onClick={() => navigate('/service-due?filter=job_created')}
+          className="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--success)] hover:shadow-sm group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-green-50 dark:bg-green-500/10">
+              <CheckCircle className="w-4 h-4 text-[var(--success)]" />
+            </div>
+            <div>
+              <p className="text-xs text-[var(--text-muted)]">Jobs Created</p>
+              <p className="text-lg font-bold text-[var(--success)]">{stats?.withOpenJobs || 0}</p>
             </div>
           </div>
+          <ArrowRight className="w-4 h-4 text-[var(--text-subtle)] opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
 
         {/* Last Result */}
         {lastResult && (
-          <div className={`text-sm p-3 rounded-xl mt-4 ${
-            lastResult.startsWith('✅') 
+          <div className={`text-xs p-2.5 rounded-lg flex items-center gap-2 ${
+            !lastResult.startsWith('Error') 
               ? 'bg-[var(--success-bg)] text-[var(--success)]' 
               : 'bg-[var(--error-bg)] text-[var(--error)]'
           }`}>
+            {!lastResult.startsWith('Error') ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
             {lastResult}
           </div>
         )}
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 mt-4 pt-4 border-t border-[var(--border-subtle)]">
+      <div className="p-4 pt-0 mt-auto">
         <button
           onClick={runDailyCheck}
           disabled={running}
-          className="btn-premium btn-premium-primary flex-1 disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all disabled:opacity-50 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] text-white hover:shadow-md hover:shadow-[var(--accent)]/20"
         >
-          <Play className="w-4 h-4" />
-          {running ? 'Running...' : 'Run Check Now'}
+          {running ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Running...
+            </>
+          ) : (
+            <>
+              <Zap className="w-4 h-4" />
+              Run Check Now
+            </>
+          )}
         </button>
         {onViewAll && (
           <button
             onClick={onViewAll}
-            className="btn-premium btn-premium-secondary"
+            className="w-full mt-2 text-xs text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
           >
-            View Details
+            View all service details →
           </button>
         )}
       </div>

@@ -85,6 +85,12 @@ All notable changes, decisions, and client requirements for this project.
 - ✔️ **Favicon for web + notifications** - Added `public/favicon.svg`, linked from `index.html`, and used for browser notifications (`utils/useRealtimeNotifications.ts`)
 - ⚠️ **Tailwind note** - Tailwind utilities are currently loaded via `cdn.tailwindcss.com` in `index.html` for demo reliability; move to compiled Tailwind when ready to ship
 
+### UI Improvements (2026-01-06) - Dashboard 3-Panel Redesign (author: Claude)
+- ✔️ **Service Automation Widget** - Cleaner layout with gradient header icon, row-based stats with hover arrows, improved button styling
+- ✔️ **Recent Jobs Panel** - Compact list view with status dots, hover states, cleaner typography, gradient header icon
+- ✔️ **Notifications Panel** - Icon backgrounds by type, compact items with dividers, smaller timestamps, unread dot indicator
+- ✔️ **Consistent Design Language** - All 3 panels now share: header structure with gradient icons, divide-y lists, footer with "View all" links, 480px fixed height
+
 ### Bugfixes (2026-01-06) - Dashboard Stability (author: Claude)
 - ✔️ **Null safety for parts_used** - Dashboard revenue calculations now handle null/undefined `parts_used` arrays
 - ✔️ **Better debug logging** - `loadDashboardData` now logs user info and job count for debugging
