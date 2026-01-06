@@ -127,7 +127,7 @@ All notable changes, decisions, and client requirements for this project.
 - ✔️ **Surface hierarchy tuning** - Adjusted `--bg`, `--bg-subtle`, and border tokens in `index.css` so cards “lift” off the page (less white-on-white)
 - ✔️ **Chart empty states** - Job Status + Revenue Trend cards collapse to compact empty states when there’s no data (no giant blank slabs)
 - ✔️ **Recent Jobs scanability** - Switched to row-card list (status rail + chevron + keyboard support) and removed inner-scroll “table” feel
-- ✔️ **Service Automation spacing fix** - Dashboard row uses `items-start` so the widget doesn’t stretch to match the adjacent card height
+- ✔️ **Service Automation layout** - Widget uses a fixed-height layout with pinned action footer (prevents awkward blank space and keeps the row balanced)
 - ✔️ **Contrast improvements**:
   - Action Required header: added `bg-[var(--bg-subtle)]` tint for visual anchor
   - Recent Jobs: row-card hover states + clearer separation (without heavy boxing)
