@@ -88,6 +88,8 @@ All notable changes, decisions, and client requirements for this project.
 ### Bugfixes (2026-01-06) - Dashboard Stability (author: Claude)
 - ✔️ **Null safety for parts_used** - Dashboard revenue calculations now handle null/undefined `parts_used` arrays
 - ✔️ **Better debug logging** - `loadDashboardData` now logs user info and job count for debugging
+- ✔️ **Fixed realtime subscription loop** - `useRealtimeNotifications` was re-subscribing on every render due to callback dependencies; now uses refs for callbacks
+- ✔️ **Fixed chart dimension errors** - Changed chart containers from Tailwind classes to inline styles with explicit pixel dimensions to prevent Recharts width/height -1 errors
 
 ### Bugfixes (2026-01-06) - Realtime + Embed Disambiguation (author: Codex)
 - ✔️ **Realtime notification import** - `utils/useRealtimeNotifications.ts` now inlines `AppNotification` type to avoid runtime import error

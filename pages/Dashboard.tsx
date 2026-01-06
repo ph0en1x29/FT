@@ -592,9 +592,9 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
             <h3 className="font-semibold text-[var(--text)]">Job Status</h3>
             <p className="text-xs mt-0.5 text-[var(--text-muted)]">Current distribution</p>
           </div>
-          <div className={dataStatus.length > 0 ? "h-64 min-h-[256px] w-full" : "h-44 min-h-[176px] w-full"}>
+          <div style={{ width: '100%', height: dataStatus.length > 0 ? 256 : 176, minHeight: dataStatus.length > 0 ? 256 : 176 }}>
             {dataStatus.length > 0 ? (
-              <ResponsiveContainer width="100%" height={256}>
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={dataStatus}
@@ -657,7 +657,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
               <span className="font-medium">Active</span>
             </div>
           </div>
-          <div className={hasRevenueData ? "h-64 min-h-[256px] w-full" : "h-44 min-h-[176px] w-full"}>
+          <div style={{ width: '100%', height: hasRevenueData ? 256 : 176, minHeight: hasRevenueData ? 256 : 176 }}>
             {hasRevenueData ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={dataRevenue}>

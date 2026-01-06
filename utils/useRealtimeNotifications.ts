@@ -3,20 +3,20 @@ import { supabase } from '../services/supabaseService';
 import type { User } from '../types_with_invoice_tracking';
 import { showToast } from '../services/toastService';
 
-type AppNotification = {
+// Inline notification type to avoid import issues
+interface AppNotification {
   notification_id: string;
   user_id: string;
   type: string;
   title: string;
   message: string;
-  reference_type?: string | null;
-  reference_id?: string | null;
-  is_read?: boolean | null;
-  priority?: 'low' | 'normal' | 'high' | 'urgent' | string;
-  created_at?: string | null;
-  read_at?: string | null;
-  expires_at?: string | null;
-};
+  reference_type?: string;
+  reference_id?: string;
+  is_read: boolean;
+  priority: string;
+  created_at: string;
+  read_at?: string;
+}
 
 // Notification sound - a short pleasant chime
 const NOTIFICATION_SOUND_URL = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQESdaTF3rJ3IwVOqtXkv4M3En6/3OO0eTkWa6/d5beBKwlgud7ot38tDFu33+i3fy0PWsDj6bV9LA5fvOPqtX0tD1697Oq1fSwSYb/l67N6Kw5iwejqs3orEGTC6uuzeSoPY8ft67N4KRBlyO7rsngpEGjL8+uydSgRac316rJ1KBBr0PjssnQnEG3T/O2ycycPb9b/7rJzJg9y2gHvsnImD3XdA++ycSYPeOAF77FxJg964gfvsXAmD3zlCe+wcCYPf+kL8K9vJg+A7A3wr28mD4LuD/CubiYPhe4R8K5uJRCH7xPxrm0lD4jxFfGtbCUQivIX8a1sJQ+L9Bnxq2slD43zG/GrbCUQjvUd8qprJBCQ9h/yqWokEJH4IfKpaiQQk/kj86hpJBCV+yXzqGkkEJb8J/SnaRMXmP0p9KZoFBiZ/yv1pWcTGJsALfWkZxQZnAIv9qRmFBqdBC/2o2YTGp4FMfajZRMaoAYy96JlExuhCDP3oWQTG6IJNP+hYxIcoQo1/6FjExyiDDb/oGISHaMNOP+fYRIdow45/59hER6kDzr/nmESHqQQO/+dYBIepRA8/51fER+mET3/nF8RH6YRP/+bXxEgpxI//5pfEiGnEz7/ml4SIagUPv+ZXhIhqBQ//5hdESKoFT//mF0RIqkVPv+XXRIjqRY+/5ZcEiOpFz//llsSJKoXPv+VWxIkqhg//5RbEiWqGD7/lFoSJasYPv+UWhImqxk+/5NZEiarGj7/k1kSJqwaP/+SWRInrBo+/5JYEierGz7/klgSKKwbP/+RWBIorBs+/5FYEimtHD7/kVcTKq0cP/+RVxIqrRw+/5BXEiqtHD7/kFYTK64dPv+QVhMrrh4//49WEyyuHj7/j1YTK64ePv+PVRMsrh4+/49VEyyvHj//jlUTLK8ePv+OVBMtrx4+/45UEy2vHj7/jVQULrAePv+NUxQusB4+/41TFC6wHj7/jFMUL7AeP/+MUxQvsR4+/4xSFC+xHj7/jFIUMLEePv+LUhUwsR4+/4tRFTGxHj7/i1EVMbIeP/+KURUxsh4+/4pQFTKyHj7/ilAVM7IeP/+JUBUzsh4+/4lPFTSzHj//iU8WNLMePv+JTxY0sx4+/4hPFjW0Hj7/iE4WNbQePv+IThY2tB4//4dOFza0Hj7/h04XNrUePv+HThc3tR4+/4ZNFze1Hj7/hk0XOLYeP/+FTRY4th4+/4VNFji2Hj7/hEwXObYePv+ETBY5tx4+/4RMFzq3Hj//g0sYOrcePv+DSxg6uB4+/4NLGDq4Hj7/gksYO7gePv+CSRg7uB4+';
@@ -112,6 +112,19 @@ export const useRealtimeNotifications = (
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
+  
+  // Use refs for callbacks to avoid re-subscription on callback changes
+  const onNewNotificationRef = useRef(onNewNotification);
+  const onJobUpdateRef = useRef(onJobUpdate);
+  const onRequestUpdateRef = useRef(onRequestUpdate);
+  
+  // Update refs when callbacks change
+  useEffect(() => {
+    onNewNotificationRef.current = onNewNotification;
+    onJobUpdateRef.current = onJobUpdate;
+    onRequestUpdateRef.current = onRequestUpdate;
+  }, [onNewNotification, onJobUpdate, onRequestUpdate]);
   
   // Initialize audio on first user interaction
   useEffect(() => {
@@ -130,51 +143,17 @@ export const useRealtimeNotifications = (
     }
   }, [showBrowserNotifications]);
   
-  // Handle new notification
-  const handleNewNotification = useCallback((payload: any) => {
-    const newNotification = payload.new as AppNotification;
-    
-    // Update state
-    setNotifications(prev => [newNotification, ...prev].slice(0, 50));
-    setUnreadCount(prev => prev + 1);
-    
-    // Play sound
-    if (playSound) {
-      playNotificationSound();
-    }
-    
-    // Show browser notification
-    if (showBrowserNotifications) {
-      showBrowserNotification(newNotification.title, newNotification.message);
-    }
-    
-    // Show toast
-    const toastType = newNotification.priority === 'urgent' ? 'error' : 
-                      newNotification.priority === 'high' ? 'warning' : 'info';
-    showToast[toastType](newNotification.title, newNotification.message);
-    
-    // Callback
-    onNewNotification?.(newNotification);
-  }, [playSound, showBrowserNotifications, onNewNotification]);
-  
-  // Handle job updates (for real-time UI refresh; user-facing alerts come from `notifications` table)
-  const handleJobUpdate = useCallback((payload: any) => {
-    const job = payload.new;
-    onJobUpdate?.(job);
-  }, [onJobUpdate]);
-  
-  // Handle request updates (for real-time UI refresh; user-facing alerts come from `notifications` table)
-  const handleRequestUpdate = useCallback((payload: any) => {
-    const request = payload.new;
-    onRequestUpdate?.(request);
-  }, [onRequestUpdate]);
-  
-  // Setup realtime subscriptions
+  // Setup realtime subscriptions - ONLY depends on user id and role
   useEffect(() => {
     if (!currentUser?.user_id) return;
     
-    // Create channel
-    const channel = supabase.channel(`user-${currentUser.user_id}-notifications`);
+    // Prevent duplicate subscriptions
+    if (isSubscribedRef.current) return;
+    isSubscribedRef.current = true;
+    
+    // Create channel with unique name
+    const channelName = `user-${currentUser.user_id}-notifications-${Date.now()}`;
+    const channel = supabase.channel(channelName);
     
     // Subscribe to notifications for this user
     channel.on(
@@ -185,7 +164,31 @@ export const useRealtimeNotifications = (
         table: 'notifications',
         filter: `user_id=eq.${currentUser.user_id}`,
       },
-      handleNewNotification
+      (payload) => {
+        const newNotification = payload.new as AppNotification;
+        
+        // Update state
+        setNotifications(prev => [newNotification, ...prev].slice(0, 50));
+        setUnreadCount(prev => prev + 1);
+        
+        // Play sound
+        if (playSound) {
+          playNotificationSound();
+        }
+        
+        // Show browser notification
+        if (showBrowserNotifications) {
+          showBrowserNotification(newNotification.title, newNotification.message);
+        }
+        
+        // Show toast
+        const toastType = newNotification.priority === 'urgent' ? 'error' : 
+                          newNotification.priority === 'high' ? 'warning' : 'info';
+        (showToast as any)[toastType](newNotification.title, newNotification.message);
+        
+        // Callback via ref
+        onNewNotificationRef.current?.(newNotification);
+      }
     );
     
     // Subscribe to job updates for technicians
@@ -198,10 +201,11 @@ export const useRealtimeNotifications = (
           table: 'jobs',
           filter: `assigned_technician_id=eq.${currentUser.user_id}`,
         },
-        handleJobUpdate
+        (payload) => {
+          onJobUpdateRef.current?.(payload.new);
+        }
       );
       
-      // Also subscribe to job_requests for request status changes
       channel.on(
         'postgres_changes',
         {
@@ -210,11 +214,13 @@ export const useRealtimeNotifications = (
           table: 'job_requests',
           filter: `requested_by=eq.${currentUser.user_id}`,
         },
-        handleRequestUpdate
+        (payload) => {
+          onRequestUpdateRef.current?.(payload.new);
+        }
       );
     }
     
-    // Subscribe to job_requests for admins (new requests) - for UI refresh only
+    // Subscribe to job_requests for admins (new requests)
     if (currentUser.role === 'admin' || currentUser.role === 'supervisor') {
       channel.on(
         'postgres_changes',
@@ -224,8 +230,7 @@ export const useRealtimeNotifications = (
           table: 'job_requests',
         },
         (payload) => {
-          const request = payload.new as any;
-          onRequestUpdate?.(request);
+          onRequestUpdateRef.current?.(payload.new);
         }
       );
     }
@@ -234,7 +239,7 @@ export const useRealtimeNotifications = (
     channel.subscribe((status) => {
       setIsConnected(status === 'SUBSCRIBED');
       if (status === 'SUBSCRIBED') {
-        console.log('Realtime notifications connected');
+        console.log('[Realtime] Notifications connected');
       }
     });
     
@@ -242,12 +247,13 @@ export const useRealtimeNotifications = (
     
     // Cleanup
     return () => {
+      isSubscribedRef.current = false;
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [currentUser?.user_id, currentUser?.role, handleNewNotification, handleJobUpdate, handleRequestUpdate, playSound]);
+  }, [currentUser?.user_id, currentUser?.role, playSound, showBrowserNotifications]);
   
   // Load initial notifications
   useEffect(() => {
