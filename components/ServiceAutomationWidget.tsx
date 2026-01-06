@@ -59,15 +59,16 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
 
   if (loading) {
     return (
-      <div className="card-premium p-6 animate-pulse">
+      <div className="card-premium p-6 animate-pulse h-full flex flex-col">
         <div className="h-6 rounded w-48 mb-4 bg-[var(--bg-subtle)]"></div>
         <div className="h-20 rounded bg-[var(--bg-subtle)]"></div>
+        <div className="mt-auto h-10 rounded bg-[var(--bg-subtle)]"></div>
       </div>
     );
   }
 
   return (
-    <div className="card-premium p-6">
+    <div className="card-premium p-6 flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -82,53 +83,55 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <div 
-          onClick={() => navigate('/service-due?filter=overdue')}
-          className="rounded-xl p-3 text-center cursor-pointer transition-all hover:shadow-md bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--error)]"
-        >
-          <div className="text-2xl font-bold text-[var(--error)]">{stats?.overdue || 0}</div>
-          <div className="text-xs flex items-center justify-center gap-1 text-[var(--text-muted)]">
-            <AlertTriangle className="w-3 h-3" />
-            Overdue
+      <div className="flex-1">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-3 gap-3">
+          <div 
+            onClick={() => navigate('/service-due?filter=overdue')}
+            className="rounded-xl p-3 text-center cursor-pointer transition-all hover:shadow-md bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--error)]"
+          >
+            <div className="text-2xl font-bold text-[var(--error)]">{stats?.overdue || 0}</div>
+            <div className="text-xs flex items-center justify-center gap-1 text-[var(--text-muted)]">
+              <AlertTriangle className="w-3 h-3" />
+              Overdue
+            </div>
+          </div>
+          <div 
+            onClick={() => navigate('/service-due?filter=due_soon')}
+            className="rounded-xl p-3 text-center cursor-pointer transition-all hover:shadow-md bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--warning)]"
+          >
+            <div className="text-2xl font-bold text-[var(--warning)]">{stats?.dueSoon || 0}</div>
+            <div className="text-xs flex items-center justify-center gap-1 text-[var(--text-muted)]">
+              <Calendar className="w-3 h-3" />
+              Due Soon
+            </div>
+          </div>
+          <div 
+            onClick={() => navigate('/service-due?filter=job_created')}
+            className="rounded-xl p-3 text-center cursor-pointer transition-all hover:shadow-md bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--success)]"
+          >
+            <div className="text-2xl font-bold text-[var(--success)]">{stats?.withOpenJobs || 0}</div>
+            <div className="text-xs flex items-center justify-center gap-1 text-[var(--text-muted)]">
+              <CheckCircle className="w-3 h-3" />
+              Jobs Created
+            </div>
           </div>
         </div>
-        <div 
-          onClick={() => navigate('/service-due?filter=due_soon')}
-          className="rounded-xl p-3 text-center cursor-pointer transition-all hover:shadow-md bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--warning)]"
-        >
-          <div className="text-2xl font-bold text-[var(--warning)]">{stats?.dueSoon || 0}</div>
-          <div className="text-xs flex items-center justify-center gap-1 text-[var(--text-muted)]">
-            <Calendar className="w-3 h-3" />
-            Due Soon
+
+        {/* Last Result */}
+        {lastResult && (
+          <div className={`text-sm p-3 rounded-xl mt-4 ${
+            lastResult.startsWith('✅') 
+              ? 'bg-[var(--success-bg)] text-[var(--success)]' 
+              : 'bg-[var(--error-bg)] text-[var(--error)]'
+          }`}>
+            {lastResult}
           </div>
-        </div>
-        <div 
-          onClick={() => navigate('/service-due?filter=job_created')}
-          className="rounded-xl p-3 text-center cursor-pointer transition-all hover:shadow-md bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--success)]"
-        >
-          <div className="text-2xl font-bold text-[var(--success)]">{stats?.withOpenJobs || 0}</div>
-          <div className="text-xs flex items-center justify-center gap-1 text-[var(--text-muted)]">
-            <CheckCircle className="w-3 h-3" />
-            Jobs Created
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Last Result */}
-      {lastResult && (
-        <div className={`text-sm p-3 rounded-xl mb-4 ${
-          lastResult.startsWith('✅') 
-            ? 'bg-[var(--success-bg)] text-[var(--success)]' 
-            : 'bg-[var(--error-bg)] text-[var(--error)]'
-        }`}>
-          {lastResult}
-        </div>
-      )}
-
       {/* Actions */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 mt-4 pt-4 border-t border-[var(--border-subtle)]">
         <button
           onClick={runDailyCheck}
           disabled={running}

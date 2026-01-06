@@ -133,6 +133,8 @@ All notable changes, decisions, and client requirements for this project.
   - Recent Jobs: row-card hover states + clearer separation (without heavy boxing)
   - Service Automation inner tiles: already have light tint via `bg-[var(--bg-subtle)]`
 - ✔️ **Notifications hierarchy fix** - Removed duplicate `NotificationPanel` render and kept notifications compact in the rightmost column (prevents notifications from dominating the dashboard)
+- ✔️ **Row 4 height alignment** - Service Automation / Recent Jobs / Notifications now share a fixed height on desktop with internal scroll areas (more balanced, less “floating cards”)
+- ✔️ **Notifications visual cleanup** - Reduced noisy tinted backgrounds; notifications are now white cards with semantic left rails + clearer header/connection pill
 
 ### Job Detail Premium UI Polish (2026-01-05)
 - **Updated:** 2026-01-05 15:09:41 CST (author: Codex)

@@ -75,6 +75,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
 
   const isAdmin = role === UserRole.ADMIN;
   const isSupervisor = role === UserRole.SUPERVISOR;
+  const showServiceAutomation = isAdmin || isSupervisor;
 
   useEffect(() => {
     loadDashboardData();
@@ -677,14 +678,16 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
       </div>
 
       {/* Row 4: Service Automation, Recent Jobs & Notifications */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div
+        className={`grid grid-cols-1 ${showServiceAutomation ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-6 lg:h-[560px]`}
+      >
         {/* Service Automation Widget */}
-        {(role === UserRole.ADMIN || role === UserRole.SUPERVISOR) && (
+        {showServiceAutomation && (
           <ServiceAutomationWidget onViewAll={() => navigate('/service-due')} />
         )}
 
         {/* Recent Jobs - FIX: Now uses STATUS_CONFIG for all statuses */}
-        <div className="card-premium p-6">
+        <div className="card-premium p-6 flex flex-col h-full">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold text-[var(--text)]">Recent Jobs</h3>
@@ -699,8 +702,8 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
           </div>
           
           {/* Recent Jobs List (Row-card style; no inner scrollbar) */}
-          <div className="space-y-2">
-            {jobs.slice(0, 6).map((job) => {
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
+            {jobs.slice(0, 20).map((job) => {
               const chipStyle = getStatusChip(job.status);
               const statusColor = CHART_COLORS[job.status] || 'var(--border-strong)';
               const safeTitle = (job.title || '').trim() || '(Untitled job)';

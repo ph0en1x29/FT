@@ -66,9 +66,9 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
 
   const getPriorityStyles = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'border-l-red-500 bg-red-50';
-      case 'high': return 'border-l-orange-500 bg-orange-50';
-      case 'normal': return 'border-l-blue-500 bg-blue-50/50';
+      case 'urgent': return 'border-l-red-500';
+      case 'high': return 'border-l-orange-500';
+      case 'normal': return 'border-l-blue-500';
       default: return 'border-l-slate-300';
     }
   };
@@ -111,25 +111,31 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
   const hasMore = notifications.length > maxItems;
 
   return (
-    <div className="card-premium">
+    <div className="card-premium p-6 flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {unreadCount > 0 ? (
-            <BellRing className="w-5 h-5 text-blue-600 animate-pulse" />
+            <BellRing className="w-5 h-5 text-[var(--accent)]" />
           ) : (
-            <Bell className="w-5 h-5 text-slate-600" />
+            <Bell className="w-5 h-5 text-[var(--text-muted)]" />
           )}
-          <h3 className="font-semibold text-slate-800">Notifications</h3>
+          <h3 className="font-semibold text-[var(--text)]">Notifications</h3>
           {unreadCount > 0 && (
-            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded-full">
+            <span className="px-2 py-0.5 bg-[var(--error-bg)] text-[var(--error)] text-xs font-bold rounded-full">
               {unreadCount} new
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {/* Connection status indicator */}
-          <div className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-slate-400'}`}>
+          <div
+            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full border ${
+              isConnected
+                ? 'text-[var(--success)] border-[var(--success)] bg-[var(--success-bg)]'
+                : 'text-[var(--text-muted)] border-[var(--border)] bg-[var(--bg-subtle)]'
+            }`}
+          >
             {isConnected ? (
               <>
                 <Wifi className="w-3 h-3" />
@@ -145,7 +151,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
           {unreadCount > 0 && (
             <button
               onClick={onMarkAllRead}
-              className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              className="text-xs text-[var(--accent)] hover:opacity-80 flex items-center gap-1"
             >
               <CheckCheck className="w-3 h-3" /> Mark all read
             </button>
@@ -154,15 +160,16 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
       </div>
 
       {/* Notification List */}
-      <div className="space-y-2">
+      <div className="mt-4 flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
         {displayNotifications.length > 0 ? (
           displayNotifications.map(notification => (
             <div
               key={notification.notification_id}
               onClick={() => handleNotificationClick(notification)}
               className={`
-                p-3 rounded-lg border-l-4 cursor-pointer 
-                hover:shadow-sm transition-all
+                p-3 rounded-xl border border-[var(--border-subtle)] border-l-4 cursor-pointer 
+                bg-[var(--surface)] hover:bg-[var(--surface-2)] hover:border-[var(--border-strong)]
+                transition-all
                 ${getPriorityStyles(notification.priority)}
                 ${!notification.is_read ? 'ring-1 ring-blue-200' : ''}
               `}
@@ -172,18 +179,18 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
                   {getNotificationIcon(notification.type as NotificationType)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${!notification.is_read ? 'font-semibold text-slate-900' : 'text-slate-700'}`}>
+                  <p className={`text-sm ${!notification.is_read ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-secondary)]'}`}>
                     {notification.title}
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-1">
                     {notification.message}
                   </p>
                   <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-[var(--text-subtle)]">
                       {formatTime(notification.created_at)}
                     </p>
                     {notification.reference_type && (
-                      <span className="text-xs text-blue-600 flex items-center gap-0.5">
+                      <span className="text-xs text-[var(--accent)] flex items-center gap-0.5">
                         View <ChevronRight className="w-3 h-3" />
                       </span>
                     )}
@@ -195,28 +202,28 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
                       e.stopPropagation();
                       onMarkRead(notification.notification_id);
                     }}
-                    className="p-1 hover:bg-white/50 rounded"
+                    className="p-1 hover:bg-[var(--bg-subtle)] rounded-lg"
                     title="Mark as read"
                   >
-                    <Check className="w-4 h-4 text-slate-400" />
+                    <Check className="w-4 h-4 text-[var(--text-muted)]" />
                   </button>
                 )}
               </div>
             </div>
           ))
         ) : (
-          <div className="py-8 text-center text-slate-400">
-            <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No notifications</p>
-            <p className="text-xs mt-1">You're all caught up!</p>
+          <div className="py-10 text-center text-[var(--text-muted)]">
+            <Bell className="w-9 h-9 mx-auto mb-2 opacity-40" />
+            <p className="text-sm font-medium text-[var(--text)]">No notifications</p>
+            <p className="text-xs mt-1 text-[var(--text-muted)]">You're all caught up.</p>
           </div>
         )}
       </div>
 
       {/* Footer */}
       {hasMore && (
-        <div className="mt-3 pt-3 border-t border-slate-100 text-center">
-          <button className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+        <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] text-center">
+          <button className="text-sm text-[var(--accent)] hover:opacity-80 hover:underline">
             View all {notifications.length} notifications
           </button>
         </div>
