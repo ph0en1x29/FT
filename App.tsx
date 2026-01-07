@@ -1,8 +1,14 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Sun, Moon } from 'lucide-react';
 import { User, UserRole, ROLE_PERMISSIONS } from './types_with_invoice_tracking';
+import NotificationBell from './components/NotificationBell';
+import { 
+  LayoutDashboard, List, Package, LogOut, 
+  Building2, Truck, FileText, BarChart3, Menu, X, User as UserIcon,
+  CalendarDays, ChevronLeft, Zap, Loader2, Users
+} from 'lucide-react';
 
 // Lazy load all pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -21,13 +27,6 @@ const TechnicianKPIPage = lazy(() => import('./pages/TechnicianKPIPageV2'));
 const People = lazy(() => import('./pages/People'));
 const EmployeeProfile = lazy(() => import('./pages/EmployeeProfile'));
 const MyLeaveRequests = lazy(() => import('./pages/MyLeaveRequests'));
-
-import NotificationBell from './components/NotificationBell';
-import { 
-  LayoutDashboard, List, Package, LogOut, 
-  Building2, Truck, FileText, BarChart3, Menu, X, User as UserIcon,
-  CalendarDays, ChevronLeft, Zap, Loader2, Users
-} from 'lucide-react';
 
 // Loading fallback
 const PageLoader = () => (
