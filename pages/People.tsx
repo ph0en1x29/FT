@@ -105,8 +105,20 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
       {/* Tab Content */}
       {effectiveTab === 'overview' && <OverviewTab currentUser={currentUser} onNavigate={handleTabChange} />}
       {effectiveTab === 'users' && canManageUsers && <UsersTab currentUser={currentUser} />}
-      {effectiveTab === 'employees' && canViewHR && <EmployeesTab currentUser={currentUser} initialStatus={statusParam} />}
-      {effectiveTab === 'leave' && canViewHR && <LeaveTab currentUser={currentUser} initialFilter={filterParam} />}
+      {effectiveTab === 'employees' && canViewHR && (
+        <EmployeesTab 
+          currentUser={currentUser} 
+          initialStatus={statusParam} 
+          onFilterChange={(status) => setSearchParams({ tab: 'employees', ...(status !== 'all' ? { status } : {}) })}
+        />
+      )}
+      {effectiveTab === 'leave' && canViewHR && (
+        <LeaveTab 
+          currentUser={currentUser} 
+          initialFilter={filterParam}
+          onFilterChange={(filter) => setSearchParams({ tab: 'leave', ...(filter !== 'pending' ? { filter } : {}) })}
+        />
+      )}
     </div>
   );
 };
@@ -727,9 +739,10 @@ const UsersTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
 interface EmployeesTabProps {
   currentUser: User;
   initialStatus?: string;
+  onFilterChange?: (status: string) => void;
 }
 
-const EmployeesTab: React.FC<EmployeesTabProps> = ({ currentUser, initialStatus }) => {
+const EmployeesTab: React.FC<EmployeesTabProps> = ({ currentUser, initialStatus, onFilterChange }) => {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -743,6 +756,11 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ currentUser, initialStatus 
       setFilterStatus(initialStatus);
     }
   }, [initialStatus]);
+
+  const handleStatusFilter = (status: string) => {
+    setFilterStatus(status);
+    onFilterChange?.(status);
+  };
 
   useEffect(() => {
     loadEmployees();
@@ -796,7 +814,7 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ currentUser, initialStatus 
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <select className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+        <select className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme" value={filterStatus} onChange={(e) => handleStatusFilter(e.target.value)}>
           <option value="all">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
@@ -861,9 +879,10 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ currentUser, initialStatus 
 interface LeaveTabProps {
   currentUser: User;
   initialFilter?: LeaveFilterType;
+  onFilterChange?: (filter: LeaveFilterType) => void;
 }
 
-const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter }) => {
+const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilterChange }) => {
   const [pendingLeaves, setPendingLeaves] = useState<EmployeeLeave[]>([]);
   const [allLeaves, setAllLeaves] = useState<EmployeeLeave[]>([]);
   const [todayLeaves, setTodayLeaves] = useState<EmployeeLeave[]>([]);
@@ -881,6 +900,11 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter }) => {
       setFilter(initialFilter);
     }
   }, [initialFilter]);
+
+  const handleFilterChange = (newFilter: LeaveFilterType) => {
+    setFilter(newFilter);
+    onFilterChange?.(newFilter);
+  };
 
   useEffect(() => {
     loadLeaves();
@@ -954,7 +978,7 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter }) => {
       {/* Filter Tabs */}
       <div className="flex gap-2 flex-wrap">
         <button
-          onClick={() => setFilter('pending')}
+          onClick={() => handleFilterChange('pending')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             filter === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
           }`}
@@ -962,7 +986,7 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter }) => {
           Pending ({pendingLeaves.length})
         </button>
         <button
-          onClick={() => setFilter('today')}
+          onClick={() => handleFilterChange('today')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             filter === 'today' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
           }`}
@@ -970,7 +994,7 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter }) => {
           On Leave Today ({todayLeaves.length})
         </button>
         <button
-          onClick={() => setFilter('all')}
+          onClick={() => handleFilterChange('all')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             filter === 'all' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
           }`}
