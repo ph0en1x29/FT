@@ -752,8 +752,9 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ currentUser, initialStatus,
 
   // Update filter when initialStatus changes (from URL param)
   useEffect(() => {
-    if (initialStatus && initialStatus !== filterStatus) {
-      setFilterStatus(initialStatus);
+    const newStatus = initialStatus || 'all';
+    if (newStatus !== filterStatus) {
+      setFilterStatus(newStatus);
     }
   }, [initialStatus]);
 
@@ -896,8 +897,9 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilte
 
   // Update filter when initialFilter changes (from URL param)
   useEffect(() => {
-    if (initialFilter && initialFilter !== filter) {
-      setFilter(initialFilter);
+    const newFilter = initialFilter || 'pending';
+    if (newFilter !== filter) {
+      setFilter(newFilter);
     }
   }, [initialFilter]);
 
@@ -1033,7 +1035,7 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilte
                     <p className="font-medium text-slate-900">{(leave as any).user?.full_name || (leave as any).user?.name || 'Unknown'}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm capitalize">{leave.leave_type.replace('_', ' ')}</span>
+                    <span className="text-sm capitalize">{(leave.leave_type as any)?.name?.replace('_', ' ') || 'Unknown'}</span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-sm">

@@ -27,6 +27,22 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### 🐛 URL-State Desync Fix (2026-01-07)
+- **Updated:** 2026-01-07 (author: Claude)
+- **Status:** ✅ Fixed
+- **Issue:** Filter state not resetting when URL params are removed (back/forward navigation)
+
+#### Root Cause:
+- Effects in `EmployeesTab` and `LeaveTab` only updated state when param was truthy
+- `if (initialStatus && ...)` evaluated to false when param was removed
+- UI disagreed with URL after back/forward navigation
+
+#### Fix Applied:
+- Changed to use default fallback: `const newStatus = initialStatus || 'all'`
+- Now resets to default when URL param is removed
+
+---
+
 ### 🛠️ ES Module Import Fix (2026-01-07)
 - **Updated:** 2026-01-07 (author: Claude)
 - **Status:** ✅ Fixed
