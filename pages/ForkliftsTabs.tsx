@@ -1101,7 +1101,6 @@ const ServiceIntervalsTab: React.FC<{ currentUser: User }> = ({ currentUser }) =
         priority: formData.priority,
         estimated_duration_hours: formData.estimated_duration_hours,
         name: formData.name || null,
-        is_active: true,
         checklist_items: [],
       });
       showToast.success('Service interval created');

@@ -501,7 +501,7 @@ const LeaveTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     try {
       const [pending, all] = await Promise.all([
         HRService.getPendingLeaves(),
-        HRService.getAllLeaves ? HRService.getAllLeaves() : []
+        HRService.getLeaves()
       ]);
       setPendingLeaves(pending);
       setAllLeaves(all.length > 0 ? all : pending);

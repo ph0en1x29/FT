@@ -42,12 +42,16 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
             const deleted = await MockDb.getRecentlyDeletedJobs();
             setDeletedJobs(deleted);
           } catch (error) {
-            console.error('Error loading deleted jobs:', error);
+            if (import.meta.env.DEV) {
+              console.error('Error loading deleted jobs:', error);
+            }
             showToast.error('Failed to load deleted jobs');
           }
         }
       } catch (error) {
-        console.error('Error loading jobs:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error loading jobs:', error);
+        }
         showToast.error('Failed to load jobs');
       } finally {
         setLoading(false);

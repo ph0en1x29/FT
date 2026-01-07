@@ -115,12 +115,18 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
 
   const loadDashboardData = async () => {
     try {
-      console.log('[Dashboard] Loading data for user:', currentUser?.user_id, currentUser?.role);
+      if (import.meta.env.DEV) {
+        console.log('[Dashboard] Loading data for user:', currentUser?.user_id, currentUser?.role);
+      }
       const jobsData = await MockDb.getJobs(currentUser);
-      console.log('[Dashboard] Jobs loaded:', jobsData?.length || 0);
+      if (import.meta.env.DEV) {
+        console.log('[Dashboard] Jobs loaded:', jobsData?.length || 0);
+      }
       setJobs(jobsData || []);
     } catch (error: any) {
-      console.error('[Dashboard] Error loading jobs:', error);
+      if (import.meta.env.DEV) {
+        console.error('[Dashboard] Error loading jobs:', error);
+      }
       showToast.error('Failed to load dashboard data', error?.message || 'Please refresh the page');
     } finally {
       setLoading(false);
@@ -274,6 +280,8 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
     return { name: dayName, revenue: Math.round(dayRevenue) };
   });
   const hasRevenueData = dataRevenue.some((d) => d.revenue > 0);
+  const statusChartHeight = dataStatus.length > 0 ? 256 : 176;
+  const revenueChartHeight = hasRevenueData ? 256 : 176;
 
   // Combined Action Required items - FIX: Include awaiting ack in count
   const unacknowledgedEscalations = escalatedJobs.filter(j => !j.escalation_acknowledged_at);
@@ -607,9 +615,9 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
             <h3 className="font-semibold text-[var(--text)]">Job Status</h3>
             <p className="text-xs mt-0.5 text-[var(--text-muted)]">Current distribution</p>
           </div>
-          <div style={{ width: '100%', height: dataStatus.length > 0 ? 256 : 176, minHeight: dataStatus.length > 0 ? 256 : 176 }}>
+          <div style={{ width: '100%', height: statusChartHeight, minHeight: statusChartHeight }}>
             {dataStatus.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={statusChartHeight} minWidth={0}>
                 <PieChart>
                   <Pie
                     data={dataStatus}
@@ -672,9 +680,9 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
               <span className="font-medium">Active</span>
             </div>
           </div>
-          <div style={{ width: '100%', height: hasRevenueData ? 256 : 176, minHeight: hasRevenueData ? 256 : 176 }}>
+          <div style={{ width: '100%', height: revenueChartHeight, minHeight: revenueChartHeight }}>
             {hasRevenueData ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={revenueChartHeight} minWidth={0}>
                 <AreaChart data={dataRevenue}>
                   <defs>
                     <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">

@@ -32,7 +32,7 @@ export const HRService = {
         *,
         licenses:employee_licenses(*),
         permits:employee_permits(*),
-        leaves:employee_leaves(*, leave_type:leave_types(*))
+        leaves:employee_leaves!employee_leaves_user_id_fkey(*, leave_type:leave_types(*))
       `)
       .order('full_name');
 
@@ -48,7 +48,7 @@ export const HRService = {
         *,
         licenses:employee_licenses(*),
         permits:employee_permits(*),
-        leaves:employee_leaves(
+        leaves:employee_leaves!employee_leaves_user_id_fkey(
           *,
           leave_type:leave_types(*)
         )

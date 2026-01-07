@@ -25,6 +25,23 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+const isDev = import.meta.env.DEV;
+const logDebug = (...args: unknown[]) => {
+  if (isDev) {
+    console.log(...args);
+  }
+};
+const logError = (...args: unknown[]) => {
+  if (isDev) {
+    console.error(...args);
+  }
+};
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const isNetworkError = (error: unknown) => {
+  const message = (error as Error | undefined)?.message || String(error || '');
+  return error instanceof TypeError || /Failed to fetch|NetworkError|ERR_CONNECTION_CLOSED|fetch failed/i.test(message);
+};
+
 export const SupabaseDb = {
   login: async (email: string, password: string): Promise<User> => {
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -330,31 +347,52 @@ export const SupabaseDb = {
   // =====================
 
   getJobs: async (user: User): Promise<Job[]> => {
-    console.log('[getJobs] Fetching jobs for user:', user.user_id, user.role, user.name);
-    
-    let query = supabase
-      .from('jobs')
-      .select(`
-        *,
-        customer:customers(*),
-        forklift:forklifts!forklift_id(*),
-        parts_used:job_parts(*),
-        media:job_media(*),
-        extra_charges:extra_charges(*)
-      `)
-      .is('deleted_at', null) // Filter out soft-deleted jobs
-      .order('created_at', { ascending: false });
+    logDebug('[getJobs] Fetching jobs for user:', user.user_id, user.role, user.name);
 
-    if (user.role === UserRole.TECHNICIAN) {
-      console.log('[getJobs] Filtering for technician:', user.user_id);
-      query = query.eq('assigned_technician_id', user.user_id);
-    }
+    const buildQuery = () => {
+      let query = supabase
+        .from('jobs')
+        .select(`
+          *,
+          customer:customers(*),
+          forklift:forklifts!forklift_id(*),
+          parts_used:job_parts(*),
+          media:job_media(*),
+          extra_charges:extra_charges(*)
+        `)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
 
-    const { data, error } = await query;
+      if (user.role === UserRole.TECHNICIAN) {
+        logDebug('[getJobs] Filtering for technician:', user.user_id);
+        query = query.eq('assigned_technician_id', user.user_id);
+      }
 
-    if (error) {
-      console.error('[getJobs] Error fetching jobs:', error);
-      throw new Error(error.message);
+      return query;
+    };
+
+    const executeQuery = async () => {
+      const { data, error } = await buildQuery();
+      if (error) throw error;
+      return data as Job[];
+    };
+
+    let data: Job[];
+    try {
+      data = await executeQuery();
+    } catch (error) {
+      if (isNetworkError(error)) {
+        try {
+          await wait(600);
+          data = await executeQuery();
+        } catch (retryError) {
+          logError('[getJobs] Error fetching jobs after retry:', retryError);
+          throw new Error((retryError as Error)?.message || 'Failed to fetch jobs');
+        }
+      } else {
+        logError('[getJobs] Error fetching jobs:', error);
+        throw new Error((error as Error)?.message || 'Failed to fetch jobs');
+      }
     }
     
     // For technicians, also fetch jobs where they're assigned as helper
@@ -405,7 +443,7 @@ export const SupabaseDb = {
       allJobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
     
-    console.log('[getJobs] Found jobs:', allJobs.length || 0);
+    logDebug('[getJobs] Found jobs:', allJobs.length || 0);
     return allJobs;
   },
 
@@ -1913,7 +1951,7 @@ export const SupabaseDb = {
         .from('forklifts')
         .select(`
           *,
-          current_customer:customers(*)
+          current_customer:customers!forklifts_current_customer_id_fkey(*)
         `)
         .eq('forklift_id', forkliftId)
         .single();

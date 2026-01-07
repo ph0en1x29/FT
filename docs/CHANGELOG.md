@@ -77,6 +77,20 @@ All notable changes, decisions, and client requirements for this project.
    - Supabase user lookup now checks query errors explicitly
 6. **Job Detail dependency cleanup**
    - Photo category refresh now tracks `started_at` (removes stale field)
+7. **HR profile embed disambiguation**
+   - `users → employee_leaves` join now specifies FK to avoid PGRST201 errors
+8. **HR leave tab data load**
+   - `People` leave tab now uses `getLeaves()` to avoid missing API calls
+9. **Service interval payload alignment**
+   - Removed unsupported `is_active` field from Forklifts tab create interval flow
+10. **Tailwind CDN retained**
+   - Restored CDN usage and removed PostCSS build config for demo stability
+11. **Recharts container guards**
+   - Added min dimensions to chart containers to prevent width/height -1 warnings
+12. **Job fetch resilience**
+   - Added retry on network errors and gated debug logs to DEV
+13. **Forklift customer embed**
+   - Disambiguated `forklifts → customers` join to avoid PGRST201 errors
 
 ### Real-Time Notification System (2026-01-06)
 - **Updated:** 2026-01-06 (author: Claude)
