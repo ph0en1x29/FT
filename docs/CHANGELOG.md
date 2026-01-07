@@ -44,6 +44,16 @@ All notable changes, decisions, and client requirements for this project.
 - Race conditions between cleanup and new subscriptions
 - RLS policies missing INSERT for system notifications
 
+#### Migration Required:
+```bash
+# Run in Supabase SQL Editor:
+database/migrations/fix_notification_realtime.sql
+```
+- Migration is **idempotent** - safe to run multiple times
+- Drops ALL existing notification policies before recreating
+- Enables REPLICA IDENTITY FULL for realtime subscriptions
+- Adds notifications and job_requests to supabase_realtime publication
+
 #### Fixes Applied:
 
 **1. `utils/useRealtimeNotifications.ts` - Major Rewrite:**

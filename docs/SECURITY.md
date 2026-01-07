@@ -69,6 +69,13 @@ The `.env.local` file is in `.gitignore` and will not be committed.
   - Converted 4 views to SECURITY INVOKER: `v_todays_leave`, `v_expiring_licenses`, `v_pending_leaves`, `v_expiring_permits`
   - Updated original migration to include `WITH (security_invoker = true)`
   - See `database/migrations/fix_security_linter_warnings.sql`
+- [x] **Fix notification RLS for realtime** ✅ (2026-01-07)
+  - Bug: Notifications not delivered reliably, missing INSERT policy for system notifications
+  - Fixed: Added `authenticated_insert_notifications` policy for system-generated notifications
+  - Enabled REPLICA IDENTITY FULL for realtime subscriptions
+  - Added notifications and job_requests tables to supabase_realtime publication
+  - Migration is idempotent (safe to run multiple times)
+  - See `database/migrations/fix_notification_realtime.sql`
 - [x] **Fix RLS on backup tables** ✅ (2026-01-05)
   - Enabled RLS on `_backup_users_before_merge` and `_backup_employees_before_merge`
   - Created restrictive policy (`USING (false)`) - only service_role can access
@@ -121,4 +128,4 @@ If you discover a vulnerability:
 
 ---
 
-*Last Updated: January 5, 2026*
+*Last Updated: January 7, 2026*
