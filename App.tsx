@@ -486,7 +486,7 @@ export default function App() {
               
               {/* Legacy redirects */}
               <Route path="/users" element={<Navigate to="/people?tab=users" replace />} />
-              <Route path="/hr" element={<Navigate to="/people?tab=employees" replace />} />
+              <Route path="/hr" element={<Navigate to="/people?tab=overview" replace />} />
               <Route path="/hr/employees" element={<Navigate to="/people?tab=employees" replace />} />
               <Route path="/hr/employees/:id" element={<Navigate to="/people/employees/:id" replace />} />
               <Route path="/technician-kpi" element={<Navigate to="/reports" replace />} />

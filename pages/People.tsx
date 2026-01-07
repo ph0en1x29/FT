@@ -1,20 +1,20 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { User, UserRole, Employee, EmployeeLeave, LeaveStatus, ROLE_PERMISSIONS } from '../types_with_invoice_tracking';
+import { User, UserRole, Employee, EmployeeLeave, EmployeeLicense, EmployeePermit, LeaveStatus, ROLE_PERMISSIONS, HRDashboardSummary, AttendanceToday } from '../types_with_invoice_tracking';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { HRService } from '../services/hrService';
 import { showToast } from '../services/toastService';
 import { 
   Users, UserCheck, UserX, Shield, Wrench, FileText, Plus, Edit2, Search, 
   CheckCircle, XCircle, Lock, X, AlertTriangle, Calendar, Clock, 
-  ChevronRight, Loader2, User as UserIcon, Car, Bell
+  ChevronRight, Loader2, User as UserIcon, Car, Bell, LayoutDashboard
 } from 'lucide-react';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-type TabType = 'users' | 'employees' | 'leave';
+type TabType = 'overview' | 'users' | 'employees' | 'leave';
 
 interface PeopleProps {
   currentUser: User;
@@ -26,7 +26,7 @@ interface PeopleProps {
 
 const People: React.FC<PeopleProps> = ({ currentUser }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get('tab') as TabType) || 'users';
+  const initialTab = (searchParams.get('tab') as TabType) || 'overview';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
   const canManageUsers = ROLE_PERMISSIONS[currentUser.role]?.canManageUsers;
@@ -38,6 +38,7 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
   };
 
   const tabs = [
+    { id: 'overview' as TabType, label: 'Overview', icon: LayoutDashboard, description: 'Dashboard' },
     ...(canManageUsers ? [{ id: 'users' as TabType, label: 'Users', icon: Users, description: 'Accounts & access' }] : []),
     ...(canViewHR ? [{ id: 'employees' as TabType, label: 'Employees', icon: UserIcon, description: 'HR profiles' }] : []),
     ...(canViewHR ? [{ id: 'leave' as TabType, label: 'Leave', icon: Calendar, description: 'Requests & approvals' }] : []),
@@ -45,7 +46,7 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
 
   // Default to first available tab
   const availableTabs = tabs.map(t => t.id);
-  const effectiveTab = availableTabs.includes(activeTab) ? activeTab : availableTabs[0] || 'users';
+  const effectiveTab = availableTabs.includes(activeTab) ? activeTab : availableTabs[0] || 'overview';
 
   return (
     <div className="space-y-6">
@@ -84,9 +85,296 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
       </div>
 
       {/* Tab Content */}
+      {effectiveTab === 'overview' && <OverviewTab currentUser={currentUser} onTabChange={handleTabChange} />}
       {effectiveTab === 'users' && canManageUsers && <UsersTab currentUser={currentUser} />}
       {effectiveTab === 'employees' && canViewHR && <EmployeesTab currentUser={currentUser} />}
       {effectiveTab === 'leave' && canViewHR && <LeaveTab currentUser={currentUser} />}
+    </div>
+  );
+};
+
+// ============================================================================
+// OVERVIEW TAB (HR DASHBOARD)
+// ============================================================================
+
+const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => void }> = ({ currentUser, onTabChange }) => {
+  const navigate = useNavigate();
+  const [summary, setSummary] = useState<HRDashboardSummary | null>(null);
+  const [expiringLicenses, setExpiringLicenses] = useState<EmployeeLicense[]>([]);
+  const [expiringPermits, setExpiringPermits] = useState<EmployeePermit[]>([]);
+  const [pendingLeaves, setPendingLeaves] = useState<EmployeeLeave[]>([]);
+  const [todaysAttendance, setTodaysAttendance] = useState<AttendanceToday | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const canApproveLeave = ROLE_PERMISSIONS[currentUser.role]?.canApproveLeave;
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [summaryData, licensesData, permitsData, leavesData, attendanceData] = await Promise.all([
+        HRService.getDashboardSummary(),
+        HRService.getExpiringLicenses(60),
+        HRService.getExpiringPermits(60),
+        HRService.getPendingLeaves(),
+        HRService.getAttendanceToday(),
+      ]);
+      setSummary(summaryData);
+      setExpiringLicenses(licensesData);
+      setExpiringPermits(permitsData);
+      setPendingLeaves(leavesData);
+      setTodaysAttendance(attendanceData);
+    } catch (error) {
+      console.error('Error loading HR dashboard:', error);
+      showToast.error('Failed to load HR dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApproveLeave = async (leaveId: string) => {
+    try {
+      await HRService.approveLeave(leaveId, currentUser.user_id, currentUser.name);
+      loadDashboardData();
+      showToast.success('Leave request approved');
+    } catch (error) {
+      console.error('Error approving leave:', error);
+      showToast.error('Failed to approve leave');
+    }
+  };
+
+  const getDaysUntilExpiry = (expiryDate: string) => {
+    return Math.ceil((new Date(expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  };
+
+  const getExpiryBadge = (days: number) => {
+    if (days < 0) return { text: 'Expired', class: 'text-red-600 bg-red-50' };
+    if (days <= 14) return { text: `${days}d`, class: 'text-red-600 bg-red-50' };
+    if (days <= 30) return { text: `${days}d`, class: 'text-amber-600 bg-amber-50' };
+    return { text: `${days}d`, class: 'text-green-600 bg-green-50' };
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="card-theme rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+              <Users className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-theme">{summary?.totalEmployees || 0}</p>
+              <p className="text-xs text-theme-muted">Total Employees</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-theme rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+              <UserCheck className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-theme">{summary?.activeEmployees || 0}</p>
+              <p className="text-xs text-theme-muted">Active</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-theme rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-theme">{summary?.onLeaveToday || 0}</p>
+              <p className="text-xs text-theme-muted">On Leave Today</p>
+            </div>
+          </div>
+        </div>
+
+        <button onClick={() => onTabChange('leave')} className="card-theme rounded-xl p-4 hover:border-orange-300 transition-all text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-theme">{summary?.pendingLeaveRequests || 0}</p>
+              <p className="text-xs text-theme-muted">Pending Leaves</p>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Expiring Licenses & Permits */}
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Expiring Licenses */}
+        <div className="card-theme rounded-xl overflow-hidden">
+          <div className="p-3 border-b border-theme flex items-center justify-between bg-theme-surface-2">
+            <div className="flex items-center gap-2">
+              <Car className="w-4 h-4 text-blue-600" />
+              <h3 className="font-semibold text-sm text-theme">Expiring Licenses</h3>
+            </div>
+            <span className="text-xs text-theme-muted">{expiringLicenses.length} items</span>
+          </div>
+          <div className="divide-y divide-theme max-h-48 overflow-y-auto">
+            {expiringLicenses.length === 0 ? (
+              <div className="p-4 text-center text-theme-muted">
+                <CheckCircle className="w-6 h-6 mx-auto mb-1 text-green-500" />
+                <p className="text-xs">No licenses expiring soon</p>
+              </div>
+            ) : (
+              expiringLicenses.slice(0, 5).map((license) => {
+                const days = getDaysUntilExpiry(license.expiry_date);
+                const badge = getExpiryBadge(days);
+                return (
+                  <Link
+                    key={license.license_id}
+                    to={`/people/employees/${license.user_id}`}
+                    className="flex items-center justify-between p-2.5 hover:bg-theme-surface-2 transition text-sm"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-theme truncate">
+                        {(license.user as User)?.name || (license.user as User)?.full_name || 'Unknown'}
+                      </p>
+                      <p className="text-xs text-theme-muted truncate">{license.license_type}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${badge.class}`}>
+                      {badge.text}
+                    </span>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Expiring Permits */}
+        <div className="card-theme rounded-xl overflow-hidden">
+          <div className="p-3 border-b border-theme flex items-center justify-between bg-theme-surface-2">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-purple-600" />
+              <h3 className="font-semibold text-sm text-theme">Expiring Permits</h3>
+            </div>
+            <span className="text-xs text-theme-muted">{expiringPermits.length} items</span>
+          </div>
+          <div className="divide-y divide-theme max-h-48 overflow-y-auto">
+            {expiringPermits.length === 0 ? (
+              <div className="p-4 text-center text-theme-muted">
+                <CheckCircle className="w-6 h-6 mx-auto mb-1 text-green-500" />
+                <p className="text-xs">No permits expiring soon</p>
+              </div>
+            ) : (
+              expiringPermits.slice(0, 5).map((permit) => {
+                const days = getDaysUntilExpiry(permit.expiry_date);
+                const badge = getExpiryBadge(days);
+                return (
+                  <Link
+                    key={permit.permit_id}
+                    to={`/people/employees/${permit.user_id}`}
+                    className="flex items-center justify-between p-2.5 hover:bg-theme-surface-2 transition text-sm"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-theme truncate">
+                        {(permit.user as User)?.name || (permit.user as User)?.full_name || 'Unknown'}
+                      </p>
+                      <p className="text-xs text-theme-muted truncate">{permit.permit_type}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${badge.class}`}>
+                      {badge.text}
+                    </span>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Today's Attendance */}
+      <div className="card-theme rounded-xl overflow-hidden">
+        <div className="p-3 border-b border-theme flex items-center justify-between bg-theme-surface-2">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-green-600" />
+            <h3 className="font-semibold text-sm text-theme">Today's Attendance</h3>
+          </div>
+          <span className="text-xs text-theme-muted">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+          </span>
+        </div>
+        <div className="grid grid-cols-2">
+          <div className="p-4 bg-green-50 dark:bg-green-500/10 flex items-center gap-3">
+            <UserCheck className="w-8 h-8 text-green-600" />
+            <div>
+              <p className="text-2xl font-bold text-green-700 dark:text-green-400">{todaysAttendance?.available?.length || 0}</p>
+              <p className="text-xs text-green-600">Available</p>
+            </div>
+          </div>
+          <div className="p-4 bg-amber-50 dark:bg-amber-500/10 flex items-center gap-3">
+            <UserX className="w-8 h-8 text-amber-600" />
+            <div>
+              <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">{todaysAttendance?.onLeave?.length || 0}</p>
+              <p className="text-xs text-amber-600">On Leave</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pending Leave Requests (Quick Actions) */}
+      {pendingLeaves.length > 0 && canApproveLeave && (
+        <div className="card-theme rounded-xl overflow-hidden">
+          <div className="p-3 border-b border-theme flex items-center justify-between bg-theme-surface-2">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-orange-600" />
+              <h3 className="font-semibold text-sm text-theme">Pending Leave Requests</h3>
+            </div>
+            <button onClick={() => onTabChange('leave')} className="text-xs text-blue-600 hover:text-blue-700">
+              View all →
+            </button>
+          </div>
+          <div className="divide-y divide-theme">
+            {pendingLeaves.slice(0, 3).map((leave) => (
+              <div key={leave.leave_id} className="p-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
+                    <UserIcon className="w-4 h-4 text-slate-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-theme">{(leave as any).user?.name || 'Unknown'}</p>
+                    <p className="text-xs text-theme-muted">
+                      {new Date(leave.start_date).toLocaleDateString()} - {new Date(leave.end_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => handleApproveLeave(leave.leave_id)}
+                    className="p-1.5 text-green-600 hover:bg-green-50 rounded transition"
+                    title="Approve"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onTabChange('leave')}
+                    className="p-1.5 text-slate-400 hover:bg-slate-50 rounded transition"
+                    title="View Details"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -27,6 +27,25 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### UI/UX: People Page - Overview Tab Added (2026-01-07)
+- **Updated:** 2026-01-07 (author: Claude)
+- **Status:** ✅ Implemented
+
+#### Changes Made:
+- Added **Overview** as first tab in People page (Option 4 layout)
+- Overview tab includes:
+  - Stats cards: Total Employees, Active, On Leave Today, Pending Leaves
+  - Expiring Licenses panel (with days until expiry badges)
+  - Expiring Permits panel (with days until expiry badges)
+  - Today's Attendance (Available vs On Leave)
+  - Pending Leave Requests with quick approve action
+- Tab order: Overview | Users | Employees | Leave
+- Default tab changed from 'users' to 'overview'
+- Clicking employee in expiring items navigates to `/people/employees/:id`
+- "Pending Leaves" stat card links to Leave tab
+
+---
+
 ### UI/UX: Sidebar Consolidation (2026-01-07)
 - **Updated:** 2026-01-07 (author: Claude)
 - **Status:** ✅ Implemented
@@ -34,7 +53,7 @@ All notable changes, decisions, and client requirements for this project.
 #### Changes Made:
 1. **New Tabbed Pages**
    - `ForkliftsTabs.tsx`: Combines Fleet list + Service Intervals + Service Due into one page with tabs
-   - `People.tsx`: Combines Users + Employees + Leave management into one page with tabs
+   - `People.tsx`: Combines Users + Employees + Leave management into one page with tabs (+ Overview)
 
 2. **Sidebar Simplification**
    - Reduced from nested collapsible sections to flat 6-8 top-level items
