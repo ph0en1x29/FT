@@ -740,7 +740,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Service Automation Widget */}
         {showServiceAutomation && (
-          <div className="lg:col-span-4 lg:h-[360px]">
+          <div className="lg:col-span-4 lg:h-[480px]">
             <ServiceAutomationWidget onViewAll={() => navigate('/service-due')} />
           </div>
         )}
@@ -767,7 +767,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
             <div className="flex-1 min-h-0 overflow-y-auto">
               {jobs.length > 0 ? (
                 <div className="divide-y divide-[var(--border-subtle)]">
-                  {jobs.slice(0, 15).map((job) => {
+                  {jobs.slice(0, 5).map((job) => {
                     const statusColor = CHART_COLORS[job.status] || 'var(--border-strong)';
                     const safeTitle = (job.title || '').trim() || '(Untitled)';
 
@@ -827,7 +827,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
             </div>
 
             {/* Footer */}
-            {jobs.length > 0 && (
+            {jobs.length > 5 && (
               <div className="p-3 border-t border-[var(--border-subtle)]">
                 <button 
                   onClick={() => navigate('/jobs')}
@@ -849,7 +849,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
             onMarkRead={markAsRead}
             onMarkAllRead={markAllAsRead}
             currentUser={currentUser}
-            maxItems={15}
+            maxItems={5}
           />
         </div>
       </div>
