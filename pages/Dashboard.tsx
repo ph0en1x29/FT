@@ -740,13 +740,13 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Service Automation Widget */}
         {showServiceAutomation && (
-          <div className="lg:col-span-4 lg:h-[480px]">
+          <div className="lg:col-span-4 lg:h-[360px]">
             <ServiceAutomationWidget onViewAll={() => navigate('/service-due')} />
           </div>
         )}
 
         {/* Recent Jobs - Redesigned */}
-        <div className={`${showServiceAutomation ? 'lg:col-span-4' : 'lg:col-span-6'} lg:h-[480px]`}>
+        <div className={`${showServiceAutomation ? 'lg:col-span-4' : 'lg:col-span-6'} lg:h-[360px]`}>
           <div className="card-premium flex flex-col h-full overflow-hidden">
             {/* Header */}
             <div className="p-4 pb-3 border-b border-[var(--border-subtle)]">
@@ -841,7 +841,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
         </div>
 
         {/* Notifications Panel */}
-        <div className={`${showServiceAutomation ? 'lg:col-span-4' : 'lg:col-span-6'} lg:h-[480px]`}>
+        <div className={`${showServiceAutomation ? 'lg:col-span-4' : 'lg:col-span-6'} lg:h-[360px]`}>
           <NotificationPanel
             notifications={notifications}
             unreadCount={unreadCount}
