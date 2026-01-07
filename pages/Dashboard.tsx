@@ -617,7 +617,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
           </div>
           <div style={{ width: '100%', height: statusChartHeight, minHeight: statusChartHeight }}>
             {dataStatus.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%" minHeight={statusChartHeight} minWidth={0}>
+              <ResponsiveContainer width="100%" height={statusChartHeight}>
                 <PieChart>
                   <Pie
                     data={dataStatus}
@@ -682,7 +682,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
           </div>
           <div style={{ width: '100%', height: revenueChartHeight, minHeight: revenueChartHeight }}>
             {hasRevenueData ? (
-              <ResponsiveContainer width="100%" height="100%" minHeight={revenueChartHeight} minWidth={0}>
+              <ResponsiveContainer width="100%" height={revenueChartHeight}>
                 <AreaChart data={dataRevenue}>
                   <defs>
                     <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
