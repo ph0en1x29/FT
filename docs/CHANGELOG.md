@@ -27,6 +27,40 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### UI/UX: People Overview - Clickable Stats & Expand (2026-01-07)
+- **Updated:** 2026-01-07 (author: Claude)
+- **Status:** ✅ Implemented
+
+#### Features Added:
+1. **Clickable Stat Cards** - All 4 cards now navigate with URL params:
+   - Total Employees → `?tab=employees`
+   - Active → `?tab=employees&status=active`
+   - On Leave Today → `?tab=leave&filter=today`
+   - Pending Leaves → `?tab=leave&filter=pending`
+
+2. **New "Today" Filter** - Leave tab now has 3 filters:
+   - Pending (existing)
+   - On Leave Today (new - shows approved leaves active today)
+   - All Requests (existing)
+
+3. **Expand In-Place for Expiring Items**:
+   - "View all" / "Show less" toggle in section headers
+   - Expands from 5 items to full list within the card
+   - Max height increases from 48 to 96 for scrolling
+
+4. **URL Param Sync**:
+   - Employees tab reads `?status=` param on mount
+   - Leave tab reads `?filter=` param on mount
+   - Clicking stat cards updates URL for bookmarkable links
+
+#### Technical:
+- Added `LeaveFilterType = 'pending' | 'today' | 'all'`
+- `onNavigate` callback replaces `onTabChange` for param support
+- `initialStatus` and `initialFilter` props for child tabs
+- Added ChevronDown/ChevronUp icons for expand toggle
+
+---
+
 ### Bug Fixes: People Page & HR Service (2026-01-07)
 - **Updated:** 2026-01-07 (author: Claude)
 - **Status:** ✅ Fixed

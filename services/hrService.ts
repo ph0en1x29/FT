@@ -498,7 +498,7 @@ export const HRService = {
       .from('employee_leaves')
       .select(`
         *,
-        user:users!employee_leaves_user_id_fkey(full_name, department, employee_code, phone, profile_photo_url),
+        user:users!employee_leaves_user_id_fkey(user_id, full_name, name, department, employee_code, phone, profile_photo_url),
         leave_type:leave_types(*)
       `)
       .eq('status', LeaveStatus.APPROVED)

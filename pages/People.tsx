@@ -7,7 +7,7 @@ import { showToast } from '../services/toastService';
 import { 
   Users, UserCheck, UserX, Shield, Wrench, FileText, Plus, Edit2, Search, 
   CheckCircle, XCircle, Lock, X, AlertTriangle, Calendar, Clock, 
-  ChevronRight, Loader2, User as UserIcon, Car, Bell, LayoutDashboard
+  ChevronRight, Loader2, User as UserIcon, Car, Bell, LayoutDashboard, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 // ============================================================================
@@ -15,6 +15,7 @@ import {
 // ============================================================================
 
 type TabType = 'overview' | 'users' | 'employees' | 'leave';
+type LeaveFilterType = 'pending' | 'today' | 'all';
 
 interface PeopleProps {
   currentUser: User;
@@ -26,16 +27,33 @@ interface PeopleProps {
 
 const People: React.FC<PeopleProps> = ({ currentUser }) => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initialTab = (searchParams.get('tab') as TabType) || 'overview';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  // Get filter params for child tabs
+  const statusParam = searchParams.get('status') || undefined;
+  const filterParam = searchParams.get('filter') as LeaveFilterType | undefined;
 
   const canManageUsers = ROLE_PERMISSIONS[currentUser.role]?.canManageUsers;
   const canViewHR = ROLE_PERMISSIONS[currentUser.role]?.canViewHR;
 
-  const handleTabChange = (tab: TabType) => {
+  const handleTabChange = (tab: TabType, params?: Record<string, string>) => {
     setActiveTab(tab);
-    setSearchParams({ tab });
+    const newParams: Record<string, string> = { tab };
+    if (params) {
+      Object.assign(newParams, params);
+    }
+    setSearchParams(newParams);
   };
+
+  // Sync tab from URL when it changes externally
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') as TabType;
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
 
   const tabs = [
     { id: 'overview' as TabType, label: 'Overview', icon: LayoutDashboard, description: 'Dashboard' },
@@ -85,10 +103,10 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
       </div>
 
       {/* Tab Content */}
-      {effectiveTab === 'overview' && <OverviewTab currentUser={currentUser} onTabChange={handleTabChange} />}
+      {effectiveTab === 'overview' && <OverviewTab currentUser={currentUser} onNavigate={handleTabChange} />}
       {effectiveTab === 'users' && canManageUsers && <UsersTab currentUser={currentUser} />}
-      {effectiveTab === 'employees' && canViewHR && <EmployeesTab currentUser={currentUser} />}
-      {effectiveTab === 'leave' && canViewHR && <LeaveTab currentUser={currentUser} />}
+      {effectiveTab === 'employees' && canViewHR && <EmployeesTab currentUser={currentUser} initialStatus={statusParam} />}
+      {effectiveTab === 'leave' && canViewHR && <LeaveTab currentUser={currentUser} initialFilter={filterParam} />}
     </div>
   );
 };
@@ -97,7 +115,12 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
 // OVERVIEW TAB (HR DASHBOARD)
 // ============================================================================
 
-const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => void }> = ({ currentUser, onTabChange }) => {
+interface OverviewTabProps {
+  currentUser: User;
+  onNavigate: (tab: TabType, params?: Record<string, string>) => void;
+}
+
+const OverviewTab: React.FC<OverviewTabProps> = ({ currentUser, onNavigate }) => {
   const navigate = useNavigate();
   const [summary, setSummary] = useState<HRDashboardSummary | null>(null);
   const [expiringLicenses, setExpiringLicenses] = useState<EmployeeLicense[]>([]);
@@ -105,6 +128,10 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
   const [pendingLeaves, setPendingLeaves] = useState<EmployeeLeave[]>([]);
   const [todaysAttendance, setTodaysAttendance] = useState<AttendanceToday | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Expand toggles for expiring sections
+  const [showAllLicenses, setShowAllLicenses] = useState(false);
+  const [showAllPermits, setShowAllPermits] = useState(false);
 
   const canApproveLeave = ROLE_PERMISSIONS[currentUser.role]?.canApproveLeave;
 
@@ -161,11 +188,19 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
     return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>;
   }
 
+  // Determine which licenses/permits to show
+  const displayedLicenses = showAllLicenses ? expiringLicenses : expiringLicenses.slice(0, 5);
+  const displayedPermits = showAllPermits ? expiringPermits : expiringPermits.slice(0, 5);
+
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
+      {/* Stats Cards - All Clickable */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card-theme rounded-xl p-4">
+        {/* Total Employees → Employees tab */}
+        <button 
+          onClick={() => onNavigate('employees')} 
+          className="card-theme rounded-xl p-4 hover:border-blue-300 transition-all text-left"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
               <Users className="w-5 h-5 text-blue-600" />
@@ -175,9 +210,13 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
               <p className="text-xs text-theme-muted">Total Employees</p>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className="card-theme rounded-xl p-4">
+        {/* Active → Employees tab with active filter */}
+        <button 
+          onClick={() => onNavigate('employees', { status: 'active' })} 
+          className="card-theme rounded-xl p-4 hover:border-green-300 transition-all text-left"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
               <UserCheck className="w-5 h-5 text-green-600" />
@@ -187,9 +226,13 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
               <p className="text-xs text-theme-muted">Active</p>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className="card-theme rounded-xl p-4">
+        {/* On Leave Today → Leave tab with today filter */}
+        <button 
+          onClick={() => onNavigate('leave', { filter: 'today' })} 
+          className="card-theme rounded-xl p-4 hover:border-amber-300 transition-all text-left"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
               <Calendar className="w-5 h-5 text-amber-600" />
@@ -199,9 +242,13 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
               <p className="text-xs text-theme-muted">On Leave Today</p>
             </div>
           </div>
-        </div>
+        </button>
 
-        <button onClick={() => onTabChange('leave')} className="card-theme rounded-xl p-4 hover:border-orange-300 transition-all text-left">
+        {/* Pending Leaves → Leave tab with pending filter */}
+        <button 
+          onClick={() => onNavigate('leave', { filter: 'pending' })} 
+          className="card-theme rounded-xl p-4 hover:border-orange-300 transition-all text-left"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
               <Clock className="w-5 h-5 text-orange-600" />
@@ -222,17 +269,29 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
             <div className="flex items-center gap-2">
               <Car className="w-4 h-4 text-blue-600" />
               <h3 className="font-semibold text-sm text-theme">Expiring Licenses</h3>
+              <span className="text-xs text-theme-muted">({expiringLicenses.length})</span>
             </div>
-            <span className="text-xs text-theme-muted">{expiringLicenses.length} items</span>
+            {expiringLicenses.length > 5 && (
+              <button 
+                onClick={() => setShowAllLicenses(!showAllLicenses)}
+                className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              >
+                {showAllLicenses ? (
+                  <>Show less <ChevronUp className="w-3 h-3" /></>
+                ) : (
+                  <>View all <ChevronDown className="w-3 h-3" /></>
+                )}
+              </button>
+            )}
           </div>
-          <div className="divide-y divide-theme max-h-48 overflow-y-auto">
+          <div className={`divide-y divide-theme overflow-y-auto ${showAllLicenses ? 'max-h-96' : 'max-h-48'}`}>
             {expiringLicenses.length === 0 ? (
               <div className="p-4 text-center text-theme-muted">
                 <CheckCircle className="w-6 h-6 mx-auto mb-1 text-green-500" />
                 <p className="text-xs">No licenses expiring soon</p>
               </div>
             ) : (
-              expiringLicenses.slice(0, 5).map((license) => {
+              displayedLicenses.map((license) => {
                 const days = getDaysUntilExpiry(license.expiry_date);
                 const badge = getExpiryBadge(days);
                 return (
@@ -263,17 +322,29 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-purple-600" />
               <h3 className="font-semibold text-sm text-theme">Expiring Permits</h3>
+              <span className="text-xs text-theme-muted">({expiringPermits.length})</span>
             </div>
-            <span className="text-xs text-theme-muted">{expiringPermits.length} items</span>
+            {expiringPermits.length > 5 && (
+              <button 
+                onClick={() => setShowAllPermits(!showAllPermits)}
+                className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              >
+                {showAllPermits ? (
+                  <>Show less <ChevronUp className="w-3 h-3" /></>
+                ) : (
+                  <>View all <ChevronDown className="w-3 h-3" /></>
+                )}
+              </button>
+            )}
           </div>
-          <div className="divide-y divide-theme max-h-48 overflow-y-auto">
+          <div className={`divide-y divide-theme overflow-y-auto ${showAllPermits ? 'max-h-96' : 'max-h-48'}`}>
             {expiringPermits.length === 0 ? (
               <div className="p-4 text-center text-theme-muted">
                 <CheckCircle className="w-6 h-6 mx-auto mb-1 text-green-500" />
                 <p className="text-xs">No permits expiring soon</p>
               </div>
             ) : (
-              expiringPermits.slice(0, 5).map((permit) => {
+              displayedPermits.map((permit) => {
                 const days = getDaysUntilExpiry(permit.expiry_date);
                 const badge = getExpiryBadge(days);
                 return (
@@ -318,13 +389,16 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
               <p className="text-xs text-green-600">Available</p>
             </div>
           </div>
-          <div className="p-4 bg-amber-50 dark:bg-amber-500/10 flex items-center gap-3">
+          <button 
+            onClick={() => onNavigate('leave', { filter: 'today' })}
+            className="p-4 bg-amber-50 dark:bg-amber-500/10 flex items-center gap-3 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors text-left"
+          >
             <UserX className="w-8 h-8 text-amber-600" />
             <div>
               <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">{todaysAttendance?.onLeave?.length || 0}</p>
               <p className="text-xs text-amber-600">On Leave</p>
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -336,7 +410,10 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
               <Clock className="w-4 h-4 text-orange-600" />
               <h3 className="font-semibold text-sm text-theme">Pending Leave Requests</h3>
             </div>
-            <button onClick={() => onTabChange('leave')} className="text-xs text-blue-600 hover:text-blue-700">
+            <button 
+              onClick={() => onNavigate('leave', { filter: 'pending' })} 
+              className="text-xs text-blue-600 hover:text-blue-700"
+            >
               View all →
             </button>
           </div>
@@ -363,7 +440,7 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
                     <CheckCircle className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => onTabChange('leave')}
+                    onClick={() => onNavigate('leave', { filter: 'pending' })}
                     className="p-1.5 text-slate-400 hover:bg-slate-50 rounded transition"
                     title="View Details"
                   >
@@ -647,13 +724,25 @@ const UsersTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
 // EMPLOYEES TAB
 // ============================================================================
 
-const EmployeesTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
+interface EmployeesTabProps {
+  currentUser: User;
+  initialStatus?: string;
+}
+
+const EmployeesTab: React.FC<EmployeesTabProps> = ({ currentUser, initialStatus }) => {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>(initialStatus || 'all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
+
+  // Update filter when initialStatus changes (from URL param)
+  useEffect(() => {
+    if (initialStatus && initialStatus !== filterStatus) {
+      setFilterStatus(initialStatus);
+    }
+  }, [initialStatus]);
 
   useEffect(() => {
     loadEmployees();
@@ -679,8 +768,8 @@ const EmployeesTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       (emp.department || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = filterStatus === 'all' || 
-      (filterStatus === 'active' && emp.employment_status === 'active') ||
-      (filterStatus === 'inactive' && emp.employment_status !== 'active');
+      (filterStatus === 'active' && (emp.employment_status === 'active' || !emp.employment_status)) ||
+      (filterStatus === 'inactive' && emp.employment_status === 'inactive');
     
     const matchesDept = filterDepartment === 'all' || emp.department === filterDepartment;
     
@@ -744,7 +833,7 @@ const EmployeesTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                   <p className="text-sm text-theme-muted truncate">{emp.email}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      emp.employment_status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                      emp.employment_status === 'active' || !emp.employment_status ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
                     }`}>
                       {emp.employment_status || 'Active'}
                     </span>
@@ -769,16 +858,29 @@ const EmployeesTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
 // LEAVE TAB
 // ============================================================================
 
-const LeaveTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
+interface LeaveTabProps {
+  currentUser: User;
+  initialFilter?: LeaveFilterType;
+}
+
+const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter }) => {
   const [pendingLeaves, setPendingLeaves] = useState<EmployeeLeave[]>([]);
   const [allLeaves, setAllLeaves] = useState<EmployeeLeave[]>([]);
+  const [todayLeaves, setTodayLeaves] = useState<EmployeeLeave[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'pending' | 'all'>('pending');
+  const [filter, setFilter] = useState<LeaveFilterType>(initialFilter || 'pending');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingLeaveId, setRejectingLeaveId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
   const canApproveLeave = ROLE_PERMISSIONS[currentUser.role]?.canApproveLeave;
+
+  // Update filter when initialFilter changes (from URL param)
+  useEffect(() => {
+    if (initialFilter && initialFilter !== filter) {
+      setFilter(initialFilter);
+    }
+  }, [initialFilter]);
 
   useEffect(() => {
     loadLeaves();
@@ -787,12 +889,14 @@ const LeaveTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const loadLeaves = async () => {
     setLoading(true);
     try {
-      const [pending, all] = await Promise.all([
+      const [pending, all, today] = await Promise.all([
         HRService.getPendingLeaves(),
-        HRService.getLeaves()
+        HRService.getLeaves(),
+        HRService.getTodaysLeaves()
       ]);
       setPendingLeaves(pending);
       setAllLeaves(all.length > 0 ? all : pending);
+      setTodayLeaves(today);
     } catch (error) {
       console.error('Error loading leaves:', error);
       showToast.error('Failed to load leave requests');
@@ -834,7 +938,12 @@ const LeaveTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     return styles[status] || 'bg-slate-100 text-slate-600';
   };
 
-  const displayLeaves = filter === 'pending' ? pendingLeaves : allLeaves;
+  // Determine which leaves to display based on filter
+  const displayLeaves = filter === 'pending' 
+    ? pendingLeaves 
+    : filter === 'today' 
+      ? todayLeaves 
+      : allLeaves;
 
   if (loading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>;
@@ -843,7 +952,7 @@ const LeaveTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   return (
     <div className="space-y-4">
       {/* Filter Tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => setFilter('pending')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -851,6 +960,14 @@ const LeaveTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
           }`}
         >
           Pending ({pendingLeaves.length})
+        </button>
+        <button
+          onClick={() => setFilter('today')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            filter === 'today' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          On Leave Today ({todayLeaves.length})
         </button>
         <button
           onClick={() => setFilter('all')}
@@ -868,7 +985,9 @@ const LeaveTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
           <Calendar className="w-12 h-12 text-theme-muted opacity-40 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-theme mb-2">No leave requests</h3>
           <p className="text-sm text-theme-muted">
-            {filter === 'pending' ? 'No pending requests to review' : 'No leave requests found'}
+            {filter === 'pending' ? 'No pending requests to review' : 
+             filter === 'today' ? 'No one is on leave today' : 
+             'No leave requests found'}
           </p>
         </div>
       ) : (
