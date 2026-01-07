@@ -488,7 +488,9 @@ export default function App() {
               <Route path="/users" element={<Navigate to="/people?tab=users" replace />} />
               <Route path="/hr" element={<Navigate to="/people?tab=overview" replace />} />
               <Route path="/hr/employees" element={<Navigate to="/people?tab=employees" replace />} />
-              <Route path="/hr/employees/:id" element={<Navigate to="/people/employees/:id" replace />} />
+              <Route path="/hr/employees/:id" element={
+                (canViewHR || canViewOwnProfile) ? <EmployeeProfile currentUser={currentUser} /> : <Navigate to="/" />
+              } />
               <Route path="/technician-kpi" element={<Navigate to="/reports" replace />} />
               <Route path="/service-intervals" element={<Navigate to="/forklifts?tab=intervals" replace />} />
               <Route path="/service-due" element={<Navigate to="/forklifts?tab=service-due" replace />} />

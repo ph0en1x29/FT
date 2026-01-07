@@ -235,7 +235,7 @@ export const HRService = {
       .from('employee_licenses')
       .select(`
         *,
-        user:users(full_name, phone, department, employee_code)
+        user:users!employee_licenses_user_id_fkey(user_id, full_name, name, phone, department, employee_code)
       `)
       .eq('status', 'active')
       .lte('expiry_date', futureDate.toISOString().split('T')[0])
@@ -344,7 +344,7 @@ export const HRService = {
       .from('employee_permits')
       .select(`
         *,
-        user:users(full_name, phone, department, employee_code)
+        user:users!employee_permits_user_id_fkey(user_id, full_name, name, phone, department, employee_code)
       `)
       .eq('status', 'active')
       .lte('expiry_date', futureDate.toISOString().split('T')[0])
@@ -453,7 +453,7 @@ export const HRService = {
       .from('employee_leaves')
       .select(`
         *,
-        user:users!employee_leaves_user_id_fkey(full_name, department, employee_code, phone),
+        user:users!employee_leaves_user_id_fkey(user_id, full_name, name, department, employee_code, phone),
         leave_type:leave_types(*)
       `)
       .order('start_date', { ascending: false });
@@ -481,7 +481,7 @@ export const HRService = {
       .from('employee_leaves')
       .select(`
         *,
-        user:users!employee_leaves_user_id_fkey(full_name, department, employee_code, phone),
+        user:users!employee_leaves_user_id_fkey(user_id, full_name, name, department, employee_code, phone),
         leave_type:leave_types(*)
       `)
       .eq('status', LeaveStatus.PENDING)

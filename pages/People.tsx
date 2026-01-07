@@ -243,7 +243,7 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
                   >
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-theme truncate">
-                        {(license.user as User)?.name || (license.user as User)?.full_name || 'Unknown'}
+                        {(license.user as User)?.full_name || (license.user as User)?.name || 'Unknown'}
                       </p>
                       <p className="text-xs text-theme-muted truncate">{license.license_type}</p>
                     </div>
@@ -284,7 +284,7 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
                   >
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-theme truncate">
-                        {(permit.user as User)?.name || (permit.user as User)?.full_name || 'Unknown'}
+                        {(permit.user as User)?.full_name || (permit.user as User)?.name || 'Unknown'}
                       </p>
                       <p className="text-xs text-theme-muted truncate">{permit.permit_type}</p>
                     </div>
@@ -348,7 +348,7 @@ const OverviewTab: React.FC<{ currentUser: User; onTabChange: (tab: TabType) => 
                     <UserIcon className="w-4 h-4 text-slate-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-theme">{(leave as any).user?.name || 'Unknown'}</p>
+                    <p className="text-sm font-medium text-theme">{(leave as any).user?.full_name || (leave as any).user?.name || 'Unknown'}</p>
                     <p className="text-xs text-theme-muted">
                       {new Date(leave.start_date).toLocaleDateString()} - {new Date(leave.end_date).toLocaleDateString()}
                     </p>
@@ -887,7 +887,7 @@ const LeaveTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
               {displayLeaves.map(leave => (
                 <tr key={leave.leave_id} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-900">{(leave as any).user?.name || 'Unknown'}</p>
+                    <p className="font-medium text-slate-900">{(leave as any).user?.full_name || (leave as any).user?.name || 'Unknown'}</p>
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-sm capitalize">{leave.leave_type.replace('_', ' ')}</span>

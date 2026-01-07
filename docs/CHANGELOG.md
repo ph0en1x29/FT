@@ -27,6 +27,23 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### Bug Fixes: People Page & HR Service (2026-01-07)
+- **Updated:** 2026-01-07 (author: Claude)
+- **Status:** ✅ Fixed
+
+#### Issues Fixed:
+1. **High - Legacy Route Redirect**: `/hr/employees/:id` was using literal `:id` in Navigate
+   - Fix: Route directly to `EmployeeProfile` component instead of broken redirect
+   
+2. **Medium - User Name Display**: `getPendingLeaves` only selected `full_name` but UI used `user?.name`
+   - Fix: Added `name` to all user selects, UI now checks `full_name` first then `name` fallback
+
+3. **FK Ambiguity Prevention**: `employee_licenses` and `employee_permits` have 3 FKs to users
+   - Added explicit FK hints: `users!employee_licenses_user_id_fkey` and `users!employee_permits_user_id_fkey`
+   - Prevents PGRST201 ambiguity errors when Overview tab loads
+
+---
+
 ### UI/UX: People Page - Overview Tab Added (2026-01-07)
 - **Updated:** 2026-01-07 (author: Claude)
 - **Status:** ✅ Implemented
