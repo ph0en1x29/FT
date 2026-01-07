@@ -740,8 +740,8 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Service Automation Widget */}
         {showServiceAutomation && (
-          <div className="lg:col-span-4 lg:h-[480px]">
-            <ServiceAutomationWidget onViewAll={() => navigate('/service-due')} />
+          <div className="lg:col-span-4 lg:h-[360px]">
+            <ServiceAutomationWidget onViewAll={() => navigate('/forklifts?tab=service-due')} />
           </div>
         )}
 
