@@ -27,6 +27,23 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### 🛠️ ES Module Import Fix (2026-01-07)
+- **Updated:** 2026-01-07 (author: Claude)
+- **Status:** ✅ Fixed
+- **Issue:** App.tsx failing to load (Vite 500 error)
+
+#### Root Cause:
+- Import statements were placed after executable code (`lazy()` calls)
+- ES modules require all imports at the top level before any executable code
+- Missing React imports: `useState`, `useEffect`, `lazy`, `Suspense`
+
+#### Fix Applied:
+- Moved all imports to top of `App.tsx` before `lazy()` calls
+- Added missing React imports
+- Removed duplicate import line
+
+---
+
 ### 🔔 Real-Time Notification System Fix (2026-01-07)
 - **Updated:** 2026-01-07 (author: Claude)
 - **Status:** ✅ Fixed
