@@ -27,6 +27,62 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+### 🔔 Real-Time Notification System Fix (2026-01-07)
+- **Updated:** 2026-01-07 (author: Claude)
+- **Status:** ✅ Fixed
+- **Issue Source:** ACWER customer feedback (06/01/2025 troubleshooting report)
+
+#### Issues Addressed:
+1. **Dashboard Notifications** - Notifications only on bell icon (dashboard panel exists)
+2. **Request Alerts** - No sound/notification for helper/spare part requests
+3. **Job Assignment** - Technician B doesn't see assigned jobs immediately
+4. **Real-Time Inconsistency** - Sometimes works, sometimes nothing (CRITICAL)
+
+#### Root Cause Analysis:
+- **Channel naming with `Date.now()`** was creating orphaned WebSocket connections
+- Every component re-render created a new channel with different name
+- Race conditions between cleanup and new subscriptions
+- RLS policies missing INSERT for system notifications
+
+#### Fixes Applied:
+
+**1. `utils/useRealtimeNotifications.ts` - Major Rewrite:**
+- Removed `Date.now()` from channel name → stable `fieldpro-notifications-{userId}`
+- Added `mountedRef` to prevent state updates after unmount
+- Added duplicate notification prevention in state updates
+- Added device vibration support for mobile alerts
+- Enhanced browser notification with unique tags
+- Added listeners for:
+  - New job assignments (INSERT on jobs table)
+  - Job request status changes (for technicians)
+  - New job requests (for admins/supervisors)
+- Improved connection status logging and error handling
+- Better cleanup on component unmount
+
+**2. `database/migrations/fix_notification_realtime.sql` - New Migration:**
+- Added `authenticated_insert_notifications` policy (allows system notifications)
+- Enabled REPLICA IDENTITY FULL for notifications table
+- Added notifications to supabase_realtime publication
+- Added job_requests to realtime publication
+- Added DELETE policy for notification cleanup
+
+#### Migration Required:
+```bash
+# Run in Supabase SQL Editor:
+# database/migrations/fix_notification_realtime.sql
+```
+
+#### Testing Checklist:
+- [ ] Admin assigns job → Technician receives notification + sound
+- [ ] Technician requests helper → Admin receives notification + sound
+- [ ] Admin approves request → Technician receives notification + sound
+- [ ] Job reassignment → New technician sees job immediately
+- [ ] Multiple rapid notifications → No duplicates, all received
+- [ ] Page refresh → Subscription reconnects properly
+- [ ] Mobile → Vibration works on notification
+
+---
+
 ### UI/UX: People Overview - Clickable Stats & Expand (2026-01-07)
 - **Updated:** 2026-01-07 (author: Claude)
 - **Status:** ✅ Implemented

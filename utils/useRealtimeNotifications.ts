@@ -73,7 +73,8 @@ export const showBrowserNotification = (title: string, body: string, onClick?: (
   const notification = new Notification(title, {
     body,
     icon: '/favicon.svg',
-    tag: 'fieldpro-notification',
+    tag: `fieldpro-${Date.now()}`, // Unique tag to allow multiple notifications
+    requireInteraction: false,
   });
   
   if (onClick) {
@@ -86,6 +87,17 @@ export const showBrowserNotification = (title: string, body: string, onClick?: (
   
   // Auto close after 5 seconds
   setTimeout(() => notification.close(), 5000);
+};
+
+// Vibrate device if supported (mobile)
+export const vibrateDevice = (pattern: number | number[] = [200, 100, 200]) => {
+  if ('vibrate' in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch (e) {
+      // Vibration not supported or blocked
+    }
+  }
 };
 
 interface UseRealtimeNotificationsOptions {
@@ -112,7 +124,7 @@ export const useRealtimeNotifications = (
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const channelRef = useRef<any>(null);
-  const isSubscribedRef = useRef(false);
+  const mountedRef = useRef(true);
   
   // Use refs for callbacks to avoid re-subscription on callback changes
   const onNewNotificationRef = useRef(onNewNotification);
@@ -131,9 +143,14 @@ export const useRealtimeNotifications = (
     const handleInteraction = () => {
       initAudio();
       document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
     };
     document.addEventListener('click', handleInteraction);
-    return () => document.removeEventListener('click', handleInteraction);
+    document.addEventListener('touchstart', handleInteraction);
+    return () => {
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
+    };
   }, []);
   
   // Request notification permission
@@ -143,16 +160,59 @@ export const useRealtimeNotifications = (
     }
   }, [showBrowserNotifications]);
   
-  // Setup realtime subscriptions - ONLY depends on user id and role
+  // Handle new notification - extracted to avoid duplication
+  const handleNewNotification = useCallback((newNotification: AppNotification) => {
+    if (!mountedRef.current) return;
+    
+    // Update state
+    setNotifications(prev => {
+      // Prevent duplicates
+      if (prev.some(n => n.notification_id === newNotification.notification_id)) {
+        return prev;
+      }
+      return [newNotification, ...prev].slice(0, 50);
+    });
+    setUnreadCount(prev => prev + 1);
+    
+    // Play sound
+    if (playSound) {
+      playNotificationSound();
+    }
+    
+    // Vibrate on mobile
+    vibrateDevice();
+    
+    // Show browser notification
+    if (showBrowserNotifications) {
+      showBrowserNotification(newNotification.title, newNotification.message);
+    }
+    
+    // Show toast with appropriate type
+    const toastType = newNotification.priority === 'urgent' ? 'error' : 
+                      newNotification.priority === 'high' ? 'warning' : 'info';
+    (showToast as any)[toastType](newNotification.title, newNotification.message);
+    
+    // Callback via ref
+    onNewNotificationRef.current?.(newNotification);
+  }, [playSound, showBrowserNotifications]);
+  
+  // Setup realtime subscriptions - STABLE channel name (no Date.now())
   useEffect(() => {
     if (!currentUser?.user_id) return;
     
-    // Prevent duplicate subscriptions
-    if (isSubscribedRef.current) return;
-    isSubscribedRef.current = true;
+    mountedRef.current = true;
     
-    // Create channel with unique name
-    const channelName = `user-${currentUser.user_id}-notifications-${Date.now()}`;
+    // Clean up any existing channel first
+    if (channelRef.current) {
+      console.log('[Realtime] Cleaning up existing channel');
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+    
+    // STABLE channel name - based only on user_id
+    const channelName = `fieldpro-notifications-${currentUser.user_id}`;
+    
+    console.log('[Realtime] Creating channel:', channelName);
     const channel = supabase.channel(channelName);
     
     // Subscribe to notifications for this user
@@ -165,34 +225,14 @@ export const useRealtimeNotifications = (
         filter: `user_id=eq.${currentUser.user_id}`,
       },
       (payload) => {
-        const newNotification = payload.new as AppNotification;
-        
-        // Update state
-        setNotifications(prev => [newNotification, ...prev].slice(0, 50));
-        setUnreadCount(prev => prev + 1);
-        
-        // Play sound
-        if (playSound) {
-          playNotificationSound();
-        }
-        
-        // Show browser notification
-        if (showBrowserNotifications) {
-          showBrowserNotification(newNotification.title, newNotification.message);
-        }
-        
-        // Show toast
-        const toastType = newNotification.priority === 'urgent' ? 'error' : 
-                          newNotification.priority === 'high' ? 'warning' : 'info';
-        (showToast as any)[toastType](newNotification.title, newNotification.message);
-        
-        // Callback via ref
-        onNewNotificationRef.current?.(newNotification);
+        console.log('[Realtime] New notification received:', payload.new);
+        handleNewNotification(payload.new as AppNotification);
       }
     );
     
-    // Subscribe to job updates for technicians
+    // Subscribe to job updates for technicians (when their assigned jobs change)
     if (currentUser.role === 'technician') {
+      // Job status/assignment changes
       channel.on(
         'postgres_changes',
         {
@@ -202,10 +242,12 @@ export const useRealtimeNotifications = (
           filter: `assigned_technician_id=eq.${currentUser.user_id}`,
         },
         (payload) => {
+          console.log('[Realtime] Job update for technician:', payload.new);
           onJobUpdateRef.current?.(payload.new);
         }
       );
       
+      // Job request status changes (for requests the technician made)
       channel.on(
         'postgres_changes',
         {
@@ -215,12 +257,28 @@ export const useRealtimeNotifications = (
           filter: `requested_by=eq.${currentUser.user_id}`,
         },
         (payload) => {
+          console.log('[Realtime] Request update for technician:', payload.new);
           onRequestUpdateRef.current?.(payload.new);
+        }
+      );
+      
+      // NEW: Listen for new job assignments (INSERT on jobs where assigned to this tech)
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'jobs',
+          filter: `assigned_technician_id=eq.${currentUser.user_id}`,
+        },
+        (payload) => {
+          console.log('[Realtime] New job assigned to technician:', payload.new);
+          onJobUpdateRef.current?.(payload.new);
         }
       );
     }
     
-    // Subscribe to job_requests for admins (new requests)
+    // Subscribe to job_requests for admins/supervisors (new requests from technicians)
     if (currentUser.role === 'admin' || currentUser.role === 'supervisor') {
       channel.on(
         'postgres_changes',
@@ -230,16 +288,41 @@ export const useRealtimeNotifications = (
           table: 'job_requests',
         },
         (payload) => {
+          console.log('[Realtime] New job request:', payload.new);
+          onRequestUpdateRef.current?.(payload.new);
+        }
+      );
+      
+      // Also listen for request status changes (in case another admin handles it)
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'job_requests',
+        },
+        (payload) => {
+          console.log('[Realtime] Job request updated:', payload.new);
           onRequestUpdateRef.current?.(payload.new);
         }
       );
     }
     
     // Subscribe and track connection status
-    channel.subscribe((status) => {
-      setIsConnected(status === 'SUBSCRIBED');
+    channel.subscribe((status, error) => {
+      if (!mountedRef.current) return;
+      
+      console.log('[Realtime] Subscription status:', status, error || '');
+      
       if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] Notifications connected');
+        setIsConnected(true);
+        console.log('[Realtime] ✅ Notifications connected for user:', currentUser.user_id);
+      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+        setIsConnected(false);
+        console.warn('[Realtime] ⚠️ Connection closed/error:', status);
+      } else if (status === 'TIMED_OUT') {
+        setIsConnected(false);
+        console.warn('[Realtime] ⚠️ Connection timed out, will retry...');
       }
     });
     
@@ -247,13 +330,14 @@ export const useRealtimeNotifications = (
     
     // Cleanup
     return () => {
-      isSubscribedRef.current = false;
+      mountedRef.current = false;
       if (channelRef.current) {
+        console.log('[Realtime] Removing channel on cleanup');
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [currentUser?.user_id, currentUser?.role, playSound, showBrowserNotifications]);
+  }, [currentUser?.user_id, currentUser?.role, handleNewNotification]);
   
   // Load initial notifications
   useEffect(() => {
@@ -268,7 +352,7 @@ export const useRealtimeNotifications = (
           .order('created_at', { ascending: false })
           .limit(50);
         
-        if (!error && data) {
+        if (!error && data && mountedRef.current) {
           setNotifications(data as AppNotification[]);
           setUnreadCount(data.filter((n: any) => !n.is_read).length);
         }
@@ -282,29 +366,33 @@ export const useRealtimeNotifications = (
   
   // Mark notification as read
   const markAsRead = useCallback(async (notificationId: string) => {
-    await supabase
+    const { error } = await supabase
       .from('notifications')
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('notification_id', notificationId);
     
-    setNotifications(prev =>
-      prev.map(n => n.notification_id === notificationId ? { ...n, is_read: true } : n)
-    );
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    if (!error) {
+      setNotifications(prev =>
+        prev.map(n => n.notification_id === notificationId ? { ...n, is_read: true } : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
   }, []);
   
   // Mark all as read
   const markAllAsRead = useCallback(async () => {
     if (!currentUser?.user_id) return;
     
-    await supabase
+    const { error } = await supabase
       .from('notifications')
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('user_id', currentUser.user_id)
       .eq('is_read', false);
     
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    setUnreadCount(0);
+    if (!error) {
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    }
   }, [currentUser?.user_id]);
   
   // Refresh notifications
@@ -318,7 +406,7 @@ export const useRealtimeNotifications = (
       .order('created_at', { ascending: false })
       .limit(50);
     
-    if (data) {
+    if (data && mountedRef.current) {
       setNotifications(data as AppNotification[]);
       setUnreadCount(data.filter((n: any) => !n.is_read).length);
     }
