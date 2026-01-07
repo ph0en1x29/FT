@@ -168,7 +168,7 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
     );
   }
 
-  const isTechnician = employee.user?.role === UserRole.TECHNICIAN;
+  const isTechnician = employee.role === UserRole.TECHNICIAN;
 
   return (
     <div className="space-y-6">

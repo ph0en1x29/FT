@@ -27,6 +27,39 @@ All notable changes, decisions, and client requirements for this project.
 ### Current Phase
 📋 **Requirements Confirmed** — Ready to begin implementation
 
+---
+
+### 🔧 Technician Licenses & Permits Tab Fix (2026-01-07)
+- **Updated:** 2026-01-07 (author: Claude)
+- **Status:** ✅ Fixed
+- **Issue:** Licenses and Permits tabs not showing for technicians in Employee Profile
+
+#### Root Cause:
+- After merging `employees` table into `users`, the `Employee` type became an alias for `User`
+- Code in `EmployeeProfile.tsx` was checking `employee.user?.role` (nested property)
+- This property no longer exists since `Employee = User` directly
+- `isTechnician` was always evaluating to `false`
+
+#### Fix Applied:
+```tsx
+// Before (broken):
+const isTechnician = employee.user?.role === UserRole.TECHNICIAN;
+
+// After (fixed):
+const isTechnician = employee.role === UserRole.TECHNICIAN;
+```
+
+#### Impact:
+- Technicians can now see and manage their **Licenses** tab
+- Technicians can now see and manage their **Permits** tab
+- Admin/Supervisors can add/view licenses and permits for technicians
+
+#### Related Tables:
+- `employee_licenses` - Stores technician driving licenses with expiry tracking
+- `employee_permits` - Stores special permits (forklift operator, etc.) with expiry tracking
+
+---
+
 ### 🐛 URL-State Desync Fix (2026-01-07)
 - **Updated:** 2026-01-07 (author: Claude)
 - **Status:** ✅ Fixed
