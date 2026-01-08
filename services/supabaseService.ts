@@ -2173,7 +2173,10 @@ export const SupabaseDb = {
 
   createNotification: async (notification: Partial<Notification>): Promise<Notification | null> => {
     try {
-      const { data, error } = await supabase
+      // NOTE: Removed .select().single() to avoid RLS SELECT denial
+      // When user A creates notification for user B, INSERT is allowed but
+      // SELECT would fail because user A can't read user B's notifications
+      const { error } = await supabase
         .from('notifications')
         .insert({
           user_id: notification.user_id,
@@ -2183,15 +2186,23 @@ export const SupabaseDb = {
           reference_type: notification.reference_type,
           reference_id: notification.reference_id,
           priority: notification.priority || 'normal',
-        })
-        .select()
-        .single();
+        });
 
       if (error) {
         console.warn('Failed to create notification:', error.message);
         return null;
       }
-      return data as Notification;
+      // Return input data to indicate success (actual row not returned to avoid RLS issues)
+      return {
+        user_id: notification.user_id,
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        reference_type: notification.reference_type,
+        reference_id: notification.reference_id,
+        priority: notification.priority || 'normal',
+        is_read: false,
+      } as Notification;
     } catch (e) {
       console.warn('Notification creation failed:', e);
       return null;

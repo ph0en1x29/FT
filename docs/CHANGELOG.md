@@ -31,40 +31,38 @@ All notable changes, decisions, and client requirements for this project.
 
 ### 🔧 Notification & Service Records RLS Fix v4 (2026-01-08)
 - **Updated:** 2026-01-08 (author: Claude)
-- **Status:** 🔨 Migration Ready - Run in Supabase SQL Editor
+- **Status:** ✔️ Completed
 - **Issues Fixed:**
-  1. **403 on notification INSERT** - Technicians couldn't create notifications
-  2. **406 on job_service_records** - Missing RLS policies blocking reads
+  1. **403 on notification INSERT** - Technicians couldn't create notifications for admins
+  2. **406 on job_service_records** - PostgREST error on missing records
 
-#### Root Cause:
-- Notification policies used subqueries on `users` table, which is itself RLS-protected
-- The subquery `SELECT user_id FROM users WHERE auth_id = auth.uid()` fails when RLS blocks access
-- Solution: Use `SECURITY DEFINER` functions to bypass RLS for user lookup
+#### Root Cause Analysis:
+1. **Notification INSERT 403**: The `createNotification` function used `.select().single()` after INSERT. When tech creates notification for admin, INSERT succeeds (allowed by `notif_insert_any` policy), but the SELECT to return the row fails because tech can't read admin's notifications. PostgREST combines these into atomic operation → 403.
 
-#### Key Changes:
-1. **Created `get_my_user_id()` function** - SECURITY DEFINER, bypasses users RLS
-2. **Created `is_admin_or_supervisor()` function** - For admin check with SECURITY DEFINER
-3. **Recreated all notification policies** using these secure functions
-4. **Added job_service_records policies** - Permissive for all authenticated users
-5. **Avoided `job_service_records` 406** by switching to `limit(1)` in `getJobServiceRecord`
+2. **job_service_records 406**: Using `.single()` on a query that returns 0 rows throws PostgREST 406 error.
 
-#### Migration Required:
-```bash
-# Run in Supabase SQL Editor:
-database/migrations/fix_notification_and_service_records_rls.sql
+#### Final Fixes Applied:
+1. **`createNotification`** - Removed `.select().single()`, now just does INSERT without returning the row
+2. **`getJobServiceRecord`** - Changed from `.single()` to `.limit(1)` with `data?.[0] ?? null`
+
+#### Code Changes (services/supabaseService.ts):
+```javascript
+// createNotification - BEFORE (caused 403)
+.insert({...}).select().single();
+
+// createNotification - AFTER (fixed)
+.insert({...});  // No .select().single()
+
+// getJobServiceRecord - BEFORE (caused 406)
+.select('*').eq('job_id', jobId).single();
+
+// getJobServiceRecord - AFTER (fixed)
+.select('*').eq('job_id', jobId).limit(1);
+return data?.[0] ?? null;
 ```
 
-#### After Migration - Verify:
-```sql
--- Check notification policies (should see 7 policies)
-SELECT policyname, cmd FROM pg_policies WHERE tablename = 'notifications';
-
--- Check service records policies (should see 3 policies)
-SELECT policyname, cmd FROM pg_policies WHERE tablename = 'job_service_records';
-
--- Test helper function
-SELECT get_my_user_id() as my_user_id;
-```
+#### RLS Policies (Already Correct):
+The database policies were correctly configured with SECURITY DEFINER functions. No SQL changes needed.
 
 ---
 
