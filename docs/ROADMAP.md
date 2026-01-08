@@ -75,6 +75,47 @@
 
 ---
 
+## 🚧 Next Up: Asset Overview Dashboard + ACWER Requirements
+
+**Reference:** `docs/ACWER_REQUIREMENTS_REVIEW.md`
+
+### Phase 1: Quick Wins (~16 hours)
+- [ ] Job Types Update - Add Slot-In, Courier/Collection
+- [ ] Conditional Field Visibility by job type
+- [ ] "Check All" button for condition checklist
+- [ ] Hide pricing from Tech App views
+- [ ] Edit button for pending requests
+- [ ] Hourmeter locking (first tech records, persists on reassignment)
+
+### Phase 2: Asset Dashboard + Photo Flow (~32 hours)
+- [ ] **Asset Overview Dashboard** - Fleet status at a glance
+  - Total fleet count
+  - Rented Out / In Service / Service Due / Available / Out of Service
+  - Utilization rate percentage
+  - Branch breakdown (Johor vs Penang)
+  - Foundation for contract management
+- [ ] Photo-Based Job Start/End (auto-start on forklift photo)
+- [ ] Hourmeter amendment flow with audit trail
+- [ ] POD (Proof of Delivery) flow for Courier jobs
+
+### Phase 3: Workflow Enhancements (~28 hours)
+- [ ] Dual Admin Approval Flow (Admin 2 confirms parts → Admin 1 closes)
+- [ ] Parts Confirmation step in job completion
+- [ ] Request edit history/audit trail
+
+### Phase 4: Inventory System (~60 hours)
+- [ ] Inventory Module Foundation (locations, items, stock, transactions)
+- [ ] Van Stock (Virtual Warehouse per technician with 50 SKUs)
+- [ ] Auto-Requisition System for Slot-In job replenishment
+- [ ] Dual-Path Parts Flow (Store Request vs Van Stock)
+
+### Phase 5: Advanced Features (Future)
+- [ ] Offline Mode (PWA) - significant undertaking, post-MVP
+- [ ] Contract Management - link forklifts to rental agreements
+- [ ] Preventive Maintenance Automation
+
+---
+
 ## 📋 Backlog
 
 ### 🔔 Notification System (Customer Feedback - ✅ COMPLETED)

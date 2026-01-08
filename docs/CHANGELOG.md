@@ -25,7 +25,38 @@ All notable changes, decisions, and client requirements for this project.
 - Uses AutoCount 2.2 for accounting
 
 ### Current Phase
-📋 **Requirements Confirmed** — Ready to begin implementation
+📋 **Requirements Review** — Analyzing new client requests (Jan 7, 2025)
+
+---
+
+### 📋 ACWER Requirements Review Document (2026-01-08)
+- **Updated:** 2026-01-08 (author: Claude)
+- **Status:** 🟡 Under Discussion
+- **Document:** `docs/ACWER_REQUIREMENTS_REVIEW.md`
+
+#### New Client Requests Analyzed:
+1. **Job Types Expansion** - Add Slot-In (Emergency) and Courier/Collection types
+2. **Dual-Path Inventory** - Warehouse vs Van Stock (50 standby units per tech)
+3. **Parts Usage Control** - Admin-only parts entry, hide from tech app
+4. **Hourmeter Locking** - First tech records, persists on reassignment
+5. **Dual Admin Approval** - Admin 2 confirms parts → Admin 1 closes job
+6. **Offline Mode** - PWA with local storage (deferred to Phase 4)
+7. **Checklist "Check All"** - Bulk selection button
+8. **Photo-Based Job Tracking** - Auto-start on photo, live camera only
+9. **Request Edit Button** - Allow amendments to pending requests
+10. **Hide Pricing** - Remove costs from tech-facing views
+
+#### Implementation Phases Defined:
+- Phase 1: Quick Wins (~16 hours)
+- Phase 2: Asset Dashboard + Photo Flow (~32 hours)
+- Phase 3: Workflow Enhancements (~28 hours)
+- Phase 4: Inventory System (~60 hours)
+- Phase 5: Advanced Features (Future)
+
+#### Next Steps:
+- [ ] Review questions with client
+- [ ] Get confirmation on critical decisions
+- [ ] Begin Phase 1 implementation
 
 ---
 
