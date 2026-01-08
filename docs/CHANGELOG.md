@@ -45,6 +45,38 @@ All notable changes, decisions, and client requirements for this project.
 1. **`createNotification`** - Removed `.select().single()`, now just does INSERT without returning the row
 2. **`getJobServiceRecord`** - Changed from `.single()` to `.limit(1)` with `data?.[0] ?? null`
 
+### 🔧 createNotification Return Type Fix (2026-01-08)
+- **Updated:** 2026-01-08 (author: Claude)
+- **Status:** ✔️ Completed
+- **Issue:** `createNotification` returned `Promise<Notification | null>` but fabricated a partial Notification object without server-generated fields (`notification_id`, `created_at`). This could cause runtime errors if callers depended on those fields.
+
+#### Fix Applied:
+- Changed return type from `Promise<Notification | null>` to `Promise<boolean>`
+- Returns `true` on successful insert, `false` on failure
+- Added JSDoc documentation explaining the RLS constraint
+
+#### Impact:
+- All existing callers only check truthiness (`if (result)`) - no breaking changes
+- Prevents future bugs from accidentally accessing missing fields
+- Honest contract that matches actual behavior
+
+#### Code Changes (services/supabaseService.ts):
+```typescript
+// BEFORE - misleading return type
+createNotification: async (...): Promise<Notification | null> => {
+  const { error } = await supabase.from('notifications').insert({...});
+  if (error) return null;
+  return { ...inputFields, is_read: false } as Notification; // Missing notification_id, created_at!
+}
+
+// AFTER - honest return type
+createNotification: async (...): Promise<boolean> => {
+  const { error } = await supabase.from('notifications').insert({...});
+  if (error) return false;
+  return true;
+}
+```
+
 #### Code Changes (services/supabaseService.ts):
 ```javascript
 // createNotification - BEFORE (caused 403)
