@@ -9,7 +9,7 @@ import { SupabaseDb as MockDb } from '../services/supabaseService';
 import ServiceAutomationWidget from '../components/ServiceAutomationWidget';
 import { showToast } from '../services/toastService';
 import NotificationPanel from '../components/NotificationPanel';
-import { useRealtimeNotifications } from '../utils/useRealtimeNotifications';
+import { useNotifications } from '../contexts/NotificationContext';
 
 interface DashboardProps {
   role: UserRole;
@@ -56,22 +56,15 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
   const [actionTab, setActionTab] = useState<ActionTab>('all');
   const navigate = useNavigate();
 
-  // Real-time notifications with sound and browser alerts
+  // Real-time notifications from shared provider
   const {
     notifications,
     unreadCount,
     isConnected,
     markAsRead,
     markAllAsRead,
-    refresh: refreshNotifications,
-  } = useRealtimeNotifications(currentUser, {
-    playSound: true,
-    showBrowserNotifications: true,
-    onJobUpdate: () => {
-      // Refresh dashboard when job updates come in
-      loadDashboardData();
-    },
-  });
+    jobUpdateTick,
+  } = useNotifications();
 
   const isAdmin = role === UserRole.ADMIN;
   const isSupervisor = role === UserRole.SUPERVISOR;
@@ -80,6 +73,12 @@ const Dashboard: React.FC<DashboardProps> = ({ role, currentUser }) => {
   useEffect(() => {
     loadDashboardData();
   }, [currentUser]);
+
+  useEffect(() => {
+    if (jobUpdateTick > 0) {
+      loadDashboardData();
+    }
+  }, [jobUpdateTick]);
 
   useEffect(() => {
     if ((isAdmin || isSupervisor) && !escalationChecked) {

@@ -29,6 +29,243 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+### 🔧 Notification & Service Records RLS Fix v4 (2026-01-08)
+- **Updated:** 2026-01-08 (author: Claude)
+- **Status:** 🔨 Migration Ready - Run in Supabase SQL Editor
+- **Issues Fixed:**
+  1. **403 on notification INSERT** - Technicians couldn't create notifications
+  2. **406 on job_service_records** - Missing RLS policies blocking reads
+
+#### Root Cause:
+- Notification policies used subqueries on `users` table, which is itself RLS-protected
+- The subquery `SELECT user_id FROM users WHERE auth_id = auth.uid()` fails when RLS blocks access
+- Solution: Use `SECURITY DEFINER` functions to bypass RLS for user lookup
+
+#### Key Changes:
+1. **Created `get_my_user_id()` function** - SECURITY DEFINER, bypasses users RLS
+2. **Created `is_admin_or_supervisor()` function** - For admin check with SECURITY DEFINER
+3. **Recreated all notification policies** using these secure functions
+4. **Added job_service_records policies** - Permissive for all authenticated users
+
+#### Migration Required:
+```bash
+# Run in Supabase SQL Editor:
+database/migrations/fix_notification_and_service_records_rls.sql
+```
+
+#### After Migration - Verify:
+```sql
+-- Check notification policies (should see 7 policies)
+SELECT policyname, cmd FROM pg_policies WHERE tablename = 'notifications';
+
+-- Check service records policies (should see 3 policies)
+SELECT policyname, cmd FROM pg_policies WHERE tablename = 'job_service_records';
+
+-- Test helper function
+SELECT get_my_user_id() as my_user_id;
+```
+
+---
+
+### 🚨 Notification RLS v3 - Bulletproof Fix (2026-01-08)
+- **Updated:** 2026-01-08 (author: Claude)
+- **Status:** 🔨 Migration Ready - Awaiting Deployment
+- **Issue:** Technicians still getting 403 on notification SELECT after v2 cleanup
+
+#### Problem:
+The v2 cleanup used `get_user_id_from_auth()` helper function which either:
+1. Doesn't exist in Supabase (migration not run)
+2. Returns NULL due to missing GRANT or auth_id mismatch
+3. Has SECURITY DEFINER but still fails permission check
+
+#### Solution:
+New migration `fix_notification_rls_v3.sql` that:
+1. **Creates the helper function** (ensures it exists)
+2. **Uses direct subqueries** instead of helper functions for reliability
+3. **Handles role case sensitivity** (`'admin'` AND `'Admin'`)
+
+#### Key Change:
+```sql
+-- Before (unreliable - depends on function):
+USING (user_id = get_user_id_from_auth())
+
+-- After (reliable - direct subquery):
+USING (user_id IN (
+    SELECT u.user_id FROM users u WHERE u.auth_id = auth.uid()
+))
+```
+
+#### Migration Required:
+```bash
+# Run in Supabase SQL Editor:
+database/migrations/fix_notification_rls_v3.sql
+```
+
+#### Diagnostic Queries (run after migration):
+```sql
+-- 1. Verify policies exist
+SELECT policyname, cmd FROM pg_policies WHERE tablename = 'notifications';
+
+-- 2. Test auth mapping (run as authenticated user)
+SELECT get_user_id_from_auth() as my_user_id;
+
+-- 3. Verify user has auth_id set
+SELECT user_id, auth_id, name, role FROM users WHERE role = 'technician';
+```
+
+---
+
+### 🚨 Notification RLS Policy Cleanup (2026-01-08)
+- **Updated:** 2026-01-08 (author: Claude)
+- **Status:** 🔨 Migration Ready - Awaiting Deployment
+- **Issue Source:** Smoke test failure - 403 errors on notification insert/select
+
+#### Problem:
+Notification smoke test failed with RLS violations:
+- `new row violates row-level security policy for table "notifications"`
+- `GET /rest/v1/notifications?select=* → 403`
+
+#### Root Cause:
+**Two migration files created conflicting policies on the same table:**
+
+| Migration | Policy Name | INSERT Allows |
+|-----------|-------------|---------------|
+| `fix_notification_realtime.sql` | `authenticated_insert_notifications` | ✅ All authenticated |
+| `fix_rls_performance.sql` | `notifications_insert_policy` | ❌ Admin/Supervisor only |
+
+The `fix_notification_realtime.sql` drops policies like `admin_all_notifications` but **doesn't drop** legacy `notifications_*_policy` policies (different naming convention).
+
+Result: **10 policies** on one table with conflicting rules.
+
+#### Policy Dump (Before Fix):
+```
+authenticated_insert_notifications  INSERT  WITH CHECK (true)           ← Should work
+notifications_insert_policy         INSERT  WITH CHECK (Admin/Supervisor) ← Blocks technicians
+```
+
+#### Solution:
+New migration `fix_notification_rls_cleanup.sql` that:
+1. Drops ALL 10+ existing policies (both naming conventions)
+2. Creates 7 clean, non-conflicting policies
+3. Handles role case sensitivity (`'admin'` and `'Admin'`)
+4. Uses direct `EXISTS` subqueries instead of helper functions
+
+#### Migration Required:
+```bash
+# Run in Supabase SQL Editor:
+database/migrations/fix_notification_rls_cleanup.sql
+```
+
+#### New Policy Set:
+| Policy | Operation | Who |
+|--------|-----------|-----|
+| `notif_select_own` | SELECT | Own notifications |
+| `notif_select_admin` | SELECT | Admin/Supervisor: all |
+| `notif_insert_any` | INSERT | Any authenticated user |
+| `notif_update_own` | UPDATE | Own notifications |
+| `notif_update_admin` | UPDATE | Admin/Supervisor: all |
+| `notif_delete_own` | DELETE | Own notifications |
+| `notif_delete_admin` | DELETE | Admin/Supervisor: all |
+
+#### Testing After Migration:
+- [ ] Technician can submit helper request (notification created)
+- [ ] Admin receives notification for request
+- [ ] Admin approves → Technician receives notification
+- [ ] No 403 errors on notification operations
+
+---
+
+### 🔔 Real-Time Notification System Fix v2 (2026-01-07)
+- **Updated:** 2026-01-07 (author: Claude)
+- **Status:** ✔️ Completed
+- **Issue Source:** ACWER customer feedback (06/01/2025 troubleshooting report)
+
+#### Issues Addressed (from Customer Report):
+1. **Dashboard Notifications** - Notifications only on bell icon, not dashboard
+2. **Request Alerts** - No sound/notification for helper/spare part requests  
+3. **Job Assignment** - Technician B doesn't see assigned jobs immediately
+4. **Real-Time Inconsistency** - Sometimes works, sometimes nothing
+
+#### Root Cause Analysis:
+The previous fix added `notifications` and `job_requests` to realtime publication, but **missed the `jobs` table**. This meant:
+- Job assignment changes were never broadcast via WebSocket
+- Technicians couldn't see new jobs in real-time
+- Only notification records worked, not actual job data
+
+Additionally, `NotificationBell` component was polling every 30 seconds instead of using the real-time hook, causing:
+- Inconsistent state between bell icon and dashboard panel
+- Unnecessary database queries
+- Up to 30-second delay in bell updates
+
+#### Migration Required:
+```bash
+# Run in Supabase SQL Editor:
+database/migrations/fix_jobs_realtime.sql
+```
+
+#### Fixes Applied:
+
+**1. New Migration `fix_jobs_realtime.sql`:**
+- Adds `jobs` table to `supabase_realtime` publication
+- Sets `REPLICA IDENTITY FULL` for complete row data on changes
+- Idempotent - safe to run multiple times
+
+**2. Refactored `NotificationBell.tsx`:**
+- Removed 30-second polling mechanism
+- Now consumes `NotificationProvider` context (shared real-time state)
+- Single source of truth for notification state
+- Added connection status indicator (Live/Offline)
+- Added dark mode support for dropdown
+
+**3. Added `NotificationProvider` context:**
+- Centralized real-time subscription in `contexts/NotificationContext.tsx`
+- Shared state across bell + dashboard (no duplicate sounds/toasts)
+- Dashboard refreshes on job update tick from provider
+
+#### Architecture After Fix:
+```
+┌─────────────────────────────────────────────────────┐
+│                    Supabase                         │
+│  ┌─────────────────────────────────────────────┐   │
+│  │         supabase_realtime publication        │   │
+│  │  • notifications ✓                           │   │
+│  │  • job_requests ✓                            │   │
+│  │  • jobs ✓ (NEW)                              │   │
+│  └─────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+                         │
+                         │ WebSocket
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│              NotificationProvider                   │
+│  • Uses useRealtimeNotifications                    │
+│  • Subscribes to notifications (INSERT)             │
+│  • Subscribes to jobs (INSERT/UPDATE)               │
+│  • Subscribes to job_requests (INSERT/UPDATE)       │
+│  • Plays sound, shows browser notification          │
+│  • Vibrates on mobile                               │
+└─────────────────────────────────────────────────────┘
+                         │
+            ┌────────────┴────────────┐
+            ▼                         ▼
+    ┌───────────────┐         ┌───────────────┐
+    │NotificationBell│         │NotificationPanel│
+    │  (Header)      │         │  (Dashboard)   │
+    │  Real-time ✓   │         │  Real-time ✓   │
+    └───────────────┘         └───────────────┘
+```
+
+#### Testing Checklist:
+- [x] Run migration `fix_jobs_realtime.sql` on Supabase
+- [ ] Admin assigns job → Technician receives notification + sound
+- [ ] Technician requests helper → Admin receives notification + sound
+- [ ] Admin approves request → Technician receives notification + sound
+- [ ] Job reassignment → New technician sees job immediately
+- [ ] Bell icon and Dashboard panel show same count
+- [ ] Connection indicator shows "Live" when connected
+
+---
+
 ### 🔧 Technician Licenses & Permits Tab Fix (2026-01-07)
 - **Updated:** 2026-01-07 (author: Claude)
 - **Status:** ✅ Fixed

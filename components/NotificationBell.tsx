@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NotificationType, ROLE_PERMISSIONS } from '../types_with_invoice_tracking';
 import type { Notification, User } from '../types_with_invoice_tracking';
-import { SupabaseDb as MockDb } from '../services/supabaseService';
+import { useNotifications } from '../contexts/NotificationContext';
 import { 
   Bell, BellRing, Check, CheckCheck, Clock, 
-  AlertTriangle, Wrench, Truck, Package, X, CalendarDays, CalendarCheck, CalendarX,
-  ChevronRight, UserPlus, UserCheck, Cog, CheckCircle, XCircle
+  AlertTriangle, Wrench, Truck, Package, CalendarDays, CalendarCheck, CalendarX,
+  ChevronRight, UserPlus, UserCheck, Cog, CheckCircle, XCircle, Wifi, WifiOff
 } from 'lucide-react';
 
 interface NotificationBellProps {
@@ -15,18 +15,17 @@ interface NotificationBellProps {
 
 const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    loadNotifications();
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(loadNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [currentUser.user_id]);
+  // Use shared notification state instead of polling
+  const {
+    notifications,
+    unreadCount,
+    isConnected,
+    markAsRead,
+    markAllAsRead,
+  } = useNotifications();
 
   useEffect(() => {
     // Close dropdown when clicking outside
@@ -39,40 +38,19 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const loadNotifications = async () => {
-    try {
-      const [notifs, count] = await Promise.all([
-        MockDb.getNotifications(currentUser.user_id, false),
-        MockDb.getUnreadNotificationCount(currentUser.user_id),
-      ]);
-      setNotifications(notifs);
-      setUnreadCount(count);
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-    }
-  };
-
-
   const handleMarkRead = async (notificationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    await MockDb.markNotificationRead(notificationId);
-    setNotifications(prev => 
-      prev.map(n => n.notification_id === notificationId ? { ...n, is_read: true } : n)
-    );
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    await markAsRead(notificationId);
   };
 
   const handleMarkAllRead = async () => {
-    await MockDb.markAllNotificationsRead(currentUser.user_id);
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    setUnreadCount(0);
+    await markAllAsRead();
   };
 
   const handleNotificationClick = (notification: Notification) => {
     // Mark as read
     if (!notification.is_read) {
-      MockDb.markNotificationRead(notification.notification_id);
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      markAsRead(notification.notification_id);
     }
     
     // Navigate to reference
@@ -81,11 +59,9 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
     } else if (notification.reference_type === 'forklift' && notification.reference_id) {
       navigate(`/forklifts/${notification.reference_id}`);
     } else if (notification.reference_type === 'leave') {
-      // For leave requests (to approve), go to HR dashboard if user has permission
-      // For leave approved/rejected notifications, go to My Leave page
       const canApproveLeave = ROLE_PERMISSIONS[currentUser.role]?.canApproveLeave;
       if (notification.type === NotificationType.LEAVE_REQUEST && canApproveLeave) {
-        navigate('/hr');
+        navigate('/people?tab=leave&filter=pending');
       } else {
         navigate('/my-leave');
       }
@@ -111,7 +87,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
         return <CalendarCheck className="w-4 h-4 text-green-500" />;
       case NotificationType.LEAVE_REJECTED:
         return <CalendarX className="w-4 h-4 text-red-500" />;
-      // New notification types for request system
       case NotificationType.HELPER_REQUEST:
         return <UserPlus className="w-4 h-4 text-blue-500" />;
       case NotificationType.SPARE_PART_REQUEST:
@@ -131,8 +106,8 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'border-l-red-500 bg-red-50';
-      case 'high': return 'border-l-orange-500 bg-orange-50';
+      case 'urgent': return 'border-l-red-500 bg-red-50 dark:bg-red-500/10';
+      case 'high': return 'border-l-orange-500 bg-orange-50 dark:bg-orange-500/10';
       case 'normal': return 'border-l-blue-500';
       default: return 'border-l-slate-300';
     }
@@ -153,18 +128,17 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
     return date.toLocaleDateString();
   };
 
-
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors"
+        className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
       >
         {unreadCount > 0 ? (
-          <BellRing className="w-6 h-6 text-blue-600 animate-pulse" />
+          <BellRing className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-pulse" />
         ) : (
-          <Bell className="w-6 h-6 text-slate-600" />
+          <Bell className="w-6 h-6 text-slate-600 dark:text-slate-400" />
         )}
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
@@ -175,18 +149,31 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50">
+        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
           {/* Header */}
-          <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-            <h3 className="font-bold text-slate-800">Notifications</h3>
-            {unreadCount > 0 && (
-              <button
-                onClick={handleMarkAllRead}
-                className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-              >
-                <CheckCheck className="w-3 h-3" /> Mark all read
-              </button>
-            )}
+          <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">Notifications</h3>
+                {/* Connection indicator */}
+                <div className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${
+                  isConnected 
+                    ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-500/20' 
+                    : 'text-slate-500 bg-slate-100 dark:text-slate-400 dark:bg-slate-700'
+                }`}>
+                  {isConnected ? <Wifi className="w-2.5 h-2.5" /> : <WifiOff className="w-2.5 h-2.5" />}
+                  {isConnected ? 'Live' : 'Offline'}
+                </div>
+              </div>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1"
+                >
+                  <CheckCheck className="w-3 h-3" /> Mark all read
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Notification List */}
@@ -197,10 +184,10 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
                   key={notification.notification_id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`
-                    px-4 py-3 border-b border-slate-100 cursor-pointer 
-                    hover:bg-slate-50 transition-colors border-l-4
+                    px-4 py-3 border-b border-slate-100 dark:border-slate-700 cursor-pointer 
+                    hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-l-4
                     ${getPriorityColor(notification.priority)}
-                    ${!notification.is_read ? 'bg-blue-50/50' : ''}
+                    ${!notification.is_read ? 'bg-blue-50/50 dark:bg-blue-500/10' : ''}
                   `}
                 >
                   <div className="flex items-start gap-3">
@@ -208,18 +195,18 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
                       {getNotificationIcon(notification.type as NotificationType)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${!notification.is_read ? 'font-semibold text-slate-900' : 'text-slate-700'}`}>
+                      <p className={`text-sm ${!notification.is_read ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'}`}>
                         {notification.title}
                       </p>
-                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
                         {notification.message}
                       </p>
                       <div className="flex items-center justify-between mt-1">
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-400 dark:text-slate-500">
                           {formatTime(notification.created_at)}
                         </p>
                         {notification.reference_type && (
-                          <span className="text-xs text-blue-600 flex items-center gap-0.5">
+                          <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-0.5">
                             View <ChevronRight className="w-3 h-3" />
                           </span>
                         )}
@@ -228,7 +215,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
                     {!notification.is_read && (
                       <button
                         onClick={(e) => handleMarkRead(notification.notification_id, e)}
-                        className="p-1 hover:bg-slate-200 rounded"
+                        className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
                         title="Mark as read"
                       >
                         <Check className="w-4 h-4 text-slate-400" />
@@ -238,7 +225,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
                 </div>
               ))
             ) : (
-              <div className="py-12 text-center text-slate-400">
+              <div className="py-12 text-center text-slate-400 dark:text-slate-500">
                 <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No notifications</p>
               </div>
@@ -247,8 +234,8 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
 
           {/* Footer */}
           {notifications.length > 10 && (
-            <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 text-center">
-              <button className="text-sm text-blue-600 hover:underline">
+            <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 text-center">
+              <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
                 View all notifications
               </button>
             </div>

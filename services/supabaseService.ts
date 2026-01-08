@@ -1409,10 +1409,10 @@ export const SupabaseDb = {
       .from('job_service_records')
       .select('*')
       .eq('job_id', jobId)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      console.warn('No service record found:', error.message);
+      console.warn('Error fetching service record:', error.message);
       return null;
     }
     return data;

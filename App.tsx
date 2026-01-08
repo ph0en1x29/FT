@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { Sun, Moon } from 'lucide-react';
 import { User, UserRole, ROLE_PERMISSIONS } from './types_with_invoice_tracking';
 import NotificationBell from './components/NotificationBell';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { 
   LayoutDashboard, List, Package, LogOut, 
   Building2, Truck, FileText, BarChart3, Menu, X, User as UserIcon,
@@ -414,7 +415,8 @@ export default function App() {
   const canViewPeople = canManageUsers || canViewHR;
 
   return (
-    <Router>
+    <NotificationProvider currentUser={currentUser}>
+      <Router>
       <style>{sidebarStyles}</style>
       <Toaster position="top-right" richColors closeButton toastOptions={{ duration: 4000, className: 'text-sm' }} />
       <div className="min-h-screen bg-theme-bg flex theme-transition">
@@ -508,6 +510,7 @@ export default function App() {
           onLogout={handleLogout}
         />
       </div>
-    </Router>
+      </Router>
+    </NotificationProvider>
   );
 }
