@@ -1409,13 +1409,13 @@ export const SupabaseDb = {
       .from('job_service_records')
       .select('*')
       .eq('job_id', jobId)
-      .maybeSingle();
+      .limit(1);
 
     if (error) {
       console.warn('Error fetching service record:', error.message);
       return null;
     }
-    return data;
+    return data?.[0] ?? null;
   },
 
   updateJobRepairTimes: async (jobId: string, startTime?: string, endTime?: string): Promise<Job> => {

@@ -46,6 +46,7 @@ All notable changes, decisions, and client requirements for this project.
 2. **Created `is_admin_or_supervisor()` function** - For admin check with SECURITY DEFINER
 3. **Recreated all notification policies** using these secure functions
 4. **Added job_service_records policies** - Permissive for all authenticated users
+5. **Avoided `job_service_records` 406** by switching to `limit(1)` in `getJobServiceRecord`
 
 #### Migration Required:
 ```bash
