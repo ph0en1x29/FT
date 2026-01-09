@@ -317,15 +317,8 @@ You specified two Admin roles:
 **3.1.1 Can one person hold BOTH Admin 1 and Admin 2 roles?**
 
 - [ ] No, must be separate individuals
-- [ ] Yes, for smaller branches with limited staff
+- [ ] Yes, for smaller operations with limited staff
 - [ ] Yes, but should be avoided where possible
-
-**3.1.2 How many Admin 1 and Admin 2 users do you have per branch?**
-
-| Branch | Admin 1 (Service) | Admin 2 (Store) |
-|--------|-------------------|-----------------|
-| Johor  |                   |                 |
-| Penang |                   |                 |
 
 ---
 
@@ -737,7 +730,6 @@ Rate each: **Must have / Nice to have / Not needed**
 | Total fleet count | | | |
 | Utilization rate (% rented) | | | |
 | Units by status breakdown | | | |
-| Branch comparison (Johor vs Penang) | | | |
 | Service due this week | | | |
 | Average rental duration | | | |
 | Revenue per unit | | | |
@@ -767,36 +759,9 @@ Select all that apply:
 
 ## Section 9: Additional Requirements
 
-### 9.1 Integration Requirements
+### 9.1 Priority Ranking
 
-**9.2.1 Besides AutoCount, are there other systems that need integration?**
-
-- [ ] GPS fleet tracking system: _______________
-- [ ] Customer portal/website
-- [ ] Accounting software (other than AutoCount)
-- [ ] HR/Payroll system
-- [ ] Other: _______________
-
----
-
-### 9.2 User Access
-
-**9.3.1 How many users will need system access?**
-
-| Role | Johor | Penang | Total |
-|------|-------|--------|-------|
-| Admin 1 (Service) | | | |
-| Admin 2 (Store) | | | |
-| Technicians | | | |
-| Supervisors | | | |
-| Management (view only) | | | |
-| Other: _____________ | | | |
-
----
-
-### 9.3 Priority Ranking
-
-**9.3.1 Please rank these features by implementation priority (1 = highest):**
+**9.1.1 Please rank these features by implementation priority (1 = highest):**
 
 | Feature | Priority (1-10) |
 |---------|-----------------|
@@ -813,9 +778,9 @@ Select all that apply:
 
 ---
 
-### 9.4 Timeline Expectations
+### 9.2 Timeline Expectations
 
-**9.4.1 When do you expect to go live with the system?**
+**9.2.1 When do you expect to go live with the system?**
 
 - [ ] As soon as possible (prioritize speed)
 - [ ] Within 1 month
@@ -823,15 +788,14 @@ Select all that apply:
 - [ ] Within 6 months
 - [ ] No fixed deadline
 
-**9.4.2 Would you prefer:**
+**9.2.2 Would you prefer:**
 
 - [ ] Full system launch (all features at once)
 - [ ] Phased rollout (core features first, then additions)
-- [ ] Pilot with one branch first, then expand
 
 ---
 
-### 9.5 Additional Comments
+### 9.3 Additional Comments
 
 **Please share any other requirements, concerns, or context that would help us build the right system for ACWER:**
 
