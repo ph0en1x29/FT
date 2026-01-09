@@ -31,10 +31,9 @@ Thank you for your detailed requirements submission. To ensure we build the syst
 3. [Workflow & Approvals](#section-3-workflow--approvals)
 4. [Technician App Features](#section-4-technician-app-features)
 5. [Photo & Time Tracking](#section-5-photo--time-tracking)
-6. [Offline Operations](#section-6-offline-operations)
-7. [Reporting & Visibility](#section-7-reporting--visibility)
-8. [Asset Management](#section-8-asset-management)
-9. [Additional Requirements](#section-9-additional-requirements)
+6. [Reporting & Visibility](#section-6-reporting--visibility)
+7. [Asset Management](#section-7-asset-management)
+8. [Additional Requirements](#section-8-additional-requirements)
 
 ---
 
@@ -298,11 +297,10 @@ Select all that apply:
 - [ ] Not tracked at individual serial number level
 - [ ] Other: _______________
 
-**2.6.2 Should the system track which specific part (by serial) was installed on which forklift?**
+**2.6.2 Should the system track which part was installed on which forklift?**
 
-- [ ] Yes, full traceability required
-- [ ] Yes, but only for high-value parts (above RM _____)
-- [ ] No, not needed
+- [ ] Yes, for warranty tracking purposes
+- [ ] No, not needed at this stage
 
 ---
 
@@ -500,9 +498,7 @@ We need to inform you that **100% gallery blocking is not technically reliable**
 
 Alternative approaches:
 - [ ] **Option A:** Request camera-only, verify photo timestamp matches job time (flag mismatches)
-- [ ] **Option B:** Build custom in-app camera (more development time, potential quality issues)
-- [ ] **Option C:** Accept that some techs may use gallery, rely on management oversight
-- [ ] **Option D:** Other suggestion: _______________
+- [ ] **Option B:** Accept that some techs may use gallery, rely on management oversight
 
 **5.2.2 What action should be taken if photo timestamp doesn't match job time?**
 
@@ -551,16 +547,9 @@ Alternative approaches:
 
 **5.6.1 Is GPS/location tagging required for photos?**
 
-- [ ] Yes, mandatory - block photo if GPS unavailable
-- [ ] Yes, but allow bypass if GPS fails (with note)
+- [ ] Yes, capture GPS coordinates with photos
 - [ ] Optional - capture if available
 - [ ] No, not needed
-
-**5.6.2 Should the system verify technician is at customer location?**
-
-- [ ] Yes, alert if photo location doesn't match customer address
-- [ ] Yes, but just log the discrepancy (no blocking)
-- [ ] No location verification needed
 
 ---
 
@@ -587,91 +576,18 @@ Alternative approaches:
 
 ---
 
-## Section 6: Offline Operations
+## Section 6: Reporting & Visibility
 
-### 6.1 Offline Requirements Assessment
+### 6.1 Pricing Visibility
 
-**6.1.1 Approximately what percentage of job sites have poor/no connectivity?**
-
-- [ ] Less than 10%
-- [ ] 10-25%
-- [ ] 25-50%
-- [ ] More than 50%
-
-**6.1.2 When offline, how long are technicians typically without connection?**
-
-- [ ] Minutes (brief signal loss)
-- [ ] 1-2 hours
-- [ ] Half day
-- [ ] Full day
-- [ ] Multiple days
-
----
-
-### 6.2 Offline Feature Priority
-
-**6.2.1 Which features MUST work offline?**
-
-Rate each: **Essential / Nice-to-have / Not needed**
-
-| Feature | Essential | Nice-to-have | Not needed |
-|---------|-----------|--------------|------------|
-| View assigned job details | | | |
-| Update job status | | | |
-| Take and store photos | | | |
-| Complete condition checklist | | | |
-| Record hourmeter | | | |
-| Record time (start/end) | | | |
-| Request spare parts | | | |
-| Request helper/skilled tech | | | |
-| View customer information | | | |
-| View forklift history | | | |
-
----
-
-### 6.3 Offline Sync Behavior
-
-**6.3.1 When offline data syncs, should the system show:**
-
-- [ ] "Pending Sync" indicator until confirmed
-- [ ] Automatic sync without notification
-- [ ] Summary of what was synced
-- [ ] Alert only if sync fails
-
-**6.3.2 For time tracking while offline, which time should be used?**
-
-- [ ] Device time (phone clock)
-- [ ] GPS time if available
-- [ ] Server time when synced (may differ from actual)
-- [ ] Other: _______________
-
----
-
-### 6.4 Offline Priority Level
-
-**Note:** Full offline capability requires significant development effort (estimated 4-6 weeks additional). 
-
-**6.4.1 How critical is offline mode for your operations?**
-
-- [ ] **Critical** - Many sites have no connectivity, this is essential
-- [ ] **Important** - Would improve operations but can work around it
-- [ ] **Nice to have** - Rarely an issue, can wait for future update
-- [ ] **Not needed** - All our sites have acceptable connectivity
-
----
-
-## Section 7: Reporting & Visibility
-
-### 7.1 Pricing Visibility
-
-**7.1.1 Should technicians see ANY cost information?**
+**6.1.1 Should technicians see ANY cost information?**
 
 - [ ] No, completely hidden
 - [ ] Yes, show "High-value part" warning (without actual price) for items above RM _____
 - [ ] Yes, show estimated job value range only
 - [ ] Other: _______________
 
-**7.1.2 For labour charges - should time-based costs be hidden from technicians?**
+**6.1.2 For labour charges - should time-based costs be hidden from technicians?**
 
 - [ ] Yes, technicians should not see any cost calculations
 - [ ] No, technicians can see their time translated to cost
@@ -679,9 +595,9 @@ Rate each: **Essential / Nice-to-have / Not needed**
 
 ---
 
-### 7.2 Customer-Facing Information
+### 6.2 Customer-Facing Information
 
-**7.2.1 For digital receipts/job summaries shown to customers on-site:**
+**6.2.1 For digital receipts/job summaries shown to customers on-site:**
 
 What should be visible?
 - [ ] Parts used (names and quantities)
@@ -691,7 +607,7 @@ What should be visible?
 - [ ] Total estimated cost
 - [ ] Nothing - customer gets paper invoice later
 
-**7.2.2 Can technicians edit/adjust what customers see?**
+**6.2.2 Can technicians edit/adjust what customers see?**
 
 - [ ] No, fixed format determined by Admin
 - [ ] Yes, can add notes/comments only
@@ -699,11 +615,11 @@ What should be visible?
 
 ---
 
-## Section 8: Asset Management (Forklift Dashboard)
+## Section 7: Asset Management (Forklift Dashboard)
 
-### 8.1 Fleet Status Categories
+### 7.1 Fleet Status Categories
 
-**8.1.1 Please confirm the status categories you want to track:**
+**7.1.1 Please confirm the status categories you want to track:**
 
 | Status | Description | Include? |
 |--------|-------------|----------|
@@ -719,9 +635,9 @@ What should be visible?
 
 ---
 
-### 8.2 Dashboard Metrics
+### 7.2 Dashboard Metrics
 
-**8.2.1 What metrics are most important for the Asset Overview Dashboard?**
+**7.2.1 What metrics are most important for the Asset Overview Dashboard?**
 
 Rate each: **Must have / Nice to have / Not needed**
 
@@ -739,9 +655,9 @@ Rate each: **Must have / Nice to have / Not needed**
 
 ---
 
-### 8.3 Contract Management (Future)
+### 7.3 Contract Management (Future)
 
-**8.3.1 For future contract management, what information needs to be tracked?**
+**7.3.1 For future contract management, what information needs to be tracked?**
 
 Select all that apply:
 - [ ] Contract start/end dates
@@ -757,30 +673,28 @@ Select all that apply:
 
 ---
 
-## Section 9: Additional Requirements
+## Section 8: Additional Requirements
 
-### 9.1 Priority Ranking
+### 8.1 Priority Ranking
 
-**9.1.1 Please rank these features by implementation priority (1 = highest):**
+**8.1.1 Please rank these features by implementation priority (1 = highest):**
 
-| Feature | Priority (1-10) |
-|---------|-----------------|
+| Feature | Priority (1-8) |
+|---------|----------------|
 | Job Types (Slot-In, Courier) | |
 | Van Stock System | |
 | Dual Admin Approval | |
 | Photo-Based Time Tracking | |
 | Asset Dashboard | |
-| Offline Mode | |
-| Contract Management | |
 | AutoCount Integration | |
 | Hourmeter Amendment Flow | |
 | Request Edit Functionality | |
 
 ---
 
-### 9.2 Timeline Expectations
+### 8.2 Timeline Expectations
 
-**9.2.1 When do you expect to go live with the system?**
+**8.2.1 When do you expect to go live with the system?**
 
 - [ ] As soon as possible (prioritize speed)
 - [ ] Within 1 month
@@ -788,14 +702,14 @@ Select all that apply:
 - [ ] Within 6 months
 - [ ] No fixed deadline
 
-**9.2.2 Would you prefer:**
+**8.2.2 Would you prefer:**
 
 - [ ] Full system launch (all features at once)
 - [ ] Phased rollout (core features first, then additions)
 
 ---
 
-### 9.3 Additional Comments
+### 8.3 Additional Comments
 
 **Please share any other requirements, concerns, or context that would help us build the right system for ACWER:**
 
