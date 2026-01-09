@@ -767,20 +767,7 @@ Select all that apply:
 
 ## Section 9: Additional Requirements
 
-### 9.1 Branch Operations
-
-**9.1.1 Are there any differences in workflow between Johor and Penang branches?**
-
-- [ ] No, identical processes
-- [ ] Yes, please describe differences:
-
-_______________________________________________
-_______________________________________________
-_______________________________________________
-
----
-
-### 9.2 Integration Requirements
+### 9.1 Integration Requirements
 
 **9.2.1 Besides AutoCount, are there other systems that need integration?**
 
@@ -792,7 +779,7 @@ _______________________________________________
 
 ---
 
-### 9.3 User Access
+### 9.2 User Access
 
 **9.3.1 How many users will need system access?**
 
@@ -807,9 +794,9 @@ _______________________________________________
 
 ---
 
-### 9.4 Priority Ranking
+### 9.3 Priority Ranking
 
-**9.4.1 Please rank these features by implementation priority (1 = highest):**
+**9.3.1 Please rank these features by implementation priority (1 = highest):**
 
 | Feature | Priority (1-10) |
 |---------|-----------------|
@@ -826,9 +813,9 @@ _______________________________________________
 
 ---
 
-### 9.5 Timeline Expectations
+### 9.4 Timeline Expectations
 
-**9.5.1 When do you expect to go live with the system?**
+**9.4.1 When do you expect to go live with the system?**
 
 - [ ] As soon as possible (prioritize speed)
 - [ ] Within 1 month
@@ -836,7 +823,7 @@ _______________________________________________
 - [ ] Within 6 months
 - [ ] No fixed deadline
 
-**9.5.2 Would you prefer:**
+**9.4.2 Would you prefer:**
 
 - [ ] Full system launch (all features at once)
 - [ ] Phased rollout (core features first, then additions)
@@ -844,7 +831,7 @@ _______________________________________________
 
 ---
 
-### 9.6 Additional Comments
+### 9.5 Additional Comments
 
 **Please share any other requirements, concerns, or context that would help us build the right system for ACWER:**
 
@@ -859,46 +846,4 @@ _______________________________________________
 
 ---
 
-## Submission
-
-**Completed by:**
-
-Name: _______________________________________________
-
-Position: _______________________________________________
-
-Date: _______________________________________________
-
-Contact Number: _______________________________________________
-
-Email: _______________________________________________
-
----
-
-**Please return this completed questionnaire to:**
-
-**FieldPro Development Team**  
-Email: [Your Email]  
-WhatsApp: [Your Number]
-
----
-
 *Thank you for taking the time to complete this questionnaire. Your detailed responses will ensure we deliver a system that perfectly matches your operational needs.*
-
----
-
-**For FieldPro Internal Use:**
-
-| Item | Received | Reviewed | Clarification Needed |
-|------|----------|----------|---------------------|
-| Section 1 | | | |
-| Section 2 | | | |
-| Section 3 | | | |
-| Section 4 | | | |
-| Section 5 | | | |
-| Section 6 | | | |
-| Section 7 | | | |
-| Section 8 | | | |
-| Section 9 | | | |
-
-Reviewed by: _______________ Date: _______________
