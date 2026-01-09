@@ -95,17 +95,9 @@ What information must be captured for Courier/Collection jobs?
 - [ ] Photo of collection items
 - [ ] Recipient name
 - [ ] Recipient signature
-- [ ] Recipient contact number
 - [ ] Delivery/collection timestamp
-- [ ] GPS location verification
-- [ ] Other: _______________
 
-**1.3.3 Can a single Courier job have multiple stops/deliveries?**
-
-- [ ] No, one job = one delivery/collection point
-- [ ] Yes, allow multiple stops (please specify maximum): _______________
-
-**1.3.4 Is customer signature required for Courier/Collection jobs?**
+**1.3.3 Is customer signature required for Courier/Collection jobs?**
 
 - [ ] Yes, always required
 - [ ] Yes, but only for collections (not deliveries)
@@ -582,36 +574,14 @@ Alternative approaches:
 
 **6.1.1 Should technicians see ANY cost information?**
 
-- [ ] No, completely hidden
-- [ ] Yes, show "High-value part" warning (without actual price) for items above RM _____
-- [ ] Yes, show estimated job value range only
-- [ ] Other: _______________
+- [ ] No, completely hidden (recommended)
+- [ ] Yes, show costs
 
 **6.1.2 For labour charges - should time-based costs be hidden from technicians?**
 
 - [ ] Yes, technicians should not see any cost calculations
 - [ ] No, technicians can see their time translated to cost
 - [ ] Only show hours worked, not monetary value
-
----
-
-### 6.2 Customer-Facing Information
-
-**6.2.1 For digital receipts/job summaries shown to customers on-site:**
-
-What should be visible?
-- [ ] Parts used (names and quantities)
-- [ ] Parts pricing
-- [ ] Labour hours
-- [ ] Labour charges
-- [ ] Total estimated cost
-- [ ] Nothing - customer gets paper invoice later
-
-**6.2.2 Can technicians edit/adjust what customers see?**
-
-- [ ] No, fixed format determined by Admin
-- [ ] Yes, can add notes/comments only
-- [ ] Yes, full control over customer-facing summary
 
 ---
 
@@ -644,32 +614,11 @@ Rate each: **Must have / Nice to have / Not needed**
 | Metric | Must have | Nice to have | Not needed |
 |--------|-----------|--------------|------------|
 | Total fleet count | | | |
-| Utilization rate (% rented) | | | |
 | Units by status breakdown | | | |
 | Service due this week | | | |
-| Average rental duration | | | |
-| Revenue per unit | | | |
-| Most/least utilized units | | | |
-| Maintenance cost per unit | | | |
-| Units by model/type | | | |
-
----
-
-### 7.3 Contract Management (Future)
-
-**7.3.1 For future contract management, what information needs to be tracked?**
-
-Select all that apply:
-- [ ] Contract start/end dates
-- [ ] Rental rate (daily/weekly/monthly)
-- [ ] Customer information
-- [ ] Terms and conditions
-- [ ] Auto-renewal settings
-- [ ] Billing schedule
-- [ ] Deposit amount
-- [ ] Insurance details
-- [ ] Penalty clauses
-- [ ] Other: _______________
+| Jobs completed this month | | | |
+| Average job duration | | | |
+| Most active forklifts | | | |
 
 ---
 
