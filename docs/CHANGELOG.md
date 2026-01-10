@@ -29,6 +29,33 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+### 🚛 Asset Overview Dashboard (2026-01-10)
+- **Updated:** 2026-01-10 (author: Claude)
+- **Status:** 🔨 In Development
+- **Scope:** Fleet overview dashboard for Admin/Supervisor
+
+#### Features:
+- **Status Cards:** 5 operational statuses with click-to-filter
+  - Rented Out (with active rental)
+  - In Service (has open job)
+  - Service Due (within 7 days OR 50 hours)
+  - Available (active, not rented, not in service)
+  - Out of Service (inactive units)
+- **Status Precedence:** Out of Service > Rented Out > In Service > Service Due > Available
+- **Secondary Badges:** Shows additional status (e.g., "Due" badge on rented unit)
+- **Metrics Bar:** Jobs completed (30d), Average job duration (90d)
+- **Filterable Table:** Search by S/N, make, model, customer
+- **Quick Actions:** Create Job button with prefilled forklift_id and customer_id
+
+#### Technical:
+- New component: `components/AssetDashboard.tsx`
+- Integrated as "Overview" tab on ForkliftsTabs page
+- Role-based access: Admin + Supervisor only
+- Real-time rental status from `forklift_rentals` table
+- Open job detection excludes: Completed, Cancelled, Completed Awaiting Ack
+
+---
+
 ### 📝 Documentation Sync (2026-01-09)
 - **Updated:** 2026-01-09 (author: Claude)
 - **Status:** ✔️ Completed

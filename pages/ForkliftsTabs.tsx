@@ -8,8 +8,9 @@ import {
   Gauge, Calendar, MapPin, CheckCircle, AlertCircle, Clock,
   Building2, Eye, ChevronRight, Square, CheckSquare, XCircle,
   CircleOff, Loader2, Settings, Wrench, RefreshCw, Play,
-  Fuel, Battery, Flame, AlertTriangle
+  Fuel, Battery, Flame, AlertTriangle, LayoutDashboard
 } from 'lucide-react';
+import AssetDashboard from '../components/AssetDashboard';
 
 // ============================================================================
 // TYPES
@@ -49,7 +50,7 @@ interface ForkliftDue {
   current_customer_id?: string;
 }
 
-type TabType = 'fleet' | 'intervals' | 'service-due';
+type TabType = 'dashboard' | 'fleet' | 'intervals' | 'service-due';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -58,10 +59,11 @@ type TabType = 'fleet' | 'intervals' | 'service-due';
 const ForkliftsTabs: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get('tab') as TabType) || 'fleet';
+  const initialTab = (searchParams.get('tab') as TabType) || 'dashboard';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
   const isAdmin = currentUser.role === 'admin';
+  const isAdminOrSupervisor = currentUser.role === 'admin' || currentUser.role === 'supervisor';
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -69,6 +71,7 @@ const ForkliftsTabs: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
   };
 
   const tabs = [
+    ...(isAdminOrSupervisor ? [{ id: 'dashboard' as TabType, label: 'Overview', icon: LayoutDashboard }] : []),
     { id: 'fleet' as TabType, label: 'Fleet', icon: Truck },
     ...(isAdmin ? [{ id: 'intervals' as TabType, label: 'Service Intervals', icon: Settings }] : []),
     { id: 'service-due' as TabType, label: 'Service Due', icon: AlertTriangle },
@@ -111,6 +114,7 @@ const ForkliftsTabs: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
       </div>
 
       {/* Tab Content */}
+      {activeTab === 'dashboard' && isAdminOrSupervisor && <AssetDashboard currentUser={currentUser} />}
       {activeTab === 'fleet' && <FleetTab currentUser={currentUser} />}
       {activeTab === 'intervals' && isAdmin && <ServiceIntervalsTab currentUser={currentUser} />}
       {activeTab === 'service-due' && <ServiceDueTab currentUser={currentUser} />}
