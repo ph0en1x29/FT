@@ -59,11 +59,16 @@ type TabType = 'dashboard' | 'fleet' | 'intervals' | 'service-due';
 const ForkliftsTabs: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get('tab') as TabType) || 'dashboard';
-  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
-
+  
   const isAdmin = currentUser.role === 'admin';
   const isAdminOrSupervisor = currentUser.role === 'admin' || currentUser.role === 'supervisor';
+
+  // Default tab based on role: dashboard for admin/supervisor, fleet for others
+  const defaultTab = isAdminOrSupervisor ? 'dashboard' : 'fleet';
+  const urlTab = searchParams.get('tab') as TabType;
+  // If URL has dashboard tab but user doesn't have access, fallback to fleet
+  const initialTab = (urlTab === 'dashboard' && !isAdminOrSupervisor) ? 'fleet' : (urlTab || defaultTab);
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
