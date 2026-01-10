@@ -18,7 +18,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Use shared notification state instead of polling
   const {
     notifications,
     unreadCount,
@@ -28,7 +27,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
   } = useNotifications();
 
   useEffect(() => {
-    // Close dropdown when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -48,12 +46,10 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    // Mark as read
     if (!notification.is_read) {
       markAsRead(notification.notification_id);
     }
     
-    // Navigate to reference
     if (notification.reference_type === 'job' && notification.reference_id) {
       navigate(`/jobs/${notification.reference_id}`);
     } else if (notification.reference_type === 'forklift' && notification.reference_id) {
@@ -100,16 +96,16 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
       case NotificationType.JOB_REASSIGNED:
         return <UserCheck className="w-4 h-4 text-indigo-500" />;
       default:
-        return <Bell className="w-4 h-4 text-slate-500" />;
+        return <Bell className="w-4 h-4 text-[var(--text-muted)]" />;
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'border-l-red-500 bg-red-50 dark:bg-red-500/10';
-      case 'high': return 'border-l-orange-500 bg-orange-50 dark:bg-orange-500/10';
+      case 'urgent': return 'border-l-red-500 bg-[var(--error-bg)]';
+      case 'high': return 'border-l-orange-500 bg-[var(--warning-bg)]';
       case 'normal': return 'border-l-blue-500';
-      default: return 'border-l-slate-300';
+      default: return 'border-l-[var(--border)]';
     }
   };
 
@@ -133,12 +129,12 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
       {/* Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+        className="relative p-2 rounded-lg hover:bg-[var(--bg-subtle)] transition-colors"
       >
         {unreadCount > 0 ? (
-          <BellRing className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-pulse" />
+          <BellRing className="w-6 h-6 text-[var(--accent)] animate-pulse" />
         ) : (
-          <Bell className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+          <Bell className="w-6 h-6 text-[var(--text-muted)]" />
         )}
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
@@ -149,17 +145,17 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
+        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-[var(--surface)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] overflow-hidden z-50">
           {/* Header */}
-          <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+          <div className="px-4 py-3 bg-[var(--surface-2)] border-b border-[var(--border)]">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-slate-800 dark:text-slate-100">Notifications</h3>
+                <h3 className="font-bold text-[var(--text)]">Notifications</h3>
                 {/* Connection indicator */}
                 <div className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${
                   isConnected 
-                    ? 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-500/20' 
-                    : 'text-slate-500 bg-slate-100 dark:text-slate-400 dark:bg-slate-700'
+                    ? 'text-green-600 bg-[var(--success-bg)]' 
+                    : 'text-[var(--text-muted)] bg-[var(--bg-subtle)]'
                 }`}>
                   {isConnected ? <Wifi className="w-2.5 h-2.5" /> : <WifiOff className="w-2.5 h-2.5" />}
                   {isConnected ? 'Live' : 'Offline'}
@@ -168,7 +164,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllRead}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1"
+                  className="text-xs text-[var(--accent)] hover:opacity-80 flex items-center gap-1"
                 >
                   <CheckCheck className="w-3 h-3" /> Mark all read
                 </button>
@@ -184,10 +180,10 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
                   key={notification.notification_id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`
-                    px-4 py-3 border-b border-slate-100 dark:border-slate-700 cursor-pointer 
-                    hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-l-4
+                    px-4 py-3 border-b border-[var(--border-subtle)] cursor-pointer 
+                    hover:bg-[var(--bg-subtle)] transition-colors border-l-4
                     ${getPriorityColor(notification.priority)}
-                    ${!notification.is_read ? 'bg-blue-50/50 dark:bg-blue-500/10' : ''}
+                    ${!notification.is_read ? 'bg-[var(--accent-subtle)]' : ''}
                   `}
                 >
                   <div className="flex items-start gap-3">
@@ -195,18 +191,18 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
                       {getNotificationIcon(notification.type as NotificationType)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${!notification.is_read ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'}`}>
+                      <p className={`text-sm ${!notification.is_read ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-secondary)]'}`}>
                         {notification.title}
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                      <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2">
                         {notification.message}
                       </p>
                       <div className="flex items-center justify-between mt-1">
-                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                        <p className="text-xs text-[var(--text-subtle)]">
                           {formatTime(notification.created_at)}
                         </p>
                         {notification.reference_type && (
-                          <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-0.5">
+                          <span className="text-xs text-[var(--accent)] flex items-center gap-0.5">
                             View <ChevronRight className="w-3 h-3" />
                           </span>
                         )}
@@ -215,17 +211,17 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
                     {!notification.is_read && (
                       <button
                         onClick={(e) => handleMarkRead(notification.notification_id, e)}
-                        className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"
+                        className="p-1 hover:bg-[var(--bg-subtle)] rounded"
                         title="Mark as read"
                       >
-                        <Check className="w-4 h-4 text-slate-400" />
+                        <Check className="w-4 h-4 text-[var(--text-muted)]" />
                       </button>
                     )}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="py-12 text-center text-slate-400 dark:text-slate-500">
+              <div className="py-12 text-center text-[var(--text-muted)]">
                 <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No notifications</p>
               </div>
@@ -234,8 +230,8 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
 
           {/* Footer */}
           {notifications.length > 10 && (
-            <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 text-center">
-              <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+            <div className="px-4 py-2 bg-[var(--surface-2)] border-t border-[var(--border)] text-center">
+              <button className="text-sm text-[var(--accent)] hover:underline">
                 View all notifications
               </button>
             </div>
