@@ -387,8 +387,8 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
                     {config.label}
                   </p>
                 </div>
-                <div className={`p-2 rounded-lg ${isActive ? config.bgColor : 'bg-slate-100'}`}>
-                  <Icon className={`w-5 h-5 ${isActive ? config.color : 'text-slate-500'}`} />
+                <div className={`p-2 rounded-lg ${config.bgColor}`}>
+                  <Icon className={`w-5 h-5 ${config.color}`} />
                 </div>
               </div>
               {status === 'service_due' && (
