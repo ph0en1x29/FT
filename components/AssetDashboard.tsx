@@ -7,7 +7,7 @@ import { showToast } from '../services/toastService';
 import {
   Truck, Wrench, AlertTriangle, CheckCircle, XCircle,
   Clock, Building2, Loader2, Plus, Search, Filter,
-  ChevronRight, Gauge, Calendar, RefreshCw
+  ChevronRight, Gauge, Calendar, RefreshCw, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 // ============================================================================
@@ -120,6 +120,7 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
   const [metrics, setMetrics] = useState<DashboardMetrics>({ jobs_completed_30d: 0, avg_job_duration_hours: 0 });
   const [activeFilter, setActiveFilter] = useState<OperationalStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [displayLimit, setDisplayLimit] = useState(5);
 
   // ============================================================================
   // DATA LOADING
@@ -313,6 +314,13 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
     return result;
   }, [forklifts, activeFilter, searchQuery]);
 
+  // Displayed forklifts (with limit)
+  const displayedForklifts = useMemo(() => {
+    return filteredForklifts.slice(0, displayLimit);
+  }, [filteredForklifts, displayLimit]);
+
+  const hasMore = filteredForklifts.length > displayLimit;
+
   // ============================================================================
   // HANDLERS
   // ============================================================================
@@ -325,6 +333,7 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
 
   const handleCardClick = (status: OperationalStatus) => {
     setActiveFilter(activeFilter === status ? 'all' : status);
+    setDisplayLimit(5); // Reset to collapsed when filter changes
   };
 
   // ============================================================================
@@ -422,13 +431,19 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
             placeholder="Search by S/N, make, model, customer..."
             className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setDisplayLimit(5); // Reset to collapsed when searching
+            }}
           />
         </div>
 
         {activeFilter !== 'all' && (
           <button
-            onClick={() => setActiveFilter('all')}
+            onClick={() => {
+              setActiveFilter('all');
+              setDisplayLimit(5);
+            }}
             className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
           >
             Clear filter
@@ -438,7 +453,7 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
 
       {/* Results Count */}
       <p className="text-sm text-slate-500">
-        Showing {filteredForklifts.length} of {statusCounts.total} units
+        Showing {displayedForklifts.length} of {filteredForklifts.length} units
         {activeFilter !== 'all' && ` • Filtered by: ${STATUS_CONFIG[activeFilter].label}`}
       </p>
 
@@ -456,7 +471,7 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredForklifts.length === 0 ? (
+              {displayedForklifts.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-12 text-center">
                     <Truck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
@@ -464,7 +479,7 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
                   </td>
                 </tr>
               ) : (
-                filteredForklifts.map((forklift) => {
+                displayedForklifts.map((forklift) => {
                   const statusConfig = STATUS_CONFIG[forklift.operational_status];
                   const StatusIcon = statusConfig.icon;
                   const customerName = forklift.rental_customer_name || forklift.current_customer_name || '-';
@@ -527,6 +542,38 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
             </tbody>
           </table>
         </div>
+
+        {/* Show More / Show Less */}
+        {filteredForklifts.length > 5 && (
+          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-center gap-4">
+            {hasMore ? (
+              <>
+                <button
+                  onClick={() => setDisplayLimit(prev => prev + 20)}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                  Show more (+20)
+                </button>
+                <span className="text-slate-300">|</span>
+                <button
+                  onClick={() => setDisplayLimit(filteredForklifts.length)}
+                  className="text-sm font-medium text-slate-600 hover:text-slate-800"
+                >
+                  Show all ({filteredForklifts.length})
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setDisplayLimit(5)}
+                className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-800"
+              >
+                <ChevronUp className="w-4 h-4" />
+                Collapse
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
