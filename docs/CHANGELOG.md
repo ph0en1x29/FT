@@ -31,7 +31,7 @@ All notable changes, decisions, and client requirements for this project.
 
 ### 🚛 Asset Overview Dashboard (2026-01-10)
 - **Updated:** 2026-01-10 (author: Claude)
-- **Status:** 🔨 In Development
+- **Status:** ✔️ Completed
 - **Scope:** Fleet overview dashboard for Admin/Supervisor
 
 #### Features:
@@ -46,6 +46,7 @@ All notable changes, decisions, and client requirements for this project.
 - **Metrics Bar:** Jobs completed (30d), Average job duration (90d)
 - **Filterable Table:** Search by S/N, make, model, customer
 - **Quick Actions:** Create Job button with prefilled forklift_id and customer_id
+- **Collapsed by default:** Shows 5 items, expandable with "Show more (+20)" or "Show all"
 
 #### Technical:
 - New component: `components/AssetDashboard.tsx`
@@ -53,6 +54,13 @@ All notable changes, decisions, and client requirements for this project.
 - Role-based access: Admin + Supervisor only
 - Real-time rental status from `forklift_rentals` table
 - Open job detection excludes: Completed, Cancelled, Completed Awaiting Ack
+- Default tab fallback: Technicians/Accountants default to "Fleet" tab
+
+#### Bug Fixes (same day):
+- Fixed: `getJobs` requires currentUser parameter
+- Fixed: Status card icons now always show colored (not grey when inactive)
+- Fixed: NotificationBell using Tailwind `dark:` classes instead of CSS variables
+- Fixed: Non-admin users seeing blank page (default tab was inaccessible)
 
 ---
 

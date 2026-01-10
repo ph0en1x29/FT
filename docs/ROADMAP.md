@@ -1,10 +1,23 @@
 # FieldPro Roadmap
 
-**Last Updated:** January 9, 2026
+**Last Updated:** January 10, 2026
 
 ---
 
 ## ✅ Recently Completed
+
+### January 10, 2026
+- [x] **Asset Overview Dashboard** - Fleet status at a glance
+  - 5 status cards: Rented Out, In Service, Service Due, Available, Out of Service
+  - Status precedence logic for accurate counts
+  - Secondary badges (e.g., rented + due)
+  - Metrics bar: Jobs (30d), Avg duration
+  - Filterable table with search
+  - Collapsed by default (5 items), expandable
+  - Create Job quick action with prefilled data
+  - Role-based access: Admin + Supervisor only
+- [x] **NotificationBell theme fix** - CSS variables instead of Tailwind dark: classes
+- [x] **Tab fallback fix** - Non-admin users now default to Fleet tab
 
 ### January 7, 2026
 - [x] **Stability & Error-Handling Hardening**
@@ -75,9 +88,12 @@
 
 ---
 
-## 🚧 Next Up: Asset Overview Dashboard + ACWER Requirements
+## 🚧 Next Up: ACWER Requirements (Awaiting Client Feedback)
 
 **Reference:** `docs/ACWER_REQUIREMENTS_REVIEW.md`
+**Questionnaire:** `docs/ACWER_CLIENT_QUESTIONNAIRE.md`
+
+Waiting for client responses before proceeding with Phase 1 Quick Wins.
 
 ### Phase 1: Quick Wins (~16 hours)
 - [ ] Job Types Update - Add Slot-In, Courier/Collection
@@ -88,12 +104,11 @@
 - [ ] Hourmeter locking (first tech records, persists on reassignment)
 
 ### Phase 2: Asset Dashboard + Photo Flow (~32 hours)
-- [ ] **Asset Overview Dashboard** - Fleet status at a glance
+- [x] **Asset Overview Dashboard** - Fleet status at a glance ✅ COMPLETED 2026-01-10
   - Total fleet count
   - Rented Out / In Service / Service Due / Available / Out of Service
-  - Utilization rate percentage
-  - Branch breakdown (Johor vs Penang)
-  - Foundation for contract management
+  - Click-to-filter status cards
+  - Collapsed table with expand/show all
 - [ ] Photo-Based Job Start/End (auto-start on forklift photo)
 - [ ] Hourmeter amendment flow with audit trail
 - [ ] POD (Proof of Delivery) flow for Courier jobs
