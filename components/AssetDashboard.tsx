@@ -152,7 +152,7 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
       }
       
       // Fetch open jobs (not completed, not cancelled, not awaiting ack)
-      const jobsData = await SupabaseDb.getJobs();
+      const jobsData = await SupabaseDb.getJobs(currentUser);
       const openJobs = jobsData.filter(j => 
         !['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(j.status)
       );
