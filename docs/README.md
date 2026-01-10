@@ -29,9 +29,14 @@
 
 ## Recent Documentation Updates
 
+- **2026-01-09:** Comprehensive documentation audit — DB_SCHEMA.md, CHANGELOG.md, WORKFLOW_SPECIFICATION.md, ROADMAP.md updated with correct implementation status
+- **2026-01-08:** ACWER Requirements Review document created for next phase planning
+- **2026-01-07:** Real-time notification system v2, People page consolidation, sidebar simplification, stability hardening
+- **2026-01-06:** Dashboard 3-panel redesign, bundle optimization with lazy loading, real-time notification system
+- **2026-01-05:** Critical RLS fixes, escalation management enhancements, security linter warnings resolved
+- **2026-01-04:** Multi-day escalation (#7), deferred acknowledgement (#8), photo categorization (#10) completed
 - **2026-01-03:** User-Employee merge cleanup — all `employees` table references removed, HR data now in `users` table
 - **2026-01-03:** Security fixes applied — RLS, function search paths, leaked password protection
-- DB schema docs synced to current Supabase schema (2026-01-02 00:16:45 CST, author: Codex)
 
 ---
 

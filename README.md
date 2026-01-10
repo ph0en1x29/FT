@@ -1,7 +1,8 @@
 # FieldPro
 
-![Status](https://img.shields.io/badge/Status-v1.1%20In%20Development-yellow)
+![Status](https://img.shields.io/badge/Status-v1.1%20Prototype%20Validation-green)
 ![Client](https://img.shields.io/badge/Client-ACWER%20Industrial-blue)
+![Last Updated](https://img.shields.io/badge/Updated-January%202026-lightgrey)
 
 **Field Service Management Platform** for equipment service operations.
 
@@ -39,7 +40,7 @@
 - Forklift rental tracking
 - Light/Dark theme
 
-### Coming in v1.1 (ACWER Workflow)
+### v1.1 Features (ACWER Workflow) - January 2026
 
 | Feature | Status |
 |---------|--------|
@@ -48,17 +49,30 @@
 | ✅ Photo Categorization + ZIP Download | Completed |
 | ✅ Helper Technician support | Completed |
 | ✅ In-Job Request System (Assistance, Spare Parts) | Completed |
-| ⏳ Multi-Day Jobs with escalation | Planned |
-| ⏳ Deferred Customer Acknowledgement | Planned |
-| ⏳ Job Reassignment (Full) | Planned |
+| ✅ Multi-Day Jobs with escalation | Completed |
+| ✅ Deferred Customer Acknowledgement | Completed |
+| ✅ KPI Dashboard | Completed |
+| ✅ Real-time Notification System | Completed |
+| ✅ Enhanced Escalation Management | Completed |
+| ⏳ Job Reassignment UI | In Progress |
+| ⏳ Asset Overview Dashboard | Planned |
 
 ---
 
 ## 🚀 Release Notes
 
-### v1.1 (In Development)
-ACWER Industrial workflow implementation — [View details →](./docs/User_Manual_v1.1.md)
-- Stability hardening: added error handling, fixed HR + forklift embed ambiguity, aligned HR/service interval loads, stabilized charts/jobs fetch, and kept Tailwind CDN for demo (see [Changelog](./docs/CHANGELOG.md))
+### v1.1 (January 2026)
+ACWER Industrial workflow implementation — [View details →](./docs/CHANGELOG.md)
+- ✅ Helper Technician System with photo uploads
+- ✅ In-Job Request System (assistance, spare parts, skillful tech)
+- ✅ Multi-Day Jobs with escalation management
+- ✅ Deferred Customer Acknowledgement flow
+- ✅ Photo Categorization + ZIP download
+- ✅ Real-time notifications with sound alerts
+- ✅ Enhanced Dashboard with Action Required queue
+- ✅ KPI Dashboard for technician performance
+- ✅ Comprehensive RLS security hardening
+- ✅ Bundle optimization (1.5MB → 290KB initial load)
 
 ### v1.0.1
 - Job Type Classification (Service/Repair/Checking/Accident)

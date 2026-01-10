@@ -3,7 +3,14 @@
 
 ---
 
-> 📢 **What's New?** See [User Manual v1.1](./User_Manual_v1.1.md) for the latest features including Job Types, Photo Tracking, and Professional Invoice format.
+> 📢 **What's New in January 2026?** Major ACWER workflow implementation including:
+> - Helper Technician System (assign assistants to jobs)
+> - In-Job Request System (request assistance, spare parts, skillful tech)
+> - Multi-Day Job Support with escalation management
+> - Deferred Customer Acknowledgement (complete jobs without on-site signature)
+> - Photo Categorization with ZIP download
+> - Real-time notifications with sound alerts
+> - Enhanced Dashboard with Action Required queue
 >
 > 📚 **All Documentation:** See [Documentation Index](./README.md) for complete docs navigation.
 
@@ -94,6 +101,30 @@ Admin/Supervisor   Admin/Supervisor   Technician           Accountant/Admin     
 creates job       assigns technician  works on job         finalizes invoice        (Admin unlock only)
 ```
 
+#### Multi-Day & Deferred Acknowledgement Flow (NEW)
+
+```
+In Progress ──▶ ┌─────────────────────────────────┐
+             │  Completed Awaiting Ack       │ ──▶ Completed (after customer response/auto-complete)
+             │  (Customer unavailable)        │
+             └─────────────────────────────────┘
+                           │
+                           ▼
+                      ┌───────────┐
+                      │  Disputed  │ ──▶ Admin resolves
+                      └───────────┘
+
+In Progress ──▶ ┌──────────────────────────────┐
+             │  Incomplete - Continuing      │ ──▶ Resume next day ─▶ In Progress
+             │  (Continue Tomorrow)          │
+             └──────────────────────────────┘
+
+In Progress ──▶ ┌──────────────────────────────┐
+             │  Incomplete - Reassigned      │ ──▶ New tech takes over
+             │  (Admin reassigned)           │
+             └──────────────────────────────┘
+```
+
 ### Status Descriptions
 
 | Status | Description | Who Can Move Forward | Who Can Move Backward |
@@ -103,6 +134,10 @@ creates job       assigns technician  works on job         finalizes invoice    
 | **In Progress** | Technician actively working | Technician, Admin | Admin, Supervisor |
 | **Awaiting Finalization** | Work complete, invoice pending | Accountant, Admin | Admin, Supervisor |
 | **Completed** | Invoice finalized, record locked | - | Admin only (with override) |
+| **Completed Awaiting Ack** | Work done, customer couldn't sign on-site | Customer (acknowledge), System (auto-complete) | Admin |
+| **Incomplete - Continuing** | Multi-day job, technician will resume | Technician (resume) | Admin |
+| **Incomplete - Reassigned** | Job reassigned to different technician | New Technician | Admin |
+| **Disputed** | Customer disputed the completion | Admin (resolve) | - |
 
 ---
 
@@ -162,8 +197,63 @@ While the job is "In Progress", you can:
 2. If any requirements are missing, you'll see an error message
 3. Once complete, job moves to "Awaiting Finalization"
 
+### Requesting Help (NEW)
+
+During an "In Progress" job, you can request assistance:
+
+#### Request Assistance
+1. Click **"Request Assistance"** button
+2. Describe why you need help
+3. Optionally upload a photo
+4. Admin will assign a helper technician
+5. Helper can upload photos but cannot modify job details
+
+#### Request Spare Parts
+1. Click **"Request Spare Part"** button
+2. Describe the part needed
+3. Upload photo of faulty component (optional)
+4. Admin reviews and selects from inventory
+5. Approved parts appear in your Items Used list
+
+#### Request Skillful Technician
+1. Click **"Request Skillful Technician"** button
+2. Explain the skill/expertise issue
+3. Admin may reassign the job to a specialist
+
+### Multi-Day Jobs (NEW)
+
+For jobs that cannot be completed in one day:
+
+1. Click **"Continue Tomorrow"** button
+2. Enter reason for continuation
+3. Job status changes to "Incomplete - Continuing"
+4. Next day, click **"Resume Job"** to continue
+5. All previous work (photos, notes, hourmeter) is preserved
+
+### Customer Unavailable (NEW)
+
+If customer cannot sign on-site:
+
+1. Complete all work as normal
+2. Click **"Customer Unavailable"** button
+3. Select reason from dropdown
+4. Select evidence photos (minimum 1 required)
+5. Enter final hourmeter reading
+6. Job status changes to "Completed Awaiting Acknowledgement"
+7. Customer receives notification to acknowledge remotely
+8. Job auto-completes after 3-5 business days if no response
+
+### Helper Technician Mode (NEW)
+
+If you're assigned as a **helper** to another technician's job:
+
+- You'll see "You are the helper on this job" notice
+- You CAN upload photos (tagged as helper photos)
+- You CANNOT start/complete job, record hourmeter, add parts, or capture signatures
+- The lead technician handles all other actions
+
 ### What You CANNOT Do
-- ❌ See jobs assigned to other technicians
+- ❌ See jobs assigned to other technicians (except as helper)
 - ❌ Change the customer
 - ❌ Reassign the job
 - ❌ Edit after job is completed
@@ -317,12 +407,73 @@ When a job is "Completed", service records are locked. To make changes:
 #### Skipping Requirements
 Admin can force-complete jobs without all requirements by checking "Force Complete" option.
 
+### Managing Technician Requests (NEW)
+
+View and respond to requests from technicians in the Dashboard or Job Detail:
+
+#### Assistance Requests
+1. See pending requests in Dashboard notification panel
+2. Open the job to view request details
+3. Click **"Approve"** and select helper technician
+4. Or click **"Reject"** with reason
+
+#### Spare Part Requests
+1. See pending requests notification
+2. Open job → Requests section
+3. Review part description and photo
+4. Click **"Review & Approve"**
+5. Select part from inventory, set quantity
+6. Part is automatically added to job's Items Used
+
+#### Skillful Technician Requests
+1. Review the skill issue described
+2. Click **"Acknowledge"** (no automatic assignment)
+3. Use the Reassign function to assign appropriate technician
+
+### Managing Helper Technicians (NEW)
+
+1. Open any "In Progress" job
+2. Click **"Add Helper"** button
+3. Select technician from dropdown
+4. Helper can now upload photos on this job
+5. To remove: Click **"Remove Helper"**
+
+### Managing Escalated Jobs (NEW)
+
+Jobs that exceed SLA appear in Dashboard's "Action Required" section:
+
+1. **Acknowledge** - Take ownership (stops repeated alerts)
+2. **Add Notes** - Document reason for delay
+3. **Actions:**
+   - Reassign to different technician
+   - Mark as Overtime (disables escalation)
+   - View job details
+4. Contact info shown for customer and technician
+
+### Managing Deferred Acknowledgements (NEW)
+
+Jobs awaiting customer acknowledgement appear in Dashboard:
+
+1. View jobs in "Awaiting Acknowledgement" section
+2. **Record Acknowledgement** - If customer confirmed via phone/email
+3. **Record Dispute** - If customer complained
+4. Jobs auto-complete after SLA period (configurable, default 5 business days)
+
+### Resolving Disputes (NEW)
+
+1. Open disputed job
+2. Review dispute notes and evidence photos
+3. Options:
+   - **Accept & Complete** - Finalize despite dispute
+   - **Reopen Job** - Send back to technician for rework
+
 ### System Configuration
 
 - Manage default labor rates
 - Configure notification settings
 - View audit logs
 - Export system data
+- **Configure Service Intervals** (Forklifts → Service Intervals tab)
 
 ### Viewing Audit Logs
 
@@ -444,5 +595,5 @@ For technical issues or questions:
 
 ---
 
-*Last Updated: December 2024*
-*Version: 2.0 - RLS Security Update*
+*Last Updated: January 9, 2026*
+*Version: 2.1 - ACWER Workflow Implementation*

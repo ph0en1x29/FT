@@ -1,7 +1,7 @@
 # ACWER Client Requirements Review
-**Date:** January 7, 2025  
+**Date:** January 8, 2026  
 **Status:** 🟡 Under Discussion  
-**Document Version:** 1.0
+**Document Version:** 1.1
 
 ---
 
@@ -750,15 +750,39 @@ ADD COLUMN parts_confirmed_at TIMESTAMPTZ;
 
 ---
 
+## Completed Since Document Creation
+
+> **Note:** This document was created during Phase 1 planning. Many features have since been implemented. See `docs/CHANGELOG.md` for full implementation details.
+
+### Already Implemented (Jan 4-8, 2026)
+- ✅ Helper Technician System (#1)
+- ✅ In-Job Request System (#2)
+- ✅ Spare Parts Request/Approval (#3)
+- ✅ Hourmeter Prediction + Dashboard (#4)
+- ✅ Service Intervals Config UI (#5)
+- ✅ Multi-Day Jobs + Escalation (#7)
+- ✅ Deferred Customer Acknowledgement (#8)
+- ✅ KPI Dashboard (#9)
+- ✅ Photo Categorization + ZIP Download (#10)
+
+### Remaining (This Document's Focus)
+- ⏳ Job Types Update (Slot-In, Courier/Collection)
+- ⏳ Dual-Path Inventory System
+- ⏳ Parts Usage Control enhancements
+- ⏳ Dual Admin Approval Flow
+- ⏳ Offline Mode (deferred to Phase 5)
+
+---
+
 ## Next Steps
 
-1. [ ] Review this document with Jay
-2. [ ] Compile questions for ACWER client
-3. [ ] Get client responses on critical questions
-4. [ ] Finalize Phase 1 scope
-5. [ ] Begin implementation
+1. [x] ~~Review this document with Jay~~ ✓ Completed
+2. [ ] Compile remaining questions for ACWER client
+3. [ ] Get client responses on Phase 2 critical questions
+4. [ ] Implement Asset Overview Dashboard (Priority)
+5. [ ] Implement Phase 2 items based on client feedback
 
 ---
 
 *Document maintained by: Claude AI Assistant*  
-*Last Updated: January 7, 2025*
+*Last Updated: January 9, 2026*

@@ -2,7 +2,7 @@
 
 > Purpose: Reference for engineers and AI assistants when modifying or extending the database.
 > Database: Supabase (PostgreSQL)
-> Last Updated: 2026-01-03 (User-Employee merge completed)
+> Last Updated: 2026-01-09 (Added job_assignments, job_requests tables; updated jobs and job_media columns)
 
 ---
 
@@ -175,6 +175,10 @@ Core work orders.
 | `disputed_at` | TIMESTAMPTZ | YES | | When disputed |
 | `dispute_resolved_at` | TIMESTAMPTZ | YES | | When resolved |
 | `dispute_resolution` | TEXT | YES | | Resolution notes |
+| `helper_technician_id` | UUID | YES | | Denormalized: current active helper |
+| `escalation_acknowledged_at` | TIMESTAMPTZ | YES | | When admin acknowledged escalation |
+| `escalation_acknowledged_by` | UUID | YES | | Which admin acknowledged |
+| `escalation_notes` | TEXT | YES | | Admin notes about escalation |
 
 Constraints:
 - PK: `job_id`
@@ -189,6 +193,88 @@ Foreign keys:
 - `completed_by_id` -> `users.user_id`
 - `invoiced_by_id` -> `users.user_id`
 - `deleted_by` -> `users.user_id`
+
+---
+
+### `job_assignments`
+Tracks lead and assistant technician assignments per job (Helper Technician feature).
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|--------|
+| `assignment_id` | UUID | NO | `gen_random_uuid()` |
+| `job_id` | UUID | NO | |
+| `technician_id` | UUID | NO | |
+| `assignment_type` | TEXT | NO | `'lead'` |
+| `assigned_at` | TIMESTAMPTZ | NO | `now()` |
+| `assigned_by` | UUID | YES | |
+| `started_at` | TIMESTAMPTZ | YES | |
+| `ended_at` | TIMESTAMPTZ | YES | |
+| `is_active` | BOOLEAN | NO | `true` |
+| `notes` | TEXT | YES | |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `assignment_id`
+- CHECK: `assignment_type` IN ('lead', 'assistant')
+- UNIQUE: (`job_id`, `assignment_type`) WHERE `is_active = true`
+
+Foreign keys:
+- `job_id` -> `jobs.job_id` (CASCADE)
+- `technician_id` -> `users.user_id` (CASCADE)
+- `assigned_by` -> `users.user_id`
+
+Indexes:
+- `idx_job_assignments_job_id` on `job_id`
+- `idx_job_assignments_technician_id` on `technician_id`
+- `idx_job_assignments_active` on (`job_id`, `is_active`) WHERE `is_active = true`
+
+RLS:
+- Admin/Supervisor: ALL
+- Technician: SELECT own assignments, UPDATE `started_at`/`ended_at`
+
+---
+
+### `job_requests`
+In-job requests for assistance, spare parts, or skillful technician.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|--------|
+| `request_id` | UUID | NO | `gen_random_uuid()` |
+| `job_id` | UUID | NO | |
+| `request_type` | TEXT | NO | |
+| `requested_by` | UUID | NO | |
+| `description` | TEXT | NO | |
+| `photo_url` | TEXT | YES | |
+| `status` | TEXT | NO | `'pending'` |
+| `admin_response_notes` | TEXT | YES | |
+| `admin_response_part_id` | UUID | YES | |
+| `admin_response_quantity` | INTEGER | YES | |
+| `responded_by` | UUID | YES | |
+| `responded_at` | TIMESTAMPTZ | YES | |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `request_id`
+- CHECK: `request_type` IN ('assistance', 'spare_part', 'skillful_technician')
+- CHECK: `status` IN ('pending', 'approved', 'rejected')
+
+Foreign keys:
+- `job_id` -> `jobs.job_id` (CASCADE)
+- `requested_by` -> `users.user_id`
+- `admin_response_part_id` -> `parts.part_id`
+- `responded_by` -> `users.user_id`
+
+Indexes:
+- `idx_job_requests_job_id` on `job_id`
+- `idx_job_requests_status` on `status`
+- `idx_job_requests_type_status` on (`request_type`, `status`)
+- `idx_job_requests_requested_by` on `requested_by`
+
+RLS:
+- Admin/Supervisor: ALL
+- Technician: SELECT (own requests or assigned jobs), INSERT own requests
 
 ---
 
@@ -272,12 +358,18 @@ Media attachments on jobs.
 | `created_at` | TIMESTAMPTZ | YES | `now()` |
 | `uploaded_by_id` | UUID | YES | |
 | `uploaded_by_name` | TEXT | YES | |
+| `category` | TEXT | NO | `'other'` |
+| `is_helper_photo` | BOOLEAN | YES | `false` |
 
 Constraints:
 - PK: `media_id`
+- CHECK: `category` IN ('before', 'after', 'spare_part', 'condition', 'evidence', 'other')
 
 Foreign keys:
 - `job_id` -> `jobs.job_id`
+
+Indexes:
+- `idx_job_media_job_category` on (`job_id`, `category`)
 
 ---
 

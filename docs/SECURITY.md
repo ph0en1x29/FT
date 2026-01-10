@@ -47,8 +47,9 @@ The `.env.local` file is in `.gitignore` and will not be committed.
 
 ### Before ACWER Go-Live
 
-- [ ] **Enable email confirmation**
+- [ ] **Enable email confirmation** ⚠️ CRITICAL
   - Authentication → Providers → Email → Confirm email ✓
+  - **ACTION REQUIRED**: Enable before production deployment
 - [ ] **Enable leaked password protection** ⚠️ (was enabled 2026-01-03, linter shows disabled 2026-01-05)
   - Authentication → Settings → Enable Leaked Password Protection
   - **ACTION REQUIRED**: Re-enable in Supabase Dashboard
@@ -128,4 +129,4 @@ If you discover a vulnerability:
 
 ---
 
-*Last Updated: January 7, 2026*
+*Last Updated: January 9, 2026*
