@@ -18,6 +18,10 @@
   - Role-based access: Admin + Supervisor only
 - [x] **NotificationBell theme fix** - CSS variables instead of Tailwind dark: classes
 - [x] **Tab fallback fix** - Non-admin users now default to Fleet tab
+- [x] **Admin User Creation Fix** - RLS violation on user creation
+  - Problem: signUp() switches session to new user, causing RLS block
+  - Solution: RPC function with SECURITY DEFINER + admin ID verification
+  - New migration: `20260110_admin_create_user_rpc.sql`
 
 ### January 7, 2026
 - [x] **Stability & Error-Handling Hardening**

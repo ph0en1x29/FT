@@ -29,6 +29,43 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+### 🔧 Admin User Creation Fix (2026-01-10)
+- **Updated:** 2026-01-10 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Fix RLS violation when admin creates new users
+
+#### Problem:
+When admin created a new user via User Management page:
+1. `supabase.auth.signUp()` creates auth user
+2. Supabase automatically switches session context to the NEW user
+3. Subsequent INSERT into `users` table runs as new user (who has no role)
+4. RLS policy blocks insert → "new row violates row-level security policy"
+
+#### Solution:
+Created `admin_create_user` RPC function with SECURITY DEFINER:
+1. Frontend captures admin's `user_id` BEFORE calling `signUp()`
+2. After `signUp()`, calls RPC with admin's ID as proof of authorization
+3. RPC verifies the passed `user_id` belongs to an active admin
+4. RPC inserts new user with elevated permissions (bypasses RLS)
+
+#### Files Changed:
+- `services/supabaseService.ts`: Updated `createUser()` to capture admin ID first
+- `database/migrations/20260110_admin_create_user_rpc.sql`: New migration file
+
+#### SQL Function:
+```sql
+admin_create_user(
+  p_admin_user_id UUID,  -- Admin's user_id (captured before signUp)
+  p_auth_id UUID,        -- New user's auth_id from signUp
+  p_name TEXT,
+  p_email TEXT,
+  p_role TEXT,
+  p_is_active BOOLEAN
+) RETURNS UUID
+```
+
+---
+
 ### 🚛 Asset Overview Dashboard (2026-01-10)
 - **Updated:** 2026-01-10 (author: Claude)
 - **Status:** ✔️ Completed
