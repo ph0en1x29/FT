@@ -29,6 +29,32 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+### 🔒 P1 Security Patch: Caller Identity Binding (2026-01-11)
+- **Updated:** 2026-01-11 (author: Claude)
+- **Status:** ⏳ Pending Deployment
+- **Scope:** Fix privilege escalation in complete_user_creation RPC
+- **Severity:** P1 - Critical security vulnerability
+
+#### Vulnerability (v3):
+- `complete_user_creation()` verified the STORED `admin_auth_id` was still an active admin
+- But never checked that the CURRENT CALLER (`auth.uid()`) matched that admin
+- **Attack:** Any authenticated user who learned a valid `pending_id` could hijack the flow
+
+#### Fix (v4):
+- Added explicit check: `auth.uid()` MUST equal `v_pending.admin_auth_id`
+- Only the admin who initiated `prepare_user_creation()` can call `complete_user_creation()`
+- Added null check for `auth.uid()` before comparison
+
+#### Files Added:
+- `database/migrations/20260111_secure_user_creation_v4_caller_binding.sql`
+
+#### Migration Required:
+Run `20260111_secure_user_creation_v4_caller_binding.sql` in Supabase SQL Editor
+- **URGENT if v3 is deployed** - This is a live security issue
+- **Idempotent** - Safe to run whether v3 is deployed or not
+
+---
+
 ### 🔒 Security & Dev Mode Fixes (2026-01-11)
 - **Updated:** 2026-01-11 (author: Claude)
 - **Status:** ✔️ Completed
