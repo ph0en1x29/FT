@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { UserRole } from '../types_with_invoice_tracking';
 
-// Get dev emails from environment variable
-const DEV_EMAILS = (import.meta.env.VITE_DEV_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
+// Hardcoded dev emails (always allowed) + env variable for additional emails
+const HARDCODED_DEV_EMAILS = ['dev@test.com'];
+const ENV_DEV_EMAILS = (import.meta.env.VITE_DEV_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
+const DEV_EMAILS = [...new Set([...HARDCODED_DEV_EMAILS, ...ENV_DEV_EMAILS])];
 
 export type DevModeRole = UserRole | null;
 export type DevModeType = 'ui_only' | 'strict';
