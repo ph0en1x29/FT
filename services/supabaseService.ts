@@ -87,6 +87,7 @@ export const SupabaseDb = {
   },
 
   createUser: async (userData: Partial<User> & { password?: string }): Promise<User> => {
+    // Step 1: Create auth user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: userData.email!,
       password: userData.password || 'temp123',
@@ -95,16 +96,23 @@ export const SupabaseDb = {
     if (authError) throw new Error(authError.message);
     if (!authData.user) throw new Error('Failed to create auth user');
 
+    // Step 2: Use RPC function to create user record
+    // This bypasses the auth context switch issue where signUp() changes the session
+    const { data: userId, error: rpcError } = await supabase.rpc('admin_create_user', {
+      p_auth_id: authData.user.id,
+      p_name: userData.name,
+      p_email: userData.email,
+      p_role: userData.role || UserRole.TECHNICIAN,
+      p_is_active: userData.is_active ?? true,
+    });
+
+    if (rpcError) throw new Error(rpcError.message);
+
+    // Step 3: Fetch and return the created user
     const { data, error } = await supabase
       .from('users')
-      .insert({
-        auth_id: authData.user.id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role || UserRole.TECHNICIAN,
-        is_active: userData.is_active ?? true,
-      })
       .select()
+      .eq('user_id', userId)
       .single();
 
     if (error) throw new Error(error.message);
