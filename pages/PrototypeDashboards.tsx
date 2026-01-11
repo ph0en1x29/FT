@@ -657,28 +657,29 @@ const AccountantDashboard: React.FC<DashboardProps> = ({ jobs, onNavigate }) => 
 // MAIN PROTOTYPE PAGE
 // =========================================
 
-const PrototypeDashboards: React.FC = () => {
+interface PrototypeDashboardsProps {
+  currentUser: User;
+}
+
+const PrototypeDashboards: React.FC<PrototypeDashboardsProps> = ({ currentUser }) => {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Dev mode hook
-  const devMode = useDevMode(currentUser?.email, currentUser?.role || UserRole.TECHNICIAN);
+  // Dev mode hook - currentUser is guaranteed to exist (passed from App.tsx)
+  const devMode = useDevMode(currentUser.email, currentUser.role);
 
   // Load data
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [user, jobsData, usersData] = await Promise.all([
-          SupabaseDb.getCurrentUser(),
-          SupabaseDb.getJobs(),
+        const [jobsData, usersData] = await Promise.all([
+          SupabaseDb.getJobs(currentUser),
           SupabaseDb.getUsers(),
         ]);
-        setCurrentUser(user);
         setJobs(jobsData);
         setUsers(usersData);
       } catch (err: any) {
@@ -688,12 +689,12 @@ const PrototypeDashboards: React.FC = () => {
       }
     };
     loadData();
-  }, []);
+  }, [currentUser]);
 
   const handleRefresh = async () => {
     try {
       const [jobsData, usersData] = await Promise.all([
-        SupabaseDb.getJobs(),
+        SupabaseDb.getJobs(currentUser),
         SupabaseDb.getUsers(),
       ]);
       setJobs(jobsData);
@@ -707,8 +708,8 @@ const PrototypeDashboards: React.FC = () => {
     navigate(path);
   };
 
-  // Access check
-  if (!loading && !devMode.isDev) {
+  // Access check - dev only
+  if (!devMode.isDev) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
         <div className="card-premium p-8 text-center max-w-md">
@@ -739,13 +740,13 @@ const PrototypeDashboards: React.FC = () => {
     );
   }
 
-  if (error || !currentUser) {
+  if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
         <div className="card-premium p-8 text-center max-w-md">
           <X className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--error)' }} />
           <h1 className="text-xl font-bold mb-2" style={{ color: 'var(--text)' }}>Error Loading</h1>
-          <p style={{ color: 'var(--text-muted)' }}>{error || 'Could not load user data'}</p>
+          <p style={{ color: 'var(--text-muted)' }}>{error}</p>
         </div>
       </div>
     );

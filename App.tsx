@@ -499,7 +499,7 @@ export default function App() {
               <Route path="/my-profile" element={<Navigate to={`/people/employees/${currentUser.user_id}`} replace />} />
               
               {/* Prototype Routes (dev-only, hidden from sidebar) */}
-              <Route path="/prototype/dashboards" element={<PrototypeDashboards />} />
+              <Route path="/prototype/dashboards" element={<PrototypeDashboards currentUser={currentUser} />} />
               
               {/* Catch all */}
               <Route path="*" element={<Navigate to="/" />} />
