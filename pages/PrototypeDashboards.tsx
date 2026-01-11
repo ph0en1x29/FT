@@ -631,7 +631,7 @@ const SupervisorPremiumDashboard: React.FC<DashboardProps> = ({ currentUser, job
     j.completed_at && new Date(j.completed_at).toDateString() === todayStr
   );
 
-  const totalActionRequired = escalatedJobs.length + awaitingFinalization.length + disputedJobs.length;
+  const totalActionRequired = escalatedJobs.length + awaitingFinalization.length + disputedJobs.length + awaitingAck.length;
 
   const getTeamMemberStatus = (tech: User) => {
     const techJobs = jobs.filter(j => j.assigned_technician_id === tech.user_id);
@@ -676,7 +676,7 @@ const SupervisorPremiumDashboard: React.FC<DashboardProps> = ({ currentUser, job
         <StatCard
           label="Action Required"
           value={totalActionRequired}
-          sublabel="Needs review"
+          sublabel={`${escalatedJobs.length} escalated · ${awaitingAck.length} awaiting ack`}
           icon={<AlertTriangle className="w-5 h-5" />}
           accent={totalActionRequired > 0 ? 'red' : 'green'}
         />
@@ -752,6 +752,27 @@ const SupervisorPremiumDashboard: React.FC<DashboardProps> = ({ currentUser, job
                       <p className="font-medium truncate" style={{ color: 'var(--text)' }}>{job.job_number}</p>
                       <p className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>{job.customer?.name} · Disputed</p>
                     </div>
+                    <ChevronRight className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+                  </div>
+                ))}
+                
+                {/* Awaiting Customer Acknowledgment */}
+                {awaitingAck.map(job => (
+                  <div
+                    key={job.job_id}
+                    onClick={() => onNavigate(`/jobs/${job.job_id}`)}
+                    className="p-4 flex items-center gap-4 cursor-pointer hover:bg-[var(--surface-2)] transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(175, 82, 222, 0.1)' }}>
+                      <Timer className="w-5 h-5" style={{ color: '#AF52DE' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate" style={{ color: 'var(--text)' }}>{job.job_number}</p>
+                      <p className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>{job.customer?.name} · Awaiting acknowledgment</p>
+                    </div>
+                    <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ background: 'rgba(175, 82, 222, 0.1)', color: '#AF52DE' }}>
+                      Pending
+                    </span>
                     <ChevronRight className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                   </div>
                 ))}

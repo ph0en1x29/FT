@@ -18,6 +18,27 @@ All notable changes, decisions, and client requirements for this project.
 
 ## [Unreleased] - ACWER Workflow Implementation
 
+### 🐛 Supervisor Dashboard: Awaiting Ack Fix (2026-01-11)
+- **Updated:** 2026-01-11 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Fix missing awaiting acknowledgment jobs in Supervisor dashboard
+
+#### Bug:
+- Supervisor dashboard computed `totalActionRequired` without including `awaitingAck` jobs
+- Jobs in "Completed Awaiting Ack" status were not displayed in the Action Queue
+- This left supervisors unaware of pending customer acknowledgments
+
+#### Fix:
+- Added `awaitingAck.length` to `totalActionRequired` calculation
+- Added rendering block for awaiting ack jobs in Action Queue (Timer icon, purple accent)
+- Updated KPI sublabel to show breakdown: "X escalated · Y awaiting ack"
+
+#### Files Modified:
+- `pages/PrototypeDashboards.tsx` - Lines 633, 679, 753-773
+
+---
+
+
 ### Client
 **ACWER Industrial Equipment Sdn Bhd** (Malaysia)
 - ~2,000 forklifts across Johor and Penang branches
