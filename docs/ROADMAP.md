@@ -6,6 +6,20 @@
 
 ## ✅ Recently Completed
 
+### January 11, 2026
+- [x] **Dev Mode Infrastructure** - Developer tools for prototyping
+  - useDevMode hook with email allowlist
+  - Role impersonation (UI Only / Strict Mode)
+  - DevBanner warning component
+  - RoleSwitcher dropdown
+- [x] **Prototype Dashboards** - Role-specific dashboard layouts
+  - Technician: My Jobs Today focus
+  - Supervisor: Action queue + team status
+  - Admin: Full KPI overview
+  - Accountant: Financial pipeline
+  - Route: `/#/prototype/dashboards`
+  - Dev-only access via VITE_DEV_EMAILS
+
 ### January 10, 2026
 - [x] **Asset Overview Dashboard** - Fleet status at a glance
   - 5 status cards: Rented Out, In Service, Service Due, Available, Out of Service

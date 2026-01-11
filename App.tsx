@@ -28,6 +28,7 @@ const TechnicianKPIPage = lazy(() => import('./pages/TechnicianKPIPageV2'));
 const People = lazy(() => import('./pages/People'));
 const EmployeeProfile = lazy(() => import('./pages/EmployeeProfile'));
 const MyLeaveRequests = lazy(() => import('./pages/MyLeaveRequests'));
+const PrototypeDashboards = lazy(() => import('./pages/PrototypeDashboards'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -496,6 +497,9 @@ export default function App() {
               <Route path="/service-intervals" element={<Navigate to="/forklifts?tab=intervals" replace />} />
               <Route path="/service-due" element={<Navigate to="/forklifts?tab=service-due" replace />} />
               <Route path="/my-profile" element={<Navigate to={`/people/employees/${currentUser.user_id}`} replace />} />
+              
+              {/* Prototype Routes (dev-only, hidden from sidebar) */}
+              <Route path="/prototype/dashboards" element={<PrototypeDashboards />} />
               
               {/* Catch all */}
               <Route path="*" element={<Navigate to="/" />} />

@@ -29,6 +29,55 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+### 🧪 Dev Mode & Prototype Dashboards (2026-01-11)
+- **Updated:** 2026-01-11 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Developer infrastructure for role-based dashboard prototyping
+
+#### Features:
+- **Dev Mode Hook** (`hooks/useDevMode.ts`):
+  - Email allowlist via `VITE_DEV_EMAILS` env variable
+  - Role impersonation with localStorage persistence
+  - UI Only mode (see dashboard, keep real permissions)
+  - Strict mode (actually limit to role's permissions)
+
+- **Dev Banner** (`components/dev/DevBanner.tsx`):
+  - Fixed warning banner when impersonating
+  - Shows impersonated role vs actual role
+  - Exit Dev Mode button
+
+- **Role Switcher** (`components/dev/RoleSwitcher.tsx`):
+  - Dropdown to switch between all 4 roles
+  - Toggle between UI Only and Strict mode
+  - Visual indicators for active role/mode
+
+- **Prototype Dashboards** (`pages/PrototypeDashboards.tsx`):
+  - 4 role-specific dashboard layouts:
+    - **Technician:** My Jobs Today, current job highlight, personal stats
+    - **Supervisor:** Action queue (filterable), team status grid, escalations
+    - **Admin:** KPI header with trends, full system overview, quick actions
+    - **Accountant:** Financial pipeline, jobs ready for invoicing, revenue stats
+  - Theme-integrated using CSS variables
+  - Real data from Supabase
+
+#### Access:
+- Route: `/#/prototype/dashboards`
+- Restricted to emails in `VITE_DEV_EMAILS`
+- Current dev email: `dev@test.com`
+
+#### Files Added:
+- `hooks/useDevMode.ts`
+- `components/dev/DevBanner.tsx`
+- `components/dev/RoleSwitcher.tsx`
+- `pages/PrototypeDashboards.tsx`
+
+#### Files Modified:
+- `App.tsx` - Added prototype route
+- `.env.example` - Added `VITE_DEV_EMAILS` documentation
+- `.env.local` - Added dev email
+
+---
+
 ### 🔧 Admin User Creation Fix (2026-01-10)
 - **Updated:** 2026-01-10 (author: Claude)
 - **Status:** ✔️ Completed
