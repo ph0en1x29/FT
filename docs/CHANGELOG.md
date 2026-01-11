@@ -31,10 +31,10 @@ All notable changes, decisions, and client requirements for this project.
 #### Fix:
 - Added `awaitingAck.length` to `totalActionRequired` calculation
 - Added rendering block for awaiting ack jobs in Action Queue (Timer icon, purple accent)
-- Updated KPI sublabel to show breakdown: "X escalated · Y awaiting ack"
+- Updated KPI sublabel to dynamically show all non-zero categories (escalated, disputed, awaiting ack, to finalize)
 
 #### Files Modified:
-- `pages/PrototypeDashboards.tsx` - Lines 633, 679, 753-773
+- `pages/PrototypeDashboards.tsx` - Lines 633, 676-685, 774-794
 
 ---
 

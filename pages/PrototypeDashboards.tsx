@@ -676,7 +676,12 @@ const SupervisorPremiumDashboard: React.FC<DashboardProps> = ({ currentUser, job
         <StatCard
           label="Action Required"
           value={totalActionRequired}
-          sublabel={`${escalatedJobs.length} escalated · ${awaitingAck.length} awaiting ack`}
+          sublabel={totalActionRequired === 0 ? 'All clear' : [
+            escalatedJobs.length > 0 && `${escalatedJobs.length} escalated`,
+            disputedJobs.length > 0 && `${disputedJobs.length} disputed`,
+            awaitingAck.length > 0 && `${awaitingAck.length} awaiting ack`,
+            awaitingFinalization.length > 0 && `${awaitingFinalization.length} to finalize`,
+          ].filter(Boolean).join(' · ')}
           icon={<AlertTriangle className="w-5 h-5" />}
           accent={totalActionRequired > 0 ? 'red' : 'green'}
         />
