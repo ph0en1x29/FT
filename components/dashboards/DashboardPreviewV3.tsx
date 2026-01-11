@@ -42,12 +42,13 @@ const KPICard: React.FC<{
   const c = colors[accent];
   return (
     <div 
-      className={`relative rounded-2xl p-4 transition-all ${alert ? 'ring-2 ring-offset-2' : ''}`}
+      className="relative rounded-2xl p-4 transition-all"
       style={{
         background: 'var(--surface)',
         border: `1px solid ${alert ? c.text : 'var(--border)'}`,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-        ...(alert && { ringColor: c.text })
+        boxShadow: alert 
+          ? `0 0 0 3px ${c.bg}, 0 0 0 4px ${c.text}` 
+          : '0 1px 3px rgba(0,0,0,0.04)',
       }}
     >
       <div className="flex items-start justify-between">
