@@ -18,6 +18,39 @@ All notable changes, decisions, and client requirements for this project.
 
 ## [Unreleased] - ACWER Workflow Implementation
 
+### 🎨 Dashboard Preview V3 - Layout Mockup (2026-01-12)
+- **Updated:** 2026-01-12 (author: Claude)
+- **Status:** ✔️ Completed (Preview Only)
+- **Scope:** Visual preview of improved dashboard layout based on UX feedback
+
+#### New Layout (12-col grid):
+- **Row 1:** 4 equal KPI cards with deltas (Overdue, Unassigned, In Progress, Revenue)
+- **Row 2:** Work Queue (8 cols) + Team Status (4 cols) - operational center of gravity
+- **Row 3:** Charts (6+6) - Job Status + Revenue Trend
+- **Row 4:** Smart Actions as horizontal chips + Notifications
+
+#### Key Improvements:
+- Eliminated "big empty left side" problem with balanced grid
+- Work Queue with tabs (Action Required / Due Today / Unassigned) as main focus
+- Quick Actions moved to header as compact horizontal chips
+- Team Status shows availability + overloaded warnings
+- KPIs have delta context (vs yesterday/last week)
+- Consistent card purposes: Metrics (compact), Lists (taller), Navigation (button-like)
+- "Overdue" KPI has alert ring to draw immediate attention
+
+#### Files Created:
+- `components/dashboards/DashboardPreviewV3.tsx` - Static mockup component (411 lines)
+
+#### Files Modified:
+- `pages/PrototypeDashboards.tsx` - Added V2/V3 version toggle
+
+#### Access:
+- Navigate to /prototype-dashboard
+- Use V2/V3 toggle in header to switch views
+- V3 shows static mockup data for layout validation
+
+---
+
 ### 🐛 Supervisor Dashboard: Awaiting Ack Fix (2026-01-11)
 - **Updated:** 2026-01-11 (author: Claude)
 - **Status:** ✔️ Completed

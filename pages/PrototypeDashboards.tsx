@@ -5,6 +5,7 @@ import { SupabaseDb } from '../services/supabaseService';
 import { useDevMode } from '../hooks/useDevMode';
 import { DevBanner } from '../components/dev/DevBanner';
 import { RoleSwitcher } from '../components/dev/RoleSwitcher';
+import DashboardPreviewV3 from '../components/dashboards/DashboardPreviewV3';
 import {
   Wrench, Clock, AlertTriangle, CheckCircle, FileText, Users,
   TrendingUp, Calendar, ChevronRight, Bell, Play, ArrowRight,
@@ -1184,6 +1185,7 @@ const PrototypeDashboards: React.FC<PrototypeDashboardsProps> = ({ currentUser }
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [previewVersion, setPreviewVersion] = useState<'v2' | 'v3'>('v2');
 
   // Dev mode hook
   const devMode = useDevMode(currentUser.email, currentUser.role);
@@ -1325,32 +1327,60 @@ const PrototypeDashboards: React.FC<PrototypeDashboardsProps> = ({ currentUser }
           {/* Role Switcher Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <span 
-                className="text-xs font-medium px-2.5 py-1 rounded-lg"
-                style={{ 
-                  background: 'linear-gradient(135deg, rgba(255, 149, 0, 0.15) 0%, rgba(255, 59, 48, 0.1) 100%)',
-                  color: '#FF9500',
-                  border: '1px solid rgba(255, 149, 0, 0.2)'
-                }}
+              {/* Version Toggle */}
+              <div 
+                className="flex items-center p-0.5 rounded-lg"
+                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
               >
-                PROTOTYPE v2
-              </span>
+                <button
+                  onClick={() => setPreviewVersion('v2')}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    previewVersion === 'v2' ? 'shadow-sm' : ''
+                  }`}
+                  style={{
+                    background: previewVersion === 'v2' ? 'var(--surface)' : 'transparent',
+                    color: previewVersion === 'v2' ? 'var(--accent)' : 'var(--text-muted)',
+                    border: previewVersion === 'v2' ? '1px solid var(--border)' : '1px solid transparent'
+                  }}
+                >
+                  V2 Current
+                </button>
+                <button
+                  onClick={() => setPreviewVersion('v3')}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    previewVersion === 'v3' ? 'shadow-sm' : ''
+                  }`}
+                  style={{
+                    background: previewVersion === 'v3' ? 'linear-gradient(135deg, rgba(52, 199, 89, 0.15) 0%, rgba(0, 122, 255, 0.1) 100%)' : 'transparent',
+                    color: previewVersion === 'v3' ? '#34C759' : 'var(--text-muted)',
+                    border: previewVersion === 'v3' ? '1px solid rgba(52, 199, 89, 0.3)' : '1px solid transparent'
+                  }}
+                >
+                  V3 Preview ✨
+                </button>
+              </div>
               <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Premium Dashboard Preview
+                {previewVersion === 'v3' ? 'Layout Mockup (Static Data)' : 'Premium Dashboard Preview'}
               </span>
             </div>
-            <RoleSwitcher
-              currentRole={currentUser.role}
-              impersonatedRole={devMode.impersonatedRole}
-              devModeType={devMode.devModeType}
-              onRoleChange={devMode.setImpersonatedRole}
-              onModeTypeChange={devMode.setDevModeType}
-              onDeactivate={devMode.deactivateDevMode}
-            />
+            {previewVersion === 'v2' && (
+              <RoleSwitcher
+                currentRole={currentUser.role}
+                impersonatedRole={devMode.impersonatedRole}
+                devModeType={devMode.devModeType}
+                onRoleChange={devMode.setImpersonatedRole}
+                onModeTypeChange={devMode.setDevModeType}
+                onDeactivate={devMode.deactivateDevMode}
+              />
+            )}
           </div>
 
           {/* Dashboard Content */}
-          {renderDashboard()}
+          {previewVersion === 'v3' ? (
+            <DashboardPreviewV3 />
+          ) : (
+            renderDashboard()
+          )}
         </div>
       </div>
     </div>
