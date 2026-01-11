@@ -14,6 +14,11 @@ interface DevModeState {
   isDevModeActive: boolean;
   impersonatedRole: DevModeRole;
   devModeType: DevModeType;
+  /** Role used for UI/display purposes (always uses impersonated role when active) */
+  displayRole: UserRole;
+  /** Role used for permission checks (only uses impersonated role in strict mode) */
+  permissionRole: UserRole;
+  /** @deprecated Use displayRole or permissionRole instead */
   effectiveRole: UserRole;
 }
 
@@ -31,62 +36,73 @@ interface StoredDevMode {
   devModeType: DevModeType;
 }
 
+// Load stored state (called unconditionally)
+const loadStoredState = (): StoredDevMode | null => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('Failed to load dev mode state:', e);
+  }
+  return null;
+};
+
 /**
  * Hook to manage developer mode functionality
+ * 
+ * UI Only mode: Display shows impersonated role, but permissions use real role
+ * Strict mode: Both display AND permissions use impersonated role
+ * 
  * @param userEmail - Current user's email
  * @param userRole - Current user's actual role
  */
 export function useDevMode(userEmail: string | undefined, userRole: UserRole): DevModeState & DevModeActions {
-  // Check if user is a developer
-  const isDev = userEmail ? DEV_EMAILS.includes(userEmail.toLowerCase()) : false;
-
-  // Load stored state
-  const loadStoredState = (): StoredDevMode | null => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (e) {
-      console.error('Failed to load dev mode state:', e);
-    }
-    return null;
-  };
-
-  // Initialize state from localStorage
+  // Load stored state UNCONDITIONALLY on mount (fixes persistence issue)
   const [impersonatedRole, setImpersonatedRoleState] = useState<DevModeRole>(() => {
-    if (!isDev) return null;
     const stored = loadStoredState();
     return stored?.impersonatedRole || null;
   });
 
   const [devModeType, setDevModeTypeState] = useState<DevModeType>(() => {
-    if (!isDev) return 'ui_only';
     const stored = loadStoredState();
     return stored?.devModeType || 'ui_only';
   });
 
-  // Persist state to localStorage
+  // Track if we've validated the user yet
+  const [hasValidated, setHasValidated] = useState(false);
+
+  // Check if user is a developer (may be undefined initially while loading)
+  const isDev = userEmail ? DEV_EMAILS.includes(userEmail.toLowerCase()) : false;
+
+  // Once we have the email, validate and clear if not dev
   useEffect(() => {
-    if (isDev && impersonatedRole) {
+    if (userEmail && !hasValidated) {
+      setHasValidated(true);
+      if (!DEV_EMAILS.includes(userEmail.toLowerCase())) {
+        // Not a dev user - clear any stored dev mode
+        setImpersonatedRoleState(null);
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  }, [userEmail, hasValidated]);
+
+  // Persist state to localStorage when it changes
+  useEffect(() => {
+    if (impersonatedRole) {
       const state: StoredDevMode = { impersonatedRole, devModeType };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
     }
-  }, [isDev, impersonatedRole, devModeType]);
-
-  // Clear dev mode if user is not a dev
-  useEffect(() => {
-    if (!isDev && impersonatedRole) {
-      setImpersonatedRoleState(null);
-    }
-  }, [isDev, impersonatedRole]);
+  }, [impersonatedRole, devModeType]);
 
   const isDevModeActive = isDev && impersonatedRole !== null;
 
-  // Calculate effective role based on dev mode settings
-  const effectiveRole = isDevModeActive ? impersonatedRole! : userRole;
+  // Calculate roles based on dev mode settings
+  // displayRole: Always shows impersonated role when active (for UI rendering)
+  // permissionRole: Only shows impersonated role in STRICT mode (for permission checks)
+  const displayRole = isDevModeActive ? impersonatedRole! : userRole;
+  const permissionRole = (isDevModeActive && devModeType === 'strict') ? impersonatedRole! : userRole;
 
   // Actions
   const activateDevMode = useCallback((role: UserRole, type: DevModeType = 'ui_only') => {
@@ -115,7 +131,10 @@ export function useDevMode(userEmail: string | undefined, userRole: UserRole): D
     isDevModeActive,
     impersonatedRole,
     devModeType,
-    effectiveRole,
+    displayRole,
+    permissionRole,
+    // Keep effectiveRole for backward compatibility (maps to displayRole)
+    effectiveRole: displayRole,
     activateDevMode,
     deactivateDevMode,
     setDevModeType,

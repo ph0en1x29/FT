@@ -29,6 +29,48 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+### 🔒 Security & Dev Mode Fixes (2026-01-11)
+- **Updated:** 2026-01-11 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Fix security vulnerabilities and dev mode bugs from code review
+
+#### Security Fixes (P1):
+- **RPC Privilege Escalation Fix** (`database/migrations/20260111_secure_user_creation_v3.sql`):
+  - Old: RPC trusted caller-supplied admin_user_id (any user could escalate)
+  - New: Two-step process with session-bound verification
+  - `prepare_user_creation()` - ties intent to actual auth.uid()
+  - `complete_user_creation()` - verifies pending request exists
+  - Pending requests expire after 10 minutes
+  - Added `pending_user_creations` table for secure handoff
+
+- **Data Fetch Gate** (`pages/PrototypeDashboards.tsx`):
+  - Fixed: Data was fetched BEFORE dev access check
+  - Now: Data only fetched if `devMode.isDev` is true
+
+#### Functionality Fixes (P2):
+- **UI Only vs Strict Mode** (`hooks/useDevMode.ts`):
+  - Fixed: Both modes behaved identically
+  - Now: `displayRole` (for UI) vs `permissionRole` (for access checks)
+  - UI Only: Shows impersonated dashboard, keeps real permissions
+  - Strict: Both UI and permissions use impersonated role
+
+- **Dev Mode Persistence** (`hooks/useDevMode.ts`):
+  - Fixed: Refresh cleared impersonation because email loads after mount
+  - Now: localStorage loaded unconditionally, validated once email arrives
+
+#### Files Added:
+- `database/migrations/20260111_secure_user_creation_v3.sql`
+
+#### Files Modified:
+- `services/supabaseService.ts` - Updated to use new RPC functions
+- `hooks/useDevMode.ts` - Fixed persistence and displayRole/permissionRole
+- `pages/PrototypeDashboards.tsx` - Gated data fetch behind dev check
+
+#### Migration Required:
+Run `20260111_secure_user_creation_v3.sql` in Supabase SQL Editor
+
+---
+
 ### 🧪 Dev Mode & Prototype Dashboards (2026-01-11)
 - **Updated:** 2026-01-11 (author: Claude)
 - **Status:** ✔️ Completed

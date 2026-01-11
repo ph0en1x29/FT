@@ -7,6 +7,15 @@
 ## ✅ Recently Completed
 
 ### January 11, 2026
+- [x] **Security Fixes (Code Review P1)**
+  - Fixed RPC privilege escalation vulnerability
+  - Two-step user creation: prepare → signUp → complete
+  - Session-bound verification via `pending_user_creations` table
+  - Gated prototype data fetch behind dev check
+- [x] **Dev Mode Fixes (Code Review P2)**
+  - Fixed UI Only vs Strict mode (now properly differentiated)
+  - Fixed persistence after page reload
+  - Added `displayRole` and `permissionRole` separation
 - [x] **Dev Mode Infrastructure** - Developer tools for prototyping
   - useDevMode hook with email allowlist
   - Role impersonation (UI Only / Strict Mode)

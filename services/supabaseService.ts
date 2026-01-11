@@ -87,22 +87,16 @@ export const SupabaseDb = {
   },
 
   createUser: async (userData: Partial<User> & { password?: string }): Promise<User> => {
-    // Step 1: Get current admin's user_id BEFORE signUp (signUp will switch auth context!)
-    const { data: { user: currentAuthUser } } = await supabase.auth.getUser();
-    if (!currentAuthUser) throw new Error('Not authenticated');
+    // Secure two-step user creation process
+    // Step 1: Prepare - registers intent tied to admin's auth.uid()
+    const { data: pendingId, error: prepareError } = await supabase.rpc('prepare_user_creation', {
+      p_email: userData.email,
+    });
 
-    const { data: currentUser, error: currentUserError } = await supabase
-      .from('users')
-      .select('user_id, role')
-      .eq('auth_id', currentAuthUser.id)
-      .single();
+    if (prepareError) throw new Error(prepareError.message);
+    if (!pendingId) throw new Error('Failed to prepare user creation');
 
-    if (currentUserError || !currentUser) throw new Error('Could not verify admin status');
-    if (currentUser.role !== 'admin') throw new Error('Only admins can create users');
-
-    const adminUserId = currentUser.user_id;
-
-    // Step 2: Create auth user in Supabase Auth (this switches session context!)
+    // Step 2: Create auth user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: userData.email!,
       password: userData.password || 'temp123',
@@ -111,10 +105,9 @@ export const SupabaseDb = {
     if (authError) throw new Error(authError.message);
     if (!authData.user) throw new Error('Failed to create auth user');
 
-    // Step 3: Use RPC function to create user record
-    // Pass admin's user_id since auth.uid() now returns the NEW user's ID
-    const { data: userId, error: rpcError } = await supabase.rpc('admin_create_user', {
-      p_admin_user_id: adminUserId,
+    // Step 3: Complete - verifies pending request and creates user record
+    const { data: userId, error: completeError } = await supabase.rpc('complete_user_creation', {
+      p_pending_id: pendingId,
       p_auth_id: authData.user.id,
       p_name: userData.name,
       p_email: userData.email,
@@ -122,7 +115,7 @@ export const SupabaseDb = {
       p_is_active: userData.is_active ?? true,
     });
 
-    if (rpcError) throw new Error(rpcError.message);
+    if (completeError) throw new Error(completeError.message);
 
     // Step 4: Fetch and return the created user
     const { data, error } = await supabase

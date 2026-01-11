@@ -671,8 +671,14 @@ const PrototypeDashboards: React.FC<PrototypeDashboardsProps> = ({ currentUser }
   // Dev mode hook - currentUser is guaranteed to exist (passed from App.tsx)
   const devMode = useDevMode(currentUser.email, currentUser.role);
 
-  // Load data
+  // Load data ONLY if user is a dev (fixes P1: data fetch before dev check)
   useEffect(() => {
+    // Don't fetch data if not a dev user
+    if (!devMode.isDev) {
+      setLoading(false);
+      return;
+    }
+
     const loadData = async () => {
       try {
         setLoading(true);
@@ -689,9 +695,10 @@ const PrototypeDashboards: React.FC<PrototypeDashboardsProps> = ({ currentUser }
       }
     };
     loadData();
-  }, [currentUser]);
+  }, [currentUser, devMode.isDev]);
 
   const handleRefresh = async () => {
+    if (!devMode.isDev) return; // Guard refresh too
     try {
       const [jobsData, usersData] = await Promise.all([
         SupabaseDb.getJobs(currentUser),
@@ -708,7 +715,7 @@ const PrototypeDashboards: React.FC<PrototypeDashboardsProps> = ({ currentUser }
     navigate(path);
   };
 
-  // Access check - dev only
+  // Access check - dev only (BEFORE any data operations)
   if (!devMode.isDev) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
@@ -760,9 +767,9 @@ const PrototypeDashboards: React.FC<PrototypeDashboardsProps> = ({ currentUser }
     onRefresh: handleRefresh,
   };
 
-  // Render appropriate dashboard based on effective role
+  // Render appropriate dashboard based on display role (UI rendering)
   const renderDashboard = () => {
-    const role = devMode.effectiveRole;
+    const role = devMode.displayRole;
     switch (role) {
       case UserRole.TECHNICIAN:
         return <TechnicianDashboard {...dashboardProps} />;
