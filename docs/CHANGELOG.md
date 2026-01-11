@@ -31,7 +31,7 @@ All notable changes, decisions, and client requirements for this project.
 
 ### 🔒 P1 Security Patch: Caller Identity Binding (2026-01-11)
 - **Updated:** 2026-01-11 (author: Claude)
-- **Status:** ⏳ Pending Deployment
+- **Status:** ✔️ Completed (deployed)
 - **Scope:** Fix privilege escalation in complete_user_creation RPC
 - **Severity:** P1 - Critical security vulnerability
 
