@@ -198,8 +198,81 @@ Confirmed by: _________________ Date: _________
 
 ---
 
+## AI/Developer Quick Reference
+
+### Git Workflow
+
+| Rule | Details |
+|------|--------|
+| **No auto-push** | Do NOT push to git until Jay confirms testing/debugging is complete |
+| **Docs first** | Always update CHANGELOG.md and relevant docs BEFORE asking to push |
+| **Ask to push** | Only ask "Ready to push to git?" after Jay says all is fixed and tested |
+
+### Code Standards
+
+| Rule | Details |
+|------|--------|
+| **Complete files** | Provide complete, paste-ready files for GitHub - not code snippets |
+| **Toast errors** | Use Sonner toast for user feedback - never silent failures |
+| **Theme variables** | Use CSS variables (--bg, --surface, --text-theme) - never hardcoded Tailwind dark: classes |
+| **Idempotent migrations** | Database migrations must handle existing data gracefully |
+
+### Database Patterns
+
+| Pattern | Example |
+|---------|--------|
+| **FK disambiguation** | `forklift:forklifts!forklift_id(*)` for multiple foreign keys |
+| **Auth ID mapping** | Use `auth_id = auth.uid()` not `user_id = auth.uid()` in RLS |
+| **Role case** | Roles stored lowercase (`admin`) but some policies use Title case - use `initcap()` |
+| **RPC security** | All RPC functions need `SECURITY DEFINER` and `SET search_path = public` |
+
+### Key Technical Facts
+
+| Topic | Details |
+|-------|--------|
+| **Deployment** | ft-kappa.vercel.app (prototype validation) |
+| **User-Employee** | Merged - `Employee` is type alias for `User`, use `user.role` not `user.employee.role` |
+| **Timezone** | Malaysia UTC+8, Sunday only weekend (Saturday is working day) |
+| **Service intervals** | Diesel 500hrs, LPG/Petrol 350hrs, Electric 3 months calendar-based |
+| **Escalation** | 8 AM next business day, disabled for overtime jobs |
+| **Deferred ack** | 3-5 working days SLA, requires evidence photos |
+
+### Job Statuses
+
+`New` → `Assigned` → `In Progress` → `Awaiting Finalization` → `Completed`
+
+Special: `Completed Awaiting Ack`, `Incomplete-Continuing`, `Incomplete-Reassigned`, `Disputed`
+
+### Role Permissions Summary
+
+| Role | Access |
+|------|--------|
+| Admin | Full system access |
+| Supervisor | View all + job management, no financials |
+| Accountant | View jobs/invoices, finalization |
+| Technician | Assigned jobs only |
+| Helper Tech | Photos + start/end times only - no hourmeter, parts, signatures |
+
+### Pre-Production Checklist
+
+- [ ] Enable Supabase email confirmation (Auth → Providers → Email → Confirm email)
+- [ ] Set up Edge Function cron for escalations (requires Supabase Pro)
+- [ ] Configure WhatsApp/SMS notifications (requires Supabase Pro)
+
+### Common Bugs & Fixes
+
+| Issue | Fix |
+|-------|-----|
+| RLS violations | Check `auth.uid()` vs `user_id` mapping, verify role case |
+| FK ambiguity (PGRST201) | Add explicit FK hint: `!column_name` |
+| 406 on .single() | Use `.maybeSingle()` or `.limit(1)` for optional records |
+| Realtime not working | Check table is in `supabase_realtime` publication with `REPLICA IDENTITY FULL` |
+
+---
+
 ## Revision History
 
 | Date | Change |
 |------|--------|
+| Jan 2026 | Added AI/Developer Quick Reference section |
 | Jan 2026 | Initial process documentation |
