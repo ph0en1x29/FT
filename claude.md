@@ -11,3 +11,12 @@
 5. **Maintain architecture docs** — Keep documentation current with how the app works.
 
 6. **No hallucination** — If referencing a file, read it first. No claims without investigation.
+
+7. **Update docs after every code change** — After completing any code modification, update ALL relevant documentation:
+   - **CHANGELOG.md** — Log what changed, why, files affected
+   - **USER_GUIDE.md** — If UI/workflow changed, update user instructions
+   - **DB_SCHEMA.md** — If database schema changed
+   - **WORKFLOW_SPECIFICATION.md** — If business logic changed
+   - **docs/README.md** — Add entry to "Recent Documentation Updates"
+
+   This ensures continuity when resuming work later. Never skip this step.
