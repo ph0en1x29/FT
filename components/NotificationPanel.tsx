@@ -5,8 +5,8 @@ import {
   AlertTriangle, Wrench, Truck, Package, CalendarDays, CalendarCheck, CalendarX,
   ChevronRight, Wifi, WifiOff, UserPlus, UserCheck, Cog, CheckCircle, XCircle
 } from 'lucide-react';
-import { NotificationType, ROLE_PERMISSIONS } from '../types_with_invoice_tracking';
-import type { Notification, User } from '../types_with_invoice_tracking';
+import { NotificationType, ROLE_PERMISSIONS } from '../types';
+import type { Notification, User } from '../types';
 
 interface NotificationPanelProps {
   notifications: Notification[];
@@ -33,62 +33,62 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
     const iconMap: Record<string, { icon: React.ReactNode; bg: string }> = {
       [NotificationType.JOB_ASSIGNED]: { 
         icon: <Wrench className="w-3.5 h-3.5 text-blue-600" />, 
-        bg: 'bg-blue-50 dark:bg-blue-500/10' 
+        bg: 'bg-blue-50' 
       },
       [NotificationType.JOB_PENDING]: { 
         icon: <Clock className="w-3.5 h-3.5 text-amber-600" />, 
-        bg: 'bg-amber-50 dark:bg-amber-500/10' 
+        bg: 'bg-amber-50' 
       },
       [NotificationType.SERVICE_DUE]: { 
         icon: <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />, 
-        bg: 'bg-orange-50 dark:bg-orange-500/10' 
+        bg: 'bg-orange-50' 
       },
       [NotificationType.RENTAL_ENDING]: { 
         icon: <Truck className="w-3.5 h-3.5 text-purple-600" />, 
-        bg: 'bg-purple-50 dark:bg-purple-500/10' 
+        bg: 'bg-purple-50' 
       },
       [NotificationType.LOW_STOCK]: { 
         icon: <Package className="w-3.5 h-3.5 text-red-600" />, 
-        bg: 'bg-red-50 dark:bg-red-500/10' 
+        bg: 'bg-red-50' 
       },
       [NotificationType.LEAVE_REQUEST]: { 
         icon: <CalendarDays className="w-3.5 h-3.5 text-amber-600" />, 
-        bg: 'bg-amber-50 dark:bg-amber-500/10' 
+        bg: 'bg-amber-50' 
       },
       [NotificationType.LEAVE_APPROVED]: { 
         icon: <CalendarCheck className="w-3.5 h-3.5 text-green-600" />, 
-        bg: 'bg-green-50 dark:bg-green-500/10' 
+        bg: 'bg-green-50' 
       },
       [NotificationType.LEAVE_REJECTED]: { 
         icon: <CalendarX className="w-3.5 h-3.5 text-red-600" />, 
-        bg: 'bg-red-50 dark:bg-red-500/10' 
+        bg: 'bg-red-50' 
       },
       [NotificationType.HELPER_REQUEST]: { 
         icon: <UserPlus className="w-3.5 h-3.5 text-blue-600" />, 
-        bg: 'bg-blue-50 dark:bg-blue-500/10' 
+        bg: 'bg-blue-50' 
       },
       [NotificationType.SPARE_PART_REQUEST]: { 
         icon: <Cog className="w-3.5 h-3.5 text-orange-600" />, 
-        bg: 'bg-orange-50 dark:bg-orange-500/10' 
+        bg: 'bg-orange-50' 
       },
       [NotificationType.SKILLFUL_TECH_REQUEST]: { 
         icon: <UserPlus className="w-3.5 h-3.5 text-purple-600" />, 
-        bg: 'bg-purple-50 dark:bg-purple-500/10' 
+        bg: 'bg-purple-50' 
       },
       [NotificationType.REQUEST_APPROVED]: { 
         icon: <CheckCircle className="w-3.5 h-3.5 text-green-600" />, 
-        bg: 'bg-green-50 dark:bg-green-500/10' 
+        bg: 'bg-green-50' 
       },
       [NotificationType.REQUEST_REJECTED]: { 
         icon: <XCircle className="w-3.5 h-3.5 text-red-600" />, 
-        bg: 'bg-red-50 dark:bg-red-500/10' 
+        bg: 'bg-red-50' 
       },
       [NotificationType.JOB_REASSIGNED]: { 
         icon: <UserCheck className="w-3.5 h-3.5 text-indigo-600" />, 
-        bg: 'bg-indigo-50 dark:bg-indigo-500/10' 
+        bg: 'bg-indigo-50' 
       },
     };
-    return iconMap[type] || { icon: <Bell className="w-3.5 h-3.5 text-slate-500" />, bg: 'bg-slate-50 dark:bg-slate-500/10' };
+    return iconMap[type] || { icon: <Bell className="w-3.5 h-3.5 text-slate-500" />, bg: 'bg-slate-50' };
   };
 
   const formatTime = (dateStr: string) => {

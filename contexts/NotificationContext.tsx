@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import type { User } from '../types_with_invoice_tracking';
+import type { User } from '../types';
 import { useRealtimeNotifications } from '../utils/useRealtimeNotifications';
 
 type RealtimeState = ReturnType<typeof useRealtimeNotifications>;

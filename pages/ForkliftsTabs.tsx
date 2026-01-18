@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Forklift, ForkliftType, ForkliftStatus, Customer, User } from '../types_with_invoice_tracking';
+import { Forklift, ForkliftType, ForkliftStatus, Customer, User, UserRole } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
-import { 
-  Plus, Search, Filter, Truck, Edit2, Trash2, X, Save, 
+import {
+  Plus, Search, Filter, Truck, Edit2, Trash2, X, Save,
   Gauge, Calendar, MapPin, CheckCircle, AlertCircle, Clock,
   Building2, Eye, ChevronRight, Square, CheckSquare, XCircle,
   CircleOff, Loader2, Settings, Wrench, RefreshCw, Play,
-  Fuel, Battery, Flame, AlertTriangle, LayoutDashboard
+  Fuel, Battery, Flame, AlertTriangle, LayoutDashboard, ClipboardCheck
 } from 'lucide-react';
 import AssetDashboard from '../components/AssetDashboard';
+import HourmeterReview from './HourmeterReview';
 
 // ============================================================================
 // TYPES
@@ -50,7 +51,7 @@ interface ForkliftDue {
   current_customer_id?: string;
 }
 
-type TabType = 'dashboard' | 'fleet' | 'intervals' | 'service-due';
+type TabType = 'dashboard' | 'fleet' | 'intervals' | 'service-due' | 'hourmeter';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -60,8 +61,13 @@ const ForkliftsTabs: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  const isAdmin = currentUser.role === 'admin';
-  const isAdminOrSupervisor = currentUser.role === 'admin' || currentUser.role === 'supervisor';
+  const isAdmin = currentUser.role === UserRole.ADMIN;
+  const isAdminOrSupervisor = [
+    UserRole.ADMIN,
+    UserRole.ADMIN_SERVICE,
+    UserRole.ADMIN_STORE,
+    UserRole.SUPERVISOR,
+  ].includes(currentUser.role);
 
   // Default tab based on role: dashboard for admin/supervisor, fleet for others
   const defaultTab = isAdminOrSupervisor ? 'dashboard' : 'fleet';
@@ -80,6 +86,7 @@ const ForkliftsTabs: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
     { id: 'fleet' as TabType, label: 'Fleet', icon: Truck },
     ...(isAdmin ? [{ id: 'intervals' as TabType, label: 'Service Intervals', icon: Settings }] : []),
     { id: 'service-due' as TabType, label: 'Service Due', icon: AlertTriangle },
+    ...(isAdminOrSupervisor ? [{ id: 'hourmeter' as TabType, label: 'Hourmeter Review', icon: ClipboardCheck }] : []),
   ];
 
   return (
@@ -123,6 +130,7 @@ const ForkliftsTabs: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
       {activeTab === 'fleet' && <FleetTab currentUser={currentUser} />}
       {activeTab === 'intervals' && isAdmin && <ServiceIntervalsTab currentUser={currentUser} />}
       {activeTab === 'service-due' && <ServiceDueTab currentUser={currentUser} />}
+      {activeTab === 'hourmeter' && isAdminOrSupervisor && <HourmeterReview currentUser={currentUser} hideHeader />}
     </div>
   );
 };
@@ -189,6 +197,14 @@ const FleetTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
 
   // Bulk end rental form
   const [bulkEndDate, setBulkEndDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Permission check - only admin/supervisor can edit/delete forklifts
+  const canEditForklifts = [
+    UserRole.ADMIN,
+    UserRole.ADMIN_SERVICE,
+    UserRole.ADMIN_STORE,
+    UserRole.SUPERVISOR,
+  ].includes(currentUser.role);
 
   useEffect(() => {
     loadData();
@@ -325,7 +341,10 @@ const FleetTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
 
     try {
       if (editingForklift) {
-        await MockDb.updateForklift(editingForklift.forklift_id, formData);
+        await MockDb.updateForklift(editingForklift.forklift_id, formData, {
+          userId: currentUser.user_id,
+          userName: currentUser.name,
+        });
       } else {
         await MockDb.createForklift(formData);
       }
@@ -602,12 +621,14 @@ const FleetTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
             {isSelectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
             {isSelectionMode ? 'Exit Selection' : 'Multi-Select'}
           </button>
-          <button
-            onClick={handleAddNew}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm font-medium"
-          >
-            <Plus className="w-4 h-4" /> Add Forklift
-          </button>
+          {canEditForklifts && (
+            <button
+              onClick={handleAddNew}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm font-medium"
+            >
+              <Plus className="w-4 h-4" /> Add Forklift
+            </button>
+          )}
         </div>
       </div>
 
@@ -801,14 +822,16 @@ const FleetTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                       </button>
                     )}
                     {currentCustomer && <div />}
-                    <div className="flex gap-2">
-                      <button onClick={(e) => handleEdit(forklift, e)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button onClick={(e) => handleDelete(forklift, e)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Delete">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {canEditForklifts && (
+                      <div className="flex gap-2">
+                        <button onClick={(e) => handleEdit(forklift, e)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={(e) => handleDelete(forklift, e)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Delete">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1212,20 +1235,20 @@ const ServiceIntervalsTab: React.FC<{ currentUser: User }> = ({ currentUser }) =
           <p className="text-sm text-theme-muted">Add service intervals to track maintenance schedules</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="card-theme rounded-xl shadow-sm overflow-hidden">
           <table className="w-full">
-            <thead className="bg-slate-50 border-b">
+            <thead className="bg-theme-surface-2 border-b border-theme">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Service</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Interval</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Priority</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Service</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Interval</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Priority</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-theme-muted uppercase">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-theme">
               {filteredIntervals.map(interval => (
-                <tr key={interval.interval_id} className="hover:bg-slate-50">
+                <tr key={interval.interval_id} className="clickable-row">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {getTypeIcon(interval.forklift_type)}
@@ -1353,7 +1376,12 @@ const ServiceDueTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const [running, setRunning] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
 
-  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'supervisor';
+  const isAdmin = [
+    UserRole.ADMIN,
+    UserRole.ADMIN_SERVICE,
+    UserRole.ADMIN_STORE,
+    UserRole.SUPERVISOR,
+  ].includes(currentUser.role);
 
   useEffect(() => {
     loadData();
@@ -1502,20 +1530,20 @@ const ServiceDueTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
           <p className="text-sm text-theme-muted">No forklifts due for service in this category</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="card-theme rounded-xl shadow-sm overflow-hidden">
           <table className="w-full">
-            <thead className="bg-slate-50 border-b">
+            <thead className="bg-theme-surface-2 border-b border-theme">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Forklift</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Hourmeter</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Action</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Forklift</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Hourmeter</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Status</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-theme-muted uppercase">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-theme">
               {filteredForklifts.map(forklift => (
-                <tr key={forklift.forklift_id} className="hover:bg-slate-50">
+                <tr key={forklift.forklift_id} className="clickable-row">
                   <td className="px-4 py-3">
                     <div>
                       <p className="font-medium text-slate-900">{forklift.make} {forklift.model}</p>

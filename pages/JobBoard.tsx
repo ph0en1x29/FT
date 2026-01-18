@@ -1,28 +1,73 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Job, JobStatus, JobType, User, DeletedJob, UserRole } from '../types_with_invoice_tracking';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Job, JobStatus, JobType, User, DeletedJob, UserRole } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
-import { Briefcase, Calendar, MapPin, User as UserIcon, Search, Filter, X, ChevronDown, AlertTriangle, Trash2, ChevronRight, Clock } from 'lucide-react';
+import { Briefcase, Calendar, MapPin, User as UserIcon, Search, Filter, X, ChevronDown, AlertTriangle, Trash2, ChevronRight, Clock, Zap } from 'lucide-react';
+import SlotInSLABadge, { getSLAStatus } from '../components/SlotInSLABadge';
 
 interface JobBoardProps {
   currentUser: User;
+  hideHeader?: boolean;
 }
 
 type DateFilter = 'today' | 'unfinished' | 'week' | 'month' | 'all' | 'custom';
+type SpecialFilter = 'overdue' | 'unassigned' | 'escalated' | 'awaiting-ack' | null;
 
-const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
+const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState<DateFilter>('unfinished');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [specialFilter, setSpecialFilter] = useState<SpecialFilter>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
+
+  // Read URL filter parameter on mount
+  useEffect(() => {
+    const filterParam = searchParams.get('filter');
+    if (filterParam) {
+      switch (filterParam) {
+        case 'overdue':
+          setSpecialFilter('overdue');
+          setDateFilter('all');
+          setStatusFilter('all');
+          break;
+        case 'unassigned':
+          setSpecialFilter('unassigned');
+          setDateFilter('all');
+          setStatusFilter('all');
+          break;
+        case 'escalated':
+          setSpecialFilter('escalated');
+          setDateFilter('all');
+          setStatusFilter('all');
+          break;
+        case 'in-progress':
+          setSpecialFilter(null);
+          setDateFilter('all');
+          setStatusFilter(JobStatus.IN_PROGRESS);
+          break;
+        case 'awaiting-ack':
+          setSpecialFilter('awaiting-ack');
+          setDateFilter('all');
+          setStatusFilter('all');
+          break;
+        default:
+          // Check if it's a valid JobStatus
+          if (Object.values(JobStatus).includes(filterParam as JobStatus)) {
+            setStatusFilter(filterParam);
+            setDateFilter('all');
+          }
+      }
+    }
+  }, [searchParams]);
 
   // Recently deleted jobs (admin/supervisor only)
   const [deletedJobs, setDeletedJobs] = useState<DeletedJob[]>([]);
@@ -63,11 +108,39 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
   // Filter jobs based on search and filters
   const filteredJobs = useMemo(() => {
     let result = [...jobs];
+    const today = new Date();
+    const todayStr = today.toDateString();
+    today.setHours(0, 0, 0, 0);
+
+    // Special filter (from URL params like ?filter=overdue)
+    if (specialFilter) {
+      switch (specialFilter) {
+        case 'overdue':
+          result = result.filter(job => {
+            if (['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(job.status)) return false;
+            const scheduled = job.scheduled_date ? new Date(job.scheduled_date) : null;
+            return scheduled && scheduled < today && job.status !== 'New';
+          });
+          break;
+        case 'unassigned':
+          result = result.filter(job =>
+            !job.assigned_technician_id &&
+            !['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(job.status)
+          );
+          break;
+        case 'escalated':
+          result = result.filter(job => job.is_escalated && !job.escalation_acknowledged_at);
+          break;
+        case 'awaiting-ack':
+          result = result.filter(job => job.status === JobStatus.COMPLETED_AWAITING_ACK);
+          break;
+      }
+    }
 
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(job => 
+      result = result.filter(job =>
         job.title?.toLowerCase().includes(query) ||
         job.description?.toLowerCase().includes(query) ||
         job.customer?.name?.toLowerCase().includes(query) ||
@@ -78,78 +151,93 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
       );
     }
 
-    // Status filter
-    if (statusFilter !== 'all') {
+    // Status filter (only if no special filter active)
+    if (statusFilter !== 'all' && !specialFilter) {
       result = result.filter(job => job.status === statusFilter);
     }
 
-    // Date filter
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Date filter (skip if special filter active)
     const todayEnd = new Date(today);
     todayEnd.setHours(23, 59, 59, 999);
 
-    switch (dateFilter) {
-      case 'today':
-        result = result.filter(job => {
-          const jobDate = new Date(job.scheduled_date || job.created_at);
-          return jobDate >= today && jobDate <= todayEnd;
-        });
-        break;
-      case 'unfinished':
-        // Unfinished = needs work or attention
-        // Excludes: Completed, Completed Awaiting Ack (work done, just pending customer)
-        result = result.filter(job => 
-          job.status !== JobStatus.COMPLETED &&
-          job.status !== JobStatus.COMPLETED_AWAITING_ACK
-        );
-        break;
-      case 'week':
-        const weekAgo = new Date(today);
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        result = result.filter(job => {
-          const jobDate = new Date(job.scheduled_date || job.created_at);
-          return jobDate >= weekAgo;
-        });
-        break;
-      case 'month':
-        const monthAgo = new Date(today);
-        monthAgo.setMonth(monthAgo.getMonth() - 1);
-        result = result.filter(job => {
-          const jobDate = new Date(job.scheduled_date || job.created_at);
-          return jobDate >= monthAgo;
-        });
-        break;
-      case 'custom':
-        if (customDateFrom) {
-          const fromDate = new Date(customDateFrom);
-          fromDate.setHours(0, 0, 0, 0);
+    // Skip date filter if special filter is active
+    if (!specialFilter) {
+      switch (dateFilter) {
+        case 'today':
           result = result.filter(job => {
             const jobDate = new Date(job.scheduled_date || job.created_at);
-            return jobDate >= fromDate;
+            return jobDate >= today && jobDate <= todayEnd;
           });
-        }
-        if (customDateTo) {
-          const toDate = new Date(customDateTo);
-          toDate.setHours(23, 59, 59, 999);
+          break;
+        case 'unfinished':
+          // Unfinished = needs work or attention
+          // Excludes: Completed, Completed Awaiting Ack (work done, just pending customer)
+          result = result.filter(job =>
+            job.status !== JobStatus.COMPLETED &&
+            job.status !== JobStatus.COMPLETED_AWAITING_ACK
+          );
+          break;
+        case 'week':
+          const weekAgo = new Date(today);
+          weekAgo.setDate(weekAgo.getDate() - 7);
           result = result.filter(job => {
             const jobDate = new Date(job.scheduled_date || job.created_at);
-            return jobDate <= toDate;
+            return jobDate >= weekAgo;
           });
-        }
-        break;
-      case 'all':
-      default:
-        // No date filtering
-        break;
+          break;
+        case 'month':
+          const monthAgo = new Date(today);
+          monthAgo.setMonth(monthAgo.getMonth() - 1);
+          result = result.filter(job => {
+            const jobDate = new Date(job.scheduled_date || job.created_at);
+            return jobDate >= monthAgo;
+          });
+          break;
+        case 'custom':
+          if (customDateFrom) {
+            const fromDate = new Date(customDateFrom);
+            fromDate.setHours(0, 0, 0, 0);
+            result = result.filter(job => {
+              const jobDate = new Date(job.scheduled_date || job.created_at);
+              return jobDate >= fromDate;
+            });
+          }
+          if (customDateTo) {
+            const toDate = new Date(customDateTo);
+            toDate.setHours(23, 59, 59, 999);
+            result = result.filter(job => {
+              const jobDate = new Date(job.scheduled_date || job.created_at);
+              return jobDate <= toDate;
+            });
+          }
+          break;
+        case 'all':
+        default:
+          // No date filtering
+          break;
+      }
     }
 
-    // Sort by date (newest first), with priority for emergency jobs
+    // Sort by date (newest first), with priority for emergency and Slot-In jobs
     result.sort((a, b) => {
-      // Emergency jobs first
+      // Slot-In jobs pending acknowledgement sorted by SLA urgency (most urgent first)
+      const aIsSlotInPending = a.job_type === JobType.SLOT_IN && !a.acknowledged_at;
+      const bIsSlotInPending = b.job_type === JobType.SLOT_IN && !b.acknowledged_at;
+
+      if (aIsSlotInPending && bIsSlotInPending) {
+        // Both are Slot-In pending - sort by SLA remaining time (least time first)
+        const aState = getSLAStatus(a.created_at, a.acknowledged_at, a.sla_target_minutes || 15);
+        const bState = getSLAStatus(b.created_at, b.acknowledged_at, b.sla_target_minutes || 15);
+        return aState.remainingMs - bState.remainingMs;
+      }
+
+      if (aIsSlotInPending && !bIsSlotInPending) return -1;
+      if (bIsSlotInPending && !aIsSlotInPending) return 1;
+
+      // Emergency jobs next
       if (a.priority === 'Emergency' && b.priority !== 'Emergency') return -1;
       if (b.priority === 'Emergency' && a.priority !== 'Emergency') return 1;
-      
+
       // Then by date
       const dateA = new Date(a.scheduled_date || a.created_at).getTime();
       const dateB = new Date(b.scheduled_date || b.created_at).getTime();
@@ -157,7 +245,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
     });
 
     return result;
-  }, [jobs, searchQuery, dateFilter, statusFilter, customDateFrom, customDateTo]);
+  }, [jobs, searchQuery, dateFilter, statusFilter, specialFilter, customDateFrom, customDateTo]);
 
   const getStatusColor = (status: JobStatus) => {
     switch(status) {
@@ -180,7 +268,8 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
       case JobType.SERVICE: return 'bg-green-50 text-green-700 border-green-200';
       case JobType.REPAIR: return 'bg-orange-50 text-orange-700 border-orange-200';
       case JobType.CHECKING: return 'bg-purple-50 text-purple-700 border-purple-200';
-      case JobType.ACCIDENT: return 'bg-red-50 text-red-700 border-red-200';
+      case JobType.SLOT_IN: return 'bg-red-50 text-red-700 border-red-200';
+      case JobType.COURIER: return 'bg-blue-50 text-blue-700 border-blue-200';
       default: return 'bg-slate-50 text-slate-600 border-slate-200';
     }
   };
@@ -189,11 +278,14 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
     setSearchQuery('');
     setDateFilter('unfinished');
     setStatusFilter('all');
+    setSpecialFilter(null);
     setCustomDateFrom('');
     setCustomDateTo('');
+    // Clear URL params
+    setSearchParams({});
   };
 
-  const hasActiveFilters = searchQuery || dateFilter !== 'unfinished' || statusFilter !== 'all';
+  const hasActiveFilters = searchQuery || dateFilter !== 'unfinished' || statusFilter !== 'all' || specialFilter !== null;
 
   // Count jobs by status for quick stats
   const statusCounts = useMemo(() => {
@@ -202,10 +294,18 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
     const disputedCount = jobs.filter(j => j.status === JobStatus.DISPUTED).length;
     const incompleteContinuingCount = jobs.filter(j => j.status === JobStatus.INCOMPLETE_CONTINUING).length;
     const incompleteReassignedCount = jobs.filter(j => j.status === JobStatus.INCOMPLETE_REASSIGNED).length;
-    
+
+    // Slot-In jobs pending acknowledgement (urgent attention needed)
+    const slotInPendingAck = jobs.filter(j =>
+      j.job_type === JobType.SLOT_IN &&
+      !j.acknowledged_at &&
+      j.status !== JobStatus.COMPLETED &&
+      j.status !== JobStatus.CANCELLED
+    ).length;
+
     // "Completed" for totals includes: Completed + Awaiting Ack + Disputed (work was done)
     const totalCompleted = completedCount + awaitingAckCount + disputedCount;
-    
+
     return {
       total: jobs.length,
       new: jobs.filter(j => j.status === JobStatus.NEW).length,
@@ -218,25 +318,29 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
       disputed: disputedCount,
       incompleteContinuing: incompleteContinuingCount,
       incompleteReassigned: incompleteReassignedCount,
+      // Slot-In SLA tracking
+      slotInPendingAck,
     };
   }, [jobs]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-theme">
-          {currentUser.role === 'technician' ? 'My Jobs' : 'Job Board'}
-        </h1>
-        {(currentUser.role === 'admin' || currentUser.role === 'supervisor') && (
-          <button 
-            onClick={() => navigate('/jobs/new')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"
-          >
-            + New Job
-          </button>
-        )}
-      </div>
+      {!hideHeader && (
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-theme">
+            {currentUser.role === 'technician' ? 'My Jobs' : 'Job Board'}
+          </h1>
+          {(currentUser.role === 'admin' || currentUser.role === 'supervisor') && (
+            <button
+              onClick={() => navigate('/jobs/new')}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+            >
+              + New Job
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Quick Stats - Industry Standard Color Mapping */}
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -325,8 +429,8 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
         <button
           onClick={() => { setStatusFilter(JobStatus.COMPLETED); setDateFilter('all'); }}
           className={`p-3 rounded-lg text-center transition-all ${
-            statusFilter === JobStatus.COMPLETED 
-              ? 'text-white shadow-lg scale-[1.02]' 
+            statusFilter === JobStatus.COMPLETED
+              ? 'text-white shadow-lg scale-[1.02]'
               : 'bg-green-100 hover:bg-green-200 text-green-800 border border-green-300'
           }`}
           style={statusFilter === JobStatus.COMPLETED ? {
@@ -337,6 +441,33 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
           <div className="text-xs opacity-80">Completed</div>
         </button>
       </div>
+
+      {/* Slot-In SLA Alert Banner - shows if there are pending Slot-In jobs */}
+      {statusCounts.slotInPendingAck > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-red-100 rounded-full">
+              <Zap className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <div className="font-semibold text-red-800">
+                {statusCounts.slotInPendingAck} Slot-In {statusCounts.slotInPendingAck === 1 ? 'Job' : 'Jobs'} Pending Acknowledgement
+              </div>
+              <div className="text-sm text-red-600">15-minute SLA countdown active</div>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setDateFilter('all');
+              setStatusFilter('all');
+            }}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-sm"
+          >
+            View All Slot-In Jobs
+          </button>
+        </div>
+      )}
 
       {/* Search and Filter Bar */}
       <div className="card-theme p-4 rounded-xl space-y-4">
@@ -454,6 +585,65 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
         </div>
       </div>
 
+      {/* Special Filter Banner */}
+      {specialFilter && (
+        <div className={`flex items-center justify-between p-4 rounded-xl ${
+          specialFilter === 'overdue' ? 'bg-red-50 border border-red-200' :
+          specialFilter === 'unassigned' ? 'bg-orange-50 border border-orange-200' :
+          specialFilter === 'escalated' ? 'bg-red-50 border border-red-200' :
+          'bg-purple-50 border border-purple-200'
+        }`}>
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-full ${
+              specialFilter === 'overdue' ? 'bg-red-100' :
+              specialFilter === 'unassigned' ? 'bg-orange-100' :
+              specialFilter === 'escalated' ? 'bg-red-100' :
+              'bg-purple-100'
+            }`}>
+              {specialFilter === 'overdue' && <Clock className="w-5 h-5 text-red-600" />}
+              {specialFilter === 'unassigned' && <UserIcon className="w-5 h-5 text-orange-600" />}
+              {specialFilter === 'escalated' && <AlertTriangle className="w-5 h-5 text-red-600" />}
+              {specialFilter === 'awaiting-ack' && <Clock className="w-5 h-5 text-purple-600" />}
+            </div>
+            <div>
+              <div className={`font-semibold ${
+                specialFilter === 'overdue' ? 'text-red-800' :
+                specialFilter === 'unassigned' ? 'text-orange-800' :
+                specialFilter === 'escalated' ? 'text-red-800' :
+                'text-purple-800'
+              }`}>
+                {specialFilter === 'overdue' && `${filteredJobs.length} Overdue Jobs`}
+                {specialFilter === 'unassigned' && `${filteredJobs.length} Unassigned Jobs`}
+                {specialFilter === 'escalated' && `${filteredJobs.length} Escalated Jobs`}
+                {specialFilter === 'awaiting-ack' && `${filteredJobs.length} Awaiting Customer Acknowledgement`}
+              </div>
+              <div className={`text-sm ${
+                specialFilter === 'overdue' ? 'text-red-600' :
+                specialFilter === 'unassigned' ? 'text-orange-600' :
+                specialFilter === 'escalated' ? 'text-red-600' :
+                'text-purple-600'
+              }`}>
+                {specialFilter === 'overdue' && 'Past scheduled date, not yet completed'}
+                {specialFilter === 'unassigned' && 'No technician assigned yet'}
+                {specialFilter === 'escalated' && 'Requires immediate attention'}
+                {specialFilter === 'awaiting-ack' && 'Completed, pending customer sign-off'}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={clearFilters}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition ${
+              specialFilter === 'overdue' ? 'bg-red-600 text-white hover:bg-red-700' :
+              specialFilter === 'unassigned' ? 'bg-orange-600 text-white hover:bg-orange-700' :
+              specialFilter === 'escalated' ? 'bg-red-600 text-white hover:bg-red-700' :
+              'bg-purple-600 text-white hover:bg-purple-700'
+            }`}
+          >
+            Clear Filter
+          </button>
+        </div>
+      )}
+
       {/* Job Cards Grid */}
       {loading ? (
         <div className="text-center py-12 text-theme-muted">
@@ -466,7 +656,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
             <div 
               key={job.job_id} 
               onClick={() => navigate(`/jobs/${job.job_id}`)}
-              className="card-theme p-5 rounded-xl hover:shadow-theme transition cursor-pointer group theme-transition"
+              className="card-theme p-5 rounded-xl clickable-card group theme-transition"
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex gap-2 flex-wrap">
@@ -485,9 +675,20 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser }) => {
                     </span>
                   )}
                 </div>
-                {job.priority === 'Emergency' && (
-                  <span className="text-xs font-bold text-red-600 animate-pulse">EMERGENCY</span>
-                )}
+                <div className="flex flex-col items-end gap-1">
+                  {job.priority === 'Emergency' && (
+                    <span className="text-xs font-bold text-red-600 animate-pulse">EMERGENCY</span>
+                  )}
+                  {/* Slot-In SLA Badge */}
+                  {job.job_type === JobType.SLOT_IN && (
+                    <SlotInSLABadge
+                      createdAt={job.created_at}
+                      acknowledgedAt={job.acknowledged_at}
+                      slaTargetMinutes={job.sla_target_minutes || 15}
+                      size="sm"
+                    />
+                  )}
+                </div>
               </div>
               
               <h3 className="font-bold text-lg text-theme group-hover:text-blue-600 mb-1">{job.title}</h3>

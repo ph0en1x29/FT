@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Job, JobStatus } from '../types_with_invoice_tracking';
+import { Job, JobStatus } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
 import { 
@@ -10,9 +10,10 @@ import {
 
 interface ServiceRecordsProps {
   currentUser: any;
+  hideHeader?: boolean;
 }
 
-const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser }) => {
+const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser, hideHeader = false }) => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -395,14 +396,16 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-theme">Service Records</h1>
-          <p className="text-sm text-theme-muted mt-1">
-            {filteredJobs.length} of {jobs.length} records
-          </p>
+      {!hideHeader && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-theme">Service Records</h1>
+            <p className="text-sm text-theme-muted mt-1">
+              {filteredJobs.length} of {jobs.length} records
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Search and Filters */}
       <div className="card-theme rounded-xl p-4 space-y-4 theme-transition">

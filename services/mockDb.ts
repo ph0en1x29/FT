@@ -1,4 +1,4 @@
-import { Job, JobStatus, JobPriority, Part, User, UserRole, Customer, JobMedia, SignatureEntry } from '../types_with_invoice_tracking';
+import { Job, JobStatus, JobPriority, Part, User, UserRole, Customer, JobMedia, SignatureEntry } from '../types';
 
 // Simple "hashing" for prototype
 const hashPassword = (pwd: string) => `hashed_${pwd}`;

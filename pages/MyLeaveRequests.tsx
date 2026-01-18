@@ -6,7 +6,7 @@ import {
   LeaveType,
   LeaveStatus,
   ROLE_PERMISSIONS,
-} from '../types_with_invoice_tracking';
+} from '../types';
 import { HRService } from '../services/hrService';
 import { showToast } from '../services/toastService';
 import {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertTriangle, X, Eye, Lock } from 'lucide-react';
-import { UserRole } from '../../types_with_invoice_tracking';
+import { UserRole } from '../../types';
 import { DevModeType } from '../../hooks/useDevMode';
 
 interface DevBannerProps {
@@ -12,6 +12,8 @@ interface DevBannerProps {
 
 const roleLabels: Record<UserRole, string> = {
   [UserRole.ADMIN]: 'Admin',
+  [UserRole.ADMIN_SERVICE]: 'Admin (Service)',
+  [UserRole.ADMIN_STORE]: 'Admin (Store)',
   [UserRole.SUPERVISOR]: 'Supervisor',
   [UserRole.TECHNICIAN]: 'Technician',
   [UserRole.ACCOUNTANT]: 'Accountant',
@@ -19,6 +21,8 @@ const roleLabels: Record<UserRole, string> = {
 
 const roleColors: Record<UserRole, string> = {
   [UserRole.ADMIN]: 'bg-purple-500',
+  [UserRole.ADMIN_SERVICE]: 'bg-purple-600',
+  [UserRole.ADMIN_STORE]: 'bg-indigo-500',
   [UserRole.SUPERVISOR]: 'bg-blue-500',
   [UserRole.TECHNICIAN]: 'bg-green-500',
   [UserRole.ACCOUNTANT]: 'bg-amber-500',

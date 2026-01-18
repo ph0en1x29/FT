@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Job, UserRole, EnhancedTechnicianKPI, JobType } from '../types_with_invoice_tracking';
+import { User, Job, UserRole, EnhancedTechnicianKPI, JobType } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
 import { 
@@ -11,9 +11,10 @@ import {
 
 interface TechnicianKPIPageProps {
   currentUser: User;
+  hideHeader?: boolean;
 }
 
-const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) => {
+const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser, hideHeader = false }) => {
   const [technicians, setTechnicians] = useState<User[]>([]);
   const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,7 +179,8 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
       const serviceJobs = techJobs.filter(j => j.job_type === JobType.SERVICE).length;
       const repairJobs = techJobs.filter(j => j.job_type === JobType.REPAIR).length;
       const checkingJobs = techJobs.filter(j => j.job_type === JobType.CHECKING).length;
-      const accidentJobs = techJobs.filter(j => j.job_type === JobType.ACCIDENT).length;
+      const slotInJobs = techJobs.filter(j => j.job_type === JobType.SLOT_IN).length;
+      const courierJobs = techJobs.filter(j => j.job_type === JobType.COURIER).length;
 
       // Priority breakdown
       const priorityBreakdown = {
@@ -228,7 +230,8 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
         service_jobs: serviceJobs,
         repair_jobs: repairJobs,
         checking_jobs: checkingJobs,
-        accident_jobs: accidentJobs,
+        slot_in_jobs: slotInJobs,
+        courier_jobs: courierJobs,
         efficiency_score: efficiencyScore,
         productivity_score: productivityScore,
         quality_score: qualityScore,
@@ -291,28 +294,30 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-theme">Technician KPI Dashboard</h1>
-          <p className="text-theme-muted text-sm">Performance metrics and industry benchmarks</p>
+      {!hideHeader && (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-theme">Technician KPI Dashboard</h1>
+            <p className="text-theme-muted text-sm">Performance metrics and industry benchmarks</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-3 py-2 border border-theme rounded-lg text-sm flex items-center gap-2 hover:bg-theme-surface-2 text-theme-muted theme-transition"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+            </button>
+            <button
+              onClick={loadData}
+              className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-blue-700"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="px-3 py-2 border border-theme rounded-lg text-sm flex items-center gap-2 hover:bg-theme-surface-2 text-theme-muted theme-transition"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-          </button>
-          <button
-            onClick={loadData}
-            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm flex items-center gap-2 hover:bg-blue-700"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Filters */}
       {showFilters && (
@@ -537,8 +542,12 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser }) =>
                         <span className="font-medium text-purple-600">{kpi.checking_jobs}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Accident</span>
-                        <span className="font-medium text-red-600">{kpi.accident_jobs}</span>
+                        <span className="text-slate-500">Slot-In</span>
+                        <span className="font-medium text-red-600">{kpi.slot_in_jobs}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Courier</span>
+                        <span className="font-medium text-cyan-600">{kpi.courier_jobs}</span>
                       </div>
                     </div>
                   </div>

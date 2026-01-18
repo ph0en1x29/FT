@@ -18,6 +18,453 @@ All notable changes, decisions, and client requirements for this project.
 
 ## [Unreleased] - ACWER Workflow Implementation
 
+### 🔒 Route Guard Fix: /my-van-stock (2026-01-18)
+- **Updated:** 2026-01-18 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Add missing authorization guard to `/my-van-stock` route
+
+#### Issue:
+The `/my-van-stock` route lacked a role guard, allowing any authenticated user (including Accountant) to access the technician-focused Van Stock view by directly navigating to the URL.
+
+| Route | Before | After |
+|-------|--------|-------|
+| `/my-van-stock` | No guard (any user) | Role-restricted |
+
+#### Fix Applied:
+Added role-based guard in `App.tsx:465-469`:
+
+```typescript
+<Route path="/my-van-stock" element={
+  [UserRole.TECHNICIAN, UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR].includes(currentUser.role)
+    ? <MyVanStock currentUser={currentUser} />
+    : <Navigate to="/" />
+} />
+```
+
+#### Access Matrix:
+| Role | Access |
+|------|--------|
+| Technician | ✅ Yes |
+| Admin / Admin Service / Admin Store | ✅ Yes |
+| Supervisor | ✅ Yes |
+| Accountant | ❌ Redirects to `/` |
+
+---
+
+### 🐛 Low Stock Query Bug Fix (2026-01-18)
+- **Updated:** 2026-01-18 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Remove broken database query in `getLowStockItems` function
+
+#### Root Cause:
+`supabaseService.ts:getLowStockItems()` contained a fundamentally broken query that always failed:
+
+```typescript
+// BROKEN - three critical issues:
+.lte('quantity', supabase.rpc('get_min_quantity', { item_id: 'item_id' }))
+```
+
+| Issue | Problem |
+|-------|---------|
+| Unresolved Promise | `supabase.rpc()` returns a Promise, but `.lte()` received `[object Promise]` |
+| Placeholder Argument | `item_id: 'item_id'` is a literal string, not an actual UUID |
+| Non-existent RPC | `get_min_quantity` function doesn't exist in the database |
+
+The `data` and `error` from this query were never used - the code always fell through to a working fallback query.
+
+#### Symptoms:
+- Two database queries made per call (broken + fallback) instead of one
+- PostgREST errors in console from invalid RPC call
+- Confusing dead code for maintainers
+
+#### Fix Applied:
+Removed the broken query entirely, keeping only the working fallback logic:
+
+```typescript
+const { data: vanStock } = await supabase
+  .from('van_stocks')
+  .select(`items:van_stock_items(*, part:parts(*))`)
+  .eq('technician_id', technicianId)
+  .eq('is_active', true)
+  .single();
+
+return vanStock.items.filter((item: any) => item.quantity <= item.min_quantity);
+```
+
+#### Files Modified:
+| File | Changes |
+|------|---------|
+| `services/supabaseService.ts` | Removed broken query (lines 5546-5554), kept working fallback |
+
+#### Impact:
+| Aspect | Before | After |
+|--------|--------|-------|
+| Database queries per call | 2 | 1 |
+| Console errors | Yes | None |
+| Functionality | Works (via fallback) | Works (direct) |
+
+---
+
+### 🐛 Theme Utility Classes Bug Fix (2026-01-18)
+- **Updated:** 2026-01-18 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Add missing CSS utility classes for theme-aware accent colors and hover states
+
+#### Root Cause:
+`TechnicianJobsTab.tsx` referenced theme utility classes that didn't exist in `index.css`:
+- `bg-theme-accent-subtle` - for "Assigned" and "Completed Awaiting Ack" badge backgrounds
+- `text-theme-accent` - for accent-colored text
+- `hover:bg-theme-surface-2` - for job list row hover states
+
+The CSS variables (`--accent`, `--accent-subtle`, `--surface-2`) were properly defined, but the utility classes mapping to them were missing.
+
+#### Symptoms:
+- "Assigned" badges rendered with transparent backgrounds and default text color
+- Job list rows had no hover highlight effect
+
+#### Fix Applied:
+Added three utility class definitions to `index.css`:
+
+```css
+.bg-theme-accent-subtle { background-color: var(--accent-subtle); }
+.text-theme-accent { color: var(--accent); }
+.hover\:bg-theme-surface-2:hover { background-color: var(--surface-2); }
+```
+
+#### Files Modified:
+| File | Changes |
+|------|---------|
+| `index.css` | Added 3 theme utility class definitions (lines 131, 137, 140) |
+
+---
+
+### 🎨 Team Dashboard Theme Token Cleanup (2026-01-17)
+- **Updated:** 2026-01-17 (author: Codex)
+- **Status:** ✔️ Completed
+- **Scope:** Remove hard-coded palette usage in Team dashboard + Team jobs view
+
+#### Changes:
+- Replaced status chips/icons/borders with semantic CSS variable tones (`--success`, `--warning`, `--error`).
+- Converted Team jobs filters, lists, and badges to theme-aware classes (`bg-theme-*`, `text-theme-*`).
+- Removed inline hex badge styling in Team jobs to follow the app's theme tokens.
+
+#### Files Modified:
+| File | Changes |
+|------|---------|
+| `components/TeamStatusTab.tsx` | Status chips, hover states, and actions now use theme tokens |
+| `components/TechnicianJobsTab.tsx` | Summary cards, filters, list styling, and badges use theme tokens |
+
+---
+
+### 🎨 TeamStatusTab Card UI Polish & Dark Mode Fix (2026-01-17)
+- **Updated:** 2026-01-17 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Refine technician card design and fix dark mode inconsistencies
+
+#### UI Polish Changes:
+| Change | Before | After |
+|--------|--------|-------|
+| **Card padding** | `p-4` | `p-5` (more breathing room) |
+| **Name styling** | Basic | Explicit `text-base` for headline hierarchy |
+| **Chips spacing** | `mt-1` | `mt-2` (better visual separation) |
+| **Job count** | Plain text | Chip with icon (`bg-slate-100 text-slate-600`) |
+| **Status chip** | Inline styles | Tailwind classes (`bg-green-50 text-green-600`) |
+| **Chevron hover** | None | `group-hover:bg-slate-100` with transition |
+| **Accessibility** | Color only | Added `title` attributes for tooltips |
+
+#### Dark Mode Fix - Root Cause:
+Tailwind's `dark:` prefix uses OS-level `prefers-color-scheme` by default, but the app uses `[data-theme="dark"]` for its toggle. This caused `dark:` utilities to respond to OS settings instead of the app's theme toggle, creating visual inconsistencies.
+
+#### Solution Applied:
+Removed all `dark:` utilities and rely on `index.html`'s existing `[data-theme="dark"]` CSS overrides which remap classes like `bg-green-50`, `bg-red-50`, `text-green-600` to appropriate dark colors.
+
+#### Files Modified:
+| File | Changes |
+|------|---------|
+| `components/TeamStatusTab.tsx` | Converted status colors to Tailwind classes, removed `dark:` variants |
+| `components/TechnicianJobsTab.tsx` | Removed `dark:` from stat cards, filters, job list |
+| `components/NotificationPanel.tsx` | Removed `dark:` from notification icon backgrounds |
+| `components/ServiceAutomationWidget.tsx` | Removed `dark:` from stat icon backgrounds |
+| `pages/People.tsx` | Removed `dark:` from attendance stats |
+| `index.html` | Added `group-hover:bg-slate-100/50` overrides for dark mode |
+
+#### Developer Guidance:
+**DO NOT** use Tailwind `dark:` classes in this project. Instead:
+- Use CSS variables: `var(--bg)`, `var(--surface)`, `var(--text)`, etc.
+- Use theme-aware classes: `.text-theme`, `.bg-theme-surface`, `.card-theme`
+- Use standard Tailwind color classes (e.g., `bg-green-50`) - `index.html` overrides handle dark mode
+
+---
+
+### 🎯 Role-Specific Dashboards & KPI Navigation Fix (2026-01-17)
+- **Updated:** 2026-01-17 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Create unique dashboard experiences per role, fix KPI page visibility, enable dashboard-to-jobs filtering
+
+#### Role-Specific Dashboards:
+Each role now sees a tailored dashboard optimized for their workflow:
+
+| Role | Dashboard | Key Features |
+|------|-----------|--------------|
+| **Admin** | AdminSupervisorDashboard | Full KPIs, escalation banner, work queue, team status, job stats |
+| **Supervisor** | AdminSupervisorDashboard | Same as Admin (shared management view) |
+| **Technician** | TechnicianDashboard | My Jobs Today, In Progress count, Van Stock alerts, active jobs list |
+| **Accountant** | AccountantDashboard | Revenue metrics, finalization queue, invoice status chart |
+| **Admin Service/Store** | AdminSupervisorDashboard | Management view with appropriate permissions |
+
+#### Dashboard V4 Header Improvements:
+- Moved Quick Actions chips from ROW 4 to header (always visible without scrolling)
+- Added Notifications bell icon with badge in header
+- Removed ROW 4 section (Quick Actions + Notifications relocated)
+
+#### KPI Card Click-Through Filtering:
+- Clicking dashboard KPI cards (Overdue, Unassigned, Escalated, Awaiting Ack) now navigates to `/jobs?filter=<type>`
+- JobBoard reads URL filter parameter and applies special filtering:
+  - `?filter=overdue` → Shows only overdue jobs
+  - `?filter=unassigned` → Shows only unassigned jobs
+  - `?filter=escalated` → Shows only escalated jobs
+  - `?filter=awaiting-ack` → Shows only jobs awaiting acknowledgement
+- Visual banner displays active filter with clear button
+
+#### Permission Fix - KPI Page Visibility:
+- **Bug:** KPI/Performance tab was hidden for all users
+- **Cause:** Code referenced non-existent `canViewReports` permission
+- **Fix:** Changed to correct `canViewKPI` permission
+- **Result:** Performance tab now visible for Admin, Admin_Service, Admin_Store, Supervisor
+
+#### Files Created:
+- `components/dashboards/TechnicianDashboard.tsx` - Technician-specific dashboard
+- `components/dashboards/AccountantDashboard.tsx` - Accountant-specific dashboard
+
+#### Files Modified:
+- `pages/Dashboard.tsx` - Role-based routing to appropriate dashboard component
+- `pages/JobBoard.tsx` - URL filter support, special filter state, filter banner
+- `pages/People.tsx` - Changed `canViewReports` → `canViewKPI` (3 occurrences)
+- `App.tsx` - Changed `canViewReports` → `canViewKPI` (3 occurrences), updated dashboard route
+- `components/dashboards/DashboardPreviewV4.tsx` - Quick Actions moved to header, ROW 4 removed
+
+---
+
+### 🧹 Dashboard Prototype Cleanup (2026-01-17)
+- **Updated:** 2026-01-17 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Streamline V4 dashboard and remove deprecated V2/V3 prototypes
+
+#### V4 Header Cleanup:
+- Removed redundant "Fleet" and "Team" quick chips from Admin dashboard header
+- These duplicated sidebar navigation without providing contextual value
+- Header now contains only actionable/contextual items:
+  - Assign chip (conditional, with count)
+  - Finalize chip (conditional, with count)
+  - Bell (notification dropdown)
+  - Refresh button
+  - New Job button
+
+#### Prototype Consolidation:
+- **Deleted:** `components/dashboards/DashboardPreviewV3.tsx`
+- **Simplified:** `pages/PrototypeDashboards.tsx` (1,500 → 345 lines)
+  - Removed V2/V3 version toggle
+  - Removed all V2 "Apple-style" components (StatCard, QuickAction, ActivityItem, TeamMember, AlertCard)
+  - Removed V2 role-specific dashboards (AdminPremiumDashboard, SupervisorPremiumDashboard, TechnicianPremiumDashboard, AccountantPremiumDashboard)
+  - Removed unused DashboardProps interface and format utilities
+  - Cleaned up ~20 unused lucide-react imports
+- Prototype page now shows only V4 "Calm Focus" dashboard with role switcher
+
+#### Files Modified:
+- `components/dashboards/DashboardPreviewV4.tsx` - Removed Fleet/Team chips, removed unused Truck import
+- `pages/PrototypeDashboards.tsx` - Removed V2/V3 support, simplified to V4-only
+
+#### Files Deleted:
+- `components/dashboards/DashboardPreviewV3.tsx`
+
+---
+
+### 🧹 Project Cleanup & Restructuring (2026-01-17)
+- **Updated:** 2026-01-17 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Remove obsolete files, reorganize project structure, improve maintainability
+
+#### Phase 1 - Deleted Deprecated Files:
+- `database/_deprecated_migration_forklift_rentals_v1.sql` - Explicitly marked deprecated
+- `docs/User_Manual_v1.1.md` - Outdated (Dec 2024), info in CHANGELOG
+- `pages/TechnicianKPIPage.tsx` - Superseded by V2
+
+#### Phase 2 - Updated .gitignore:
+- Added `playwright-report/` and `test-results/` (test artifacts)
+- Added `supabase/.temp/` (CLI temp files)
+
+#### Phase 3 - Types Reorganization:
+- Moved `types_with_invoice_tracking.ts` → `types/index.ts`
+- Updated 55 file imports to use new `types/` directory
+
+#### Phase 4 - Database Migration Archival:
+- Created `database/historical/` directory structure
+- Moved 27 root SQL files → `database/historical/root_migrations/`
+- Moved `database/migrations/` (29 files) → `database/historical/migrations/`
+- Moved `database/rls_redesign/` (11 files) → `database/historical/rls_redesign/`
+- Created `database/README.md` explaining structure
+- **Source of truth:** `supabase/migrations/` (unchanged)
+
+#### Phase 5 - Deleted Orphaned Pages (no code imports):
+- `pages/EmployeesPage.tsx` - Superseded by People.tsx
+- `pages/Forklifts.tsx` - Superseded by ForkliftsTabs.tsx
+- `pages/HRDashboard.tsx` - Functionality in People.tsx
+- `pages/RecordsPage.tsx` - Superseded by ServiceRecords.tsx
+- `pages/ReportsPage.tsx` - Functionality in TechnicianKPIPageV2.tsx
+- `pages/UserManagement.tsx` - Superseded by People.tsx
+
+#### Summary:
+| Change | Files Affected |
+|--------|----------------|
+| Deprecated files deleted | 3 |
+| .gitignore updated | 1 (+3 entries) |
+| Types reorganized | 1 moved, 55 imports updated |
+| Migrations archived | 67 files moved to historical/ |
+| Orphaned pages deleted | 6 |
+
+---
+
+### 🎨 UI Simplification - Apple-Inspired Navigation Redesign (2026-01-16)
+- **Updated:** 2026-01-16 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Reduce sidebar navigation from 14+ items to 7 items for admin/supervisor by consolidating related pages into tabs
+
+#### Navigation Changes:
+| Before (14+ items) | After (7 items) |
+|-------------------|-----------------|
+| Dashboard | Dashboard |
+| Jobs | Jobs (+ Service History tab) |
+| Forklifts | Fleet (+ Hourmeter Review tab) |
+| Customers | Customers |
+| Inventory, Van Stock, Confirmations | Inventory (+ Van Stock, Confirmations tabs) |
+| Service Records | → Jobs (Service History tab) |
+| Invoices, AutoCount | Billing (+ AutoCount Export tab) |
+| Reports (KPI) | → Team (Performance tab) |
+| People | Team (+ Performance tab) |
+| Hourmeter Review | → Fleet (tab) |
+
+#### Page Consolidations:
+- **Jobs** (`JobsTabs.tsx`): Active Jobs | Service History
+- **Fleet** (`ForkliftsTabs.tsx`): Overview | Fleet | Service Intervals | Service Due | Hourmeter Review
+- **Inventory** (`InventoryPage.tsx`): Parts Catalog | Van Stock | Confirmations
+- **Billing** (`Invoices.tsx`): Pending | History | AutoCount Export
+- **Team** (`People.tsx`): Overview | Users | Employees | Leave | Performance
+
+#### Files Created:
+- `pages/JobsTabs.tsx` - New tabbed wrapper for Jobs with Service History
+
+#### Files Modified:
+- `pages/TechnicianKPIPageV2.tsx` - Added `hideHeader` prop for embedding
+- `pages/People.tsx` - Added Performance tab with KPI component
+- `pages/ServiceRecords.tsx` - Added `hideHeader` prop for embedding
+- `pages/JobBoard.tsx` - Added `hideHeader` prop for embedding
+- `App.tsx` - Simplified sidebar navigation, updated routes, added legacy redirects
+
+#### Legacy URL Redirects:
+- `/service-records` → `/jobs?tab=history`
+- `/van-stock` → `/inventory?tab=vanstock`
+- `/confirmations` → `/inventory?tab=confirmations`
+- `/hourmeter-review` → `/forklifts?tab=hourmeter`
+- `/autocount-export` → `/invoices?tab=autocount`
+- `/reports` → `/people?tab=performance`
+- `/technician-kpi` → `/people?tab=performance`
+
+---
+
+### 🔧 Hourmeter Amendment & Audit Trail System (2026-01-15)
+- **Updated:** 2026-01-15 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Complete hourmeter management with role-based access, amendment workflow, and audit trail
+
+#### Workflow Summary:
+| Role | Direct Forklift Edit | Via Job/Service | Amendment Approval |
+|------|---------------------|-----------------|-------------------|
+| Technician | ❌ No | ✅ Yes | ❌ Submits only |
+| Admin/Supervisor | ✅ Yes | ✅ Yes | ✅ Yes |
+
+#### Features Implemented:
+- **Technician Hourmeter Entry**: Technicians can only update hourmeter through jobs (services)
+- **Validation System**: Automatic flagging for suspicious readings (lower than previous, excessive jumps)
+- **Amendment Workflow**: Technicians submit amendment requests for flagged readings
+- **Hourmeter Review Page**: Admin/Supervisor reviews and approves/rejects amendments
+- **Access Control**: Hourmeter Review restricted to Admin, Admin_Service, Admin_Store, Supervisor roles
+- **Audit Trail**: All hourmeter changes recorded in `hourmeter_history` table
+- **Hourmeter History UI**: Collapsible timeline on ForkliftProfile showing all changes with source badges
+
+#### Files Created:
+- `pages/HourmeterReview.tsx` - Admin review page for pending amendments
+- `components/HourmeterAmendmentModal.tsx` - Technician amendment request form
+- `database/migration_hourmeter_checklist.sql` - Tables and triggers
+- `database/migration_hourmeter_amendments_rls.sql` - RLS policies
+- `database/migration_hourmeter_audit_direct.sql` - Audit trigger for direct edits
+- `database/migration_fix_rls_role_case.sql` - Case-insensitive role checks
+
+#### Files Modified:
+- `services/supabaseService.ts` - Added `updateForklift()` audit trail, `getForkliftHourmeterHistory()`
+- `pages/ForkliftProfile.tsx` - Added Hourmeter History section
+- `pages/ForkliftsTabs.tsx` - Restricted Edit/Delete/Add to admin roles
+- `App.tsx` - Added `isAdminRole` check for Hourmeter Review route
+
+#### Database Tables:
+- `hourmeter_amendments` - Amendment requests with approval workflow
+- `hourmeter_history` - Complete audit log of all hourmeter changes
+- `hourmeter_validation_configs` - Configurable thresholds
+
+---
+
+### 📦 Van Stock Management System (2026-01-15)
+- **Updated:** 2026-01-15 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Complete van stock inventory management for technicians
+
+#### Features Implemented:
+- **Admin Van Stock Page**: View all van stocks, assign to technicians
+- **Assign Van Stock**: Create van stock with van code (license plate), max items, notes
+- **Edit Van Stock**: Change technician assignment, van code, max items, notes
+- **Delete/Deactivate**: Soft delete van stock (sets `is_active = false`)
+- **Transfer Items**: Move items between van stocks
+- **Technician View Filter**: Technicians can only see their own van stock
+- **Add Items**: Add parts to van stock from inventory
+
+#### Files Created:
+- `pages/VanStockPage.tsx` - Admin van stock management page
+- `pages/MyVanStock.tsx` - Technician personal van stock view
+- `components/VanStockWidget.tsx` - Dashboard widget
+- `components/ReplenishmentRequestModal.tsx` - Request replenishment form
+- `database/migration_van_stock_system.sql` - Tables and RLS policies
+
+#### Files Modified:
+- `services/supabaseService.ts` - Van stock CRUD functions
+- `types_with_invoice_tracking.ts` - Added `van_code`, `notes` to VanStock type
+- `App.tsx` - Added Van Stock routes
+
+#### Database Tables:
+- `van_stocks` - Van stock assignments (technician, van code, max items)
+- `van_stock_items` - Parts in each van stock
+- `van_stock_usage` - Usage tracking per job
+- `van_stock_replenishments` - Replenishment requests
+
+---
+
+### 🔒 Role-Based Access Control Fixes (2026-01-15)
+- **Updated:** 2026-01-15 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Fix case-sensitive role checks and restrict features to appropriate roles
+
+#### Fixes:
+- **ForkliftsTabs.tsx**: Added `UserRole` import, fixed role checks to use `UserRole.ADMIN` instead of `'admin'`
+- **ForkliftsTabs.tsx**: Restricted Edit/Delete/Add buttons to admin roles via `canEditForklifts`
+- **App.tsx**: Added `isAdminRole` for Hourmeter Review route protection
+- **RLS Policies**: Fixed case-insensitive role checks in `has_role()` function
+
+#### Admin Roles Defined:
+- `UserRole.ADMIN`
+- `UserRole.ADMIN_SERVICE`
+- `UserRole.ADMIN_STORE`
+- `UserRole.SUPERVISOR`
+
+---
+
 ### 🎨 Dashboard Preview V3 - Layout Mockup (2026-01-12)
 - **Updated:** 2026-01-12 (author: Claude)
 - **Status:** ✔️ Completed (Preview Only)

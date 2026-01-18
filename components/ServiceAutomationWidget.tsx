@@ -98,7 +98,7 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
           className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--error)] group"
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-50 dark:bg-red-500/10">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-50">
               <AlertTriangle className="w-4 h-4 text-[var(--error)]" />
             </div>
             <div>
@@ -113,7 +113,7 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
           className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--warning)] group"
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-amber-50 dark:bg-amber-500/10">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-amber-50">
               <Clock className="w-4 h-4 text-[var(--warning)]" />
             </div>
             <div>
@@ -128,7 +128,7 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
           className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--success)] group"
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-green-50 dark:bg-green-500/10">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-green-50">
               <CheckCircle className="w-4 h-4 text-[var(--success)]" />
             </div>
             <div>

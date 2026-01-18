@@ -13,7 +13,7 @@ import {
   LeaveStatus,
   UserRole,
   ROLE_PERMISSIONS,
-} from '../types_with_invoice_tracking';
+} from '../types';
 import { HRService } from '../services/hrService';
 import { showToast } from '../services/toastService';
 import {
@@ -42,7 +42,9 @@ import {
   ChevronRight,
   CalendarDays,
   Image as ImageIcon,
+  Briefcase,
 } from 'lucide-react';
+import TechnicianJobsTab from '../components/TechnicianJobsTab';
 
 interface EmployeeProfileProps {
   currentUser: User;
@@ -55,7 +57,7 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Employee>>({});
-  const [activeTab, setActiveTab] = useState<'info' | 'licenses' | 'permits' | 'leaves'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'jobs' | 'licenses' | 'permits' | 'leaves'>('info');
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
 
   // Modals
@@ -307,6 +309,17 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
             {isTechnician && (
               <>
                 <button
+                  onClick={() => setActiveTab('jobs')}
+                  className={`px-6 py-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
+                    activeTab === 'jobs'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-slate-600 hover:text-slate-800'
+                  }`}
+                >
+                  <Briefcase className="w-4 h-4" />
+                  Jobs
+                </button>
+                <button
                   onClick={() => setActiveTab('licenses')}
                   className={`px-6 py-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
                     activeTab === 'licenses'
@@ -361,6 +374,13 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
               editing={editing}
               editData={editData}
               setEditData={setEditData}
+            />
+          )}
+
+          {activeTab === 'jobs' && isTechnician && (
+            <TechnicianJobsTab
+              employee={employee}
+              currentUser={currentUser}
             />
           )}
 

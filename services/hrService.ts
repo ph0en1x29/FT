@@ -17,7 +17,7 @@ import {
   User,
   UserRole,
   NotificationType,
-} from '../types_with_invoice_tracking';
+} from '../types';
 
 export const HRService = {
   // =============================================

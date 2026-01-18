@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SupabaseDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
-import { User } from '../types_with_invoice_tracking';
+import { User } from '../types';
 import { 
   Settings, Plus, Edit2, Trash2, Save, X, Clock, Calendar,
   AlertTriangle, CheckCircle, Wrench, Fuel, Battery, Flame

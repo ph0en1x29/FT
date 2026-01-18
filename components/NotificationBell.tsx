@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NotificationType, ROLE_PERMISSIONS } from '../types_with_invoice_tracking';
-import type { Notification, User } from '../types_with_invoice_tracking';
+import { NotificationType, ROLE_PERMISSIONS } from '../types';
+import type { Notification, User } from '../types';
 import { useNotifications } from '../contexts/NotificationContext';
 import { 
   Bell, BellRing, Check, CheckCheck, Clock, 

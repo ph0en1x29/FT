@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { UserRole } from '../types_with_invoice_tracking';
+import { UserRole } from '../types';
 
 // Hardcoded dev emails (always allowed) + env variable for additional emails
 const HARDCODED_DEV_EMAILS = ['dev@test.com'];

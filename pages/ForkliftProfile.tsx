@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Forklift, ForkliftRental, Job, User, ForkliftStatus, RentalStatus, Customer, ScheduledService, UserRole, ROLE_PERMISSIONS, ForkliftServiceEntry } from '../types_with_invoice_tracking';
+import { Forklift, ForkliftRental, Job, User, ForkliftStatus, RentalStatus, Customer, ScheduledService, UserRole, ROLE_PERMISSIONS, ForkliftServiceEntry } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
 import { 
@@ -23,8 +23,10 @@ const ForkliftProfile: React.FC<ForkliftProfileProps> = ({ currentUser }) => {
   const [rentals, setRentals] = useState<ForkliftRental[]>([]);
   const [serviceHistory, setServiceHistory] = useState<ForkliftServiceEntry[]>([]);
   const [scheduledServices, setScheduledServices] = useState<ScheduledService[]>([]);
+  const [hourmeterHistory, setHourmeterHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCancelledJobs, setShowCancelledJobs] = useState(false);
+  const [showHourmeterHistory, setShowHourmeterHistory] = useState(false);
   
   // Assign modal
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -85,6 +87,10 @@ const ForkliftProfile: React.FC<ForkliftProfileProps> = ({ currentUser }) => {
 
       const techData = await MockDb.getTechnicians();
       setTechnicians(techData);
+
+      // Load hourmeter history
+      const hourmeterData = await MockDb.getForkliftHourmeterHistory(id);
+      setHourmeterHistory(hourmeterData);
     } catch (error) {
       console.error('Error loading forklift:', error);
     } finally {
@@ -675,6 +681,90 @@ const ForkliftProfile: React.FC<ForkliftProfileProps> = ({ currentUser }) => {
         </div>
       </div>
 
+      {/* Hourmeter History Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <button
+          onClick={() => setShowHourmeterHistory(!showHourmeterHistory)}
+          className="w-full px-5 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center hover:bg-slate-100 transition"
+        >
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <Gauge className="w-5 h-5 text-purple-600" /> Hourmeter History ({hourmeterHistory.length})
+          </h3>
+          <ChevronRight className={`w-5 h-5 text-slate-400 transition-transform ${showHourmeterHistory ? 'rotate-90' : ''}`} />
+        </button>
+
+        {showHourmeterHistory && (
+          <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
+            {hourmeterHistory.length > 0 ? (
+              hourmeterHistory.map((entry, index) => (
+                <div
+                  key={entry.entry_id || index}
+                  className="p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg font-bold text-slate-800">
+                          {entry.reading?.toLocaleString()} hrs
+                        </span>
+                        {entry.previous_reading !== null && (
+                          <span className={`text-sm font-medium ${
+                            entry.hours_since_last >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            ({entry.hours_since_last >= 0 ? '+' : ''}{entry.hours_since_last} hrs)
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-500 flex items-center gap-1">
+                        <UserIcon className="w-3 h-3" />
+                        {entry.recorded_by_name}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        entry.source === 'manual' ? 'bg-purple-100 text-purple-700' :
+                        entry.source === 'amendment' ? 'bg-amber-100 text-amber-700' :
+                        entry.source === 'job_start' ? 'bg-blue-100 text-blue-700' :
+                        'bg-slate-100 text-slate-700'
+                      }`}>
+                        {entry.source === 'manual' ? 'Direct Edit' :
+                         entry.source === 'amendment' ? 'Amendment' :
+                         entry.source === 'job_start' ? 'Job' :
+                         entry.source}
+                      </span>
+                      <div className="text-xs text-slate-400 mt-1">
+                        {new Date(entry.recorded_at).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                  {entry.job && (
+                    <div
+                      onClick={() => navigate(`/jobs/${entry.job.job_id}`)}
+                      className="mt-2 pt-2 border-t border-slate-100 text-xs text-blue-600 hover:text-blue-800 cursor-pointer flex items-center gap-1"
+                    >
+                      <FileText className="w-3 h-3" />
+                      {entry.job.title}
+                    </div>
+                  )}
+                  {entry.was_amended && (
+                    <div className="mt-2 pt-2 border-t border-slate-100">
+                      <span className="text-xs text-amber-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        This was an amended reading
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-10 text-slate-400">
+                <Gauge className="w-10 h-10 mx-auto mb-2 opacity-20" />
+                <p className="text-sm">No hourmeter history recorded</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Rent Modal */}
       {showAssignModal && (

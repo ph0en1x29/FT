@@ -29,6 +29,10 @@
 
 ## Recent Documentation Updates
 
+- **2026-01-18:** Comprehensive documentation audit — DB_SCHEMA.md updated with 6 new tables (AutoCount integration, duration alerts), 20+ new columns, 11 new views, 10 new functions; USER_GUIDE.md updated with Admin Service/Store roles; ROADMAP.md updated
+- **2026-01-18:** Bug fixes — Fixed `getLowStockItems` broken query, added missing theme utility classes (`bg-theme-accent-subtle`, `text-theme-accent`, `hover:bg-theme-surface-2`)
+- **2026-01-17:** TeamStatusTab UI polish, dark mode fix (removed `dark:` utilities in favor of `[data-theme]` overrides)
+- **2026-01-17:** Role-specific dashboards (Technician, Accountant), KPI card click-through filtering, canViewKPI permission fix
 - **2026-01-09:** Comprehensive documentation audit — DB_SCHEMA.md, CHANGELOG.md, WORKFLOW_SPECIFICATION.md, ROADMAP.md updated with correct implementation status
 - **2026-01-08:** ACWER Requirements Review document created for next phase planning
 - **2026-01-07:** Real-time notification system v2, People page consolidation, sidebar simplification, stability hardening

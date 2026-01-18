@@ -2,18 +2,17 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Sun, Moon } from 'lucide-react';
-import { User, UserRole, ROLE_PERMISSIONS } from './types_with_invoice_tracking';
+import { User, UserRole, ROLE_PERMISSIONS } from './types';
 import NotificationBell from './components/NotificationBell';
 import { NotificationProvider } from './contexts/NotificationContext';
-import { 
-  LayoutDashboard, List, Package, LogOut, 
-  Building2, Truck, FileText, BarChart3, Menu, X, User as UserIcon,
+import {
+  LayoutDashboard, List, Package, LogOut,
+  Building2, Truck, FileText, Menu, X, User as UserIcon,
   CalendarDays, ChevronLeft, Zap, Loader2, Users
 } from 'lucide-react';
 
 // Lazy load all pages
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const JobBoard = lazy(() => import('./pages/JobBoard'));
+const JobsTabs = lazy(() => import('./pages/JobsTabs'));
 const JobDetail = lazy(() => import('./pages/JobDetail'));
 const CreateJob = lazy(() => import('./pages/CreateJob'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -21,14 +20,13 @@ const Customers = lazy(() => import('./pages/Customers'));
 const CustomerProfile = lazy(() => import('./pages/CustomerProfile'));
 const ForkliftsTabs = lazy(() => import('./pages/ForkliftsTabs'));
 const ForkliftProfile = lazy(() => import('./pages/ForkliftProfile'));
-const ServiceRecords = lazy(() => import('./pages/ServiceRecords'));
 const Invoices = lazy(() => import('./pages/Invoices'));
 const InventoryPage = lazy(() => import('./pages/InventoryPage'));
-const TechnicianKPIPage = lazy(() => import('./pages/TechnicianKPIPageV2'));
 const People = lazy(() => import('./pages/People'));
 const EmployeeProfile = lazy(() => import('./pages/EmployeeProfile'));
 const MyLeaveRequests = lazy(() => import('./pages/MyLeaveRequests'));
 const PrototypeDashboards = lazy(() => import('./pages/PrototypeDashboards'));
+const MyVanStock = lazy(() => import('./pages/MyVanStock'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -140,22 +138,19 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
   const canViewForklifts = hasPermission(currentUser.role, 'canViewForklifts');
   const canViewCustomers = hasPermission(currentUser.role, 'canViewCustomers');
   const canManageInventory = hasPermission(currentUser.role, 'canManageInventory');
-  const canViewServiceRecords = hasPermission(currentUser.role, 'canViewServiceRecords');
   const canFinalizeInvoices = hasPermission(currentUser.role, 'canFinalizeInvoices');
-  const canViewKPI = hasPermission(currentUser.role, 'canViewKPI');
   const canViewHR = hasPermission(currentUser.role, 'canViewHR');
   const canManageUsers = hasPermission(currentUser.role, 'canManageUsers');
   const canViewOwnProfile = hasPermission(currentUser.role, 'canViewOwnProfile');
 
-  // Show People if user can manage users OR view HR
-  const canViewPeople = canManageUsers || canViewHR;
+  // Show People/Team if user can manage users OR view HR OR view reports
+  const canViewTeam = canManageUsers || canViewHR || hasPermission(currentUser.role, 'canViewKPI');
 
   const NavItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => (
     <Link
       to={to}
-      className={`nav-item relative flex items-center gap-3 px-3 py-2.5 ${
-        isActive(to) ? 'nav-item-active' : 'text-slate-400 hover:text-slate-200'
-      }`}
+      className={`nav-item relative flex items-center gap-3 px-3 py-2.5 ${isActive(to) ? 'nav-item-active' : 'text-slate-400 hover:text-slate-200'
+        }`}
     >
       <Icon className={`nav-icon w-5 h-5 flex-shrink-0`} />
       {!isCollapsed && <span className="text-sm font-medium">{label}</span>}
@@ -165,9 +160,8 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
 
   return (
     <aside
-      className={`sidebar-glass fixed left-0 top-0 h-screen z-50 hidden md:flex flex-col transition-all duration-300 ${
-        isCollapsed ? 'w-[72px] sidebar-collapsed' : 'w-60'
-      }`}
+      className={`sidebar-glass fixed left-0 top-0 h-screen z-50 hidden md:flex flex-col transition-all duration-300 ${isCollapsed ? 'w-[72px] sidebar-collapsed' : 'w-60'
+        }`}
     >
       {/* Header - Compact */}
       <div className="p-3 flex items-center justify-between border-b border-slate-700/50">
@@ -186,35 +180,26 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
         </button>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation - Simplified (7 items max for admin) */}
       <nav className="flex-1 px-2 py-3 overflow-y-auto sidebar-nav-scroll">
         <div className="space-y-1">
           {/* Core */}
           {canViewDashboard && <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />}
           <NavItem to="/jobs" icon={List} label="Jobs" />
-          
-          {/* Assets */}
-          {canViewForklifts && <NavItem to="/forklifts" icon={Truck} label="Forklifts" />}
+
+          {/* Assets & Operations */}
+          {canViewForklifts && <NavItem to="/forklifts" icon={Truck} label="Fleet" />}
           {canViewCustomers && <NavItem to="/customers" icon={Building2} label="Customers" />}
           {canManageInventory && <NavItem to="/inventory" icon={Package} label="Inventory" />}
-          
-          {/* Records - if user can see service records or invoices */}
-          {(canViewServiceRecords || canFinalizeInvoices) && (
+
+          {/* Finance & Team */}
+          {canFinalizeInvoices && (
             <>
               <div className="nav-divider" />
-              {canViewServiceRecords && <NavItem to="/service-records" icon={FileText} label="Service Records" />}
-              {canFinalizeInvoices && <NavItem to="/invoices" icon={FileText} label="Invoices" />}
+              <NavItem to="/invoices" icon={FileText} label="Billing" />
             </>
           )}
-          
-          {/* Reports & People */}
-          {(canViewKPI || canViewPeople) && (
-            <>
-              <div className="nav-divider" />
-              {canViewKPI && <NavItem to="/reports" icon={BarChart3} label="Reports" />}
-              {canViewPeople && <NavItem to="/people" icon={Users} label="People" />}
-            </>
-          )}
+          {canViewTeam && <NavItem to="/people" icon={Users} label="Team" />}
         </div>
       </nav>
 
@@ -222,12 +207,14 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
       <div className="flex-shrink-0 p-2 border-t border-slate-700/50">
         <div className="space-y-1">
           <NavItem to="/my-leave" icon={CalendarDays} label="My Leave" />
+          {currentUser.role === UserRole.TECHNICIAN && (
+            <NavItem to="/my-van-stock" icon={Truck} label="My Van Stock" />
+          )}
           {canViewOwnProfile && (
             <Link
               to={`/people/employees/${currentUser.user_id}`}
-              className={`nav-item relative flex items-center gap-3 px-3 py-2.5 ${
-                isActive(`/people/employees/${currentUser.user_id}`) ? 'nav-item-active' : 'text-slate-400 hover:text-slate-200'
-              }`}
+              className={`nav-item relative flex items-center gap-3 px-3 py-2.5 ${isActive(`/people/employees/${currentUser.user_id}`) ? 'nav-item-active' : 'text-slate-400 hover:text-slate-200'
+                }`}
             >
               <UserIcon className="nav-icon w-5 h-5 flex-shrink-0" />
               {!isCollapsed && <span className="text-sm font-medium">My Profile</span>}
@@ -242,9 +229,10 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
             {!isCollapsed && <span className="text-sm font-medium">Sign Out</span>}
             {isCollapsed && <span className="tooltip-sidebar">Sign Out</span>}
           </button>
+
         </div>
       </div>
-    </aside>
+    </aside >
   );
 };
 
@@ -312,16 +300,14 @@ const MobileNav = ({ currentUser, onOpenDrawer }: { currentUser: User; onOpenDra
   );
 };
 
-// Mobile Drawer
+// Mobile Drawer - Simplified navigation matching sidebar
 const MobileDrawer = ({ currentUser, isOpen, onClose, onLogout }: { currentUser: User; isOpen: boolean; onClose: () => void; onLogout: () => void }) => {
   const canManageInventory = hasPermission(currentUser.role, 'canManageInventory');
-  const canViewServiceRecords = hasPermission(currentUser.role, 'canViewServiceRecords');
   const canFinalizeInvoices = hasPermission(currentUser.role, 'canFinalizeInvoices');
-  const canViewKPI = hasPermission(currentUser.role, 'canViewKPI');
   const canViewHR = hasPermission(currentUser.role, 'canViewHR');
   const canManageUsers = hasPermission(currentUser.role, 'canManageUsers');
   const canViewOwnProfile = hasPermission(currentUser.role, 'canViewOwnProfile');
-  const canViewPeople = canManageUsers || canViewHR;
+  const canViewTeam = canManageUsers || canViewHR || hasPermission(currentUser.role, 'canViewKPI');
 
   if (!isOpen) return null;
 
@@ -351,13 +337,16 @@ const MobileDrawer = ({ currentUser, isOpen, onClose, onLogout }: { currentUser:
           </button>
         </div>
         <nav className="p-4 space-y-1">
+          {/* Main sections with tabs */}
           {canManageInventory && <DrawerLink to="/inventory" icon={Package} label="Inventory" />}
-          {canViewServiceRecords && <DrawerLink to="/service-records" icon={FileText} label="Service Records" />}
-          {canFinalizeInvoices && <DrawerLink to="/invoices" icon={FileText} label="Invoices" />}
-          {canViewKPI && <DrawerLink to="/reports" icon={BarChart3} label="Reports" />}
-          {canViewPeople && <DrawerLink to="/people" icon={Users} label="People" />}
+          {canFinalizeInvoices && <DrawerLink to="/invoices" icon={FileText} label="Billing" />}
+          {canViewTeam && <DrawerLink to="/people" icon={Users} label="Team" />}
           <div className="border-t border-slate-700/50 my-3" />
+          {/* Personal */}
           <DrawerLink to="/my-leave" icon={CalendarDays} label="My Leave" />
+          {currentUser.role === UserRole.TECHNICIAN && (
+            <DrawerLink to="/my-van-stock" icon={Truck} label="My Van Stock" />
+          )}
           {canViewOwnProfile && <DrawerLink to={`/people/employees/${currentUser.user_id}`} icon={UserIcon} label="My Profile" />}
           <div className="border-t border-slate-700/50 my-3" />
           <button
@@ -406,114 +395,111 @@ export default function App() {
   const canViewForklifts = hasPermission(currentUser.role, 'canViewForklifts');
   const canViewCustomers = hasPermission(currentUser.role, 'canViewCustomers');
   const canManageInventory = hasPermission(currentUser.role, 'canManageInventory');
-  const canViewServiceRecords = hasPermission(currentUser.role, 'canViewServiceRecords');
   const canFinalizeInvoices = hasPermission(currentUser.role, 'canFinalizeInvoices');
   const canCreateJobs = hasPermission(currentUser.role, 'canCreateJobs');
-  const canViewKPI = hasPermission(currentUser.role, 'canViewKPI');
   const canViewHR = hasPermission(currentUser.role, 'canViewHR');
   const canManageUsers = hasPermission(currentUser.role, 'canManageUsers');
   const canViewOwnProfile = hasPermission(currentUser.role, 'canViewOwnProfile');
-  const canViewPeople = canManageUsers || canViewHR;
+  const canViewTeam = canManageUsers || canViewHR || hasPermission(currentUser.role, 'canViewKPI');
 
   return (
     <NotificationProvider currentUser={currentUser}>
       <Router>
-      <style>{sidebarStyles}</style>
-      <Toaster position="top-right" richColors closeButton toastOptions={{ duration: 4000, className: 'text-sm' }} />
-      <div className="min-h-screen bg-theme-bg flex theme-transition">
-        <Sidebar
-          currentUser={currentUser}
-          onLogout={handleLogout}
-          isCollapsed={sidebarCollapsed}
-          setIsCollapsed={setSidebarCollapsed}
-        />
-        <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-60'} p-4 md:p-6 lg:p-8 pb-20 md:pb-8`}>
-          <TopHeader currentUser={currentUser} isDark={isDarkTheme} onToggleTheme={toggleTheme} />
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              {/* Dashboard */}
-              <Route path="/" element={
-                canViewDashboard ? <Dashboard role={currentUser.role} currentUser={currentUser} /> : <Navigate to="/jobs" />
-              } />
-              
-              {/* Jobs */}
-              <Route path="/jobs" element={<JobBoard currentUser={currentUser} />} />
-              <Route path="/jobs/new" element={canCreateJobs ? <CreateJob currentUser={currentUser} /> : <Navigate to="/" />} />
-              <Route path="/jobs/:id" element={<JobDetail currentUser={currentUser} />} />
-              
-              {/* Forklifts - now with tabs for Fleet, Service Intervals, Service Due */}
-              <Route path="/forklifts" element={
-                canViewForklifts ? <ForkliftsTabs currentUser={currentUser} /> : <Navigate to="/" />
-              } />
-              <Route path="/forklifts/:id" element={
-                canViewForklifts ? <ForkliftProfile currentUser={currentUser} /> : <Navigate to="/" />
-              } />
-              
-              {/* Customers */}
-              <Route path="/customers" element={canViewCustomers ? <Customers /> : <Navigate to="/" />} />
-              <Route path="/customers/:id" element={
-                canViewCustomers ? <CustomerProfile currentUser={currentUser} /> : <Navigate to="/" />
-              } />
-              
-              {/* Inventory */}
-              <Route path="/inventory" element={
-                canManageInventory ? <InventoryPage currentUser={currentUser} /> : <Navigate to="/" />
-              } />
-              
-              {/* Service Records */}
-              <Route path="/service-records" element={
-                canViewServiceRecords ? <ServiceRecords currentUser={currentUser} /> : <Navigate to="/" />
-              } />
-              
-              {/* Invoices */}
-              <Route path="/invoices" element={
-                canFinalizeInvoices ? <Invoices currentUser={currentUser} /> : <Navigate to="/" />
-              } />
-              
-              {/* Reports - Technician KPI */}
-              <Route path="/reports" element={
-                canViewKPI ? <TechnicianKPIPage currentUser={currentUser} /> : <Navigate to="/" />
-              } />
-              
-              {/* People - combined Users, Employees, Leave */}
-              <Route path="/people" element={
-                canViewPeople ? <People currentUser={currentUser} /> : <Navigate to="/" />
-              } />
-              <Route path="/people/employees/:id" element={
-                (canViewHR || canViewOwnProfile) ? <EmployeeProfile currentUser={currentUser} /> : <Navigate to="/" />
-              } />
-              
-              {/* My Leave */}
-              <Route path="/my-leave" element={<MyLeaveRequests currentUser={currentUser} />} />
-              
-              {/* Legacy redirects */}
-              <Route path="/users" element={<Navigate to="/people?tab=users" replace />} />
-              <Route path="/hr" element={<Navigate to="/people?tab=overview" replace />} />
-              <Route path="/hr/employees" element={<Navigate to="/people?tab=employees" replace />} />
-              <Route path="/hr/employees/:id" element={
-                (canViewHR || canViewOwnProfile) ? <EmployeeProfile currentUser={currentUser} /> : <Navigate to="/" />
-              } />
-              <Route path="/technician-kpi" element={<Navigate to="/reports" replace />} />
-              <Route path="/service-intervals" element={<Navigate to="/forklifts?tab=intervals" replace />} />
-              <Route path="/service-due" element={<Navigate to="/forklifts?tab=service-due" replace />} />
-              <Route path="/my-profile" element={<Navigate to={`/people/employees/${currentUser.user_id}`} replace />} />
-              
-              {/* Prototype Routes (dev-only, hidden from sidebar) */}
-              <Route path="/prototype/dashboards" element={<PrototypeDashboards currentUser={currentUser} />} />
-              
-              {/* Catch all */}
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </Suspense>
-        </main>
-        <MobileNav currentUser={currentUser} onOpenDrawer={() => setMobileDrawerOpen(true)} />
-        <MobileDrawer
-          currentUser={currentUser}
-          isOpen={mobileDrawerOpen}
-          onClose={() => setMobileDrawerOpen(false)}
-          onLogout={handleLogout}
-        />
-      </div>
+        <style>{sidebarStyles}</style>
+        <Toaster position="top-right" richColors closeButton toastOptions={{ duration: 4000, className: 'text-sm' }} />
+        <div className="min-h-screen bg-theme-bg flex theme-transition">
+          <Sidebar
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            isCollapsed={sidebarCollapsed}
+            setIsCollapsed={setSidebarCollapsed}
+          />
+          <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-60'} p-4 md:p-6 lg:p-8 pb-20 md:pb-8`}>
+            <TopHeader currentUser={currentUser} isDark={isDarkTheme} onToggleTheme={toggleTheme} />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Dashboard - V4 design for all roles */}
+                <Route path="/" element={
+                  <PrototypeDashboards currentUser={currentUser} />
+                } />
+
+                {/* Jobs - with Service History tab */}
+                <Route path="/jobs" element={<JobsTabs currentUser={currentUser} />} />
+                <Route path="/jobs/new" element={canCreateJobs ? <CreateJob currentUser={currentUser} /> : <Navigate to="/" />} />
+                <Route path="/jobs/:id" element={<JobDetail currentUser={currentUser} />} />
+
+                {/* Fleet - with Hourmeter Review tab */}
+                <Route path="/forklifts" element={
+                  canViewForklifts ? <ForkliftsTabs currentUser={currentUser} /> : <Navigate to="/" />
+                } />
+                <Route path="/forklifts/:id" element={
+                  canViewForklifts ? <ForkliftProfile currentUser={currentUser} /> : <Navigate to="/" />
+                } />
+
+                {/* Customers */}
+                <Route path="/customers" element={canViewCustomers ? <Customers /> : <Navigate to="/" />} />
+                <Route path="/customers/:id" element={
+                  canViewCustomers ? <CustomerProfile currentUser={currentUser} /> : <Navigate to="/" />
+                } />
+
+                {/* Inventory - with Van Stock + Confirmations tabs */}
+                <Route path="/inventory" element={
+                  canManageInventory ? <InventoryPage currentUser={currentUser} /> : <Navigate to="/" />
+                } />
+
+                {/* Billing - with AutoCount Export tab */}
+                <Route path="/invoices" element={
+                  canFinalizeInvoices ? <Invoices currentUser={currentUser} /> : <Navigate to="/" />
+                } />
+
+                {/* Team - with Performance tab */}
+                <Route path="/people" element={
+                  canViewTeam ? <People currentUser={currentUser} /> : <Navigate to="/" />
+                } />
+                <Route path="/people/employees/:id" element={
+                  (canViewHR || canViewOwnProfile) ? <EmployeeProfile currentUser={currentUser} /> : <Navigate to="/" />
+                } />
+
+                {/* Personal */}
+                <Route path="/my-leave" element={<MyLeaveRequests currentUser={currentUser} />} />
+                <Route path="/my-van-stock" element={
+                  [UserRole.TECHNICIAN, UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR].includes(currentUser.role)
+                    ? <MyVanStock currentUser={currentUser} />
+                    : <Navigate to="/" />
+                } />
+
+                {/* Legacy redirects - pages now consolidated as tabs */}
+                <Route path="/service-records" element={<Navigate to="/jobs?tab=history" replace />} />
+                <Route path="/van-stock" element={<Navigate to="/inventory?tab=vanstock" replace />} />
+                <Route path="/confirmations" element={<Navigate to="/inventory?tab=confirmations" replace />} />
+                <Route path="/hourmeter-review" element={<Navigate to="/forklifts?tab=hourmeter" replace />} />
+                <Route path="/autocount-export" element={<Navigate to="/invoices?tab=autocount" replace />} />
+                <Route path="/reports" element={<Navigate to="/people?tab=performance" replace />} />
+                <Route path="/users" element={<Navigate to="/people?tab=users" replace />} />
+                <Route path="/hr" element={<Navigate to="/people?tab=overview" replace />} />
+                <Route path="/hr/employees" element={<Navigate to="/people?tab=employees" replace />} />
+                <Route path="/hr/employees/:id" element={
+                  (canViewHR || canViewOwnProfile) ? <EmployeeProfile currentUser={currentUser} /> : <Navigate to="/" />
+                } />
+                <Route path="/technician-kpi" element={<Navigate to="/people?tab=performance" replace />} />
+                <Route path="/service-intervals" element={<Navigate to="/forklifts?tab=intervals" replace />} />
+                <Route path="/service-due" element={<Navigate to="/forklifts?tab=service-due" replace />} />
+                <Route path="/my-profile" element={<Navigate to={`/people/employees/${currentUser.user_id}`} replace />} />
+
+
+                {/* Catch all */}
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </Suspense>
+          </main>
+          <MobileNav currentUser={currentUser} onOpenDrawer={() => setMobileDrawerOpen(true)} />
+          <MobileDrawer
+            currentUser={currentUser}
+            isOpen={mobileDrawerOpen}
+            onClose={() => setMobileDrawerOpen(false)}
+            onLogout={handleLogout}
+          />
+        </div>
       </Router>
     </NotificationProvider>
   );

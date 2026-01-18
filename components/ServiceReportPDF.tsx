@@ -1,5 +1,5 @@
 import React from 'react';
-import { Job, ForkliftConditionChecklist, JobType } from '../types_with_invoice_tracking';
+import { Job, ForkliftConditionChecklist, JobType } from '../types';
 
 interface ServiceReportProps {
   job: Job;
@@ -108,7 +108,10 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
                 <input type="checkbox" checked={job.job_type === JobType.CHECKING} disabled className="w-4 h-4" /> CHECKING
               </label>
               <label className="flex items-center gap-1">
-                <input type="checkbox" checked={job.job_type === JobType.ACCIDENT} disabled className="w-4 h-4" /> ACCIDENT
+                <input type="checkbox" checked={job.job_type === JobType.SLOT_IN} disabled className="w-4 h-4" /> SLOT-IN
+              </label>
+              <label className="flex items-center gap-1">
+                <input type="checkbox" checked={job.job_type === JobType.COURIER} disabled className="w-4 h-4" /> COURIER
               </label>
             </div>
           </div>
@@ -487,7 +490,8 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
             <label><input type="checkbox" ${job.job_type === 'Service' ? 'checked' : ''} disabled> SERVICE</label>
             <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Repair' ? 'checked' : ''} disabled> REPAIR</label>
             <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Checking' ? 'checked' : ''} disabled> CHECKING</label>
-            <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Accident' ? 'checked' : ''} disabled> ACCIDENT</label>
+            <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Slot-In' ? 'checked' : ''} disabled> SLOT-IN</label>
+            <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Courier' ? 'checked' : ''} disabled> COURIER</label>
           </div>
         </div>
       </div>

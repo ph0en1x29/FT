@@ -11,6 +11,10 @@
 > - Photo Categorization with ZIP download
 > - Real-time notifications with sound alerts
 > - Enhanced Dashboard with Action Required queue
+> - **Admin Role Split** - Admin Service vs Admin Store for dual confirmation workflow
+> - **AutoCount Integration** - Export invoices to AutoCount accounting software
+> - **Photo Validation** - GPS tracking and timestamp verification on photos
+> - **Fleet Dashboard** - Real-time forklift status updates
 >
 > 📚 **All Documentation:** See [Documentation Index](./README.md) for complete docs navigation.
 
@@ -55,11 +59,24 @@
 ## User Roles Overview
 
 ### Admin 👑
-- Full system access
+- Full system access (acts as both Admin Service and Admin Store)
 - Manage all users and settings
 - Override any restrictions
 - Access all reports and data
 - Can unlock locked records
+
+### Admin Service 🔧👑
+- Job operations and confirmations
+- Hourmeter amendment approval/rejection
+- Job completion confirmation
+- Escalation management
+- Cannot manage inventory or van stock replenishments
+
+### Admin Store 📦👑
+- Parts and inventory management
+- Van stock replenishment approvals
+- Parts confirmation on completed jobs
+- Cannot approve hourmeter amendments
 
 ### Supervisor 👔
 - View and manage all jobs
@@ -148,7 +165,16 @@ In Progress ──▶ ┌──────────────────�
 ## Technician Guide
 
 ### Your Dashboard
-When you log in, you'll see only jobs assigned to you. Jobs are sorted by priority and date.
+When you log in, you'll see a **personalized Technician Dashboard** showing:
+
+- **Today's Jobs** - Jobs assigned to you for today
+- **In Progress** - Count of jobs currently being worked on
+- **Completed This Week** - Your productivity summary
+- **Van Stock Alerts** - Items in your van running low
+
+The dashboard also shows your **Active Jobs** list with quick actions to view or start jobs. Each job displays the customer, forklift, and Slot-In SLA badge (time remaining).
+
+**Quick Actions** at the bottom let you navigate to All Jobs, Van Stock, Fleet, or Customers.
 
 ### Starting a Job
 
@@ -264,6 +290,18 @@ If you're assigned as a **helper** to another technician's job:
 ## Accountant Guide
 
 ### Your Dashboard
+When you log in, you'll see a **billing-focused Accountant Dashboard** showing:
+
+- **Monthly Revenue** - Estimated revenue for the current month
+- **Jobs to Finalize** - Jobs awaiting your review
+- **Awaiting Ack** - Jobs pending customer acknowledgement
+- **Completed This Month** - Total jobs completed
+
+The dashboard includes:
+- **Revenue Trend** chart (last 7 days)
+- **Invoice Status** distribution pie chart
+- **Finalization Queue** - Jobs ready for invoice finalization with estimated revenue
+
 You can view **all jobs** but can only edit jobs in "Awaiting Finalization" or "Completed" status.
 
 ### Viewing Jobs
@@ -313,6 +351,27 @@ For "Completed" jobs:
 ## Supervisor Guide
 
 ### Your Dashboard
+When you log in, you'll see the **Admin/Supervisor Dashboard** with full operational visibility:
+
+**KPI Cards** (clickable - navigate to filtered job list):
+- **Overdue** - Jobs past their SLA deadline
+- **Unassigned** - Jobs waiting for technician assignment
+- **Escalated** - Jobs flagged for attention
+- **Awaiting Ack** - Jobs pending customer acknowledgement
+
+**Dashboard Sections:**
+- **Escalation Banner** - Urgent items requiring immediate attention
+- **Work Queue** - Prioritized list of action items
+- **Team Status** - Real-time view of technician availability and workload
+- **Job Status** breakdown by status
+- **Quick Stats** - Key performance indicators
+
+**Header Quick Actions:**
+- Assign chip (shows unassigned count)
+- Finalize chip (shows awaiting finalization count)
+- Notifications bell with badge
+- New Job button
+
 You have full visibility of all jobs and can manage most operations.
 
 ### Creating Jobs
@@ -373,6 +432,9 @@ For jobs in "Assigned" or "In Progress":
 ---
 
 ## Admin Guide
+
+### Your Dashboard
+As an Admin, you share the same **Admin/Supervisor Dashboard** as Supervisors (see [Supervisor Dashboard](#your-dashboard-2) for details). This provides full operational visibility with KPI cards, escalation management, work queue, and team status.
 
 ### Full System Access
 As an Admin, you have complete control over the system.
@@ -595,5 +657,5 @@ For technical issues or questions:
 
 ---
 
-*Last Updated: January 9, 2026*
+*Last Updated: January 17, 2026*
 *Version: 2.1 - ACWER Workflow Implementation*

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Job, Quotation, QuotationItem } from '../types_with_invoice_tracking';
+import { Job, Quotation, QuotationItem } from '../types';
 
 interface QuotationPDFProps {
   quotation?: Quotation;

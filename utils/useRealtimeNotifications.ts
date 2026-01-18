@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { supabase } from '../services/supabaseService';
-import type { User } from '../types_with_invoice_tracking';
+import type { User } from '../types';
 import { showToast } from '../services/toastService';
 
 // Inline notification type to avoid import issues

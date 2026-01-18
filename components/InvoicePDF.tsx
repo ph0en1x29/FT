@@ -1,4 +1,4 @@
-import { Job } from '../types_with_invoice_tracking';
+import { Job } from '../types';
 
 // Company info interface for customization
 interface CompanyInfo {

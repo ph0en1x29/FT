@@ -8,7 +8,11 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit && echo 'Type check passed!'"
+    "lint": "tsc --noEmit && echo 'Type check passed!'",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:smoke": "playwright test smoke"
   },
   "dependencies": {
     "@google/genai": "^1.32.0",
@@ -22,8 +26,11 @@
     "sonner": "^2.0.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@playwright/test": "^1.57.0",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "dotenv": "^17.2.3",
     "playwright": "^1.57.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"

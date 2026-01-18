@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { User, UserRole, Employee, EmployeeLeave, EmployeeLicense, EmployeePermit, LeaveStatus, ROLE_PERMISSIONS, HRDashboardSummary, AttendanceToday } from '../types_with_invoice_tracking';
+import { User, UserRole, Employee, EmployeeLeave, EmployeeLicense, EmployeePermit, LeaveStatus, ROLE_PERMISSIONS, HRDashboardSummary, AttendanceToday } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { HRService } from '../services/hrService';
 import { showToast } from '../services/toastService';
-import { 
-  Users, UserCheck, UserX, Shield, Wrench, FileText, Plus, Edit2, Search, 
-  CheckCircle, XCircle, Lock, X, AlertTriangle, Calendar, Clock, 
-  ChevronRight, Loader2, User as UserIcon, Car, Bell, LayoutDashboard, ChevronDown, ChevronUp
+import {
+  Users, UserCheck, UserX, Shield, Wrench, FileText, Plus, Edit2, Search,
+  CheckCircle, XCircle, Lock, X, AlertTriangle, Calendar, Clock,
+  ChevronRight, Loader2, User as UserIcon, Car, Bell, LayoutDashboard, ChevronDown, ChevronUp,
+  BarChart3, Briefcase
 } from 'lucide-react';
+import TechnicianKPIPage from './TechnicianKPIPageV2';
+import TeamStatusTab from '../components/TeamStatusTab';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-type TabType = 'overview' | 'users' | 'employees' | 'leave';
+type TabType = 'overview' | 'team' | 'users' | 'employees' | 'leave' | 'performance';
 type LeaveFilterType = 'pending' | 'today' | 'all';
 
 interface PeopleProps {
@@ -37,6 +40,7 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
 
   const canManageUsers = ROLE_PERMISSIONS[currentUser.role]?.canManageUsers;
   const canViewHR = ROLE_PERMISSIONS[currentUser.role]?.canViewHR;
+  const canViewKPI = ROLE_PERMISSIONS[currentUser.role]?.canViewKPI;
 
   const handleTabChange = (tab: TabType, params?: Record<string, string>) => {
     setActiveTab(tab);
@@ -57,9 +61,11 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
 
   const tabs = [
     { id: 'overview' as TabType, label: 'Overview', icon: LayoutDashboard, description: 'Dashboard' },
+    ...(canViewHR ? [{ id: 'team' as TabType, label: 'Team', icon: Briefcase, description: 'Workload status' }] : []),
     ...(canManageUsers ? [{ id: 'users' as TabType, label: 'Users', icon: Users, description: 'Accounts & access' }] : []),
     ...(canViewHR ? [{ id: 'employees' as TabType, label: 'Employees', icon: UserIcon, description: 'HR profiles' }] : []),
     ...(canViewHR ? [{ id: 'leave' as TabType, label: 'Leave', icon: Calendar, description: 'Requests & approvals' }] : []),
+    ...(canViewKPI ? [{ id: 'performance' as TabType, label: 'Performance', icon: BarChart3, description: 'KPI metrics' }] : []),
   ];
 
   // Default to first available tab
@@ -104,6 +110,7 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
 
       {/* Tab Content */}
       {effectiveTab === 'overview' && <OverviewTab currentUser={currentUser} onNavigate={handleTabChange} />}
+      {effectiveTab === 'team' && canViewHR && <TeamStatusTab currentUser={currentUser} />}
       {effectiveTab === 'users' && canManageUsers && <UsersTab currentUser={currentUser} />}
       {effectiveTab === 'employees' && canViewHR && (
         <EmployeesTab 
@@ -113,11 +120,14 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
         />
       )}
       {effectiveTab === 'leave' && canViewHR && (
-        <LeaveTab 
-          currentUser={currentUser} 
+        <LeaveTab
+          currentUser={currentUser}
           initialFilter={filterParam}
           onFilterChange={(filter) => setSearchParams({ tab: 'leave', ...(filter !== 'pending' ? { filter } : {}) })}
         />
+      )}
+      {effectiveTab === 'performance' && canViewKPI && (
+        <TechnicianKPIPage currentUser={currentUser} hideHeader />
       )}
     </div>
   );
@@ -310,7 +320,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ currentUser, onNavigate }) =>
                   <Link
                     key={license.license_id}
                     to={`/people/employees/${license.user_id}`}
-                    className="flex items-center justify-between p-2.5 hover:bg-theme-surface-2 transition text-sm"
+                    className="flex items-center justify-between p-2.5 clickable-row text-sm"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-theme truncate">
@@ -363,7 +373,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ currentUser, onNavigate }) =>
                   <Link
                     key={permit.permit_id}
                     to={`/people/employees/${permit.user_id}`}
-                    className="flex items-center justify-between p-2.5 hover:bg-theme-surface-2 transition text-sm"
+                    className="flex items-center justify-between p-2.5 clickable-row text-sm"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-theme truncate">
@@ -394,20 +404,20 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ currentUser, onNavigate }) =>
           </span>
         </div>
         <div className="grid grid-cols-2">
-          <div className="p-4 bg-green-50 dark:bg-green-500/10 flex items-center gap-3">
+          <div className="p-4 bg-green-50 flex items-center gap-3">
             <UserCheck className="w-8 h-8 text-green-600" />
             <div>
-              <p className="text-2xl font-bold text-green-700 dark:text-green-400">{todaysAttendance?.available?.length || 0}</p>
+              <p className="text-2xl font-bold text-green-700">{todaysAttendance?.available?.length || 0}</p>
               <p className="text-xs text-green-600">Available</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => onNavigate('leave', { filter: 'today' })}
-            className="p-4 bg-amber-50 dark:bg-amber-500/10 flex items-center gap-3 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors text-left"
+            className="p-4 bg-amber-50 flex items-center gap-3 hover:bg-amber-100 transition-colors text-left"
           >
             <UserX className="w-8 h-8 text-amber-600" />
             <div>
-              <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">{todaysAttendance?.onLeave?.length || 0}</p>
+              <p className="text-2xl font-bold text-amber-700">{todaysAttendance?.onLeave?.length || 0}</p>
               <p className="text-xs text-amber-600">On Leave</p>
             </div>
           </button>
@@ -609,14 +619,14 @@ const UsersTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="card-theme rounded-xl shadow-sm overflow-hidden">
         <table className="w-full">
-          <thead className="bg-slate-50 border-b">
+          <thead className="bg-theme-surface-2 border-b border-theme">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">User</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Role</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Actions</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">User</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Role</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Status</th>
+              <th className="px-4 py-3 text-right text-xs font-semibold text-theme-muted uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -1017,15 +1027,15 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilte
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="card-theme rounded-xl shadow-sm overflow-hidden">
           <table className="w-full">
-            <thead className="bg-slate-50 border-b">
+            <thead className="bg-theme-surface-2 border-b border-theme">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Employee</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Dates</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
-                {canApproveLeave && <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase">Actions</th>}
+                <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Employee</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Dates</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Status</th>
+                {canApproveLeave && <th className="px-4 py-3 text-right text-xs font-semibold text-theme-muted uppercase">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y">

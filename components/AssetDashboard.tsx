@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User } from '../types_with_invoice_tracking';
+import { User } from '../types';
 import { SupabaseDb } from '../services/supabaseService';
 import { supabase } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
 import {
   Truck, Wrench, AlertTriangle, CheckCircle, XCircle,
   Clock, Building2, Loader2, Plus, Search, Filter,
-  ChevronRight, Gauge, Calendar, RefreshCw, ChevronDown, ChevronUp
+  ChevronRight, Gauge, Calendar, RefreshCw, ChevronDown, ChevronUp,
+  Package, CalendarClock
 } from 'lucide-react';
 
 // ============================================================================
@@ -18,7 +19,7 @@ interface AssetDashboardProps {
   currentUser: User;
 }
 
-type OperationalStatus = 'out_of_service' | 'rented_out' | 'in_service' | 'service_due' | 'available';
+type OperationalStatus = 'out_of_service' | 'rented_out' | 'in_service' | 'service_due' | 'awaiting_parts' | 'reserved' | 'available';
 
 interface ForkliftWithStatus {
   forklift_id: string;
@@ -45,6 +46,8 @@ interface StatusCounts {
   rented_out: number;
   in_service: number;
   service_due: number;
+  awaiting_parts: number;
+  reserved: number;
   available: number;
   total: number;
 }
@@ -97,6 +100,22 @@ const STATUS_CONFIG: Record<OperationalStatus, {
     borderColor: 'border-amber-200',
     icon: AlertTriangle,
     description: 'Due within 7 days or 50 hours'
+  },
+  awaiting_parts: {
+    label: 'Awaiting Parts',
+    color: 'text-purple-700',
+    bgColor: 'bg-purple-50',
+    borderColor: 'border-purple-200',
+    icon: Package,
+    description: 'Waiting for parts to complete repair'
+  },
+  reserved: {
+    label: 'Reserved',
+    color: 'text-cyan-700',
+    bgColor: 'bg-cyan-50',
+    borderColor: 'border-cyan-200',
+    icon: CalendarClock,
+    description: 'Reserved for upcoming rental/job'
   },
   available: {
     label: 'Available',
@@ -194,8 +213,14 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
         let operationalStatus: OperationalStatus;
         const secondaryBadges: string[] = [];
 
-        if (f.status === 'Inactive') {
+        if (f.status === 'Inactive' || f.status === 'Out of Service') {
           operationalStatus = 'out_of_service';
+        } else if (f.status === 'Awaiting Parts') {
+          operationalStatus = 'awaiting_parts';
+          if (isServiceDue) secondaryBadges.push('Due');
+        } else if (f.status === 'Reserved') {
+          operationalStatus = 'reserved';
+          if (isServiceDue) secondaryBadges.push('Due');
         } else if (rental) {
           operationalStatus = 'rented_out';
           if (hasOpenJob) secondaryBadges.push('In Service');
@@ -280,6 +305,8 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
       rented_out: 0,
       in_service: 0,
       service_due: 0,
+      awaiting_parts: 0,
+      reserved: 0,
       available: 0,
       total: forklifts.length
     };
@@ -368,14 +395,13 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
         </button>
       </div>
 
-      {/* Status Cards */}
+      {/* Status Cards - Primary Row */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {(['rented_out', 'in_service', 'service_due', 'available', 'out_of_service'] as OperationalStatus[]).map((status) => {
           const config = STATUS_CONFIG[status];
           const Icon = config.icon;
           const count = statusCounts[status];
           const isActive = activeFilter === status;
-          const isSmall = status === 'out_of_service';
 
           return (
             <button
@@ -385,7 +411,7 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
                 isActive
                   ? `${config.bgColor} ${config.borderColor} ring-2 ring-offset-2 ${config.borderColor.replace('border-', 'ring-')}`
                   : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
-              } ${isSmall ? 'col-span-1' : ''}`}
+              }`}
             >
               <div className="flex items-start justify-between">
                 <div>
@@ -407,6 +433,46 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
           );
         })}
       </div>
+
+      {/* Status Cards - Secondary Row (Awaiting Parts & Reserved) */}
+      {(statusCounts.awaiting_parts > 0 || statusCounts.reserved > 0) && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {(['awaiting_parts', 'reserved'] as OperationalStatus[]).map((status) => {
+            const config = STATUS_CONFIG[status];
+            const Icon = config.icon;
+            const count = statusCounts[status];
+            const isActive = activeFilter === status;
+
+            if (count === 0) return null;
+
+            return (
+              <button
+                key={status}
+                onClick={() => handleCardClick(status)}
+                className={`relative p-3 rounded-xl border-2 transition-all text-left ${
+                  isActive
+                    ? `${config.bgColor} ${config.borderColor} ring-2 ring-offset-2 ${config.borderColor.replace('border-', 'ring-')}`
+                    : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${config.bgColor}`}>
+                    <Icon className={`w-4 h-4 ${config.color}`} />
+                  </div>
+                  <div>
+                    <p className={`text-2xl font-bold ${isActive ? config.color : 'text-slate-800'}`}>
+                      {count}
+                    </p>
+                    <p className={`text-xs font-medium ${isActive ? config.color : 'text-slate-600'}`}>
+                      {config.label}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Metrics Bar */}
       <div className="flex flex-wrap gap-6 px-4 py-3 bg-slate-50 rounded-lg">
@@ -458,19 +524,19 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
       </p>
 
       {/* Forklift Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="card-theme rounded-xl border border-theme overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Serial / Model</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Customer</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Hourmeter</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-600 uppercase">Action</th>
+              <tr className="bg-theme-surface-2 border-b border-theme">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase">Serial / Model</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase">Customer</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase">Hourmeter</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-theme-muted uppercase">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-theme">
               {displayedForklifts.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-12 text-center">
@@ -487,7 +553,7 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
                   return (
                     <tr
                       key={forklift.forklift_id}
-                      className="hover:bg-slate-50 cursor-pointer transition-colors"
+                      className="clickable-row"
                       onClick={() => navigate(`/forklifts/${forklift.forklift_id}`)}
                     >
                       <td className="px-4 py-3">

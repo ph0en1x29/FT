@@ -25,3 +25,10 @@ build/
 *.njsproj
 *.sln
 *.sw?
+
+# Test artifacts
+playwright-report/
+test-results/
+
+# Supabase CLI temp
+supabase/.temp/

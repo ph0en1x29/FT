@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Customer } from '../types_with_invoice_tracking';
+import { Customer } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
 import { MapPin, Phone, Mail, Users, Search, Eye, Plus, X } from 'lucide-react';

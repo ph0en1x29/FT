@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Customer, Job, User, UserRole, ForkliftRental, Forklift, ForkliftServiceEntry } from '../types_with_invoice_tracking';
+import { Customer, Job, User, UserRole, ForkliftRental, Forklift, ForkliftServiceEntry } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { generateCustomerAnalysis } from '../services/geminiService';
 import { showToast } from '../services/toastService';

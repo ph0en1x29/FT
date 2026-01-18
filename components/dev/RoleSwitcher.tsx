@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserRole } from '../../types_with_invoice_tracking';
+import { UserRole } from '../../types';
 import { DevModeType } from '../../hooks/useDevMode';
 import { Shield, Wrench, FileText, User, ChevronDown, Eye, Lock } from 'lucide-react';
 

@@ -128,11 +128,16 @@ body {
 .bg-theme-bg { background-color: var(--bg); }
 .bg-theme-surface { background-color: var(--surface); }
 .bg-theme-surface-2 { background-color: var(--surface-2); }
+.bg-theme-accent-subtle { background-color: var(--accent-subtle); }
 
 /* Theme-aware text */
 .text-theme { color: var(--text); }
 .text-theme-secondary { color: var(--text-secondary); }
 .text-theme-muted { color: var(--text-muted); }
+.text-theme-accent { color: var(--accent); }
+
+/* Hover variants */
+.hover\:bg-theme-surface-2:hover { background-color: var(--surface-2); }
 
 /* Premium typography helpers (use for low-contrast labels/subtitles) */
 .label-premium {
@@ -507,4 +512,43 @@ body {
 button:focus:not(:focus-visible),
 a:focus:not(:focus-visible) {
   outline: none;
+}
+
+/* =========================================
+   Clickable Element Helpers
+   ========================================= */
+
+/* Clickable table row - use on <tr> elements */
+.clickable-row {
+  cursor: pointer;
+  transition: background-color var(--transition);
+}
+.clickable-row:hover {
+  background-color: var(--surface-2);
+}
+.clickable-row:active {
+  background-color: var(--surface-2);
+}
+
+/* Clickable card - use on card divs */
+.clickable-card {
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.clickable-card:hover {
+  box-shadow: var(--shadow-md);
+}
+.clickable-card:active {
+  transform: scale(0.99);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Generic clickable element */
+.clickable {
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.clickable:active {
+  transform: scale(0.98);
+  opacity: 0.9;
 }

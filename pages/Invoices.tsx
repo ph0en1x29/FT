@@ -1,23 +1,115 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Job, JobStatus } from '../types_with_invoice_tracking';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Job, JobStatus, User, ROLE_PERMISSIONS } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
-import { 
-  Search, Filter, FileText, Calendar, 
-  Eye, Download, CheckCircle, Building2, DollarSign
+import {
+  Search, Filter, FileText, Calendar,
+  Eye, Download, Building2, DollarSign, Send
 } from 'lucide-react';
 
-interface InvoicesProps {
-  currentUser: any;
+// Import AutoCount Export component
+import AutoCountExport from './AutoCountExport';
+
+type TabType = 'invoices' | 'autocount';
+
+interface BillingProps {
+  currentUser: User;
 }
 
-const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
+// ============================================================================
+// MAIN COMPONENT - BILLING PAGE WITH TABS
+// ============================================================================
+
+const Billing: React.FC<BillingProps> = ({ currentUser }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') as TabType) || 'invoices';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
+
+  // Sync tab from URL when it changes externally
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') as TabType;
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const tabs = [
+    { id: 'invoices' as TabType, label: 'Invoice History', icon: FileText },
+    { id: 'autocount' as TabType, label: 'AutoCount Export', icon: Send },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header with Tabs */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-theme">Billing</h1>
+            <p className="text-sm text-theme-muted mt-1">Manage invoices and accounting exports</p>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="border-b border-theme">
+          <nav className="flex gap-1 -mb-px">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    isActive
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-theme-muted hover:text-theme hover:border-slate-300'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'invoices' && <InvoiceHistoryTab currentUser={currentUser} />}
+      {activeTab === 'autocount' && <AutoCountExportTab currentUser={currentUser} />}
+    </div>
+  );
+};
+
+// ============================================================================
+// AUTOCOUNT EXPORT TAB (Wrapper around AutoCountExport component)
+// ============================================================================
+
+const AutoCountExportTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
+  // Return the AutoCountExport component but without the header (we have our own)
+  return (
+    <div className="space-y-6">
+      <AutoCountExport currentUser={currentUser} hideHeader />
+    </div>
+  );
+};
+
+// ============================================================================
+// INVOICE HISTORY TAB (Original Invoices content)
+// ============================================================================
+
+const InvoiceHistoryTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Filters
   const [filterCustomer, setFilterCustomer] = useState('all');
   const [filterDateFrom, setFilterDateFrom] = useState('');
@@ -30,10 +122,9 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
   const loadJobs = async () => {
     setLoading(true);
     try {
-      const data = await MockDb.getJobs(currentUser);
-      // Only show completed jobs (finalized invoices)
-      const completedJobs = data.filter(j => j.status === JobStatus.COMPLETED);
-      setJobs(completedJobs);
+      // Filter at database level for better performance
+      const data = await MockDb.getJobs(currentUser, { status: JobStatus.COMPLETED });
+      setJobs(data);
     } catch (error) {
       console.error('Error loading jobs:', error);
       showToast.error('Failed to load invoices');
@@ -52,7 +143,7 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
     return jobs.filter(job => {
       // Search filter
       const searchLower = searchQuery.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         (job.title || '').toLowerCase().includes(searchLower) ||
         (job.customer?.name || '').toLowerCase().includes(searchLower) ||
         (job.forklift?.serial_number || '').toLowerCase().includes(searchLower) ||
@@ -106,30 +197,30 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: Arial, sans-serif; padding: 30px; color: #333; font-size: 11px; }
-          
+
           .header { display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #1e40af; }
           .company-section h1 { font-size: 22px; font-weight: bold; color: #1e40af; }
           .company-section p { font-size: 9px; color: #666; line-height: 1.4; }
           .company-section .sst { font-size: 10px; font-weight: bold; margin-top: 5px; }
-          
+
           .invoice-title { text-align: right; }
           .invoice-title h2 { font-size: 20px; color: #333; margin-bottom: 5px; }
           .invoice-title .inv-no { font-size: 14px; font-weight: bold; color: #dc2626; }
           .invoice-title .inv-date { font-size: 11px; color: #666; margin-top: 3px; }
-          
+
           .billing-section { display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; margin-bottom: 20px; }
           .bill-to { background: #f8fafc; padding: 15px; border-radius: 6px; }
           .bill-to h3 { font-size: 10px; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
           .bill-to .company-name { font-size: 13px; font-weight: bold; margin-bottom: 5px; }
           .bill-to p { font-size: 10px; line-height: 1.5; }
-          
+
           .reference-box { background: #fef3c7; padding: 15px; border-radius: 6px; border: 1px solid #fcd34d; }
           .reference-box h3 { font-size: 10px; color: #92400e; text-transform: uppercase; margin-bottom: 8px; }
           .reference-box p { font-size: 10px; line-height: 1.6; }
           .reference-box strong { color: #78350f; }
-          
+
           .attn-line { font-size: 11px; margin-bottom: 20px; padding: 10px; background: #f1f5f9; border-radius: 4px; }
-          
+
           .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
           .items-table th { background: #1e40af; color: white; padding: 10px; text-align: left; font-size: 10px; text-transform: uppercase; }
           .items-table th:last-child, .items-table th:nth-last-child(2) { text-align: right; }
@@ -138,31 +229,31 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
           .items-table .item-desc { max-width: 350px; }
           .items-table .item-desc strong { display: block; margin-bottom: 3px; }
           .items-table .item-desc small { color: #64748b; font-size: 9px; }
-          
+
           .totals-section { display: flex; justify-content: flex-end; margin-bottom: 20px; }
           .totals-box { width: 280px; }
           .totals-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 11px; border-bottom: 1px solid #e2e8f0; }
           .totals-row.subtotal { border-top: 2px solid #e2e8f0; margin-top: 5px; padding-top: 10px; }
           .totals-row.grand-total { background: #1e40af; color: white; padding: 12px 10px; margin-top: 5px; font-size: 14px; font-weight: bold; border-radius: 4px; }
-          
+
           .terms-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; font-size: 10px; }
           .terms-box { }
           .terms-box h4 { font-size: 9px; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
           .terms-box p { line-height: 1.5; }
-          
+
           .footer-note { text-align: center; font-size: 9px; color: #64748b; margin-bottom: 30px; padding: 15px; background: #f8fafc; border-radius: 6px; }
-          
+
           .signature-section { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
           .sig-box { }
           .sig-box h4 { font-size: 10px; color: #64748b; margin-bottom: 5px; }
           .sig-box .sig-line { border-bottom: 1px solid #333; height: 60px; margin-bottom: 5px; }
           .sig-box .sig-name { font-size: 11px; font-weight: bold; }
           .sig-box .sig-title { font-size: 9px; color: #666; }
-          
+
           .accept-box { border: 2px solid #1e40af; padding: 15px; border-radius: 6px; }
           .accept-box h4 { color: #1e40af; margin-bottom: 10px; }
           .accept-box .chop-area { height: 60px; border: 1px dashed #ccc; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 9px; }
-          
+
           @media print {
             body { padding: 15px; }
           }
@@ -198,7 +289,7 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
               Email: ${job.customer?.email || ''}
             </p>
           </div>
-          
+
           ${job.forklift ? `
             <div class="reference-box">
               <h3>Equipment Reference</h3>
@@ -237,7 +328,7 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
               <td>${labor.toFixed(2)}</td>
               <td>${labor.toFixed(2)}</td>
             </tr>
-            
+
             ${job.parts_used.map((p, idx) => `
               <tr>
                 <td>${idx + 2}</td>
@@ -249,7 +340,7 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
                 <td>${(p.sell_price_at_time * p.quantity).toFixed(2)}</td>
               </tr>
             `).join('')}
-            
+
             ${(job.extra_charges || []).map((c, idx) => `
               <tr>
                 <td>${job.parts_used.length + idx + 2}</td>
@@ -306,7 +397,7 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
             <div class="sig-title">FieldPro Service Management</div>
             <div class="sig-title">Date: ${job.invoiced_at ? new Date(job.invoiced_at).toLocaleDateString() : ''}</div>
           </div>
-          
+
           <div class="accept-box">
             <h4>Accepted and Agreed By:</h4>
             <div class="chop-area">(Please chop & sign)</div>
@@ -337,14 +428,11 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-theme">Invoices</h1>
-          <p className="text-sm text-theme-muted mt-1">
-            {filteredJobs.length} invoices | Total: <span className="font-semibold text-green-600">RM {grandTotal.toFixed(2)}</span>
-          </p>
-        </div>
+      {/* Summary Stats */}
+      <div className="flex items-center gap-4 text-sm text-theme-muted">
+        <span>{filteredJobs.length} invoices</span>
+        <span className="text-slate-300">|</span>
+        <span>Total: <span className="font-semibold text-green-600">RM {grandTotal.toFixed(2)}</span></span>
       </div>
 
       {/* Search and Filters */}
@@ -366,7 +454,7 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
         {/* Filter Row */}
         <div className="flex flex-wrap gap-3 items-center">
           <Filter className="w-4 h-4 text-theme-muted" />
-          
+
           <select
             className="px-3 py-2 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-theme theme-transition"
             value={filterCustomer}
@@ -477,7 +565,7 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
             </thead>
             <tbody className="divide-y divide-theme">
               {filteredJobs.map(job => (
-                <tr key={job.job_id} className="hover:bg-theme-surface-2 transition-colors">
+                <tr key={job.job_id} className="clickable-row">
                   <td className="px-4 py-3">
                     <span className="font-mono text-sm font-medium text-blue-600">
                       INV-{job.job_id.slice(0, 8).toUpperCase()}
@@ -522,9 +610,9 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-slate-50">
+            <tfoot className="bg-theme-surface-2">
               <tr>
-                <td colSpan={5} className="px-4 py-3 text-right font-semibold">Total:</td>
+                <td colSpan={5} className="px-4 py-3 text-right font-semibold text-theme">Total:</td>
                 <td className="px-4 py-3 text-right font-bold text-green-600 text-lg">
                   RM {grandTotal.toFixed(2)}
                 </td>
@@ -538,4 +626,4 @@ const Invoices: React.FC<InvoicesProps> = ({ currentUser }) => {
   );
 };
 
-export default Invoices;
+export default Billing;

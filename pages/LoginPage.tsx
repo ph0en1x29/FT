@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { LayoutDashboard, Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
-import { User } from '../types_with_invoice_tracking';
+import { User } from '../types';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;

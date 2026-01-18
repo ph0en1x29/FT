@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Job, JobStatus, UserRole, Part, JobPriority, JobType, SignatureEntry, User, ForkliftConditionChecklist, MediaCategory, JobRequest, JobRequestType } from '../types_with_invoice_tracking';
+import { Job, JobStatus, UserRole, Part, JobPriority, JobType, SignatureEntry, User, ForkliftConditionChecklist, MediaCategory, JobRequest, JobRequestType, MANDATORY_CHECKLIST_ITEMS, VanStock, VanStockItem, HourmeterFlagReason } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
+import HourmeterAmendmentModal from '../components/HourmeterAmendmentModal';
 import { generateJobSummary } from '../services/geminiService';
 import { SignaturePad } from '../components/SignaturePad';
 import { Combobox, ComboboxOption } from '../components/Combobox';
@@ -9,14 +10,16 @@ import { printServiceReport } from '../components/ServiceReportPDF';
 import { printQuotation, generateQuotationFromJob } from '../components/QuotationPDF';
 import { printInvoice } from '../components/InvoicePDF';
 import { showToast } from '../services/toastService';
-import { 
-  ArrowLeft, MapPin, Phone, User as UserIcon, Calendar, 
-  CheckCircle, Plus, Camera, PenTool, Box, DollarSign, BrainCircuit, 
-  ShieldCheck, UserCheck, UserPlus, Edit2, Trash2, Save, X, FileText, 
-  Info, FileDown, Truck, Gauge, ClipboardList, Receipt, Play, Clock, 
+import {
+  ArrowLeft, MapPin, Phone, User as UserIcon, Calendar,
+  CheckCircle, Plus, Camera, PenTool, Box, DollarSign, BrainCircuit,
+  ShieldCheck, UserCheck, UserPlus, Edit2, Trash2, Save, X, FileText,
+  Info, FileDown, Truck, Gauge, ClipboardList, Receipt, Play, Clock,
   AlertTriangle, CheckSquare, Square, FileCheck, RefreshCw, Download, Filter,
-  HandHelping, Wrench, MessageSquarePlus, HelpCircle, Send, MoreVertical, ChevronRight
+  HandHelping, Wrench, MessageSquarePlus, HelpCircle, Send, MoreVertical, ChevronRight,
+  Zap
 } from 'lucide-react';
+import SlotInSLABadge from '../components/SlotInSLABadge';
 
 interface JobDetailProps {
   currentUser: User;
@@ -201,6 +204,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [recommendationInput, setRecommendationInput] = useState('');
   const [editingChecklist, setEditingChecklist] = useState(false);
   const [checklistEditData, setChecklistEditData] = useState<ForkliftConditionChecklist>({});
+  const [showChecklistWarningModal, setShowChecklistWarningModal] = useState(false);
+  const [missingChecklistItems, setMissingChecklistItems] = useState<string[]>([]);
+  const [showCheckAllConfirmModal, setShowCheckAllConfirmModal] = useState(false);
   const [noPartsUsed, setNoPartsUsed] = useState(false);
   const [photoCategoryFilter, setPhotoCategoryFilter] = useState<string>('all');
   const [uploadPhotoCategory, setUploadPhotoCategory] = useState<string>('other');
@@ -212,6 +218,11 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletionReason, setDeletionReason] = useState('');
   const [showAssignHelperModal, setShowAssignHelperModal] = useState(false);
+
+  // Van Stock state
+  const [useFromVanStock, setUseFromVanStock] = useState(false);
+  const [vanStock, setVanStock] = useState<VanStock | null>(null);
+  const [selectedVanStockItemId, setSelectedVanStockItemId] = useState('');
   const [selectedHelperId, setSelectedHelperId] = useState('');
   const [helperNotes, setHelperNotes] = useState('');
   const [isCurrentUserHelper, setIsCurrentUserHelper] = useState(false);
@@ -239,11 +250,19 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [submittingDeferred, setSubmittingDeferred] = useState(false);
   const [jobAcknowledgement, setJobAcknowledgement] = useState<any>(null);
 
+  // Hourmeter amendment state
+  const [showHourmeterAmendmentModal, setShowHourmeterAmendmentModal] = useState(false);
+  const [hourmeterFlagReasons, setHourmeterFlagReasons] = useState<HourmeterFlagReason[]>([]);
+
+  // AutoCount export state
+  const [exportingToAutoCount, setExportingToAutoCount] = useState(false);
+
   // All existing useEffect hooks and handler functions remain the same
   useEffect(() => {
     loadJob();
     loadParts();
     loadRequests();
+    loadVanStock();
     if (currentUserRole === UserRole.ADMIN || currentUserRole === UserRole.SUPERVISOR) {
       loadTechnicians();
     }
@@ -315,6 +334,17 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     } catch (error) {
       console.error('Error loading requests:', error);
       showToast.error('Failed to load requests');
+    }
+  };
+
+  // Load Van Stock for current user (if technician)
+  const loadVanStock = async () => {
+    if (currentUserRole !== UserRole.TECHNICIAN) return;
+    try {
+      const data = await MockDb.getVanStockByTechnician(currentUserId);
+      setVanStock(data);
+    } catch (error) {
+      console.error('Error loading Van Stock:', error);
     }
   };
 
@@ -428,6 +458,17 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
 
   const handleStatusChange = async (newStatus: JobStatus) => {
     if (!job) return;
+
+    // Checklist enforcement: validate mandatory items before completing
+    if (newStatus === JobStatus.AWAITING_FINALIZATION) {
+      const missing = getMissingMandatoryItems();
+      if (missing.length > 0) {
+        setMissingChecklistItems(missing);
+        setShowChecklistWarningModal(true);
+        return;
+      }
+    }
+
     try {
       const updated = await MockDb.updateJobStatus(job.job_id, newStatus, currentUserId, currentUserName);
       setJob({ ...updated } as Job);
@@ -442,6 +483,22 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       const updated = await MockDb.assignJob(job.job_id, tech.user_id, tech.name, currentUserId, currentUserName);
       setJob({ ...updated } as Job);
       setSelectedTechId('');
+    }
+  };
+
+  // Acknowledge Slot-In job (for SLA tracking)
+  const handleAcknowledgeJob = async () => {
+    if (!job) return;
+    try {
+      const updated = await MockDb.updateJob(job.job_id, {
+        acknowledged_at: new Date().toISOString(),
+        acknowledged_by_id: currentUserId,
+        acknowledged_by_name: currentUserName,
+      });
+      setJob({ ...updated } as Job);
+      showToast.success('Job acknowledged', 'SLA timer stopped');
+    } catch (error) {
+      showToast.error('Failed to acknowledge job', (error as Error).message);
     }
   };
 
@@ -469,7 +526,59 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   };
 
   const handleAddPart = async () => {
-    if (!job || !selectedPartId) return;
+    if (!job) return;
+
+    // Handle Van Stock part
+    if (useFromVanStock) {
+      if (!selectedVanStockItemId) return;
+      const vanStockItem = vanStock?.items?.find(i => i.item_id === selectedVanStockItemId);
+      if (!vanStockItem) { showToast.error('Van Stock item not found'); return; }
+
+      let finalPrice = undefined;
+      if (selectedPartPrice !== '') {
+        const parsed = parseFloat(selectedPartPrice);
+        if (isNaN(parsed) || parsed < 0) { showToast.error('Please enter a valid price'); return; }
+        finalPrice = parsed;
+      }
+
+      try {
+        // Use Van Stock part (requires approval if customer-owned forklift)
+        const requiresApproval = isCustomerOwnedForklift;
+        await MockDb.useVanStockPart(
+          selectedVanStockItemId,
+          job.job_id,
+          1,
+          currentUserId,
+          currentUserName,
+          requiresApproval
+        );
+
+        // Also add to job parts for tracking
+        const updated = await MockDb.addPartToJob(
+          job.job_id,
+          vanStockItem.part_id,
+          1,
+          finalPrice || vanStockItem.part?.sell_price,
+          currentUserRole
+        );
+        setJob({ ...updated } as Job);
+        setSelectedVanStockItemId('');
+        setSelectedPartPrice('');
+        loadVanStock(); // Refresh Van Stock quantities
+
+        if (requiresApproval) {
+          showToast.warning('Part added (pending approval)', 'Customer-owned forklift requires admin approval');
+        } else {
+          showToast.success('Part added from Van Stock');
+        }
+      } catch (e) {
+        showToast.error('Could not add part from Van Stock', (e as Error).message);
+      }
+      return;
+    }
+
+    // Handle warehouse part (existing logic)
+    if (!selectedPartId) return;
     let finalPrice = undefined;
     if (selectedPartPrice !== '') { const parsed = parseFloat(selectedPartPrice); if (isNaN(parsed) || parsed < 0) { showToast.error('Please enter a valid price'); return; } finalPrice = parsed; }
     try {
@@ -531,15 +640,64 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
 
   const handleStartEditHourmeter = () => { if (!job) return; setEditingHourmeter(true); setHourmeterInput((job.hourmeter_reading || job.forklift?.hourmeter || 0).toString()); };
   const handleSaveHourmeter = async () => {
-    if (!job) return;
+    if (!job || !job.forklift_id) return;
     const parsed = parseInt(hourmeterInput);
     if (isNaN(parsed) || parsed < 0) { showToast.error('Please enter a valid hourmeter reading'); return; }
     const currentForkliftHourmeter = job.forklift?.hourmeter || 0;
-    if (parsed < currentForkliftHourmeter) { showToast.error(`Hourmeter must be ≥ ${currentForkliftHourmeter} (forklift's current reading)`); return; }
-    try { const updated = await MockDb.updateJobHourmeter(job.job_id, parsed); setJob({ ...updated } as Job); setEditingHourmeter(false); setHourmeterInput(''); showToast.success('Hourmeter updated'); }
-    catch (e: any) { showToast.error(e.message || 'Could not update hourmeter'); }
+
+    // Validate and check for flags
+    const validation = await MockDb.validateHourmeterReading(job.forklift_id, parsed);
+
+    if (!validation.isValid) {
+      // Save with flags
+      setHourmeterFlagReasons(validation.flags);
+      try {
+        const updated = await MockDb.updateJobHourmeter(job.job_id, parsed);
+        await MockDb.flagJobHourmeter(job.job_id, validation.flags);
+        setJob({ ...updated, hourmeter_flagged: true, hourmeter_flag_reasons: validation.flags } as Job);
+        setEditingHourmeter(false);
+        setHourmeterInput('');
+        showToast.warning('Hourmeter saved with flags', 'This reading has been flagged for review. Consider requesting an amendment.');
+      } catch (e: any) {
+        showToast.error(e.message || 'Could not update hourmeter');
+      }
+      return;
+    }
+
+    try {
+      const updated = await MockDb.updateJobHourmeter(job.job_id, parsed);
+      setJob({ ...updated } as Job);
+      setEditingHourmeter(false);
+      setHourmeterInput('');
+      setHourmeterFlagReasons([]);
+      showToast.success('Hourmeter updated');
+    } catch (e: any) {
+      showToast.error(e.message || 'Could not update hourmeter');
+    }
   };
   const handleCancelHourmeterEdit = () => { setEditingHourmeter(false); setHourmeterInput(''); };
+
+  // Hourmeter amendment handler
+  const handleSubmitHourmeterAmendment = async (amendedReading: number, reason: string) => {
+    if (!job || !job.forklift_id) throw new Error('Job or forklift not found');
+
+    const originalReading = job.hourmeter_reading || 0;
+    const flagReasons = job.hourmeter_flag_reasons || hourmeterFlagReasons;
+
+    await MockDb.createHourmeterAmendment(
+      job.job_id,
+      job.forklift_id,
+      originalReading,
+      amendedReading,
+      reason,
+      flagReasons,
+      currentUserId,
+      currentUserName
+    );
+
+    setShowHourmeterAmendmentModal(false);
+    showToast.success('Amendment request submitted', 'Waiting for Admin 1 (Service) approval');
+  };
 
   const handleStartEditJobCarriedOut = () => { if (!job) return; setEditingJobCarriedOut(true); setJobCarriedOutInput(job.job_carried_out || ''); setRecommendationInput(job.recommendation || ''); };
   const handleSaveJobCarriedOut = async () => {
@@ -582,6 +740,43 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const handlePrintQuotation = () => { if (!job) return; const quotation = generateQuotationFromJob(job); const quotationNumber = `Q-${new Date().getFullYear()}-${job.job_id.slice(0, 6).toUpperCase()}`; printQuotation(quotation, quotationNumber); };
   const handleExportPDF = () => { if (!job) return; printInvoice(job); };
 
+  // Export to AutoCount
+  const handleExportToAutoCount = async () => {
+    if (!job) return;
+    setExportingToAutoCount(true);
+    try {
+      await MockDb.createAutoCountExport(job.job_id, currentUserId, currentUserName);
+      showToast.success('Export created', 'Invoice queued for AutoCount export');
+    } catch (e: any) {
+      showToast.error('Export failed', e.message);
+    }
+    setExportingToAutoCount(false);
+  };
+
+  // Helper to get GPS coordinates
+  const getGPSCoordinates = (): Promise<{ latitude: number; longitude: number; accuracy: number } | null> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          });
+        },
+        (error) => {
+          console.warn('GPS error:', error.message);
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+  };
+
   const uploadPhotoFile = async (file: File) => {
     if (!job) return;
     if (!file.type.startsWith('image/')) {
@@ -589,25 +784,66 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       return;
     }
 
+    // Get GPS coordinates while reading file
+    const gpsPromise = getGPSCoordinates();
+
+    // Get device timestamp from file's lastModified (approximation)
+    const deviceTimestamp = new Date(file.lastModified).toISOString();
+    const serverTimestamp = new Date().toISOString();
+
+    // Calculate timestamp mismatch (threshold: 5 minutes = 300000ms)
+    const timeDiffMs = Math.abs(new Date(serverTimestamp).getTime() - new Date(deviceTimestamp).getTime());
+    const timeDiffMinutes = Math.round(timeDiffMs / 60000);
+    const timestampMismatch = timeDiffMinutes > 5;
+
     const reader = new FileReader();
     reader.onloadend = async () => {
       try {
+        // Wait for GPS
+        const gps = await gpsPromise;
+
+        const mediaData: any = {
+          type: 'photo',
+          url: reader.result as string,
+          description: file.name,
+          created_at: serverTimestamp,
+          category: uploadPhotoCategory as MediaCategory,
+          source: 'camera',
+          // Timestamp validation
+          device_timestamp: deviceTimestamp,
+          server_timestamp: serverTimestamp,
+          timestamp_mismatch: timestampMismatch,
+          timestamp_mismatch_minutes: timestampMismatch ? timeDiffMinutes : undefined,
+        };
+
+        // Add GPS data if available
+        if (gps) {
+          mediaData.gps_latitude = gps.latitude;
+          mediaData.gps_longitude = gps.longitude;
+          mediaData.gps_accuracy = gps.accuracy;
+          mediaData.gps_captured_at = serverTimestamp;
+        }
+
         const updated = await MockDb.addMedia(
           job.job_id,
-          {
-            type: 'photo',
-            url: reader.result as string,
-            description: file.name,
-            created_at: new Date().toISOString(),
-            category: uploadPhotoCategory as MediaCategory
-          },
+          mediaData,
           currentUserId,
           currentUserName,
           isCurrentUserHelper
         );
         setJob({ ...updated } as Job);
         const categoryLabel = PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other';
-        showToast.success('Photo uploaded', `Category: ${categoryLabel}${isCurrentUserHelper ? ' (Helper)' : ''}`);
+
+        // Show appropriate toast based on validation
+        if (!gps && timestampMismatch) {
+          showToast.warning('Photo uploaded (flagged)', `GPS missing • Timestamp mismatch: ${timeDiffMinutes}min`);
+        } else if (!gps) {
+          showToast.warning('Photo uploaded', `GPS location not captured • ${categoryLabel}`);
+        } else if (timestampMismatch) {
+          showToast.warning('Photo uploaded', `Timestamp mismatch: ${timeDiffMinutes}min • ${categoryLabel}`);
+        } else {
+          showToast.success('Photo uploaded', `Category: ${categoryLabel}${isCurrentUserHelper ? ' (Helper)' : ''}`);
+        }
       } catch (e) {
         showToast.error('Photo upload failed', (e as Error).message);
       }
@@ -706,6 +942,24 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     return { hours, minutes, total: diffMs };
   };
 
+  // Checklist validation helpers
+  const getMissingMandatoryItems = (): string[] => {
+    if (!job?.condition_checklist) return MANDATORY_CHECKLIST_ITEMS as string[];
+    const checklist = job.condition_checklist;
+    return MANDATORY_CHECKLIST_ITEMS.filter(key => !checklist[key]) as string[];
+  };
+
+  const getChecklistProgress = () => {
+    if (!job?.condition_checklist) return { checked: 0, total: MANDATORY_CHECKLIST_ITEMS.length };
+    const checklist = job.condition_checklist;
+    const checked = MANDATORY_CHECKLIST_ITEMS.filter(key => checklist[key]).length;
+    return { checked, total: MANDATORY_CHECKLIST_ITEMS.length };
+  };
+
+  const isMandatoryItem = (key: string): boolean => {
+    return MANDATORY_CHECKLIST_ITEMS.includes(key as keyof ForkliftConditionChecklist);
+  };
+
   // Loading and not found states
   if (loading) return (
     <div className="max-w-5xl mx-auto p-6 fade-in">
@@ -756,6 +1010,11 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const isDeferred = job.verification_type === 'deferred' || job.verification_type === 'auto_completed';
   const hasBothSignatures = !!(job.technician_signature && job.customer_signature);
 
+  // Slot-In SLA tracking
+  const isSlotIn = job.job_type === JobType.SLOT_IN;
+  const isSlotInPendingAck = isSlotIn && !job.acknowledged_at && !isCompleted;
+  const isAssignedToCurrentUser = job.assigned_technician_id === currentUser.user_id;
+
   const totalPartsCost = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
   const laborCost = job.labor_cost || 150;
   const extraChargesCost = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
@@ -763,6 +1022,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
 
   const partOptions: ComboboxOption[] = parts.map(p => ({ id: p.part_id, label: p.part_name, subLabel: `RM${p.sell_price} | Stock: ${p.stock_quantity} | ${p.category}` }));
   const techOptions: ComboboxOption[] = technicians.map(t => ({ id: t.user_id, label: t.name, subLabel: t.email }));
+
+  // Van Stock options - only items with quantity > 0
+  const vanStockOptions: ComboboxOption[] = (vanStock?.items || [])
+    .filter(item => item.quantity > 0)
+    .map(item => ({
+      id: item.item_id,
+      label: item.part?.part_name || 'Unknown Part',
+      subLabel: `RM${item.part?.sell_price || 0} | Van Stock: ${item.quantity} | ${item.part?.category || ''}`
+    }));
+
+  // Check if forklift is customer-owned (requires approval for Van Stock usage)
+  const isCustomerOwnedForklift = job?.forklift?.ownership === 'customer';
   const canEditPrices =
     !isCompleted &&
     !isHelperOnly &&
@@ -803,7 +1074,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 <span className={`badge ${getStatusBadge()}`}>{job.status}</span>
                 {job.job_type && (
                   <span className={`badge ${
-                    job.job_type === JobType.ACCIDENT ? 'badge-error' :
+                    job.job_type === JobType.SLOT_IN ? 'badge-error' :
+                    job.job_type === JobType.COURIER ? 'bg-cyan-100 text-cyan-700' :
                     job.job_type === JobType.REPAIR ? 'badge-warning' :
                     job.job_type === JobType.CHECKING ? 'bg-purple-100 text-purple-700' :
                     'badge-success'
@@ -818,12 +1090,30 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 {isOvertime && (
                   <span className="badge bg-purple-100 text-purple-700">OT Job</span>
                 )}
+                {/* Slot-In SLA Badge */}
+                {isSlotIn && (
+                  <SlotInSLABadge
+                    createdAt={job.created_at}
+                    acknowledgedAt={job.acknowledged_at}
+                    slaTargetMinutes={job.sla_target_minutes || 15}
+                    size="sm"
+                  />
+                )}
               </div>
             </div>
           </div>
           
           {/* Action Buttons */}
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Acknowledge Slot-In Job Button */}
+            {isSlotInPendingAck && (isAssigned || isInProgress) && (isAssignedToCurrentUser || isAdmin || isSupervisor) && (
+              <button
+                onClick={handleAcknowledgeJob}
+                className="btn-premium bg-red-600 hover:bg-red-700 text-white border-red-600"
+              >
+                <Zap className="w-4 h-4" /> Acknowledge
+              </button>
+            )}
             {(isTechnician || isAdmin || isSupervisor) && isAssigned && !isHelperOnly && (
               <button onClick={handleOpenStartJobModal} className="btn-premium btn-premium-primary">
                 <Play className="w-4 h-4" /> Start Job
@@ -878,6 +1168,16 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 <FileDown className="w-4 h-4" /> Invoice
               </button>
             )}
+            {(isAccountant || isAdmin) && isCompleted && (
+              <button
+                onClick={handleExportToAutoCount}
+                disabled={exportingToAutoCount}
+                className="btn-premium btn-premium-secondary"
+                title="Export to AutoCount"
+              >
+                <Send className="w-4 h-4" /> {exportingToAutoCount ? 'Exporting...' : 'AutoCount'}
+              </button>
+            )}
             {(isAdmin || isSupervisor) && !isCompleted && (
               <button onClick={() => setShowDeleteModal(true)} className="btn-premium btn-premium-ghost text-[var(--error)] hover:bg-[var(--error-bg)] hover:text-[var(--error)]">
                 <Trash2 className="w-4 h-4" />
@@ -924,10 +1224,35 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                       <button onClick={handleCancelHourmeterEdit} className="p-1 text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] rounded"><X className="w-3.5 h-3.5" /></button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1">
-                      <span className="font-semibold text-[var(--text)]">{(job.hourmeter_reading || job.forklift.hourmeter).toLocaleString()} hrs</span>
-                      {(isInProgress || (isAdmin && !isCompleted)) && (
-                        <button onClick={handleStartEditHourmeter} className="p-1 text-[var(--warning)] hover:bg-[var(--warning-bg)] rounded"><Edit2 className="w-3 h-3" /></button>
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <span className={`font-semibold ${job.hourmeter_flagged ? 'text-[var(--error)]' : 'text-[var(--text)]'}`}>
+                          {(job.hourmeter_reading || job.forklift.hourmeter).toLocaleString()} hrs
+                        </span>
+                        {job.hourmeter_flagged && (
+                          <AlertTriangle className="w-3.5 h-3.5 text-[var(--error)]" />
+                        )}
+                        {(isInProgress || (isAdmin && !isCompleted)) && (
+                          <button onClick={handleStartEditHourmeter} className="p-1 text-[var(--warning)] hover:bg-[var(--warning-bg)] rounded"><Edit2 className="w-3 h-3" /></button>
+                        )}
+                      </div>
+                      {/* Hourmeter flag warning */}
+                      {job.hourmeter_flagged && job.hourmeter_flag_reasons && job.hourmeter_flag_reasons.length > 0 && (
+                        <div className="mt-1">
+                          <div className="flex flex-wrap gap-1 text-xs">
+                            {job.hourmeter_flag_reasons.map((flag) => (
+                              <span key={flag} className="px-1.5 py-0.5 bg-[var(--error-bg)] text-[var(--error)] rounded">
+                                {flag === 'lower_than_previous' ? 'Lower' : flag === 'excessive_jump' ? 'High Jump' : flag}
+                              </span>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => setShowHourmeterAmendmentModal(true)}
+                            className="mt-1 text-xs text-[var(--accent)] hover:underline"
+                          >
+                            Request Amendment
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
@@ -1126,6 +1451,86 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             )}
           </div>
 
+          {/* Confirmation Status Card - Shows for Awaiting Finalization or Completed jobs */}
+          {(isAwaitingFinalization || isCompleted) && (
+            <div className="card-premium p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5 text-[var(--text-muted)]" />
+                </div>
+                <h3 className="font-semibold text-[var(--text)]">Confirmation Status</h3>
+              </div>
+
+              <div className="space-y-3">
+                {/* Parts Confirmation (Admin 2 - Store) */}
+                <div className="flex items-center justify-between p-3 bg-[var(--bg-subtle)] rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Box className="w-4 h-4 text-[var(--text-muted)]" />
+                    <span className="text-sm text-[var(--text-secondary)]">Parts Confirmation</span>
+                    <span className="text-xs text-[var(--text-muted)]">(Admin 2)</span>
+                  </div>
+                  {job.parts_confirmed_at ? (
+                    <div className="flex items-center gap-2 text-[var(--success)]">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="text-sm">{job.parts_confirmed_by_name}</span>
+                      <span className="text-xs text-[var(--text-muted)]">
+                        {new Date(job.parts_confirmed_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ) : job.parts_confirmation_skipped ? (
+                    <span className="text-sm text-[var(--text-muted)] italic">Skipped (no parts)</span>
+                  ) : job.parts_used.length === 0 ? (
+                    <span className="text-sm text-[var(--text-muted)] italic">N/A (no parts used)</span>
+                  ) : (
+                    <div className="flex items-center gap-2 text-amber-600">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-sm">Pending</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Job Confirmation (Admin 1 - Service) */}
+                <div className="flex items-center justify-between p-3 bg-[var(--bg-subtle)] rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-[var(--text-muted)]" />
+                    <span className="text-sm text-[var(--text-secondary)]">Job Confirmation</span>
+                    <span className="text-xs text-[var(--text-muted)]">(Admin 1)</span>
+                  </div>
+                  {job.job_confirmed_at ? (
+                    <div className="flex items-center gap-2 text-[var(--success)]">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="text-sm">{job.job_confirmed_by_name}</span>
+                      <span className="text-xs text-[var(--text-muted)]">
+                        {new Date(job.job_confirmed_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-amber-600">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-sm">Pending</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Confirmation Notes */}
+              {(job.parts_confirmation_notes || job.job_confirmation_notes) && (
+                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  {job.parts_confirmation_notes && (
+                    <p className="text-sm text-amber-800">
+                      <span className="font-medium">Parts:</span> {job.parts_confirmation_notes}
+                    </p>
+                  )}
+                  {job.job_confirmation_notes && (
+                    <p className="text-sm text-amber-800 mt-1">
+                      <span className="font-medium">Job:</span> {job.job_confirmation_notes}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Condition Checklist */}
           {job.condition_checklist && Object.keys(job.condition_checklist).length > 0 && (
             <div className="card-premium p-5">
@@ -1134,7 +1539,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                   <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
                     <ClipboardList className="w-5 h-5 text-[var(--text-muted)]" />
                   </div>
-                  <h3 className="font-semibold text-[var(--text)]">Condition Checklist</h3>
+                  <div>
+                    <h3 className="font-semibold text-[var(--text)]">Condition Checklist</h3>
+                    {/* Mandatory items progress */}
+                    <p className="text-xs text-[var(--text-muted)]">
+                      {getChecklistProgress().checked}/{getChecklistProgress().total} mandatory items checked
+                    </p>
+                  </div>
                 </div>
                 {(isInProgress || isAwaitingFinalization) && !editingChecklist && !isHelperOnly && (
                   <button onClick={handleStartEditChecklist} className="btn-premium btn-premium-ghost text-xs">
@@ -1142,9 +1553,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                   </button>
                 )}
               </div>
-              
+
               {editingChecklist ? (
                 <div className="space-y-4">
+                  {/* Check All Button */}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowCheckAllConfirmModal(true)}
+                      className="btn-premium btn-premium-secondary text-xs"
+                    >
+                      <CheckSquare className="w-3.5 h-3.5" /> Check All
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {CHECKLIST_CATEGORIES.map(cat => (
                       <div key={cat.name} className="bg-[var(--surface)] border border-[var(--border)] p-3 rounded-xl">
@@ -1160,6 +1580,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                               />
                               <span className={checklistEditData[item.key as keyof ForkliftConditionChecklist] ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'}>
                                 {item.label}
+                                {isMandatoryItem(item.key) && <span className="text-red-500 ml-0.5">*</span>}
                               </span>
                             </label>
                           ))}
@@ -1255,9 +1676,74 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
 
             {canAddParts && (
               <div className="border-t border-[var(--border-subtle)] pt-4">
-                <p className="text-xs font-medium text-[var(--text-muted)] mb-2">Add Part</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-medium text-[var(--text-muted)]">Add Part</p>
+                  {/* Van Stock toggle - only show for technicians with Van Stock */}
+                  {vanStock && isTechnician && (
+                    <label className="flex items-center gap-2 cursor-pointer text-xs">
+                      <span className={useFromVanStock ? 'text-blue-600 font-medium' : 'text-[var(--text-muted)]'}>
+                        <Truck className="w-3.5 h-3.5 inline mr-1" />
+                        Van Stock
+                      </span>
+                      <div
+                        className={`relative w-9 h-5 rounded-full transition-colors ${
+                          useFromVanStock ? 'bg-blue-600' : 'bg-slate-300'
+                        }`}
+                        onClick={() => {
+                          setUseFromVanStock(!useFromVanStock);
+                          setSelectedPartId('');
+                          setSelectedVanStockItemId('');
+                          setSelectedPartPrice('');
+                        }}
+                      >
+                        <div
+                          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                            useFromVanStock ? 'translate-x-4' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </div>
+                    </label>
+                  )}
+                </div>
+
+                {/* Customer-owned forklift warning */}
+                {useFromVanStock && isCustomerOwnedForklift && (
+                  <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                    <span>Customer-owned forklift: Van Stock usage requires admin approval</span>
+                  </div>
+                )}
+
                 <div className="flex gap-2 items-start">
-                  <div className="flex-1"><Combobox options={partOptions} value={selectedPartId} onChange={(val) => { setSelectedPartId(val); const p = parts.find(x => x.part_id === val); if (p) setSelectedPartPrice(p.sell_price.toString()); }} placeholder="Search parts..." /></div>
+                  {useFromVanStock ? (
+                    /* Van Stock part selector */
+                    <div className="flex-1">
+                      <Combobox
+                        options={vanStockOptions}
+                        value={selectedVanStockItemId}
+                        onChange={(val) => {
+                          setSelectedVanStockItemId(val);
+                          const item = vanStock?.items?.find(i => i.item_id === val);
+                          if (item?.part) setSelectedPartPrice(item.part.sell_price.toString());
+                        }}
+                        placeholder="Search Van Stock..."
+                      />
+                    </div>
+                  ) : (
+                    /* Warehouse part selector */
+                    <div className="flex-1">
+                      <Combobox
+                        options={partOptions}
+                        value={selectedPartId}
+                        onChange={(val) => {
+                          setSelectedPartId(val);
+                          const p = parts.find(x => x.part_id === val);
+                          if (p) setSelectedPartPrice(p.sell_price.toString());
+                        }}
+                        placeholder="Search parts..."
+                      />
+                    </div>
+                  )}
                   <div className="w-24">
                     <div className="relative">
                       <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs">RM</span>
@@ -2041,6 +2527,106 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Checklist Warning Modal */}
+      {showChecklistWarningModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-amber-100 rounded-full">
+                <AlertTriangle className="w-6 h-6 text-amber-600" />
+              </div>
+              <h4 className="font-bold text-lg text-[var(--text)]">Checklist Incomplete</h4>
+            </div>
+            <p className="text-sm text-[var(--text-muted)] mb-4">
+              The following mandatory checklist items must be checked before completing the job:
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 max-h-48 overflow-y-auto">
+              <ul className="space-y-2">
+                {missingChecklistItems.map((item, index) => (
+                  <li key={index} className="flex items-center gap-2 text-sm text-amber-800">
+                    <Square className="w-4 h-4 text-amber-500" />
+                    {item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowChecklistWarningModal(false)}
+                className="btn-premium btn-premium-secondary flex-1"
+              >
+                Go Back & Fix
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Check All Confirmation Modal */}
+      {showCheckAllConfirmModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-amber-100 rounded-full">
+                <AlertTriangle className="w-6 h-6 text-amber-600" />
+              </div>
+              <h4 className="font-bold text-lg text-[var(--text)]">Confirm Check All</h4>
+            </div>
+            <p className="text-sm text-[var(--text-muted)] mb-6">
+              You are about to check all items. Please confirm that you have <strong>physically verified each item</strong> on the forklift.
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+              <p className="text-sm text-amber-800">
+                This action will be recorded for audit purposes.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCheckAllConfirmModal(false)}
+                className="btn-premium btn-premium-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  // Check all items
+                  const allChecked: ForkliftConditionChecklist = {};
+                  CHECKLIST_CATEGORIES.forEach(cat => {
+                    cat.items.forEach(item => {
+                      allChecked[item.key as keyof ForkliftConditionChecklist] = true;
+                    });
+                  });
+                  setChecklistEditData(allChecked);
+                  setShowCheckAllConfirmModal(false);
+                  // Record that "Check All" was used
+                  if (job) {
+                    await MockDb.updateJob(job.job_id, {
+                      checklist_used_check_all: true,
+                      checklist_check_all_confirmed: true,
+                    });
+                  }
+                  showToast.info('All items checked', 'Remember to verify each item physically');
+                }}
+                className="btn-premium btn-premium-primary flex-1"
+              >
+                <CheckCircle className="w-4 h-4" /> Confirm & Check All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hourmeter Amendment Modal */}
+      {showHourmeterAmendmentModal && job && job.forklift && (
+        <HourmeterAmendmentModal
+          job={job}
+          previousReading={job.forklift.hourmeter || 0}
+          flagReasons={job.hourmeter_flag_reasons || hourmeterFlagReasons}
+          onClose={() => setShowHourmeterAmendmentModal(false)}
+          onSubmit={handleSubmitHourmeterAmendment}
+        />
       )}
     </div>
   );

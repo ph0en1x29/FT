@@ -158,7 +158,11 @@
       html[data-theme="dark"] .hover\:border-blue-300:hover { border-color: rgba(59, 130, 246, 0.5) !important; }
       html[data-theme="dark"] .hover\:bg-green-200:hover { background-color: rgba(34, 197, 94, 0.2) !important; }
       html[data-theme="dark"] .hover\:bg-red-200:hover { background-color: rgba(239, 68, 68, 0.2) !important; }
-      
+
+      /* Fix group-hover states */
+      html[data-theme="dark"] .group:hover .group-hover\:bg-slate-100 { background-color: var(--surface-3) !important; }
+      html[data-theme="dark"] .group:hover .group-hover\:bg-slate-50 { background-color: var(--surface-2) !important; }
+
       /* Fix ring colors for focus states */
       html[data-theme="dark"] .ring-slate-200 { --tw-ring-color: var(--border) !important; }
       html[data-theme="dark"] .focus\:ring-slate-200:focus { --tw-ring-color: var(--border) !important; }

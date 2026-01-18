@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { Job, Customer } from "../types_with_invoice_tracking";
+import { Job, Customer } from '../types';
 
 // Lazy initialization - only create client when needed
 let ai: GoogleGenAI | null = null;

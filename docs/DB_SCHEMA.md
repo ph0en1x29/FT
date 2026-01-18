@@ -2,7 +2,7 @@
 
 > Purpose: Reference for engineers and AI assistants when modifying or extending the database.
 > Database: Supabase (PostgreSQL)
-> Last Updated: 2026-01-09 (Added job_assignments, job_requests tables; updated jobs and job_media columns)
+> Last Updated: 2026-01-18 (Added AutoCount integration, photo enhancements, fleet dashboard, admin role split)
 
 ---
 
@@ -11,14 +11,18 @@
 1. Core Tables
 2. Job System
 3. Asset Management
-4. Inventory
-5. HR System
-6. Notifications and KPI
-7. System Settings
-8. Views
-9. Enums
-10. Functions
-11. Storage Buckets
+4. Hourmeter Tracking
+5. Van Stock System
+6. Inventory
+7. HR System
+8. Notifications and KPI
+9. System Settings
+10. AutoCount Integration
+11. Duration Alerts
+12. Views
+13. Enums
+14. Functions
+15. Storage Buckets
 
 ---
 
@@ -179,6 +183,37 @@ Core work orders.
 | `escalation_acknowledged_at` | TIMESTAMPTZ | YES | | When admin acknowledged escalation |
 | `escalation_acknowledged_by` | UUID | YES | | Which admin acknowledged |
 | `escalation_notes` | TEXT | YES | | Admin notes about escalation |
+| `hourmeter_previous` | INTEGER | YES | | Previous hourmeter reading (for validation) |
+| `hourmeter_flag_reasons` | TEXT[] | YES | | Reasons for flagging the reading |
+| `hourmeter_flagged` | BOOLEAN | YES | `false` | Whether hourmeter reading was flagged |
+| `hourmeter_amendment_id` | UUID | YES | | Reference to approved amendment |
+| `hourmeter_validated_at` | TIMESTAMPTZ | YES | | When hourmeter was validated |
+| `hourmeter_validated_by_id` | UUID | YES | | Who validated the hourmeter |
+| `hourmeter_validated_by_name` | TEXT | YES | | Validator name |
+| `checklist_completed` | BOOLEAN | YES | `false` | Whether mandatory checklist items are complete |
+| `checklist_missing_items` | TEXT[] | YES | | List of unchecked mandatory items |
+| `checklist_used_check_all` | BOOLEAN | YES | `false` | Whether "Check All" was used |
+| `checklist_check_all_confirmed` | BOOLEAN | YES | `false` | Whether Check All was confirmed |
+| `checklist_validated_at` | TIMESTAMPTZ | YES | | When checklist was validated |
+| `checklist_validated_by_id` | UUID | YES | | Who validated checklist |
+| `checklist_validated_by_name` | TEXT | YES | | Validator name |
+| `parts_confirmed_by_id` | UUID | YES | | Admin 2 (Store) who confirmed parts |
+| `parts_confirmed_by_name` | TEXT | YES | | Admin 2 name |
+| `parts_confirmed_at` | TIMESTAMPTZ | YES | | When parts were confirmed |
+| `parts_confirmation_notes` | TEXT | YES | | Notes for parts confirmation |
+| `parts_confirmation_skipped` | BOOLEAN | YES | `false` | Auto-skipped if no parts used |
+| `job_confirmed_by_id` | UUID | YES | | Admin 1 (Service) who confirmed job |
+| `job_confirmed_by_name` | TEXT | YES | | Admin 1 name |
+| `job_confirmed_at` | TIMESTAMPTZ | YES | | When job was confirmed |
+| `job_confirmation_notes` | TEXT | YES | | Notes for job confirmation |
+| `parts_escalated_at` | TIMESTAMPTZ | YES | | When escalated for parts confirm |
+| `parts_escalated_to_id` | UUID | YES | | Supervisor escalated to |
+| `parts_escalated_to_name` | TEXT | YES | | Supervisor name |
+| `awaiting_parts` | BOOLEAN | YES | `false` | Whether job is waiting for parts |
+| `awaiting_parts_since` | TIMESTAMPTZ | YES | | When parts wait started |
+| `awaiting_parts_reason` | TEXT | YES | | Reason for waiting on parts |
+| `autocount_export_id` | UUID | YES | | Reference to AutoCount export |
+| `autocount_exported_at` | TIMESTAMPTZ | YES | | When exported to AutoCount |
 
 Constraints:
 - PK: `job_id`
@@ -335,6 +370,8 @@ Parts used in a job.
 | `created_at` | TIMESTAMPTZ | YES | `now()` |
 | `install_date` | TIMESTAMPTZ | YES | `now()` |
 | `warranty_end_date` | TIMESTAMPTZ | YES | |
+| `from_van_stock` | BOOLEAN | YES | `false` | Whether part was taken from Van Stock |
+| `van_stock_item_id` | UUID | YES | | Reference to van_stock_items |
 
 Constraints:
 - PK: `job_part_id`
@@ -342,11 +379,12 @@ Constraints:
 Foreign keys:
 - `job_id` -> `jobs.job_id`
 - `part_id` -> `parts.part_id`
+- `van_stock_item_id` -> `van_stock_items.item_id`
 
 ---
 
 ### `job_media`
-Media attachments on jobs.
+Media attachments on jobs with GPS tracking and validation.
 
 | Column | Type | Nullable | Default |
 |--------|------|----------|---------|
@@ -360,16 +398,49 @@ Media attachments on jobs.
 | `uploaded_by_name` | TEXT | YES | |
 | `category` | TEXT | NO | `'other'` |
 | `is_helper_photo` | BOOLEAN | YES | `false` |
+| `gps_latitude` | DECIMAL(10,8) | YES | | GPS latitude |
+| `gps_longitude` | DECIMAL(11,8) | YES | | GPS longitude |
+| `gps_accuracy` | DECIMAL(10,2) | YES | | GPS accuracy in meters |
+| `gps_captured_at` | TIMESTAMPTZ | YES | | When GPS was captured |
+| `device_timestamp` | TIMESTAMPTZ | YES | | Timestamp from device |
+| `server_timestamp` | TIMESTAMPTZ | YES | `now()` | Timestamp from server |
+| `timestamp_mismatch` | BOOLEAN | YES | `false` | Flag if timestamps differ |
+| `timestamp_mismatch_minutes` | INTEGER | YES | | Difference in minutes |
+| `source` | TEXT | YES | `'unknown'` | Photo source |
+| `is_camera_fallback` | BOOLEAN | YES | `false` | Used gallery when camera failed |
+| `fallback_description` | TEXT | YES | | Why camera wasn't used |
+| `fallback_approved` | BOOLEAN | YES | | Admin approval status |
+| `fallback_approved_by_id` | UUID | YES | | Who approved |
+| `fallback_approved_by_name` | TEXT | YES | | Approver name |
+| `fallback_approved_at` | TIMESTAMPTZ | YES | | When approved |
+| `is_start_photo` | BOOLEAN | YES | `false` | Triggers job timer start |
+| `is_end_photo` | BOOLEAN | YES | `false` | Triggers job timer end |
+| `timer_triggered_at` | TIMESTAMPTZ | YES | | When timer was triggered |
+| `job_day_number` | INTEGER | YES | `1` | Day number for multi-day jobs |
+| `flagged_for_review` | BOOLEAN | YES | `false` | Needs admin review |
+| `flagged_reason` | TEXT | YES | | Why flagged |
+| `reviewed_by_id` | UUID | YES | | Admin who reviewed |
+| `reviewed_by_name` | TEXT | YES | | Reviewer name |
+| `reviewed_at` | TIMESTAMPTZ | YES | | When reviewed |
+| `review_notes` | TEXT | YES | | Review notes |
 
 Constraints:
 - PK: `media_id`
 - CHECK: `category` IN ('before', 'after', 'spare_part', 'condition', 'evidence', 'other')
+- CHECK: `source` IN ('camera', 'gallery', 'unknown')
 
 Foreign keys:
 - `job_id` -> `jobs.job_id`
+- `fallback_approved_by_id` -> `users.user_id`
+- `reviewed_by_id` -> `users.user_id`
 
 Indexes:
 - `idx_job_media_job_category` on (`job_id`, `category`)
+- `idx_job_media_gps` on (`gps_latitude`, `gps_longitude`) WHERE gps_latitude IS NOT NULL
+- `idx_job_media_flagged` on (`flagged_for_review`) WHERE flagged_for_review = TRUE
+- `idx_job_media_start_photo` on (`job_id`, `is_start_photo`) WHERE is_start_photo = TRUE
+- `idx_job_media_end_photo` on (`job_id`, `is_end_photo`) WHERE is_end_photo = TRUE
+- `idx_job_media_fallback_pending` on (`is_camera_fallback`, `fallback_approved`) WHERE is_camera_fallback = TRUE AND fallback_approved IS NULL
 
 ---
 
@@ -817,6 +888,356 @@ Foreign keys:
 
 ---
 
+## Hourmeter Tracking
+
+### `hourmeter_history`
+Audit trail for all hourmeter readings and changes.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `entry_id` | UUID | NO | `gen_random_uuid()` |
+| `forklift_id` | UUID | NO | |
+| `job_id` | UUID | YES | |
+| `reading` | INTEGER | NO | |
+| `previous_reading` | INTEGER | YES | |
+| `hours_since_last` | INTEGER | YES | |
+| `flag_reasons` | TEXT[] | YES | |
+| `was_amended` | BOOLEAN | YES | `false` |
+| `amendment_id` | UUID | YES | |
+| `recorded_by_id` | UUID | NO | |
+| `recorded_by_name` | TEXT | NO | |
+| `recorded_at` | TIMESTAMPTZ | NO | `now()` |
+| `source` | TEXT | NO | | `'job_start'`, `'job_end'`, `'amendment'`, `'audit'`, `'manual'` |
+
+Constraints:
+- PK: `entry_id`
+- CHECK: `source` IN ('job_start', 'job_end', 'amendment', 'audit', 'manual')
+
+Foreign keys:
+- `forklift_id` -> `forklifts.forklift_id` (CASCADE)
+- `job_id` -> `jobs.job_id`
+- `amendment_id` -> `hourmeter_amendments.amendment_id`
+- `recorded_by_id` -> `users.user_id`
+
+Indexes:
+- `idx_hourmeter_history_forklift` on (`forklift_id`, `recorded_at` DESC)
+
+---
+
+### `hourmeter_amendments`
+Amendment requests for flagged hourmeter readings.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `amendment_id` | UUID | NO | `gen_random_uuid()` |
+| `job_id` | UUID | NO | |
+| `forklift_id` | UUID | NO | |
+| `original_reading` | INTEGER | NO | |
+| `amended_reading` | INTEGER | NO | |
+| `reason` | TEXT | NO | |
+| `flag_reasons` | TEXT[] | YES | |
+| `requested_by_id` | UUID | NO | |
+| `requested_by_name` | TEXT | NO | |
+| `requested_at` | TIMESTAMPTZ | NO | `now()` |
+| `status` | TEXT | NO | `'pending'` |
+| `reviewed_by_id` | UUID | YES | |
+| `reviewed_by_name` | TEXT | YES | |
+| `reviewed_at` | TIMESTAMPTZ | YES | |
+| `review_notes` | TEXT | YES | |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `amendment_id`
+- CHECK: `status` IN ('pending', 'approved', 'rejected')
+
+Foreign keys:
+- `job_id` -> `jobs.job_id` (CASCADE)
+- `forklift_id` -> `forklifts.forklift_id`
+- `requested_by_id` -> `users.user_id`
+- `reviewed_by_id` -> `users.user_id`
+
+Indexes:
+- `idx_hourmeter_amendments_job` on `job_id`
+- `idx_hourmeter_amendments_forklift` on `forklift_id`
+- `idx_hourmeter_amendments_status` on `status` WHERE status = 'pending'
+
+RLS:
+- Admin/Supervisor: ALL
+- Technician: INSERT (own requests), SELECT (own requests)
+- Accountant: SELECT (for audit)
+
+---
+
+### `hourmeter_validation_configs`
+Configuration for hourmeter validation rules.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `config_id` | UUID | NO | `gen_random_uuid()` |
+| `warning_threshold_hours` | INTEGER | YES | `100` |
+| `alert_threshold_hours` | INTEGER | YES | `500` |
+| `lower_reading_action` | TEXT | YES | `'flag'` |
+| `expected_daily_usage_hours` | INTEGER | YES | `8` |
+| `usage_variance_tolerance` | INTEGER | YES | `50` |
+| `require_approval_for_all` | BOOLEAN | YES | `false` |
+| `auto_approve_minor_corrections` | BOOLEAN | YES | `true` |
+| `minor_correction_threshold` | INTEGER | YES | `2` |
+| `is_active` | BOOLEAN | YES | `true` |
+| `updated_at` | TIMESTAMPTZ | YES | `now()` |
+| `updated_by_id` | UUID | YES | |
+| `updated_by_name` | TEXT | YES | |
+
+Constraints:
+- PK: `config_id`
+- CHECK: `lower_reading_action` IN ('flag', 'block', 'allow')
+
+Foreign keys:
+- `updated_by_id` -> `users.user_id`
+
+---
+
+## Van Stock System
+
+### `van_stocks`
+Technician Van Stock assignment (one per technician).
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `van_stock_id` | UUID | NO | `gen_random_uuid()` |
+| `technician_id` | UUID | NO | |
+| `van_code` | TEXT | YES | | Unique van identifier |
+| `notes` | TEXT | YES | |
+| `max_items` | INTEGER | YES | `50` |
+| `is_active` | BOOLEAN | YES | `true` |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `created_by_id` | UUID | YES | |
+| `created_by_name` | TEXT | YES | |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+| `last_audit_at` | TIMESTAMPTZ | YES | |
+| `next_audit_due` | TIMESTAMPTZ | YES | |
+
+Constraints:
+- PK: `van_stock_id`
+- UNIQUE: `technician_id`
+- UNIQUE: `van_code`
+
+Foreign keys:
+- `technician_id` -> `users.user_id` (CASCADE)
+- `created_by_id` -> `users.user_id`
+
+Indexes:
+- `idx_van_stocks_technician` on `technician_id`
+
+---
+
+### `van_stock_items`
+Items in a technician's Van Stock.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `item_id` | UUID | NO | `gen_random_uuid()` |
+| `van_stock_id` | UUID | NO | |
+| `part_id` | UUID | NO | |
+| `quantity` | INTEGER | NO | `0` |
+| `min_quantity` | INTEGER | NO | `1` |
+| `max_quantity` | INTEGER | NO | `5` |
+| `last_replenished_at` | TIMESTAMPTZ | YES | |
+| `last_used_at` | TIMESTAMPTZ | YES | |
+| `is_core_item` | BOOLEAN | YES | `true` |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `item_id`
+- UNIQUE: (`van_stock_id`, `part_id`)
+
+Foreign keys:
+- `van_stock_id` -> `van_stocks.van_stock_id` (CASCADE)
+- `part_id` -> `parts.part_id`
+
+Indexes:
+- `idx_van_stock_items_van_stock` on `van_stock_id`
+- `idx_van_stock_items_part` on `part_id`
+- `idx_van_stock_items_low_stock` on (`van_stock_id`, `quantity`) WHERE quantity < min_quantity
+
+---
+
+### `van_stock_usage`
+Usage records for Van Stock items on jobs.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `usage_id` | UUID | NO | `gen_random_uuid()` |
+| `van_stock_item_id` | UUID | NO | |
+| `job_id` | UUID | NO | |
+| `job_part_id` | UUID | YES | |
+| `quantity_used` | INTEGER | NO | |
+| `used_at` | TIMESTAMPTZ | NO | `now()` |
+| `used_by_id` | UUID | NO | |
+| `used_by_name` | TEXT | NO | |
+| `requires_approval` | BOOLEAN | YES | `false` | For customer-owned forklifts |
+| `approved_by_id` | UUID | YES | |
+| `approved_by_name` | TEXT | YES | |
+| `approved_at` | TIMESTAMPTZ | YES | |
+| `approval_status` | TEXT | YES | `'approved'` |
+| `rejection_reason` | TEXT | YES | |
+
+Constraints:
+- PK: `usage_id`
+- CHECK: `approval_status` IN ('pending', 'approved', 'rejected')
+
+Foreign keys:
+- `van_stock_item_id` -> `van_stock_items.item_id`
+- `job_id` -> `jobs.job_id`
+- `job_part_id` -> `job_parts.job_part_id`
+- `used_by_id` -> `users.user_id`
+- `approved_by_id` -> `users.user_id`
+
+Indexes:
+- `idx_van_stock_usage_job` on `job_id`
+- `idx_van_stock_usage_pending` on `approval_status` WHERE approval_status = 'pending'
+
+---
+
+### `van_stock_replenishments`
+Replenishment requests for Van Stock.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `replenishment_id` | UUID | NO | `gen_random_uuid()` |
+| `van_stock_id` | UUID | NO | |
+| `technician_id` | UUID | NO | |
+| `status` | TEXT | NO | `'pending'` |
+| `request_type` | TEXT | NO | | `'manual'`, `'auto_slot_in'`, `'low_stock'` |
+| `triggered_by_job_id` | UUID | YES | |
+| `requested_at` | TIMESTAMPTZ | NO | `now()` |
+| `requested_by_id` | UUID | YES | |
+| `requested_by_name` | TEXT | YES | |
+| `approved_by_id` | UUID | YES | | Admin 2 (Store) approval |
+| `approved_by_name` | TEXT | YES | |
+| `approved_at` | TIMESTAMPTZ | YES | |
+| `fulfilled_at` | TIMESTAMPTZ | YES | |
+| `fulfilled_by_id` | UUID | YES | |
+| `fulfilled_by_name` | TEXT | YES | |
+| `confirmed_by_technician` | BOOLEAN | YES | `false` |
+| `confirmed_at` | TIMESTAMPTZ | YES | |
+| `confirmation_photo_url` | TEXT | YES | |
+| `notes` | TEXT | YES | |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `replenishment_id`
+- CHECK: `status` IN ('pending', 'approved', 'in_progress', 'completed', 'cancelled')
+- CHECK: `request_type` IN ('manual', 'auto_slot_in', 'low_stock')
+
+Foreign keys:
+- `van_stock_id` -> `van_stocks.van_stock_id`
+- `technician_id` -> `users.user_id`
+- `triggered_by_job_id` -> `jobs.job_id`
+- `requested_by_id` -> `users.user_id`
+- `approved_by_id` -> `users.user_id`
+- `fulfilled_by_id` -> `users.user_id`
+
+Indexes:
+- `idx_van_stock_replenishments_status` on `status`
+- `idx_van_stock_replenishments_pending` on (`status`, `requested_at`) WHERE status = 'pending'
+
+---
+
+### `van_stock_replenishment_items`
+Items in a replenishment request.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `item_id` | UUID | NO | `gen_random_uuid()` |
+| `replenishment_id` | UUID | NO | |
+| `van_stock_item_id` | UUID | NO | |
+| `part_id` | UUID | NO | |
+| `part_name` | TEXT | NO | |
+| `part_code` | TEXT | NO | |
+| `quantity_requested` | INTEGER | NO | |
+| `quantity_issued` | INTEGER | YES | `0` |
+| `serial_numbers` | JSONB | YES | `'[]'::jsonb` |
+| `is_rejected` | BOOLEAN | YES | `false` |
+| `rejection_reason` | TEXT | YES | |
+
+Constraints:
+- PK: `item_id`
+
+Foreign keys:
+- `replenishment_id` -> `van_stock_replenishments.replenishment_id` (CASCADE)
+- `van_stock_item_id` -> `van_stock_items.item_id`
+- `part_id` -> `parts.part_id`
+
+---
+
+### `van_stock_audits`
+Quarterly audit records for Van Stock.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `audit_id` | UUID | NO | `gen_random_uuid()` |
+| `van_stock_id` | UUID | NO | |
+| `technician_id` | UUID | NO | |
+| `scheduled_date` | DATE | NO | |
+| `status` | TEXT | NO | `'scheduled'` |
+| `started_at` | TIMESTAMPTZ | YES | |
+| `completed_at` | TIMESTAMPTZ | YES | |
+| `audited_by_id` | UUID | YES | |
+| `audited_by_name` | TEXT | YES | |
+| `total_expected_value` | DECIMAL(10,2) | YES | `0` |
+| `total_actual_value` | DECIMAL(10,2) | YES | `0` |
+| `discrepancy_value` | DECIMAL(10,2) | YES | `0` |
+| `discrepancy_notes` | TEXT | YES | |
+| `resolution_notes` | TEXT | YES | |
+| `resolved_at` | TIMESTAMPTZ | YES | |
+| `resolved_by_id` | UUID | YES | |
+| `resolved_by_name` | TEXT | YES | |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `audit_id`
+- CHECK: `status` IN ('scheduled', 'in_progress', 'completed', 'discrepancy_found')
+
+Foreign keys:
+- `van_stock_id` -> `van_stocks.van_stock_id`
+- `technician_id` -> `users.user_id`
+- `audited_by_id` -> `users.user_id`
+- `resolved_by_id` -> `users.user_id`
+
+Indexes:
+- `idx_van_stock_audits_scheduled` on (`scheduled_date`, `status`)
+
+---
+
+### `van_stock_audit_items`
+Items in an audit with expected vs actual counts.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `audit_item_id` | UUID | NO | `gen_random_uuid()` |
+| `audit_id` | UUID | NO | |
+| `van_stock_item_id` | UUID | NO | |
+| `part_id` | UUID | NO | |
+| `part_name` | TEXT | NO | |
+| `expected_quantity` | INTEGER | NO | |
+| `actual_quantity` | INTEGER | NO | |
+| `discrepancy` | INTEGER | | | GENERATED ALWAYS AS (actual_quantity - expected_quantity) STORED |
+| `notes` | TEXT | YES | |
+
+Constraints:
+- PK: `audit_item_id`
+
+Foreign keys:
+- `audit_id` -> `van_stock_audits.audit_id` (CASCADE)
+- `van_stock_item_id` -> `van_stock_items.item_id`
+- `part_id` -> `parts.part_id`
+
+---
+
 ## Inventory
 
 ### `parts`
@@ -1224,6 +1645,193 @@ RLS:
 
 ---
 
+## AutoCount Integration
+
+Tables for integrating with AutoCount accounting software.
+
+### `autocount_exports`
+Invoice export records to AutoCount.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `export_id` | UUID | NO | `gen_random_uuid()` |
+| `job_id` | UUID | NO | |
+| `export_type` | TEXT | NO | `'invoice'` |
+| `autocount_invoice_number` | TEXT | YES | |
+| `status` | TEXT | NO | `'pending'` |
+| `customer_code` | TEXT | YES | |
+| `customer_name` | TEXT | NO | |
+| `invoice_date` | DATE | NO | |
+| `due_date` | DATE | YES | |
+| `total_amount` | DECIMAL(12,2) | NO | |
+| `tax_amount` | DECIMAL(12,2) | YES | `0` |
+| `currency` | TEXT | NO | `'MYR'` |
+| `line_items` | JSONB | NO | `'[]'::jsonb` |
+| `exported_at` | TIMESTAMPTZ | YES | |
+| `exported_by_id` | UUID | YES | |
+| `exported_by_name` | TEXT | YES | |
+| `export_error` | TEXT | YES | |
+| `retry_count` | INTEGER | NO | `0` |
+| `last_retry_at` | TIMESTAMPTZ | YES | |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `export_id`
+- CHECK: `export_type` IN ('invoice', 'credit_note')
+- CHECK: `status` IN ('pending', 'exported', 'failed', 'cancelled')
+
+Foreign keys:
+- `job_id` -> `jobs.job_id` (CASCADE)
+- `exported_by_id` -> `users.user_id`
+
+Indexes:
+- `idx_autocount_exports_job` on `job_id`
+- `idx_autocount_exports_status` on `status` WHERE status IN ('pending', 'failed')
+
+---
+
+### `autocount_customer_mappings`
+Maps FieldPro customers to AutoCount customer codes.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `mapping_id` | UUID | NO | `gen_random_uuid()` |
+| `customer_id` | UUID | NO | |
+| `autocount_customer_code` | TEXT | NO | |
+| `autocount_customer_name` | TEXT | YES | |
+| `is_active` | BOOLEAN | NO | `true` |
+| `last_synced_at` | TIMESTAMPTZ | YES | |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `mapping_id`
+- UNIQUE: `customer_id`
+
+Foreign keys:
+- `customer_id` -> `customers.customer_id` (CASCADE)
+
+Indexes:
+- `idx_autocount_customer_mappings_code` on `autocount_customer_code`
+
+---
+
+### `autocount_item_mappings`
+Maps FieldPro parts to AutoCount item codes.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `mapping_id` | UUID | NO | `gen_random_uuid()` |
+| `part_id` | UUID | NO | |
+| `autocount_item_code` | TEXT | NO | |
+| `autocount_item_name` | TEXT | YES | |
+| `is_active` | BOOLEAN | NO | `true` |
+| `last_synced_at` | TIMESTAMPTZ | YES | |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `mapping_id`
+- UNIQUE: `part_id`
+
+Foreign keys:
+- `part_id` -> `parts.part_id` (CASCADE)
+
+Indexes:
+- `idx_autocount_item_mappings_code` on `autocount_item_code`
+
+---
+
+### `autocount_settings`
+AutoCount integration configuration.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `setting_id` | UUID | NO | `gen_random_uuid()` |
+| `is_enabled` | BOOLEAN | NO | `false` |
+| `api_endpoint` | TEXT | YES | |
+| `company_code` | TEXT | YES | |
+| `default_tax_code` | TEXT | YES | |
+| `default_currency` | TEXT | NO | `'MYR'` |
+| `auto_export_on_finalize` | BOOLEAN | NO | `false` |
+| `labor_item_code` | TEXT | YES | |
+| `extra_charge_item_code` | TEXT | YES | |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_by_id` | UUID | YES | |
+| `updated_by_name` | TEXT | YES | |
+
+Constraints:
+- PK: `setting_id`
+
+Foreign keys:
+- `updated_by_id` -> `users.user_id`
+
+---
+
+## Duration Alerts
+
+Tables for tracking job duration thresholds and alerts.
+
+### `duration_alert_configs`
+Configuration for job duration warning and alert thresholds per job type.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `config_id` | UUID | NO | `gen_random_uuid()` |
+| `job_type` | TEXT | NO | |
+| `warning_threshold_hours` | DECIMAL(4,2) | NO | |
+| `alert_threshold_hours` | DECIMAL(4,2) | NO | |
+| `notify_supervisor` | BOOLEAN | YES | `true` |
+| `notify_admin` | BOOLEAN | YES | `true` |
+| `is_active` | BOOLEAN | YES | `true` |
+| `created_at` | TIMESTAMPTZ | YES | `now()` |
+| `updated_at` | TIMESTAMPTZ | YES | `now()` |
+
+Constraints:
+- PK: `config_id`
+- UNIQUE: `job_type`
+
+Default values:
+| Job Type | Warning (hrs) | Alert (hrs) | Supervisor | Admin |
+|----------|---------------|-------------|------------|-------|
+| Service | 2.5 | 3 | Yes | Yes |
+| Repair | 4 | 5 | Yes | Yes |
+| Slot-In | 4 | 5 | Yes | Yes |
+| Checking | 1.5 | 2 | Yes | No |
+| Courier | 1 | 1.5 | No | No |
+
+---
+
+### `job_duration_alerts`
+Tracks sent duration alerts for jobs.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `alert_id` | UUID | NO | `gen_random_uuid()` |
+| `job_id` | UUID | NO | |
+| `alert_type` | TEXT | NO | |
+| `threshold_hours` | DECIMAL(4,2) | NO | |
+| `actual_hours` | DECIMAL(6,2) | NO | |
+| `sent_at` | TIMESTAMPTZ | NO | `now()` |
+| `sent_to_ids` | UUID[] | NO | |
+| `acknowledged_at` | TIMESTAMPTZ | YES | |
+| `acknowledged_by_id` | UUID | YES | |
+| `notes` | TEXT | YES | |
+
+Constraints:
+- PK: `alert_id`
+- CHECK: `alert_type` IN ('warning', 'exceeded')
+
+Foreign keys:
+- `job_id` -> `jobs.job_id` (CASCADE)
+- `acknowledged_by_id` -> `users.user_id`
+
+Indexes:
+- `idx_job_duration_alerts_job` on `job_id`
+
+---
+
 ## Views
 
 ### `active_rentals_view`
@@ -1388,6 +1996,214 @@ Columns:
 
 ---
 
+### `pending_hourmeter_amendments`
+Pending hourmeter amendment requests awaiting review.
+
+Columns:
+- `amendment_id` UUID
+- `job_id` UUID
+- `job_title` TEXT
+- `forklift_id` UUID
+- `forklift_serial` VARCHAR
+- `forklift_make` VARCHAR
+- `forklift_model` VARCHAR
+- `original_reading` INTEGER
+- `amended_reading` INTEGER
+- `difference` INTEGER (amended - original)
+- `reason` TEXT
+- `flag_reasons` TEXT[]
+- `requested_by_name` TEXT
+- `requested_at` TIMESTAMPTZ
+- `hours_pending` NUMERIC
+
+---
+
+### `flagged_hourmeter_readings`
+Jobs with flagged hourmeter readings that need amendment.
+
+Columns:
+- `job_id` UUID
+- `title` TEXT
+- `status` TEXT
+- `assigned_technician_name` TEXT
+- `forklift_serial` VARCHAR
+- `hourmeter_reading` INTEGER
+- `hourmeter_previous` INTEGER
+- `hours_difference` INTEGER
+- `hourmeter_flag_reasons` TEXT[]
+- `created_at` TIMESTAMPTZ
+
+---
+
+### `van_stock_summary`
+Summary view of Van Stock by technician.
+
+Columns:
+- `van_stock_id` UUID
+- `technician_id` UUID
+- `technician_name` TEXT
+- `is_active` BOOLEAN
+- `last_audit_at` TIMESTAMPTZ
+- `next_audit_due` TIMESTAMPTZ
+- `total_items` INTEGER
+- `low_stock_items` INTEGER
+- `total_value` NUMERIC
+- `pending_replenishments` INTEGER
+
+---
+
+### `pending_van_stock_approvals`
+Parts used from Van Stock on customer-owned forklifts awaiting approval.
+
+Columns:
+- `usage_id` UUID
+- `job_id` UUID
+- `job_title` TEXT
+- `customer_name` TEXT
+- `forklift_serial` VARCHAR
+- `forklift_ownership` VARCHAR
+- `part_name` TEXT
+- `part_code` TEXT
+- `quantity_used` INTEGER
+- `used_at` TIMESTAMPTZ
+- `used_by_name` TEXT
+- `technician_name` TEXT
+
+---
+
+### `fleet_dashboard_summary`
+Aggregated fleet status metrics for dashboard.
+
+Columns:
+- `total_fleet_count` BIGINT
+- `available_count` BIGINT
+- `rented_out_count` BIGINT
+- `in_service_count` BIGINT
+- `service_due_count` BIGINT
+- `awaiting_parts_count` BIGINT
+- `out_of_service_count` BIGINT
+- `reserved_count` BIGINT
+- `service_due_this_week` BIGINT
+
+---
+
+### `jobs_monthly_summary`
+Monthly job completion metrics.
+
+Columns:
+- `month` TIMESTAMPTZ
+- `jobs_completed` BIGINT
+- `avg_duration_hours` NUMERIC
+
+---
+
+### `most_active_forklifts`
+Top 10 most serviced forklifts in last 30 days.
+
+Columns:
+- `forklift_id` UUID
+- `serial_number` VARCHAR
+- `make` VARCHAR
+- `model` VARCHAR
+- `job_count` BIGINT
+- `total_hours` NUMERIC
+
+---
+
+### `flagged_photos`
+Photos flagged for admin review (GPS missing, timestamp mismatch, etc.).
+
+Columns:
+- `media_id` UUID
+- `job_id` UUID
+- `job_title` TEXT
+- `assigned_technician_name` TEXT
+- `customer_name` TEXT
+- `url` TEXT
+- `category` TEXT
+- `flagged_reason` TEXT
+- `timestamp_mismatch` BOOLEAN
+- `timestamp_mismatch_minutes` INTEGER
+- `gps_latitude` DECIMAL
+- `gps_longitude` DECIMAL
+- `source` TEXT
+- `is_camera_fallback` BOOLEAN
+- `fallback_description` TEXT
+- `created_at` TIMESTAMPTZ
+- `reviewed_at` TIMESTAMPTZ
+- `reviewed_by_name` TEXT
+
+---
+
+### `pending_camera_fallbacks`
+Photos taken using gallery (camera fallback) pending admin approval.
+
+Columns:
+- `media_id` UUID
+- `job_id` UUID
+- `job_title` TEXT
+- `assigned_technician_name` TEXT
+- `fallback_description` TEXT
+- `created_at` TIMESTAMPTZ
+- `uploaded_by_name` TEXT
+
+---
+
+### `pending_parts_confirmations`
+Jobs awaiting Admin 2 (Store) parts confirmation.
+
+Columns:
+- `job_id` UUID
+- `title` TEXT
+- `status` TEXT
+- `created_at` TIMESTAMPTZ
+- `completed_at` TIMESTAMPTZ
+- `assigned_technician_name` TEXT
+- `customer_name` TEXT
+- `forklift_serial` VARCHAR
+- `total_parts_used` BIGINT
+- `hours_since_completion` NUMERIC
+- `needs_escalation` BOOLEAN
+
+---
+
+### `pending_autocount_exports`
+AutoCount export records pending or failed.
+
+Columns:
+- `export_id` UUID
+- `job_id` UUID
+- `job_title` TEXT
+- `service_report_number` VARCHAR
+- `customer_name` TEXT
+- `customer_code` TEXT
+- `total_amount` DECIMAL
+- `status` TEXT
+- `retry_count` INTEGER
+- `export_error` TEXT
+- `created_at` TIMESTAMPTZ
+- `updated_at` TIMESTAMPTZ
+
+---
+
+### `autocount_export_history`
+Complete AutoCount export history.
+
+Columns:
+- `export_id` UUID
+- `job_id` UUID
+- `job_title` TEXT
+- `service_report_number` VARCHAR
+- `autocount_invoice_number` TEXT
+- `customer_name` TEXT
+- `total_amount` DECIMAL
+- `status` TEXT
+- `exported_at` TIMESTAMPTZ
+- `exported_by_name` TEXT
+- `export_error` TEXT
+
+---
+
 ## Enums
 
 ### `audit_event_type`
@@ -1406,7 +2222,12 @@ Columns:
 `pending`, `partial`, `paid`, `overdue`, `cancelled`
 
 ### `user_role_enum`
-`admin`, `supervisor`, `accountant`, `technician`
+`admin`, `admin_service`, `admin_store`, `supervisor`, `accountant`, `technician`
+
+> **Note:** As of 2026-01-15, admin roles can be split:
+> - `admin` - Full system access (acts as both service and store admin)
+> - `admin_service` - Job operations, hourmeter approval, job confirmations
+> - `admin_store` - Inventory, van stock, parts confirmation
 
 ---
 
@@ -1679,6 +2500,194 @@ Scheduled via pg_cron at 8:00 AM MYT daily.
 | `log_invoice_changes()` | `trg_audit_invoice` ON job_invoices | Logs invoice creation/finalization/payment |
 | `auto_create_service_record()` | `trg_auto_service_record` ON jobs | Auto-creates service record on job assignment |
 | `track_status_history()` | `trg_track_status_history` ON jobs | Tracks job status changes over time |
+| `validate_hourmeter_reading()` | `trigger_validate_hourmeter` ON jobs | Validates hourmeter readings and flags suspicious values |
+| `update_forklift_hourmeter()` | `trigger_update_forklift_hourmeter` ON jobs | Updates forklift hourmeter and records history on job changes |
+| `validate_job_checklist()` | `trigger_validate_checklist` ON jobs | Validates mandatory checklist items before completion |
+| `audit_direct_hourmeter_update()` | `trigger_audit_direct_hourmeter_update` ON forklifts | Audits direct hourmeter edits to forklifts |
+| `trigger_slot_in_replenishment()` | `trigger_slot_in_van_stock_replenishment` ON jobs | Auto-creates Van Stock replenishment on Slot-In job completion |
+| `deduct_van_stock()` | `trigger_deduct_van_stock` ON job_parts | Deducts from Van Stock when parts are used from van |
+
+---
+
+### Hourmeter Functions
+
+#### `apply_hourmeter_amendment(p_amendment_id UUID, p_approved_by_id UUID, p_approved_by_name TEXT, p_approve BOOLEAN, p_notes TEXT DEFAULT NULL)`
+Apply or reject a hourmeter amendment request.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `p_amendment_id` | UUID | Amendment to process |
+| `p_approved_by_id` | UUID | Approver's user ID |
+| `p_approved_by_name` | TEXT | Approver's name |
+| `p_approve` | BOOLEAN | True to approve, false to reject |
+| `p_notes` | TEXT | Optional review notes |
+
+| Returns | Description |
+|---------|-------------|
+| BOOLEAN | True if successful |
+
+Permissions: Admin (Service), Supervisor
+
+---
+
+### Van Stock Functions
+
+#### `schedule_quarterly_audits()`
+Schedule quarterly Van Stock audits for all active technicians.
+
+| Returns | Description |
+|---------|-------------|
+| INTEGER | Number of audits scheduled |
+
+---
+
+### Admin Role Functions
+
+#### `is_admin_type(user_role TEXT, admin_type TEXT)`
+Check if a user role matches an admin type.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `user_role` | TEXT | User's current role |
+| `admin_type` | TEXT | `'service'` or `'store'` |
+
+| Returns | Description |
+|---------|-------------|
+| BOOLEAN | True if role matches admin type |
+
+Notes:
+- `admin` role returns true for both types
+- `admin_service` returns true only for `'service'`
+- `admin_store` returns true only for `'store'`
+
+---
+
+#### `check_parts_confirmation_needed()`
+Trigger function to auto-skip parts confirmation if no parts used.
+
+Called on: `jobs` UPDATE (when status changes to 'Awaiting Finalization')
+
+---
+
+#### `escalate_pending_confirmations()`
+Escalate jobs pending parts confirmation for >24 hours.
+
+| Returns | Description |
+|---------|-------------|
+| INTEGER | Number of jobs escalated |
+
+---
+
+### Photo & Timer Functions
+
+#### `validate_photo_timestamp()`
+Trigger function to validate photo timestamp against server time.
+
+Called on: `job_media` INSERT
+
+Behavior:
+- Calculates difference between device and server timestamp
+- Flags photos with mismatch > tolerance (default 5 minutes)
+- Sets `flagged_for_review` and `flagged_reason`
+
+---
+
+#### `validate_photo_gps()`
+Trigger function to validate GPS coordinates on photos.
+
+Called on: `job_media` INSERT
+
+Behavior:
+- Checks if GPS is required (from app_settings)
+- Flags photos missing GPS coordinates
+
+---
+
+#### `photo_trigger_timer()`
+Trigger function to auto-start/stop job timer based on photos.
+
+Called on: `job_media` INSERT
+
+Behavior:
+- Start photo (is_start_photo=true, category='before'): Sets `jobs.started_at` and `repair_start_time`
+- End photo (is_end_photo=true, category='after'): Sets `jobs.repair_end_time`
+
+---
+
+#### `check_job_duration_alerts()`
+Check all in-progress jobs for duration threshold violations.
+
+| Returns | Description |
+|---------|-------------|
+| INTEGER | Number of alerts sent |
+
+Behavior:
+- Checks jobs against `duration_alert_configs`
+- Creates records in `job_duration_alerts`
+- Notifies supervisors and admins based on config
+
+---
+
+### Fleet Dashboard Functions
+
+#### `update_forklift_status_from_job()`
+Trigger function to auto-update forklift status based on job status.
+
+Called on: `jobs` UPDATE (status, awaiting_parts)
+
+Behavior:
+- Job starts: Forklift -> 'In Service'
+- Job awaiting parts: Forklift -> 'Awaiting Parts'
+- Job completes: Forklift -> 'Available' or 'Service Due'
+
+---
+
+#### `get_fleet_dashboard_metrics()`
+Get aggregated fleet metrics for dashboard.
+
+| Returns | Description |
+|---------|-------------|
+| JSONB | Fleet metrics object |
+
+Returns:
+```json
+{
+  "total_fleet_count": 50,
+  "units_by_status": {
+    "available": 30,
+    "rented_out": 10,
+    "in_service": 5,
+    "service_due": 3,
+    "awaiting_parts": 1,
+    "out_of_service": 1,
+    "reserved": 0
+  },
+  "service_due_this_week": 3,
+  "jobs_completed_this_month": 45,
+  "average_job_duration_hours": 2.5
+}
+```
+
+---
+
+### AutoCount Functions
+
+#### `prepare_autocount_export(p_job_id UUID)`
+Prepare invoice data for AutoCount export.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `p_job_id` | UUID | Job to export |
+
+| Returns | Description |
+|---------|-------------|
+| UUID | Export record ID |
+
+Behavior:
+- Creates `autocount_exports` record
+- Builds line items from labor, parts, extra charges
+- Maps customer/item codes from mapping tables
+- Updates `jobs.autocount_export_id`
 
 ---
 

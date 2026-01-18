@@ -214,7 +214,7 @@ Confirmed by: _________________ Date: _________
 |------|--------|
 | **Complete files** | Provide complete, paste-ready files for GitHub - not code snippets |
 | **Toast errors** | Use Sonner toast for user feedback - never silent failures |
-| **Theme variables** | Use CSS variables (--bg, --surface, --text-theme) - never hardcoded Tailwind dark: classes |
+| **Theme variables** | Use CSS variables (--bg, --surface, --text) or theme-aware classes. **NEVER** use Tailwind `dark:` prefix - it responds to OS settings, not the app's `[data-theme]` toggle. Prefer semantic CSS vars for status/tone badges (`--success-bg`, `--warning-bg`, `--error-bg`, `--info-bg`) and avoid hard-coded hex colors. Standard color classes (e.g., `bg-green-50`) are acceptable when `index.html` overrides are in place. **Available theme utility classes:** `.bg-theme-bg`, `.bg-theme-surface`, `.bg-theme-surface-2`, `.bg-theme-accent-subtle`, `.text-theme`, `.text-theme-secondary`, `.text-theme-muted`, `.text-theme-accent`, `.hover:bg-theme-surface-2`. |
 | **Idempotent migrations** | Database migrations must handle existing data gracefully |
 
 ### Database Patterns
