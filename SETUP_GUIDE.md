@@ -190,3 +190,34 @@ EOF
 ## Note: Athena Testing Framework
 
 The `/test` command references the Athena testing framework at `/mnt/x/Personal/Athena/`. This is an **external tool** not included in this repo. The command will still work for basic Playwright tests - just ignore the Athena-specific paths if you don't have it.
+
+---
+
+## Superpowers Plugin (Optional but Recommended)
+
+Superpowers is a third-party plugin that adds powerful workflow skills:
+
+**Install:**
+```bash
+# 1. Add the marketplace
+claude plugin marketplace add obra/superpowers-marketplace
+
+# 2. Install the plugin
+claude plugin install superpowers@superpowers-marketplace
+
+# 3. Verify
+claude plugin list
+```
+
+**Commands:**
+- `/superpowers:brainstorm` — Interactive design refinement
+- `/superpowers:write-plan` — Create implementation plans
+- `/superpowers:execute-plan` — Execute plans with subagents
+
+**Features:**
+- Socratic design process before coding
+- TDD enforcement (RED-GREEN-REFACTOR)
+- Subagent-driven development
+- Auto code review between tasks
+
+More info: https://github.com/obra/superpowers
