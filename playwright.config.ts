@@ -20,13 +20,16 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1, // Sequential to avoid Supabase auth rate limiting
   reporter: 'html',
+  timeout: 60000, // 60 second timeout per test
 
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    actionTimeout: 15000, // 15 seconds for actions
+    navigationTimeout: 30000, // 30 seconds for navigation
   },
 
   projects: [
