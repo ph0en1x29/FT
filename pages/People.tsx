@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { User, UserRole, Employee, EmployeeLeave, EmployeeLicense, EmployeePermit, LeaveStatus, ROLE_PERMISSIONS, HRDashboardSummary, AttendanceToday } from '../types';
+import { User, UserRole, Employee, EmployeeLeave, EmployeeLicense, EmployeePermit, LeaveStatus, HRDashboardSummary, AttendanceToday } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { HRService } from '../services/hrService';
 import { showToast } from '../services/toastService';
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import TechnicianKPIPage from './TechnicianKPIPageV2';
 import TeamStatusTab from '../components/TeamStatusTab';
+import { useDevModeContext } from '../contexts/DevModeContext';
 
 // ============================================================================
 // TYPES
@@ -34,13 +35,16 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
   const initialTab = (searchParams.get('tab') as TabType) || 'overview';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
+  // Use dev mode context for role-based permissions
+  const { hasPermission } = useDevModeContext();
+
   // Get filter params for child tabs
   const statusParam = searchParams.get('status') || undefined;
   const filterParam = searchParams.get('filter') as LeaveFilterType | undefined;
 
-  const canManageUsers = ROLE_PERMISSIONS[currentUser.role]?.canManageUsers;
-  const canViewHR = ROLE_PERMISSIONS[currentUser.role]?.canViewHR;
-  const canViewKPI = ROLE_PERMISSIONS[currentUser.role]?.canViewKPI;
+  const canManageUsers = hasPermission('canManageUsers');
+  const canViewHR = hasPermission('canViewHR');
+  const canViewKPI = hasPermission('canViewKPI');
 
   const handleTabChange = (tab: TabType, params?: Record<string, string>) => {
     setActiveTab(tab);
@@ -150,12 +154,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ currentUser, onNavigate }) =>
   const [pendingLeaves, setPendingLeaves] = useState<EmployeeLeave[]>([]);
   const [todaysAttendance, setTodaysAttendance] = useState<AttendanceToday | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Expand toggles for expiring sections
   const [showAllLicenses, setShowAllLicenses] = useState(false);
   const [showAllPermits, setShowAllPermits] = useState(false);
 
-  const canApproveLeave = ROLE_PERMISSIONS[currentUser.role]?.canApproveLeave;
+  // Use dev mode context for role-based permissions
+  const { hasPermission } = useDevModeContext();
+  const canApproveLeave = hasPermission('canApproveLeave');
 
   useEffect(() => {
     loadDashboardData();
@@ -903,7 +909,9 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilte
   const [rejectingLeaveId, setRejectingLeaveId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  const canApproveLeave = ROLE_PERMISSIONS[currentUser.role]?.canApproveLeave;
+  // Use dev mode context for role-based permissions
+  const { hasPermission } = useDevModeContext();
+  const canApproveLeave = hasPermission('canApproveLeave');
 
   // Update filter when initialFilter changes (from URL param)
   useEffect(() => {

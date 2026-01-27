@@ -54,6 +54,20 @@ const isNetworkError = (error: unknown) => {
   return error instanceof TypeError || /Failed to fetch|NetworkError|ERR_CONNECTION_CLOSED|fetch failed/i.test(message);
 };
 
+const fetchUserByAuthId = async (authId: string): Promise<User | null> => {
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('auth_id', authId)
+    .maybeSingle();
+
+  if (userError) throw new Error(userError.message);
+  if (!userData) return null;
+  if (!userData.is_active) throw new Error('Account is deactivated');
+
+  return userData as User;
+};
+
 export const SupabaseDb = {
   login: async (email: string, password: string): Promise<User> => {
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -64,17 +78,13 @@ export const SupabaseDb = {
     if (authError) throw new Error(authError.message);
     if (!authData.user) throw new Error('Login failed');
 
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('auth_id', authData.user.id)
-      .single();
+    const userData = await fetchUserByAuthId(authData.user.id);
+    if (!userData) throw new Error('User profile not found');
 
-    if (userError || !userData) throw new Error('User profile not found');
-    if (!userData.is_active) throw new Error('Account is deactivated');
-
-    return userData as User;
+    return userData;
   },
+
+  getUserByAuthId: fetchUserByAuthId,
 
   getUsers: async (): Promise<User[]> => {
     const { data, error } = await supabase
@@ -3817,6 +3827,59 @@ export const SupabaseDb = {
     }
   },
 
+  // Update a pending job request (technician can only update their own pending requests)
+  updateJobRequest: async (
+    requestId: string,
+    requestedBy: string,
+    updates: {
+      description?: string;
+      request_type?: 'assistance' | 'spare_part' | 'skillful_technician';
+      photo_url?: string | null;
+    }
+  ): Promise<boolean> => {
+    try {
+      // Only allow updating pending requests by the original requester
+      const { data: existing, error: checkError } = await supabase
+        .from('job_requests')
+        .select('request_id, status, requested_by')
+        .eq('request_id', requestId)
+        .single();
+
+      if (checkError || !existing) {
+        console.error('Request not found:', checkError?.message);
+        return false;
+      }
+
+      if (existing.status !== 'pending') {
+        console.error('Cannot edit non-pending request');
+        return false;
+      }
+
+      if (existing.requested_by !== requestedBy) {
+        console.error('Cannot edit request created by another user');
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('job_requests')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('request_id', requestId);
+
+      if (error) {
+        console.error('Failed to update job request:', error.message);
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      console.error('Job request update error:', e);
+      return false;
+    }
+  },
+
   // Get all requests for a job
   getJobRequests: async (jobId: string): Promise<any[]> => {
     try {
@@ -6135,6 +6198,118 @@ export const SupabaseDb = {
     } catch (e) {
       return null;
     }
+  },
+
+  // ==========================================================================
+  // JOB LOCKING (Multi-Admin Conflict Handling)
+  // ==========================================================================
+
+  // In-memory lock store (for single-instance apps)
+  // In production, this should be a Redis/database-backed lock
+  _jobLocks: {} as Record<string, { userId: string; userName: string; acquiredAt: Date }>,
+
+  // Lock timeout in milliseconds (5 minutes)
+  _lockTimeoutMs: 5 * 60 * 1000,
+
+  // Acquire a lock on a job for confirmation/editing
+  acquireJobLock: async (
+    jobId: string,
+    userId: string,
+    userName: string
+  ): Promise<{ success: boolean; lockedBy?: string; lockedByName?: string; lockedAt?: Date }> => {
+    const now = new Date();
+    const existingLock = SupabaseDb._jobLocks[jobId];
+
+    // Check if there's an existing lock
+    if (existingLock) {
+      // Check if lock has expired (5 min timeout)
+      const lockAge = now.getTime() - existingLock.acquiredAt.getTime();
+      if (lockAge < SupabaseDb._lockTimeoutMs) {
+        // Lock is still valid
+        if (existingLock.userId === userId) {
+          // Same user - refresh lock
+          SupabaseDb._jobLocks[jobId] = { userId, userName, acquiredAt: now };
+          return { success: true };
+        } else {
+          // Different user has the lock
+          return {
+            success: false,
+            lockedBy: existingLock.userId,
+            lockedByName: existingLock.userName,
+            lockedAt: existingLock.acquiredAt
+          };
+        }
+      }
+      // Lock expired - allow acquisition
+    }
+
+    // Acquire the lock
+    SupabaseDb._jobLocks[jobId] = { userId, userName, acquiredAt: now };
+    return { success: true };
+  },
+
+  // Release a lock on a job
+  releaseJobLock: async (jobId: string, userId: string): Promise<boolean> => {
+    const existingLock = SupabaseDb._jobLocks[jobId];
+    if (!existingLock) return true; // No lock to release
+
+    // Only the lock holder can release
+    if (existingLock.userId === userId) {
+      delete SupabaseDb._jobLocks[jobId];
+      return true;
+    }
+
+    return false; // Cannot release someone else's lock
+  },
+
+  // Check if a job is locked by another user
+  checkJobLock: async (
+    jobId: string,
+    userId: string
+  ): Promise<{ isLocked: boolean; lockedBy?: string; lockedByName?: string; lockedAt?: Date }> => {
+    const now = new Date();
+    const existingLock = SupabaseDb._jobLocks[jobId];
+
+    if (!existingLock) {
+      return { isLocked: false };
+    }
+
+    // Check if lock has expired
+    const lockAge = now.getTime() - existingLock.acquiredAt.getTime();
+    if (lockAge >= SupabaseDb._lockTimeoutMs) {
+      // Lock expired - clean it up
+      delete SupabaseDb._jobLocks[jobId];
+      return { isLocked: false };
+    }
+
+    // Lock is active - check if it's our lock
+    if (existingLock.userId === userId) {
+      return { isLocked: false }; // Our own lock doesn't block us
+    }
+
+    return {
+      isLocked: true,
+      lockedBy: existingLock.userId,
+      lockedByName: existingLock.userName,
+      lockedAt: existingLock.acquiredAt
+    };
+  },
+
+  // Clean up expired locks (can be called periodically)
+  cleanupExpiredLocks: async (): Promise<number> => {
+    const now = new Date();
+    let cleaned = 0;
+
+    for (const jobId of Object.keys(SupabaseDb._jobLocks)) {
+      const lock = SupabaseDb._jobLocks[jobId];
+      const lockAge = now.getTime() - lock.acquiredAt.getTime();
+      if (lockAge >= SupabaseDb._lockTimeoutMs) {
+        delete SupabaseDb._jobLocks[jobId];
+        cleaned++;
+      }
+    }
+
+    return cleaned;
   },
 };
 

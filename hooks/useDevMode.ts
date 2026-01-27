@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { UserRole } from '../types';
+import { UserRole, RolePermissions } from '../types';
 
 // Hardcoded dev emails (always allowed) + env variable for additional emails
 const HARDCODED_DEV_EMAILS = ['dev@test.com'];
@@ -8,6 +8,9 @@ const DEV_EMAILS = [...new Set([...HARDCODED_DEV_EMAILS, ...ENV_DEV_EMAILS])];
 
 export type DevModeRole = UserRole | null;
 export type DevModeType = 'ui_only' | 'strict';
+
+// Permission overrides - partial map of permissions to override values
+export type PermissionOverrides = Partial<Record<keyof RolePermissions, boolean>>;
 
 interface DevModeState {
   isDev: boolean;
@@ -20,6 +23,8 @@ interface DevModeState {
   permissionRole: UserRole;
   /** @deprecated Use displayRole or permissionRole instead */
   effectiveRole: UserRole;
+  /** Permission overrides - individual permission toggles that override role defaults */
+  permissionOverrides: PermissionOverrides;
 }
 
 interface DevModeActions {
@@ -27,9 +32,14 @@ interface DevModeActions {
   deactivateDevMode: () => void;
   setDevModeType: (type: DevModeType) => void;
   setImpersonatedRole: (role: UserRole) => void;
+  // Permission override actions
+  setPermissionOverride: (permission: keyof RolePermissions, value: boolean | null) => void;
+  clearPermissionOverrides: () => void;
+  getPermissionOverrides: () => PermissionOverrides;
 }
 
 const STORAGE_KEY = 'fieldpro_dev_mode';
+const OVERRIDES_STORAGE_KEY = 'fieldpro_permission_overrides';
 
 interface StoredDevMode {
   impersonatedRole: DevModeRole;
@@ -49,12 +59,42 @@ const loadStoredState = (): StoredDevMode | null => {
   return null;
 };
 
+// Load permission overrides from localStorage
+const loadPermissionOverrides = (): PermissionOverrides => {
+  try {
+    const stored = localStorage.getItem(OVERRIDES_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('Failed to load permission overrides:', e);
+  }
+  return {};
+};
+
+// Save permission overrides to localStorage
+const savePermissionOverrides = (overrides: PermissionOverrides) => {
+  try {
+    if (Object.keys(overrides).length === 0) {
+      localStorage.removeItem(OVERRIDES_STORAGE_KEY);
+    } else {
+      localStorage.setItem(OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
+    }
+  } catch (e) {
+    console.error('Failed to save permission overrides:', e);
+  }
+};
+
 /**
  * Hook to manage developer mode functionality
- * 
+ *
  * UI Only mode: Display shows impersonated role, but permissions use real role
  * Strict mode: Both display AND permissions use impersonated role
- * 
+ *
+ * Permission Overrides: Individual permissions can be toggled on/off regardless
+ * of the current role. This is useful for testing edge cases like
+ * "What if a Technician COULD create jobs?"
+ *
  * @param userEmail - Current user's email
  * @param userRole - Current user's actual role
  */
@@ -70,6 +110,11 @@ export function useDevMode(userEmail: string | undefined, userRole: UserRole): D
     return stored?.devModeType || 'ui_only';
   });
 
+  // Permission overrides state
+  const [permissionOverrides, setPermissionOverridesState] = useState<PermissionOverrides>(() => {
+    return loadPermissionOverrides();
+  });
+
   // Track if we've validated the user yet
   const [hasValidated, setHasValidated] = useState(false);
 
@@ -81,9 +126,11 @@ export function useDevMode(userEmail: string | undefined, userRole: UserRole): D
     if (userEmail && !hasValidated) {
       setHasValidated(true);
       if (!DEV_EMAILS.includes(userEmail.toLowerCase())) {
-        // Not a dev user - clear any stored dev mode
+        // Not a dev user - clear any stored dev mode and overrides
         setImpersonatedRoleState(null);
+        setPermissionOverridesState({});
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(OVERRIDES_STORAGE_KEY);
       }
     }
   }, [userEmail, hasValidated]);
@@ -95,6 +142,11 @@ export function useDevMode(userEmail: string | undefined, userRole: UserRole): D
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
   }, [impersonatedRole, devModeType]);
+
+  // Persist permission overrides when they change
+  useEffect(() => {
+    savePermissionOverrides(permissionOverrides);
+  }, [permissionOverrides]);
 
   const isDevModeActive = isDev && impersonatedRole !== null;
 
@@ -126,6 +178,31 @@ export function useDevMode(userEmail: string | undefined, userRole: UserRole): D
     setImpersonatedRoleState(role);
   }, [isDev]);
 
+  // Permission override actions
+  const setPermissionOverride = useCallback((permission: keyof RolePermissions, value: boolean | null) => {
+    if (!isDev) return;
+    setPermissionOverridesState(prev => {
+      if (value === null) {
+        // Remove the override (use role default)
+        const { [permission]: _, ...rest } = prev;
+        return rest;
+      }
+      return {
+        ...prev,
+        [permission]: value,
+      };
+    });
+  }, [isDev]);
+
+  const clearPermissionOverrides = useCallback(() => {
+    setPermissionOverridesState({});
+    localStorage.removeItem(OVERRIDES_STORAGE_KEY);
+  }, []);
+
+  const getPermissionOverrides = useCallback(() => {
+    return permissionOverrides;
+  }, [permissionOverrides]);
+
   return {
     isDev,
     isDevModeActive,
@@ -133,12 +210,16 @@ export function useDevMode(userEmail: string | undefined, userRole: UserRole): D
     devModeType,
     displayRole,
     permissionRole,
+    permissionOverrides,
     // Keep effectiveRole for backward compatibility (maps to displayRole)
     effectiveRole: displayRole,
     activateDevMode,
     deactivateDevMode,
     setDevModeType,
     setImpersonatedRole,
+    setPermissionOverride,
+    clearPermissionOverrides,
+    getPermissionOverrides,
   };
 }
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Forklift, ForkliftRental, Job, User, ForkliftStatus, RentalStatus, Customer, ScheduledService, UserRole, ROLE_PERMISSIONS, ForkliftServiceEntry } from '../types';
+import { Forklift, ForkliftRental, Job, User, ForkliftStatus, RentalStatus, Customer, ScheduledService, UserRole, ForkliftServiceEntry } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
+import { useDevModeContext } from '../contexts/DevModeContext';
 import { 
   ArrowLeft, Truck, MapPin, Gauge, Calendar, Wrench, 
   CheckCircle, Clock, AlertCircle, Building2, User as UserIcon,
@@ -52,12 +53,15 @@ const ForkliftProfile: React.FC<ForkliftProfileProps> = ({ currentUser }) => {
   const [assignedTechId, setAssignedTechId] = useState('');
 
 
+  // Use dev mode context for role-based permissions
+  const { displayRole, hasPermission } = useDevModeContext();
+
   // Check permissions
-  const canEditRentalRates = ROLE_PERMISSIONS[currentUser.role]?.canEditRentalRates ?? false;
-  const canScheduleMaintenance = ROLE_PERMISSIONS[currentUser.role]?.canScheduleMaintenance ?? false;
-  const canManageRentals = ROLE_PERMISSIONS[currentUser.role]?.canManageRentals ?? false;
-  const isAdmin = currentUser.role.toString().toLowerCase() === 'admin';
-  const isSupervisor = currentUser.role.toString().toLowerCase() === 'supervisor';
+  const canEditRentalRates = hasPermission('canEditRentalRates');
+  const canScheduleMaintenance = hasPermission('canScheduleMaintenance');
+  const canManageRentals = hasPermission('canManageRentals');
+  const isAdmin = displayRole === UserRole.ADMIN;
+  const isSupervisor = displayRole === UserRole.SUPERVISOR;
   const canViewCancelled = isAdmin || isSupervisor;
 
   useEffect(() => {

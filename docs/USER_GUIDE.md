@@ -16,6 +16,15 @@
 > - **Photo Validation** - GPS tracking and timestamp verification on photos
 > - **Fleet Dashboard** - Real-time forklift status updates
 >
+> **Latest Update (2026-01-19):**
+> - **Parts Confirmation Workflow** - Admin Service must wait for Admin Store to verify parts
+> - **Technician Pricing Removed** - Technicians no longer see prices (request parts via Spare Part Request)
+> - **Binary Checklist** - Checklist items are now OK ✓ or Not OK ✗
+> - **Photo Auto-Start** - First photo automatically starts job timer
+> - **Edit Pending Requests** - Technicians can edit their own pending requests
+> - **Hourmeter Persistence** - Hourmeter readings preserved across job reassignment
+> - **Dashboard Notifications** - See recent notifications on your dashboard
+>
 > 📚 **All Documentation:** See [Documentation Index](./README.md) for complete docs navigation.
 
 ---
@@ -189,25 +198,37 @@ The dashboard also shows your **Active Jobs** list with quick actions to view or
 
 While the job is "In Progress", you can:
 
-#### Add Parts Used
-1. Go to "Parts Used" section
-2. Click **"Add Part"**
-3. Search and select the part
-4. Enter quantity
-5. Adjust price if needed (with supervisor approval)
+#### Request Parts (Changed - 2026-01-19)
+> **Note:** Technicians can no longer directly add parts to jobs. Use the Spare Part Request workflow instead:
+
+1. Click **"Request Spare Part"** in the Request section
+2. Describe the part needed
+3. Upload a photo of the faulty component (optional)
+4. Wait for Admin approval
+5. Approved parts appear in the "Parts Used" list
+
+**Why this change?** To improve inventory accuracy and ensure proper stock management.
 
 #### Record Service Details
 1. Fill in "Job Carried Out" - describe the work done
 2. Add "Recommendation" - any follow-up suggestions
 3. Set repair start/end times
 
-#### Add Photos
+#### Add Photos (Updated - 2026-01-19)
 1. Click **"Add Photo"** in the Media section
 2. Take or upload photos of:
    - Before condition
    - Work in progress
    - After condition
    - Parts replaced
+
+**New: Auto-Start Timer** - Your first photo automatically starts the job timer! No need to manually start the job after taking your first photo.
+
+#### Condition Checklist (Updated - 2026-01-19)
+The checklist now uses binary states:
+- Click **✓ OK** (green) if the item passes inspection
+- Click **✗ Not OK** (red) if the item fails
+- All mandatory items must be marked before completing the job
 
 ### Completing a Job
 
@@ -245,6 +266,26 @@ During an "In Progress" job, you can request assistance:
 1. Click **"Request Skillful Technician"** button
 2. Explain the skill/expertise issue
 3. Admin may reassign the job to a specialist
+
+#### Edit Pending Requests (NEW - 2026-01-19)
+If you made a mistake in a request that hasn't been processed yet:
+
+1. Find your request in the "Requests" section of the job
+2. If status is "Pending", click the **"Edit"** button
+3. Update the description, type, or photo
+4. Click **"Save"**
+
+> **Note:** You can only edit your own requests while they are still pending. Once approved or rejected, requests cannot be edited.
+
+### Your Dashboard (Updated - 2026-01-19)
+
+Your dashboard now shows a **Notifications** card with recent alerts:
+
+- Job assignments
+- Request approvals/rejections
+- Escalation notices
+
+Click any notification to go directly to the related job or page.
 
 ### Multi-Day Jobs (NEW)
 
@@ -528,6 +569,44 @@ Jobs awaiting customer acknowledgement appear in Dashboard:
 3. Options:
    - **Accept & Complete** - Finalize despite dispute
    - **Reopen Job** - Send back to technician for rework
+
+### Parts Confirmation Workflow (NEW - 2026-01-19)
+
+For jobs with parts used, a **two-admin confirmation** is required:
+
+#### Admin Store (Parts Verification)
+1. Go to **Pending Confirmations** page
+2. View jobs in "Parts Confirmation Queue" tab
+3. Review parts used against inventory
+4. Click **"Confirm Parts"** if correct
+5. Or **"Reject"** with reason if issues found
+
+#### Admin Service (Job Finalization)
+1. Cannot finalize until Admin Store confirms parts
+2. If parts not confirmed, you'll see: "Store Verification Pending"
+3. Wait for Admin Store to confirm, then finalize
+
+> **Note:** This ensures both operational and inventory verification before job completion.
+
+### Pre-Job Parts Allocation (NEW - 2026-01-19)
+
+Admin Store can add parts to jobs **before** technician starts:
+
+1. Open a job with status "New" or "Assigned"
+2. Go to "Parts Used" section
+3. Click **"Add Part"**
+4. Select part and quantity
+5. Parts are ready for technician when they start the job
+
+### Multi-Admin Conflict Prevention (NEW - 2026-01-19)
+
+When multiple admins work on the same job:
+
+- A **5-minute lock** is acquired when confirming/editing
+- If another admin tries to access, they see: "Job Locked - Being reviewed by [Name]"
+- Lock automatically releases after 5 minutes of inactivity
+
+This prevents conflicting changes when multiple admins are active.
 
 ### System Configuration
 

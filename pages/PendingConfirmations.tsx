@@ -106,6 +106,27 @@ export default function PendingConfirmations({ currentUser, hideHeader = false }
   const handleConfirmParts = async (jobId: string) => {
     try {
       setProcessing(true);
+
+      // Check if job is locked by another admin
+      const lockCheck = await MockDb.checkJobLock(jobId, currentUser.user_id);
+      if (lockCheck.isLocked) {
+        showToast.error(
+          'Job Locked',
+          `This job is being reviewed by ${lockCheck.lockedByName || 'another admin'}. Please try again later.`
+        );
+        return;
+      }
+
+      // Acquire lock for this operation
+      const lockResult = await MockDb.acquireJobLock(jobId, currentUser.user_id, currentUser.name);
+      if (!lockResult.success) {
+        showToast.error(
+          'Job Locked',
+          `This job is being reviewed by ${lockResult.lockedByName || 'another admin'}. Please try again later.`
+        );
+        return;
+      }
+
       const updated = await MockDb.updateJob(jobId, {
         parts_confirmed_at: new Date().toISOString(),
         parts_confirmed_by_id: currentUser.user_id,
@@ -113,6 +134,9 @@ export default function PendingConfirmations({ currentUser, hideHeader = false }
       });
       setJobs(prev => prev.map(j => j.job_id === jobId ? { ...j, ...updated } : j));
       showToast.success('Parts confirmed', 'Job moved to service confirmation queue');
+
+      // Release lock after successful operation
+      await MockDb.releaseJobLock(jobId, currentUser.user_id);
       loadJobs();
     } catch (error) {
       showToast.error('Failed to confirm parts', (error as Error).message);
@@ -123,8 +147,45 @@ export default function PendingConfirmations({ currentUser, hideHeader = false }
 
   // Confirm Job (Admin 1)
   const handleConfirmJob = async (jobId: string) => {
+    // Find the job to validate parts confirmation
+    const job = jobs.find(j => j.job_id === jobId);
+    if (!job) {
+      showToast.error('Job not found');
+      return;
+    }
+
+    // Block confirmation if parts exist but not confirmed by Admin 2 (Store)
+    if (job.parts_used.length > 0 && !job.parts_confirmed_at && !job.parts_confirmation_skipped) {
+      showToast.error(
+        'Store Verification Pending',
+        'Admin 2 (Store) must approve parts before final service closure'
+      );
+      return;
+    }
+
     try {
       setProcessing(true);
+
+      // Check if job is locked by another admin
+      const lockCheck = await MockDb.checkJobLock(jobId, currentUser.user_id);
+      if (lockCheck.isLocked) {
+        showToast.error(
+          'Job Locked',
+          `This job is being reviewed by ${lockCheck.lockedByName || 'another admin'}. Please try again later.`
+        );
+        return;
+      }
+
+      // Acquire lock for this operation
+      const lockResult = await MockDb.acquireJobLock(jobId, currentUser.user_id, currentUser.name);
+      if (!lockResult.success) {
+        showToast.error(
+          'Job Locked',
+          `This job is being reviewed by ${lockResult.lockedByName || 'another admin'}. Please try again later.`
+        );
+        return;
+      }
+
       const updated = await MockDb.updateJobStatus(jobId, JobStatus.COMPLETED, currentUser.user_id, currentUser.name);
       await MockDb.updateJob(jobId, {
         job_confirmed_at: new Date().toISOString(),
@@ -133,6 +194,9 @@ export default function PendingConfirmations({ currentUser, hideHeader = false }
       });
       setJobs(prev => prev.filter(j => j.job_id !== jobId));
       showToast.success('Job confirmed', 'Job marked as completed');
+
+      // Release lock after successful operation
+      await MockDb.releaseJobLock(jobId, currentUser.user_id);
     } catch (error) {
       showToast.error('Failed to confirm job', (error as Error).message);
     } finally {

@@ -1,149 +1,147 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { Eye, Lock, ChevronDown } from 'lucide-react';
 import { UserRole } from '../../types';
+import { useDevModeContext } from '../../contexts/DevModeContext';
 import { DevModeType } from '../../hooks/useDevMode';
-import { Shield, Wrench, FileText, User, ChevronDown, Eye, Lock } from 'lucide-react';
 
-interface RoleSwitcherProps {
-  currentRole: UserRole;
-  impersonatedRole: UserRole | null;
-  devModeType: DevModeType;
-  onRoleChange: (role: UserRole) => void;
-  onModeTypeChange: (type: DevModeType) => void;
-  onDeactivate: () => void;
-}
+const roleLabels: Record<UserRole, string> = {
+  [UserRole.ADMIN]: 'Admin',
+  [UserRole.ADMIN_SERVICE]: 'Admin (Service)',
+  [UserRole.ADMIN_STORE]: 'Admin (Store)',
+  [UserRole.SUPERVISOR]: 'Supervisor',
+  [UserRole.TECHNICIAN]: 'Technician',
+  [UserRole.ACCOUNTANT]: 'Accountant',
+};
 
-const roles = [
-  { role: UserRole.ADMIN, label: 'Admin', icon: Shield, color: 'text-purple-500' },
-  { role: UserRole.SUPERVISOR, label: 'Supervisor', icon: User, color: 'text-blue-500' },
-  { role: UserRole.TECHNICIAN, label: 'Technician', icon: Wrench, color: 'text-green-500' },
-  { role: UserRole.ACCOUNTANT, label: 'Accountant', icon: FileText, color: 'text-amber-500' },
+const roleColors: Record<UserRole, string> = {
+  [UserRole.ADMIN]: 'bg-purple-500',
+  [UserRole.ADMIN_SERVICE]: 'bg-purple-600',
+  [UserRole.ADMIN_STORE]: 'bg-indigo-500',
+  [UserRole.SUPERVISOR]: 'bg-blue-500',
+  [UserRole.TECHNICIAN]: 'bg-green-500',
+  [UserRole.ACCOUNTANT]: 'bg-amber-500',
+};
+
+const modeOptions: { value: DevModeType; label: string; icon: React.ReactNode; description: string }[] = [
+  {
+    value: 'ui_only',
+    label: 'UI Only',
+    icon: <Eye className="w-4 h-4" />,
+    description: 'See UI as role, keep real permissions',
+  },
+  {
+    value: 'strict',
+    label: 'Strict',
+    icon: <Lock className="w-4 h-4" />,
+    description: 'Full role simulation with permissions',
+  },
 ];
 
-export const RoleSwitcher: React.FC<RoleSwitcherProps> = ({
-  currentRole,
-  impersonatedRole,
-  devModeType,
-  onRoleChange,
-  onModeTypeChange,
-  onDeactivate,
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const activeRole = impersonatedRole || currentRole;
-  const activeRoleInfo = roles.find(r => r.role === activeRole)!;
-  const ActiveIcon = activeRoleInfo.icon;
+/**
+ * RoleSwitcher - Component for switching between roles in dev mode
+ *
+ * Features:
+ * - Role dropdown selector
+ * - Mode toggle (UI Only vs Strict)
+ * - Visual feedback for current selection
+ *
+ * Used within DevPanel for compact display
+ */
+export const RoleSwitcher: React.FC = () => {
+  const {
+    currentUser,
+    isDevModeActive,
+    impersonatedRole,
+    devModeType,
+    displayRole,
+    activateDevMode,
+    deactivateDevMode,
+    setDevModeType,
+    setImpersonatedRole,
+  } = useDevModeContext();
+
+  const handleRoleChange = (role: UserRole | 'none') => {
+    if (role === 'none') {
+      deactivateDevMode();
+    } else {
+      if (isDevModeActive) {
+        setImpersonatedRole(role);
+      } else {
+        activateDevMode(role, devModeType);
+      }
+    }
+  };
+
+  const handleModeChange = (mode: DevModeType) => {
+    if (!isDevModeActive) {
+      // If not active, activate with current user's role in selected mode
+      activateDevMode(currentUser.role, mode);
+    } else {
+      setDevModeType(mode);
+    }
+  };
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors"
-        style={{ 
-          background: 'var(--surface)', 
-          border: '1px solid var(--border)',
-          color: 'var(--text)'
-        }}
-      >
-        <ActiveIcon className={`w-4 h-4 ${activeRoleInfo.color}`} />
-        <span className="text-sm font-medium">{activeRoleInfo.label}</span>
-        <ChevronDown 
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-          style={{ color: 'var(--text-muted)' }}
-        />
-      </button>
+    <div className="space-y-3">
+      {/* Current Status */}
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-slate-400">
+          Actual: <span className="text-slate-300">{roleLabels[currentUser.role]}</span>
+        </span>
+        {isDevModeActive && (
+          <span className={`px-2 py-0.5 rounded text-xs font-medium ${roleColors[displayRole]} text-white`}>
+            Viewing as: {roleLabels[displayRole]}
+          </span>
+        )}
+      </div>
 
-      {isOpen && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div 
-            className="absolute right-0 mt-2 w-64 rounded-lg shadow-xl z-50 overflow-hidden"
-            style={{ 
-              background: 'var(--surface)', 
-              border: '1px solid var(--border)',
-              boxShadow: 'var(--shadow-lg)'
-            }}
+      {/* Role Selector */}
+      <div className="relative">
+        <select
+          value={isDevModeActive && impersonatedRole ? impersonatedRole : 'none'}
+          onChange={(e) => handleRoleChange(e.target.value as UserRole | 'none')}
+          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+        >
+          <option value="none">-- No Impersonation --</option>
+          {Object.entries(roleLabels).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+      </div>
+
+      {/* Mode Toggle */}
+      <div className="flex gap-2">
+        {modeOptions.map(({ value, label, icon, description }) => (
+          <button
+            key={value}
+            onClick={() => handleModeChange(value)}
+            className={`
+              flex-1 flex flex-col items-center gap-1 px-3 py-2 rounded-lg border transition-colors
+              ${devModeType === value && isDevModeActive
+                ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
+                : 'bg-slate-800 border-slate-600 text-slate-400 hover:text-slate-300 hover:border-slate-500'
+              }
+            `}
+            title={description}
           >
-            {/* Role Selection */}
-            <div className="p-2" style={{ borderBottom: '1px solid var(--border)' }}>
-              <p className="text-xs px-2 py-1 font-medium" style={{ color: 'var(--text-muted)' }}>VIEW AS ROLE</p>
-              {roles.map(({ role, label, icon: Icon, color }) => (
-                <button
-                  key={role}
-                  onClick={() => {
-                    onRoleChange(role);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors`}
-                  style={{ 
-                    background: activeRole === role ? 'var(--accent-subtle)' : 'transparent',
-                    color: activeRole === role ? 'var(--accent)' : 'var(--text)'
-                  }}
-                >
-                  <Icon className={`w-4 h-4 ${color}`} />
-                  <span className="text-sm">{label}</span>
-                  {activeRole === role && (
-                    <span 
-                      className="ml-auto text-xs px-1.5 py-0.5 rounded"
-                      style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
-                    >
-                      Active
-                    </span>
-                  )}
-                </button>
-              ))}
+            <div className="flex items-center gap-1.5">
+              {icon}
+              <span className="text-xs font-medium">{label}</span>
             </div>
+          </button>
+        ))}
+      </div>
 
-            {/* Mode Type Toggle */}
-            <div className="p-2" style={{ borderBottom: '1px solid var(--border)' }}>
-              <p className="text-xs px-2 py-1 font-medium" style={{ color: 'var(--text-muted)' }}>PERMISSION MODE</p>
-              <button
-                onClick={() => onModeTypeChange('ui_only')}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors"
-                style={{ 
-                  background: devModeType === 'ui_only' ? 'var(--warning-bg)' : 'transparent',
-                  color: devModeType === 'ui_only' ? 'var(--warning)' : 'var(--text)'
-                }}
-              >
-                <Eye className="w-4 h-4" />
-                <div>
-                  <span className="text-sm">UI Only</span>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>See dashboard, keep real permissions</p>
-                </div>
-              </button>
-              <button
-                onClick={() => onModeTypeChange('strict')}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors"
-                style={{ 
-                  background: devModeType === 'strict' ? 'var(--error-bg)' : 'transparent',
-                  color: devModeType === 'strict' ? 'var(--error)' : 'var(--text)'
-                }}
-              >
-                <Lock className="w-4 h-4" />
-                <div>
-                  <span className="text-sm">Strict Mode</span>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Actually limit to role's permissions</p>
-                </div>
-              </button>
-            </div>
-
-            {/* Exit Button */}
-            {impersonatedRole && (
-              <div className="p-2">
-                <button
-                  onClick={() => {
-                    onDeactivate();
-                    setIsOpen(false);
-                  }}
-                  className="w-full px-3 py-2 text-sm rounded-md transition-colors text-center font-medium"
-                  style={{ color: 'var(--error)' }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--error-bg)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                >
-                  Exit Dev Mode
-                </button>
-              </div>
-            )}
-          </div>
-        </>
+      {/* Mode description */}
+      {isDevModeActive && (
+        <p className="text-xs text-slate-500">
+          {devModeType === 'strict'
+            ? 'Permissions are enforced as the impersonated role.'
+            : 'UI shows impersonated role, but your real permissions apply.'}
+        </p>
       )}
     </div>
   );

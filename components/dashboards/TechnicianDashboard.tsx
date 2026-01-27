@@ -8,6 +8,7 @@ import { User, Job, JobStatus, JobType } from '../../types';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
 import SlotInSLABadge from '../SlotInSLABadge';
+import DashboardNotificationCard from '../DashboardNotificationCard';
 
 interface TechnicianDashboardProps {
   currentUser: User;
@@ -53,12 +54,25 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser }
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - 7);
 
-  // My jobs for today
-  const todayJobs = jobs.filter(j => {
-    const scheduled = j.scheduled_date ? new Date(j.scheduled_date) : null;
-    return scheduled && scheduled.toDateString() === todayStr &&
-           !['Completed', 'Cancelled'].includes(j.status);
-  });
+  // My jobs for today - sorted chronologically by scheduled time
+  const todayJobs = jobs
+    .filter(j => {
+      const scheduled = j.scheduled_date ? new Date(j.scheduled_date) : null;
+      return scheduled && scheduled.toDateString() === todayStr &&
+             !['Completed', 'Cancelled'].includes(j.status);
+    })
+    .sort((a, b) => {
+      const aTime = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0;
+      const bTime = b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0;
+      return aTime - bTime; // Chronological order
+    });
+
+  // Check if a job is overdue (past scheduled time)
+  const isJobOverdue = (job: Job): boolean => {
+    if (!job.scheduled_date) return false;
+    const scheduledTime = new Date(job.scheduled_date).getTime();
+    return Date.now() > scheduledTime && job.status !== JobStatus.IN_PROGRESS;
+  };
 
   // Jobs in progress
   const inProgressJobs = jobs.filter(j => j.status === JobStatus.IN_PROGRESS);
@@ -178,6 +192,125 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser }
         </div>
       )}
 
+      {/* Today's Schedule Carousel - PRIMARY SECTION */}
+      <div className="card-premium overflow-hidden">
+        <div className="p-4 border-b border-[var(--border)] bg-[var(--bg-subtle)]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--accent-subtle)] flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-[var(--accent)]" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-lg text-[var(--text)]">Today's Schedule</h2>
+                <p className="text-xs text-[var(--text-muted)]">
+                  {todayJobs.length} job{todayJobs.length !== 1 ? 's' : ''} scheduled • Swipe to see more
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/jobs')}
+              className="text-sm font-medium text-[var(--accent)] hover:underline"
+            >
+              View All →
+            </button>
+          </div>
+        </div>
+
+        {todayJobs.length === 0 ? (
+          <div className="p-8 text-center">
+            <Calendar className="w-12 h-12 mx-auto mb-3 text-[var(--text-muted)] opacity-50" />
+            <p className="font-medium text-[var(--text)]">No jobs scheduled for today</p>
+            <p className="text-sm text-[var(--text-muted)] mt-1">Check back later or view all jobs</p>
+          </div>
+        ) : (
+          <div className="p-4">
+            <div className="schedule-carousel">
+              {todayJobs.map(job => {
+                const isSlotIn = job.job_type === JobType.SLOT_IN;
+                const isUnacknowledged = isSlotIn && !job.acknowledged_at;
+                const overdue = isJobOverdue(job);
+                const typeColor = getJobTypeColor(job.job_type);
+                const statusColor = getStatusColor(job.status);
+
+                return (
+                  <div
+                    key={job.job_id}
+                    onClick={() => navigate(`/jobs/${job.job_id}`)}
+                    className={`schedule-card ${isUnacknowledged ? 'urgent' : ''} ${overdue ? 'overdue' : ''}`}
+                  >
+                    {/* Job Type Badge */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span
+                        className="px-2 py-1 rounded-lg text-xs font-medium"
+                        style={{ background: typeColor.bg, color: typeColor.text }}
+                      >
+                        {job.job_type || 'Job'}
+                      </span>
+                      {isUnacknowledged && (
+                        <SlotInSLABadge
+                          createdAt={job.created_at}
+                          acknowledgedAt={job.acknowledged_at}
+                          slaTargetMinutes={job.sla_target_minutes || 15}
+                          size="sm"
+                        />
+                      )}
+                    </div>
+
+                    {/* Job Title */}
+                    <h3 className="font-medium text-[var(--text)] truncate mb-1">{job.title}</h3>
+
+                    {/* Customer & Location */}
+                    <div className="flex items-center gap-1 text-xs text-[var(--text-muted)] mb-2">
+                      <MapPin className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{job.customer?.name || 'No customer'}</span>
+                    </div>
+
+                    {/* Scheduled Time */}
+                    {job.scheduled_date && (
+                      <div className="flex items-center gap-1 text-xs text-[var(--text-muted)] mb-2">
+                        <Clock className="w-3 h-3 flex-shrink-0" />
+                        <span>
+                          {new Date(job.scheduled_date).toLocaleTimeString('en-MY', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                        {overdue && (
+                          <span className="ml-1 px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">
+                            Overdue
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Forklift Info */}
+                    {job.forklift && (
+                      <div className="flex items-center gap-1 text-xs text-[var(--text-muted)] mb-3">
+                        <Truck className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">
+                          {job.forklift.serial_number} • {job.forklift.make} {job.forklift.model}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Status Badge */}
+                    <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
+                      <span
+                        className="px-2 py-1 rounded-lg text-xs font-medium"
+                        style={{ background: statusColor.bg, color: statusColor.text }}
+                      >
+                        {job.status.replace(/_/g, ' ')}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-[var(--text-muted)]" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* KPI Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Today's Jobs */}
@@ -258,7 +391,10 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser }
         </div>
       </div>
 
-      {/* My Active Jobs */}
+      {/* Notifications */}
+      <DashboardNotificationCard maxItems={5} />
+
+      {/* All Active Jobs */}
       <div className="card-premium overflow-hidden">
         <div className="p-4 border-b border-[var(--border)] bg-[var(--bg-subtle)]">
           <div className="flex items-center justify-between">
@@ -267,7 +403,7 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser }
                 <Briefcase className="w-5 h-5 text-[var(--accent)]" />
               </div>
               <div>
-                <h2 className="font-semibold text-lg text-[var(--text)]">My Jobs</h2>
+                <h2 className="font-semibold text-lg text-[var(--text)]">All Active Jobs</h2>
                 <p className="text-xs text-[var(--text-muted)]">{activeJobs.length} active jobs assigned to you</p>
               </div>
             </div>

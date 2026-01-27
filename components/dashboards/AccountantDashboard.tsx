@@ -10,6 +10,7 @@ import {
 import { User, Job, JobStatus } from '../../types';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
+import DashboardNotificationCard from '../DashboardNotificationCard';
 
 interface AccountantDashboardProps {
   currentUser: User;
@@ -41,8 +42,14 @@ const AccountantDashboard: React.FC<AccountantDashboardProps> = ({ currentUser }
   weekStart.setDate(today.getDate() - 7);
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
-  // Jobs awaiting finalization (main focus for accountant)
-  const awaitingFinalization = jobs.filter(j => j.status === JobStatus.AWAITING_FINALIZATION);
+  // Jobs awaiting finalization (main focus for accountant) - sorted by oldest first (FIFO)
+  const awaitingFinalization = jobs
+    .filter(j => j.status === JobStatus.AWAITING_FINALIZATION)
+    .sort((a, b) => {
+      const aDate = a.completed_at ? new Date(a.completed_at).getTime() : Date.now();
+      const bDate = b.completed_at ? new Date(b.completed_at).getTime() : Date.now();
+      return aDate - bDate; // Oldest first
+    });
 
   // Completed awaiting acknowledgement
   const awaitingAck = jobs.filter(j => j.status === JobStatus.COMPLETED_AWAITING_ACK);
@@ -68,8 +75,40 @@ const AccountantDashboard: React.FC<AccountantDashboardProps> = ({ currentUser }
     return partsCost + laborRate;
   };
 
+  // Calculate days waiting since job completion
+  const calculateDaysWaiting = (job: Job): number => {
+    if (!job.completed_at) return 0;
+    return Math.floor((Date.now() - new Date(job.completed_at).getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  // Get urgency level based on days waiting
+  const getUrgencyLevel = (days: number): 'normal' | 'warning' | 'urgent' | 'critical' => {
+    if (days >= 7) return 'critical';
+    if (days >= 5) return 'urgent';
+    if (days >= 3) return 'warning';
+    return 'normal';
+  };
+
+  // Get urgency styling
+  const getUrgencyStyle = (urgency: 'normal' | 'warning' | 'urgent' | 'critical') => {
+    switch (urgency) {
+      case 'critical':
+        return { border: 'border-l-4 border-l-red-500 bg-red-50/50', badge: 'bg-red-100 text-red-700', icon: true };
+      case 'urgent':
+        return { border: 'border-l-4 border-l-orange-500 bg-orange-50/30', badge: 'bg-orange-100 text-orange-700', icon: false };
+      case 'warning':
+        return { border: 'border-l-4 border-l-yellow-500 bg-yellow-50/30', badge: 'bg-yellow-100 text-yellow-700', icon: false };
+      default:
+        return { border: '', badge: 'bg-gray-100 text-gray-600', icon: false };
+    }
+  };
+
   const totalRevenue = completedJobs.reduce((acc, job) => acc + calculateJobRevenue(job), 0);
   const monthlyRevenue = completedThisMonth.reduce((acc, job) => acc + calculateJobRevenue(job), 0);
+
+  // Calculate urgent jobs (3+ days waiting) and total queue value
+  const urgentJobsCount = awaitingFinalization.filter(j => calculateDaysWaiting(j) >= 3).length;
+  const totalQueueValue = awaitingFinalization.reduce((acc, job) => acc + calculateJobRevenue(job), 0);
 
   // Revenue trend (last 7 days)
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -138,26 +177,155 @@ const AccountantDashboard: React.FC<AccountantDashboardProps> = ({ currentUser }
 
       {/* Alert Banner - Jobs needing attention */}
       {awaitingFinalization.length > 0 && (
-        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-center justify-between">
+        <div className={`border rounded-xl p-4 flex items-center justify-between ${
+          urgentJobsCount > 0 ? 'bg-red-50 border-red-200' : 'bg-purple-50 border-purple-200'
+        }`}>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-full">
-              <FileText className="w-5 h-5 text-purple-600" />
+            <div className={`p-2 rounded-full ${urgentJobsCount > 0 ? 'bg-red-100 animate-pulse' : 'bg-purple-100'}`}>
+              {urgentJobsCount > 0 ? (
+                <AlertCircle className="w-5 h-5 text-red-600" />
+              ) : (
+                <FileText className="w-5 h-5 text-purple-600" />
+              )}
             </div>
             <div>
-              <div className="font-semibold text-purple-800">
+              <div className={`font-semibold ${urgentJobsCount > 0 ? 'text-red-800' : 'text-purple-800'}`}>
                 {awaitingFinalization.length} Job{awaitingFinalization.length > 1 ? 's' : ''} Awaiting Finalization
+                {urgentJobsCount > 0 && (
+                  <span className="ml-2 px-2 py-0.5 text-xs bg-red-200 text-red-800 rounded-full">
+                    {urgentJobsCount} urgent
+                  </span>
+                )}
               </div>
-              <div className="text-sm text-purple-600">Ready for invoice processing</div>
+              <div className={`text-sm ${urgentJobsCount > 0 ? 'text-red-600' : 'text-purple-600'}`}>
+                Total value: RM{totalQueueValue.toLocaleString()} pending
+              </div>
             </div>
           </div>
           <button
             onClick={() => navigate('/invoices')}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium text-sm"
+            className={`px-4 py-2 text-white rounded-lg transition font-medium text-sm ${
+              urgentJobsCount > 0 ? 'bg-red-600 hover:bg-red-700' : 'bg-purple-600 hover:bg-purple-700'
+            }`}
           >
             Process Now
           </button>
         </div>
       )}
+
+      {/* Finalization Queue - PRIMARY SECTION (moved up per plan) */}
+      <div className="card-premium overflow-hidden">
+        <div className="p-4 border-b border-[var(--border)] bg-[var(--bg-subtle)]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                urgentJobsCount > 0 ? 'bg-red-100' : 'bg-purple-100'
+              }`}>
+                {urgentJobsCount > 0 ? (
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                ) : (
+                  <FileText className="w-5 h-5 text-purple-600" />
+                )}
+              </div>
+              <div>
+                <h2 className="font-semibold text-lg text-[var(--text)]">Finalization Queue</h2>
+                <p className="text-xs text-[var(--text-muted)]">
+                  Oldest jobs first • {awaitingFinalization.length} pending • RM{totalQueueValue.toLocaleString()} total
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/invoices')}
+              className="text-sm font-medium text-[var(--accent)] hover:underline"
+            >
+              View All →
+            </button>
+          </div>
+        </div>
+
+        <div className="divide-y divide-[var(--border-subtle)]">
+          {awaitingFinalization.length === 0 ? (
+            <div className="p-8 text-center">
+              <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-500 opacity-50" />
+              <p className="font-medium text-[var(--text)]">All caught up!</p>
+              <p className="text-sm text-[var(--text-muted)] mt-1">No jobs awaiting finalization</p>
+            </div>
+          ) : (
+            awaitingFinalization.slice(0, 10).map(job => {
+              const revenue = calculateJobRevenue(job);
+              const daysWaiting = calculateDaysWaiting(job);
+              const urgency = getUrgencyLevel(daysWaiting);
+              const urgencyStyle = getUrgencyStyle(urgency);
+
+              return (
+                <div
+                  key={job.job_id}
+                  onClick={() => navigate(`/jobs/${job.job_id}`)}
+                  className={`p-4 cursor-pointer transition-all hover:bg-[var(--bg-subtle)] ${urgencyStyle.border}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        urgency === 'critical' ? 'bg-red-100' : 'bg-purple-100'
+                      }`}>
+                        {urgencyStyle.icon ? (
+                          <AlertCircle className="w-5 h-5 text-red-600" />
+                        ) : (
+                          <Receipt className="w-5 h-5 text-purple-600" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-[var(--text)] truncate">{job.title}</p>
+                          {job.job_type && (
+                            <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600 flex-shrink-0">
+                              {job.job_type}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-[var(--text-muted)]">
+                          <span>{job.customer?.name || 'No customer'}</span>
+                          {job.completed_at && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(job.completed_at).toLocaleDateString('en-MY', {
+                                day: 'numeric', month: 'short'
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {/* Days waiting badge */}
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${urgencyStyle.badge}`}>
+                        {daysWaiting} day{daysWaiting !== 1 ? 's' : ''}
+                      </span>
+                      <div className="text-right">
+                        <p className="font-semibold text-green-600">RM{revenue.toLocaleString()}</p>
+                        <p className="text-xs text-[var(--text-muted)]">Est. value</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-[var(--text-muted)]" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {awaitingFinalization.length > 10 && (
+          <div className="p-3 border-t border-[var(--border-subtle)] text-center">
+            <button
+              onClick={() => navigate('/invoices')}
+              className="text-sm text-[var(--accent)] hover:underline"
+            >
+              View all {awaitingFinalization.length} jobs →
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* KPI Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -352,90 +520,9 @@ const AccountantDashboard: React.FC<AccountantDashboardProps> = ({ currentUser }
         </div>
       </div>
 
-      {/* Finalization Queue */}
-      <div className="card-premium overflow-hidden">
-        <div className="p-4 border-b border-[var(--border)] bg-[var(--bg-subtle)]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
-                <FileText className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-lg text-[var(--text)]">Finalization Queue</h2>
-                <p className="text-xs text-[var(--text-muted)]">Jobs ready for invoice processing</p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/invoices')}
-              className="text-sm font-medium text-[var(--accent)] hover:underline"
-            >
-              View All →
-            </button>
-          </div>
-        </div>
-
-        <div className="divide-y divide-[var(--border-subtle)]">
-          {awaitingFinalization.length === 0 ? (
-            <div className="p-8 text-center">
-              <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-500 opacity-50" />
-              <p className="font-medium text-[var(--text)]">All caught up!</p>
-              <p className="text-sm text-[var(--text-muted)] mt-1">No jobs awaiting finalization</p>
-            </div>
-          ) : (
-            awaitingFinalization.slice(0, 6).map(job => {
-              const revenue = calculateJobRevenue(job);
-
-              return (
-                <div
-                  key={job.job_id}
-                  onClick={() => navigate(`/jobs/${job.job_id}`)}
-                  className="p-4 cursor-pointer transition-all hover:bg-[var(--bg-subtle)]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-                        <Receipt className="w-5 h-5 text-purple-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-[var(--text)] truncate">{job.title}</p>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-[var(--text-muted)]">
-                          <span>{job.customer?.name || 'No customer'}</span>
-                          {job.completed_at && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(job.completed_at).toLocaleDateString('en-MY', {
-                                day: 'numeric', month: 'short'
-                              })}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="font-semibold text-green-600">RM{revenue.toLocaleString()}</p>
-                        <p className="text-xs text-[var(--text-muted)]">Est. revenue</p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-[var(--text-muted)]" />
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {awaitingFinalization.length > 6 && (
-          <div className="p-3 border-t border-[var(--border-subtle)] text-center">
-            <button
-              onClick={() => navigate('/invoices')}
-              className="text-sm text-[var(--accent)] hover:underline"
-            >
-              View all {awaitingFinalization.length} jobs →
-            </button>
-          </div>
-        )}
+      {/* Notifications */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DashboardNotificationCard maxItems={5} />
       </div>
 
       {/* Quick Actions */}

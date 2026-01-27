@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Part, User, UserRole, ROLE_PERMISSIONS } from '../types';
+import { Part, User, UserRole } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
 import {
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import VanStockPage from './VanStockPage';
 import PendingConfirmations from './PendingConfirmations';
+import { useDevModeContext } from '../contexts/DevModeContext';
 
 interface InventoryPageProps {
   currentUser: User;
@@ -47,10 +48,13 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
     location: '',
   });
 
-  const isAdmin = currentUser.role === UserRole.ADMIN;
+  // Use dev mode context for role-based permissions
+  const { displayRole, hasPermission } = useDevModeContext();
+
+  const isAdmin = displayRole === UserRole.ADMIN;
   // Van Stock tab is for admins/supervisors to manage all technicians' van stocks
   // Technicians access their own van stock via /my-van-stock
-  const isAdminOrSupervisor = [UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR].includes(currentUser.role);
+  const isAdminOrSupervisor = [UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR].includes(displayRole);
   const canViewVanStock = isAdminOrSupervisor;
   const canViewConfirmations = isAdminOrSupervisor;
 

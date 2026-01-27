@@ -12,10 +12,10 @@ import {
   LicenseStatus,
   LeaveStatus,
   UserRole,
-  ROLE_PERMISSIONS,
 } from '../types';
 import { HRService } from '../services/hrService';
 import { showToast } from '../services/toastService';
+import { useDevModeContext } from '../contexts/DevModeContext';
 import {
   ArrowLeft,
   Edit,
@@ -66,8 +66,11 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
   const [showAddLeave, setShowAddLeave] = useState(false);
   const [showLeaveCalendar, setShowLeaveCalendar] = useState(false);
 
-  const canManageEmployees = ROLE_PERMISSIONS[currentUser.role]?.canManageEmployees;
-  const canApproveLeave = ROLE_PERMISSIONS[currentUser.role]?.canApproveLeave;
+  // Use dev mode context for role-based permissions
+  const { hasPermission } = useDevModeContext();
+
+  const canManageEmployees = hasPermission('canManageEmployees');
+  const canApproveLeave = hasPermission('canApproveLeave');
   
   // Check if viewing own profile (for "My Profile" functionality)
   const isOwnProfile = currentUser.user_id === userId;

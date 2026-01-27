@@ -10,7 +10,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { loginAs } from '../utilities/auth';
+import { isLoggedIn, loginAs } from '../utilities/auth';
 
 // ===========================================
 // CONFIGURATION

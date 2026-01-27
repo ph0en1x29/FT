@@ -552,3 +552,60 @@ a:focus:not(:focus-visible) {
   transform: scale(0.98);
   opacity: 0.9;
 }
+
+/* =========================================
+   Schedule Carousel (Technician Dashboard)
+   ========================================= */
+
+.schedule-carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  gap: 1rem;
+  padding: 0.5rem;
+  margin: -0.5rem;
+}
+
+.schedule-card {
+  flex: 0 0 auto;
+  width: 280px;
+  scroll-snap-align: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.schedule-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+
+.schedule-card.urgent {
+  border-color: #ef4444;
+  background: rgba(254, 226, 226, 0.3);
+}
+
+.schedule-card.overdue {
+  border-color: #f97316;
+  background: rgba(255, 237, 213, 0.3);
+}
+
+.schedule-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.schedule-carousel {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (max-width: 640px) {
+  .schedule-card {
+    width: 260px;
+  }
+}

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { User, UserRole, ROLE_PERMISSIONS } from '../types';
+import { User, UserRole } from '../types';
 import { Briefcase, FileText, Plus } from 'lucide-react';
 import JobBoard from './JobBoard';
 import ServiceRecords from './ServiceRecords';
+import { useDevModeContext } from '../contexts/DevModeContext';
 
 type TabType = 'active' | 'history';
 
@@ -17,8 +18,11 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
   const initialTab = (searchParams.get('tab') as TabType) || 'active';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
-  const canCreateJob = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR;
-  const canViewHistory = ROLE_PERMISSIONS[currentUser.role]?.canViewServiceHistory !== false;
+  // Use dev mode context for role-based permissions
+  const { displayRole, hasPermission } = useDevModeContext();
+
+  const canCreateJob = hasPermission('canCreateJobs');
+  const canViewHistory = hasPermission('canViewServiceRecords');
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -49,7 +53,7 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-theme">
-              {currentUser.role === UserRole.TECHNICIAN ? 'My Jobs' : 'Jobs'}
+              {displayRole === UserRole.TECHNICIAN ? 'My Jobs' : 'Jobs'}
             </h1>
             <p className="text-sm text-theme-muted mt-1">Manage jobs and service records</p>
           </div>

@@ -2,7 +2,7 @@
 
 > Purpose: Reference for engineers and AI assistants when modifying or extending the database.
 > Database: Supabase (PostgreSQL)
-> Last Updated: 2026-01-18 (Added AutoCount integration, photo enhancements, fleet dashboard, admin role split)
+> Last Updated: 2026-01-19 (Added hourmeter persistence tracking, parts confirmation enforcement trigger, RLS policy for request edits)
 
 ---
 
@@ -214,6 +214,9 @@ Core work orders.
 | `awaiting_parts_reason` | TEXT | YES | | Reason for waiting on parts |
 | `autocount_export_id` | UUID | YES | | Reference to AutoCount export |
 | `autocount_exported_at` | TIMESTAMPTZ | YES | | When exported to AutoCount |
+| `first_hourmeter_recorded_by_id` | UUID | YES | | **(NEW 2026-01-19)** User who first recorded hourmeter |
+| `first_hourmeter_recorded_by_name` | TEXT | YES | | **(NEW 2026-01-19)** Name of first recorder |
+| `first_hourmeter_recorded_at` | TIMESTAMPTZ | YES | | **(NEW 2026-01-19)** When hourmeter was first recorded |
 
 Constraints:
 - PK: `job_id`
@@ -310,6 +313,7 @@ Indexes:
 RLS:
 - Admin/Supervisor: ALL
 - Technician: SELECT (own requests or assigned jobs), INSERT own requests
+- **(NEW 2026-01-19)** Technician: UPDATE own pending requests only (`job_requests_tech_update` policy)
 
 ---
 
@@ -2506,6 +2510,7 @@ Scheduled via pg_cron at 8:00 AM MYT daily.
 | `audit_direct_hourmeter_update()` | `trigger_audit_direct_hourmeter_update` ON forklifts | Audits direct hourmeter edits to forklifts |
 | `trigger_slot_in_replenishment()` | `trigger_slot_in_van_stock_replenishment` ON jobs | Auto-creates Van Stock replenishment on Slot-In job completion |
 | `deduct_van_stock()` | `trigger_deduct_van_stock` ON job_parts | Deducts from Van Stock when parts are used from van |
+| `check_parts_confirmed_before_job_complete()` | `enforce_parts_confirmation` ON jobs | **(NEW 2026-01-19)** Blocks job finalization until parts are confirmed by Admin Store |
 
 ---
 

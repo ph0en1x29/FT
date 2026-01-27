@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Job, JobStatus, UserRole, Part, JobPriority, JobType, SignatureEntry, User, ForkliftConditionChecklist, MediaCategory, JobRequest, JobRequestType, MANDATORY_CHECKLIST_ITEMS, VanStock, VanStockItem, HourmeterFlagReason } from '../types';
+import { Job, JobStatus, UserRole, Part, JobPriority, JobType, SignatureEntry, User, ForkliftConditionChecklist, MediaCategory, JobRequest, JobRequestType, MANDATORY_CHECKLIST_ITEMS, VanStock, VanStockItem, HourmeterFlagReason, ChecklistItemState, normalizeChecklistState } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import HourmeterAmendmentModal from '../components/HourmeterAmendmentModal';
 import { generateJobSummary } from '../services/geminiService';
@@ -10,6 +10,7 @@ import { printServiceReport } from '../components/ServiceReportPDF';
 import { printQuotation, generateQuotationFromJob } from '../components/QuotationPDF';
 import { printInvoice } from '../components/InvoicePDF';
 import { showToast } from '../services/toastService';
+import { useDevModeContext } from '../contexts/DevModeContext';
 import {
   ArrowLeft, MapPin, Phone, User as UserIcon, Calendar,
   CheckCircle, Plus, Camera, PenTool, Box, DollarSign, BrainCircuit,
@@ -165,7 +166,9 @@ const getDefaultPhotoCategory = (job: Job | null): MediaCategory => {
 };
 
 const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
-  const currentUserRole = currentUser.role;
+  // Use dev mode context for role-based permissions
+  const { displayRole } = useDevModeContext();
+  const currentUserRole = displayRole;
   const currentUserId = currentUser.user_id;
   const currentUserName = currentUser.name;
   
@@ -233,6 +236,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const [requestDescription, setRequestDescription] = useState('');
   const [requestPhotoUrl, setRequestPhotoUrl] = useState('');
   const [submittingRequest, setSubmittingRequest] = useState(false);
+  const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [approvalRequest, setApprovalRequest] = useState<JobRequest | null>(null);
   const [approvalPartId, setApprovalPartId] = useState('');
@@ -352,14 +356,42 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     if (!job || !requestDescription.trim()) { showToast.error('Please enter a description'); return; }
     setSubmittingRequest(true);
     try {
-      const result = await MockDb.createJobRequest(job.job_id, requestType, currentUserId, requestDescription.trim(), requestPhotoUrl || undefined);
-      if (result) { showToast.success('Request submitted', 'Admin will review your request'); setShowRequestModal(false); setRequestDescription(''); setRequestPhotoUrl(''); loadRequests(); }
-      else { showToast.error('Failed to submit request'); }
+      // If editing, update existing request; otherwise create new
+      if (editingRequestId) {
+        const success = await MockDb.updateJobRequest(editingRequestId, currentUserId, {
+          description: requestDescription.trim(),
+          request_type: requestType,
+          photo_url: requestPhotoUrl || null,
+        });
+        if (success) {
+          showToast.success('Request updated');
+          setShowRequestModal(false);
+          setRequestDescription('');
+          setRequestPhotoUrl('');
+          setEditingRequestId(null);
+          loadRequests();
+        } else {
+          showToast.error('Failed to update request');
+        }
+      } else {
+        const result = await MockDb.createJobRequest(job.job_id, requestType, currentUserId, requestDescription.trim(), requestPhotoUrl || undefined);
+        if (result) { showToast.success('Request submitted', 'Admin will review your request'); setShowRequestModal(false); setRequestDescription(''); setRequestPhotoUrl(''); loadRequests(); }
+        else { showToast.error('Failed to submit request'); }
+      }
     } catch (e) { showToast.error('Error submitting request'); }
     finally { setSubmittingRequest(false); }
   };
 
-  const openRequestModal = (type: JobRequestType) => { setRequestType(type); setRequestDescription(''); setRequestPhotoUrl(''); setShowRequestModal(true); };
+  const openRequestModal = (type: JobRequestType) => { setRequestType(type); setRequestDescription(''); setRequestPhotoUrl(''); setEditingRequestId(null); setShowRequestModal(true); };
+
+  // Open modal in edit mode with pre-populated data
+  const openEditRequestModal = (req: JobRequest) => {
+    setRequestType(req.request_type);
+    setRequestDescription(req.description);
+    setRequestPhotoUrl(req.photo_url || '');
+    setEditingRequestId(req.request_id);
+    setShowRequestModal(true);
+  };
   const openApprovalModal = (request: JobRequest) => { setApprovalRequest(request); setApprovalPartId(''); setApprovalQuantity('1'); setApprovalNotes(''); setApprovalHelperId(''); setShowApprovalModal(true); };
 
   const handleApproval = async (approve: boolean) => {
@@ -648,13 +680,25 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     // Validate and check for flags
     const validation = await MockDb.validateHourmeterReading(job.forklift_id, parsed);
 
+    // Check if this is the first hourmeter recording
+    const isFirstRecording = !job.first_hourmeter_recorded_by_id;
+    const firstRecordingData = isFirstRecording ? {
+      first_hourmeter_recorded_by_id: currentUserId,
+      first_hourmeter_recorded_by_name: currentUserName,
+      first_hourmeter_recorded_at: new Date().toISOString(),
+    } : {};
+
     if (!validation.isValid) {
       // Save with flags
       setHourmeterFlagReasons(validation.flags);
       try {
         const updated = await MockDb.updateJobHourmeter(job.job_id, parsed);
         await MockDb.flagJobHourmeter(job.job_id, validation.flags);
-        setJob({ ...updated, hourmeter_flagged: true, hourmeter_flag_reasons: validation.flags } as Job);
+        // Also save first recording info
+        if (isFirstRecording) {
+          await MockDb.updateJob(job.job_id, firstRecordingData);
+        }
+        setJob({ ...updated, hourmeter_flagged: true, hourmeter_flag_reasons: validation.flags, ...firstRecordingData } as Job);
         setEditingHourmeter(false);
         setHourmeterInput('');
         showToast.warning('Hourmeter saved with flags', 'This reading has been flagged for review. Consider requesting an amendment.');
@@ -666,7 +710,11 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
 
     try {
       const updated = await MockDb.updateJobHourmeter(job.job_id, parsed);
-      setJob({ ...updated } as Job);
+      // Also save first recording info
+      if (isFirstRecording) {
+        await MockDb.updateJob(job.job_id, firstRecordingData);
+      }
+      setJob({ ...updated, ...firstRecordingData } as Job);
       setEditingHourmeter(false);
       setHourmeterInput('');
       setHourmeterFlagReasons([]);
@@ -714,7 +762,20 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     catch (e) { showToast.error('Could not save checklist', (e as Error).message); }
   };
   const handleCancelChecklistEdit = () => { setEditingChecklist(false); setChecklistEditData({}); };
-  const toggleChecklistItem = (key: string) => { setChecklistEditData(prev => ({ ...prev, [key]: !prev[key as keyof ForkliftConditionChecklist] })); };
+  // Set checklist item to OK or Not OK
+  const setChecklistItemState = (key: string, state: 'ok' | 'not_ok' | undefined) => {
+    setChecklistEditData(prev => ({ ...prev, [key]: state }));
+  };
+
+  // Legacy toggle for backward compatibility
+  const toggleChecklistItem = (key: string) => {
+    setChecklistEditData(prev => {
+      const currentState = normalizeChecklistState(prev[key as keyof ForkliftConditionChecklist]);
+      // Cycle: undefined -> ok -> not_ok -> undefined
+      const nextState = currentState === undefined ? 'ok' : currentState === 'ok' ? 'not_ok' : undefined;
+      return { ...prev, [key]: nextState };
+    });
+  };
 
   const handleToggleNoPartsUsed = async () => {
     if (!job) return;
@@ -824,6 +885,15 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
           mediaData.gps_captured_at = serverTimestamp;
         }
 
+        // Check if this is the first photo and job hasn't started - auto-start timer
+        const isFirstPhoto = job.media.length === 0;
+        const shouldAutoStart = isFirstPhoto && !job.repair_start_time && !job.started_at;
+
+        // Mark first photo if auto-starting
+        if (shouldAutoStart) {
+          mediaData.is_start_photo = true;
+        }
+
         const updated = await MockDb.addMedia(
           job.job_id,
           mediaData,
@@ -831,7 +901,21 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
           currentUserName,
           isCurrentUserHelper
         );
-        setJob({ ...updated } as Job);
+
+        // Auto-start job timer on first photo
+        if (shouldAutoStart) {
+          const now = new Date().toISOString();
+          const startedJob = await MockDb.updateJob(job.job_id, {
+            repair_start_time: now,
+            started_at: now,
+            status: JobStatus.IN_PROGRESS,
+          });
+          setJob({ ...startedJob } as Job);
+          showToast.info('Job timer started', 'Timer started automatically with first photo');
+        } else {
+          setJob({ ...updated } as Job);
+        }
+
         const categoryLabel = PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other';
 
         // Show appropriate toast based on validation
@@ -943,16 +1027,23 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   };
 
   // Checklist validation helpers
+  // Get mandatory checklist items that haven't been marked as OK or Not OK
   const getMissingMandatoryItems = (): string[] => {
     if (!job?.condition_checklist) return MANDATORY_CHECKLIST_ITEMS as string[];
     const checklist = job.condition_checklist;
-    return MANDATORY_CHECKLIST_ITEMS.filter(key => !checklist[key]) as string[];
+    return MANDATORY_CHECKLIST_ITEMS.filter(key => {
+      const state = normalizeChecklistState(checklist[key]);
+      return state === undefined; // Item not checked (neither OK nor Not OK)
+    }) as string[];
   };
 
   const getChecklistProgress = () => {
     if (!job?.condition_checklist) return { checked: 0, total: MANDATORY_CHECKLIST_ITEMS.length };
     const checklist = job.condition_checklist;
-    const checked = MANDATORY_CHECKLIST_ITEMS.filter(key => checklist[key]).length;
+    const checked = MANDATORY_CHECKLIST_ITEMS.filter(key => {
+      const state = normalizeChecklistState(checklist[key]);
+      return state === 'ok' || state === 'not_ok'; // Count both OK and Not OK as checked
+    }).length;
     return { checked, total: MANDATORY_CHECKLIST_ITEMS.length };
   };
 
@@ -988,13 +1079,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   // Status flags
   const normalizedStatus = (job.status || '').toString().toLowerCase().trim();
   const normalizedRole = (currentUserRole || '').toString().toLowerCase().trim();
-  
-  const isAdmin = normalizedRole === 'admin';
+
+  const isAdmin = normalizedRole === 'admin' || normalizedRole === 'admin_service' || normalizedRole === 'admin_store';
+  const isAdminService = normalizedRole === 'admin_service' || normalizedRole === 'admin';
+  const isAdminStore = normalizedRole === 'admin_store' || normalizedRole === 'admin';
   const isSupervisor = normalizedRole === 'supervisor';
   const isTechnician = normalizedRole === 'technician';
   const isAccountant = normalizedRole === 'accountant';
   const canReassign = isAdmin || isSupervisor;
   const isHelperOnly = isCurrentUserHelper && !isAdmin && !isSupervisor;
+
+  // Pricing visibility - Hide from technicians per customer feedback
+  const canViewPricing = isAdmin || isAccountant || isSupervisor;
   
   const isNew = normalizedStatus === 'new';
   const isAssigned = normalizedStatus === 'assigned';
@@ -1020,7 +1116,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const extraChargesCost = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
   const totalCost = totalPartsCost + laborCost + extraChargesCost;
 
-  const partOptions: ComboboxOption[] = parts.map(p => ({ id: p.part_id, label: p.part_name, subLabel: `RM${p.sell_price} | Stock: ${p.stock_quantity} | ${p.category}` }));
+  const partOptions: ComboboxOption[] = parts.map(p => ({
+    id: p.part_id,
+    label: p.part_name,
+    subLabel: canViewPricing
+      ? `RM${p.sell_price} | Stock: ${p.stock_quantity} | ${p.category}`
+      : `Stock: ${p.stock_quantity} | ${p.category}`
+  }));
   const techOptions: ComboboxOption[] = technicians.map(t => ({ id: t.user_id, label: t.name, subLabel: t.email }));
 
   // Van Stock options - only items with quantity > 0
@@ -1029,19 +1131,27 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     .map(item => ({
       id: item.item_id,
       label: item.part?.part_name || 'Unknown Part',
-      subLabel: `RM${item.part?.sell_price || 0} | Van Stock: ${item.quantity} | ${item.part?.category || ''}`
+      subLabel: canViewPricing
+        ? `RM${item.part?.sell_price || 0} | Van Stock: ${item.quantity} | ${item.part?.category || ''}`
+        : `Van Stock: ${item.quantity} | ${item.part?.category || ''}`
     }));
 
   // Check if forklift is customer-owned (requires approval for Van Stock usage)
   const isCustomerOwnedForklift = job?.forklift?.ownership === 'customer';
   const canEditPrices =
+    canViewPricing &&
     !isCompleted &&
     !isHelperOnly &&
     ((isTechnician && !isAwaitingFinalization) || isAdmin || isAccountant);
+  // Parts entry: Technicians can only request parts via Spare Part Requests
+  // Only Admin/Supervisor/Accountant can directly add parts to jobs
+  // Admin 2 (Store) can add pre-job parts for jobs in New/Assigned status
   const canAddParts =
     !isHelperOnly &&
-    ((isInProgress && (isTechnician || isAdmin)) ||
-      (isAwaitingFinalization && (isAdmin || isAccountant)));
+    !isTechnician &&
+    ((isInProgress && (isAdmin || isSupervisor)) ||
+      (isAwaitingFinalization && (isAdmin || isAccountant || isSupervisor)) ||
+      ((isNew || isAssigned) && isAdminStore));
   const repairDuration = getRepairDuration();
   const jobMedia = job.media || [];
 
@@ -1232,10 +1342,30 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                         {job.hourmeter_flagged && (
                           <AlertTriangle className="w-3.5 h-3.5 text-[var(--error)]" />
                         )}
+                        {/* Edit button: Only show for first recorder, admins, or if no one recorded yet */}
                         {(isInProgress || (isAdmin && !isCompleted)) && (
-                          <button onClick={handleStartEditHourmeter} className="p-1 text-[var(--warning)] hover:bg-[var(--warning-bg)] rounded"><Edit2 className="w-3 h-3" /></button>
+                          (!job.first_hourmeter_recorded_by_id || // No one recorded yet
+                            job.first_hourmeter_recorded_by_id === currentUserId || // Current user recorded it
+                            isAdmin || isSupervisor) && ( // Admins can always edit
+                            <button onClick={handleStartEditHourmeter} className="p-1 text-[var(--warning)] hover:bg-[var(--warning-bg)] rounded"><Edit2 className="w-3 h-3" /></button>
+                          )
                         )}
                       </div>
+                      {/* Show who recorded the hourmeter (for subsequent technicians) */}
+                      {job.first_hourmeter_recorded_by_id && job.first_hourmeter_recorded_by_id !== currentUserId && isTechnician && (
+                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                          Recorded by {job.first_hourmeter_recorded_by_name || 'Another technician'}
+                        </p>
+                      )}
+                      {/* Amendment button for technicians who didn't record it */}
+                      {job.first_hourmeter_recorded_by_id && job.first_hourmeter_recorded_by_id !== currentUserId && isTechnician && (
+                        <button
+                          onClick={() => setShowHourmeterAmendmentModal(true)}
+                          className="mt-1 text-xs text-[var(--accent)] hover:underline"
+                        >
+                          Request Amendment
+                        </button>
+                      )}
                       {/* Hourmeter flag warning */}
                       {job.hourmeter_flagged && job.hourmeter_flag_reasons && job.hourmeter_flag_reasons.length > 0 && (
                         <div className="mt-1">
@@ -1569,21 +1699,48 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                     {CHECKLIST_CATEGORIES.map(cat => (
                       <div key={cat.name} className="bg-[var(--surface)] border border-[var(--border)] p-3 rounded-xl">
                         <p className="font-medium text-[var(--text-secondary)] text-xs mb-2">{cat.name}</p>
-                        <div className="space-y-1">
-                          {cat.items.map(item => (
-                            <label key={item.key} className="flex items-center gap-2 cursor-pointer text-xs">
-                              <input
-                                type="checkbox"
-                                checked={!!checklistEditData[item.key as keyof ForkliftConditionChecklist]}
-                                onChange={() => toggleChecklistItem(item.key)}
-                                className="rounded border-[var(--border)] text-[var(--accent)]"
-                              />
-                              <span className={checklistEditData[item.key as keyof ForkliftConditionChecklist] ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'}>
-                                {item.label}
-                                {isMandatoryItem(item.key) && <span className="text-red-500 ml-0.5">*</span>}
-                              </span>
-                            </label>
-                          ))}
+                        <div className="space-y-2">
+                          {cat.items.map(item => {
+                            const itemState = normalizeChecklistState(checklistEditData[item.key as keyof ForkliftConditionChecklist]);
+                            return (
+                              <div key={item.key} className="flex items-center justify-between gap-2">
+                                <span className={`text-xs flex-1 ${
+                                  itemState === 'ok' ? 'text-[var(--success)]' :
+                                  itemState === 'not_ok' ? 'text-[var(--error)]' :
+                                  'text-[var(--text-muted)]'
+                                }`}>
+                                  {item.label}
+                                  {isMandatoryItem(item.key) && <span className="text-red-500 ml-0.5">*</span>}
+                                </span>
+                                <div className="flex gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => setChecklistItemState(item.key, itemState === 'ok' ? undefined : 'ok')}
+                                    className={`p-1 rounded text-xs transition-colors ${
+                                      itemState === 'ok'
+                                        ? 'bg-[var(--success)] text-white'
+                                        : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:bg-[var(--success-bg)] hover:text-[var(--success)]'
+                                    }`}
+                                    title="OK"
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setChecklistItemState(item.key, itemState === 'not_ok' ? undefined : 'not_ok')}
+                                    className={`p-1 rounded text-xs transition-colors ${
+                                      itemState === 'not_ok'
+                                        ? 'bg-[var(--error)] text-white'
+                                        : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:bg-[var(--error-bg)] hover:text-[var(--error)]'
+                                    }`}
+                                    title="Not OK"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     ))}
@@ -1596,16 +1753,30 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
                   {CHECKLIST_CATEGORIES.map(cat => {
-                    const checkedItems = cat.items.filter(item => job.condition_checklist?.[item.key as keyof ForkliftConditionChecklist]);
+                    // Filter items that have been checked (either OK or Not OK)
+                    const checkedItems = cat.items.filter(item => {
+                      const state = normalizeChecklistState(job.condition_checklist?.[item.key as keyof ForkliftConditionChecklist]);
+                      return state === 'ok' || state === 'not_ok';
+                    });
                     if (checkedItems.length === 0) return null;
                     return (
                       <div key={cat.name} className="bg-[var(--surface)] border border-[var(--border)] p-2 rounded-lg">
                         <p className="font-medium text-[var(--text-secondary)] text-[10px] uppercase tracking-wide mb-1">{cat.name}</p>
-                        {checkedItems.map(item => (
-                          <div key={item.key} className="flex items-center gap-1 text-[var(--success)] text-xs">
-                            <CheckCircle className="w-3 h-3" /> {item.label}
-                          </div>
-                        ))}
+                        {checkedItems.map(item => {
+                          const state = normalizeChecklistState(job.condition_checklist?.[item.key as keyof ForkliftConditionChecklist]);
+                          return (
+                            <div key={item.key} className={`flex items-center gap-1 text-xs ${
+                              state === 'ok' ? 'text-[var(--success)]' : 'text-[var(--error)]'
+                            }`}>
+                              {state === 'ok' ? (
+                                <CheckCircle className="w-3 h-3" />
+                              ) : (
+                                <X className="w-3 h-3" />
+                              )}
+                              {item.label}
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })}
@@ -1636,7 +1807,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                     <div>
                       <span className="font-medium text-[var(--text)]">{p.quantity}× {p.part_name}</span>
                     </div>
-                    {editingPartId === p.job_part_id ? (
+                    {canViewPricing && editingPartId === p.job_part_id ? (
                       <div className="flex items-center gap-2">
                         <div className="relative w-24">
                           <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs">RM</span>
@@ -1645,7 +1816,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                         <button onClick={() => handleSavePartPrice(p.job_part_id)} className="p-1 text-[var(--success)] hover:bg-[var(--success-bg)] rounded"><Save className="w-4 h-4" /></button>
                         <button onClick={handleCancelEdit} className="p-1 text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] rounded"><X className="w-4 h-4" /></button>
                       </div>
-                    ) : (
+                    ) : canViewPricing ? (
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-[var(--text-secondary)]">RM{p.sell_price_at_time.toFixed(2)}</span>
                         {canEditPrices && (
@@ -1655,7 +1826,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                           </>
                         )}
                       </div>
-                    )}
+                    ) : null /* Technicians: no pricing shown */}
                   </div>
                 ))}
               </div>
@@ -1674,12 +1845,22 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               </div>
             )}
 
+            {/* Technician hint: Use Spare Part Request instead of direct add */}
+            {isTechnician && !canAddParts && (isInProgress || isAwaitingFinalization) && (
+              <div className="border-t border-[var(--border-subtle)] pt-4">
+                <div className="p-3 bg-[var(--info-bg)] rounded-xl text-xs text-[var(--info)] flex items-center gap-2">
+                  <Info className="w-4 h-4 flex-shrink-0" />
+                  <span>Need additional parts? Use <strong>Spare Part Request</strong> in the In-Job Requests section below.</span>
+                </div>
+              </div>
+            )}
+
             {canAddParts && (
               <div className="border-t border-[var(--border-subtle)] pt-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-medium text-[var(--text-muted)]">Add Part</p>
-                  {/* Van Stock toggle - only show for technicians with Van Stock */}
-                  {vanStock && isTechnician && (
+                  {/* Van Stock toggle - only show for admins/supervisors with Van Stock access */}
+                  {vanStock && (isAdmin || isSupervisor) && (
                     <label className="flex items-center gap-2 cursor-pointer text-xs">
                       <span className={useFromVanStock ? 'text-blue-600 font-medium' : 'text-[var(--text-muted)]'}>
                         <Truck className="w-3.5 h-3.5 inline mr-1" />
@@ -1744,19 +1925,23 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                       />
                     </div>
                   )}
-                  <div className="w-24">
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs">RM</span>
-                      <input type="number" className="input-premium input-premium-prefix text-sm" placeholder="Price" value={selectedPartPrice} onChange={(e) => setSelectedPartPrice(e.target.value)} />
+                  {/* Only show price input for users who can view pricing */}
+                  {canViewPricing && (
+                    <div className="w-24">
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs">RM</span>
+                        <input type="number" className="input-premium input-premium-prefix text-sm" placeholder="Price" value={selectedPartPrice} onChange={(e) => setSelectedPartPrice(e.target.value)} />
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <button onClick={handleAddPart} className="btn-premium btn-premium-primary"><Plus className="w-5 h-5" /></button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Extra Charges */}
+          {/* Extra Charges - Hidden from technicians */}
+          {canViewPricing && (
           <div className="card-premium p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -1817,6 +2002,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               </div>
             )}
           </div>
+          )}
 
           {/* Photos Section */}
           {(isTechnician || isAdmin || isSupervisor) && (
@@ -2017,6 +2203,15 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                       {req.admin_response_notes && (
                         <p className="text-xs text-[var(--text-muted)] mt-2 italic">Admin: {req.admin_response_notes}</p>
                       )}
+                      {/* Edit button for own pending requests */}
+                      {req.status === 'pending' && req.requested_by === currentUserId && (
+                        <div className="flex gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)]">
+                          <button onClick={() => openEditRequestModal(req)} className="btn-premium btn-premium-secondary text-xs flex-1">
+                            <Edit2 className="w-3.5 h-3.5" /> Edit
+                          </button>
+                        </div>
+                      )}
+                      {/* Review button for admins */}
                       {req.status === 'pending' && (isAdmin || isSupervisor) && (
                         <div className="flex gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)]">
                           <button onClick={() => openApprovalModal(req)} className="btn-premium btn-premium-primary text-xs flex-1">Review</button>
@@ -2034,50 +2229,52 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
 
         {/* Right Sidebar */}
         <div className="space-y-5">
-          {/* Financial Summary */}
-          <div className="card-premium-elevated card-tint-success p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-[var(--success-bg)] flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-[var(--success)]" />
+          {/* Financial Summary - Hidden from technicians */}
+          {canViewPricing && (
+            <div className="card-premium-elevated card-tint-success p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-[var(--success-bg)] flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-[var(--success)]" />
+                </div>
+                <h3 className="font-semibold text-[var(--text)]">Summary</h3>
               </div>
-              <h3 className="font-semibold text-[var(--text)]">Summary</h3>
-            </div>
 
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-[var(--text-muted)]">Labor</span>
-                {editingLabor ? (
-                  <div className="flex items-center gap-1">
-                    <input type="number" className="input-premium w-20 text-sm py-1 pl-2" value={laborCostInput} onChange={(e) => setLaborCostInput(e.target.value)} autoFocus />
-                    <button onClick={handleSaveLabor} className="p-1 text-[var(--success)]"><Save className="w-3 h-3" /></button>
-                    <button onClick={handleCancelLaborEdit} className="p-1 text-[var(--text-muted)]"><X className="w-3 h-3" /></button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1">
-                    <span className="text-[var(--text)]">RM{laborCost.toFixed(2)}</span>
-                    {canEditPrices && <button onClick={handleStartEditLabor} className="p-1 text-[var(--accent)]"><Edit2 className="w-3 h-3" /></button>}
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--text-muted)]">Labor</span>
+                  {editingLabor ? (
+                    <div className="flex items-center gap-1">
+                      <input type="number" className="input-premium w-20 text-sm py-1 pl-2" value={laborCostInput} onChange={(e) => setLaborCostInput(e.target.value)} autoFocus />
+                      <button onClick={handleSaveLabor} className="p-1 text-[var(--success)]"><Save className="w-3 h-3" /></button>
+                      <button onClick={handleCancelLaborEdit} className="p-1 text-[var(--text-muted)]"><X className="w-3 h-3" /></button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[var(--text)]">RM{laborCost.toFixed(2)}</span>
+                      {canEditPrices && <button onClick={handleStartEditLabor} className="p-1 text-[var(--accent)]"><Edit2 className="w-3 h-3" /></button>}
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[var(--text-muted)]">Parts</span>
+                  <span className="text-[var(--text)]">RM{totalPartsCost.toFixed(2)}</span>
+                </div>
+                {extraChargesCost > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-[var(--text-muted)]">Extra</span>
+                    <span className="text-[var(--text)]">RM{extraChargesCost.toFixed(2)}</span>
                   </div>
                 )}
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">Parts</span>
-                <span className="text-[var(--text)]">RM{totalPartsCost.toFixed(2)}</span>
-              </div>
-              {extraChargesCost > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-[var(--text-muted)]">Extra</span>
-                  <span className="text-[var(--text)]">RM{extraChargesCost.toFixed(2)}</span>
+                <div className="divider"></div>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-[var(--text)]">Total</span>
+                  <span className="text-xl font-bold text-[var(--success)]">RM{totalCost.toFixed(2)}</span>
                 </div>
-              )}
-              <div className="divider"></div>
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-[var(--text)]">Total</span>
-                <span className="text-xl font-bold text-[var(--success)]">RM{totalCost.toFixed(2)}</span>
               </div>
             </div>
-	          </div>
+          )}
 
-	          {/* Timeline */}
+          {/* Timeline */}
 	          <div className="card-premium p-5">
 	            <div className="flex items-center gap-3 mb-4">
 	              <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
@@ -2466,18 +2663,23 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
             <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
-              {requestType === 'assistance' && <><HandHelping className="w-5 h-5 text-[var(--info)]" /> Request Assistance</>}
-              {requestType === 'spare_part' && <><Wrench className="w-5 h-5 text-[var(--warning)]" /> Request Spare Part</>}
-              {requestType === 'skillful_technician' && <><HelpCircle className="w-5 h-5 text-purple-600" /> Request Skillful Tech</>}
+              {editingRequestId && <><Edit2 className="w-5 h-5 text-[var(--accent)]" /> Edit Request</>}
+              {!editingRequestId && requestType === 'assistance' && <><HandHelping className="w-5 h-5 text-[var(--info)]" /> Request Assistance</>}
+              {!editingRequestId && requestType === 'spare_part' && <><Wrench className="w-5 h-5 text-[var(--warning)]" /> Request Spare Part</>}
+              {!editingRequestId && requestType === 'skillful_technician' && <><HelpCircle className="w-5 h-5 text-purple-600" /> Request Skillful Tech</>}
             </h4>
             <div className="mb-4">
               <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">Description *</label>
               <textarea value={requestDescription} onChange={(e) => setRequestDescription(e.target.value)} placeholder="Describe what you need..." className="input-premium resize-none h-24" />
             </div>
             <div className="flex gap-3">
-              <button onClick={() => { setShowRequestModal(false); setRequestDescription(''); setRequestPhotoUrl(''); }} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
+              <button onClick={() => { setShowRequestModal(false); setRequestDescription(''); setRequestPhotoUrl(''); setEditingRequestId(null); }} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
               <button onClick={handleSubmitRequest} disabled={!requestDescription.trim() || submittingRequest} className="btn-premium btn-premium-primary flex-1 disabled:opacity-50">
-                <Send className="w-4 h-4" /> {submittingRequest ? 'Submitting...' : 'Submit'}
+                {editingRequestId ? (
+                  <><Save className="w-4 h-4" /> {submittingRequest ? 'Saving...' : 'Save'}</>
+                ) : (
+                  <><Send className="w-4 h-4" /> {submittingRequest ? 'Submitting...' : 'Submit'}</>
+                )}
               </button>
             </div>
           </div>
@@ -2591,16 +2793,16 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               </button>
               <button
                 onClick={async () => {
-                  // Check all items
-                  const allChecked: ForkliftConditionChecklist = {};
+                  // Set all items to OK
+                  const allOk: ForkliftConditionChecklist = {};
                   CHECKLIST_CATEGORIES.forEach(cat => {
                     cat.items.forEach(item => {
-                      allChecked[item.key as keyof ForkliftConditionChecklist] = true;
+                      allOk[item.key as keyof ForkliftConditionChecklist] = 'ok';
                     });
                   });
-                  setChecklistEditData(allChecked);
+                  setChecklistEditData(allOk);
                   setShowCheckAllConfirmModal(false);
-                  // Record that "Check All" was used
+                  // Record that "Check All OK" was used
                   if (job) {
                     await MockDb.updateJob(job.job_id, {
                       checklist_used_check_all: true,

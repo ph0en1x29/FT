@@ -5,6 +5,7 @@ import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
 import { Briefcase, Calendar, MapPin, User as UserIcon, Search, Filter, X, ChevronDown, AlertTriangle, Trash2, ChevronRight, Clock, Zap } from 'lucide-react';
 import SlotInSLABadge, { getSLAStatus } from '../components/SlotInSLABadge';
+import { useDevModeContext } from '../contexts/DevModeContext';
 
 interface JobBoardProps {
   currentUser: User;
@@ -19,6 +20,9 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Use dev mode context for role-based permissions
+  const { displayRole, hasPermission } = useDevModeContext();
 
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,7 +76,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
   // Recently deleted jobs (admin/supervisor only)
   const [deletedJobs, setDeletedJobs] = useState<DeletedJob[]>([]);
   const [showDeletedSection, setShowDeletedSection] = useState(false);
-  const canViewDeleted = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR;
+  const canViewDeleted = displayRole === UserRole.ADMIN || displayRole === UserRole.SUPERVISOR;
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -329,9 +333,9 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
       {!hideHeader && (
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-theme">
-            {currentUser.role === 'technician' ? 'My Jobs' : 'Job Board'}
+            {displayRole === UserRole.TECHNICIAN ? 'My Jobs' : 'Job Board'}
           </h1>
-          {(currentUser.role === 'admin' || currentUser.role === 'supervisor') && (
+          {hasPermission('canCreateJobs') && (
             <button
               onClick={() => navigate('/jobs/new')}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"

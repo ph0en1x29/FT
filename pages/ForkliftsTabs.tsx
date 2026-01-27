@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import AssetDashboard from '../components/AssetDashboard';
 import HourmeterReview from './HourmeterReview';
+import { useDevModeContext } from '../contexts/DevModeContext';
 
 // ============================================================================
 // TYPES
@@ -60,14 +61,17 @@ type TabType = 'dashboard' | 'fleet' | 'intervals' | 'service-due' | 'hourmeter'
 const ForkliftsTabs: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  
-  const isAdmin = currentUser.role === UserRole.ADMIN;
+
+  // Use dev mode context for role-based permissions
+  const { displayRole, hasPermission } = useDevModeContext();
+
+  const isAdmin = displayRole === UserRole.ADMIN;
   const isAdminOrSupervisor = [
     UserRole.ADMIN,
     UserRole.ADMIN_SERVICE,
     UserRole.ADMIN_STORE,
     UserRole.SUPERVISOR,
-  ].includes(currentUser.role);
+  ].includes(displayRole);
 
   // Default tab based on role: dashboard for admin/supervisor, fleet for others
   const defaultTab = isAdminOrSupervisor ? 'dashboard' : 'fleet';
@@ -145,6 +149,9 @@ const FleetTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Use dev mode context for role-based permissions
+  const { displayRole } = useDevModeContext();
   
   // Filters
   const [filterType, setFilterType] = useState<string>('all');
@@ -204,7 +211,7 @@ const FleetTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     UserRole.ADMIN_SERVICE,
     UserRole.ADMIN_STORE,
     UserRole.SUPERVISOR,
-  ].includes(currentUser.role);
+  ].includes(displayRole);
 
   useEffect(() => {
     loadData();
@@ -1376,12 +1383,15 @@ const ServiceDueTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const [running, setRunning] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
 
+  // Use dev mode context for role-based permissions
+  const { displayRole } = useDevModeContext();
+
   const isAdmin = [
     UserRole.ADMIN,
     UserRole.ADMIN_SERVICE,
     UserRole.ADMIN_STORE,
     UserRole.SUPERVISOR,
-  ].includes(currentUser.role);
+  ].includes(displayRole);
 
   useEffect(() => {
     loadData();

@@ -18,6 +18,438 @@ All notable changes, decisions, and client requirements for this project.
 
 ## [Unreleased] - ACWER Workflow Implementation
 
+### 🎨 Permission Modal UI Improvement (2026-01-20)
+- **Updated:** 2026-01-20 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Replaced cramped inline permission panel in DevBanner with a clean centered modal; fixed permission overrides to work app-wide
+
+#### Problem
+The existing permission panel in DevBanner was:
+1. Cramped inline display that expanded the banner awkwardly
+2. Read-only - couldn't toggle permissions directly
+3. Poor UX on smaller screens
+4. Permission overrides didn't affect navigation (Sidebar, MobileNav, MobileDrawer used local function instead of context)
+
+#### Changes Made
+
+**1. Created PermissionModal Component (`components/dev/PermissionModal.tsx`)**
+- Centered modal with dark backdrop overlay
+- Theme-aware styling using CSS variables (`bg-theme-surface`, `text-theme`, etc.) - works in both light and dark themes
+- All 27 permissions organized into 7 logical groups
+- Toggle switches using Lucide ToggleLeft/ToggleRight icons
+- Visual indicators:
+  - Enabled: Green toggle (indigo if overridden)
+  - Disabled: Gray toggle
+  - Overridden (differs from role default): Amber highlight with reset button
+- Search/filter input to quickly find permissions
+- "Reset All" button to clear all overrides
+- Close via X button, Escape key, or click-outside
+
+**2. Updated DevBanner (`components/dev/DevBanner.tsx`)**
+- Replaced `showPermissions` state with `showModal` state
+- Removed inline collapsible permission panel entirely
+- Changed button from "Show/Hide Permissions" to "Permissions" with Shield icon
+- Added amber badge showing override count when > 0
+- Renders PermissionModal component when open
+
+**3. Fixed Permission Overrides in App.tsx**
+- Sidebar, MobileNav, MobileDrawer, and AppLayout now use `useDevModeContext().hasPermission()` instead of local `hasPermission()` function
+- This ensures permission overrides set in PermissionModal affect navigation/routing
+- Renamed unused local function to `hasPermissionLocal` with note to use context's version
+
+#### Permission Groups
+- Dashboard & General (3): View Dashboard, View KPI, View Own Profile
+- Jobs (6): View/Create/Assign/Reassign/Edit/Delete Jobs
+- Customers (3): View/Edit/Delete Customers
+- Forklifts & Service (4): View/Edit Forklifts, View Service Records, Schedule Maintenance
+- Inventory & Rentals (4): Manage/Edit Inventory, Manage Rentals, Edit Rental Rates
+- Finance (3): Finalize Invoices, View Pricing, View Job Costs
+- HR & Users (4): View HR, Manage Employees, Approve Leave, Manage Users
+
+#### Files Modified
+- `components/dev/PermissionModal.tsx` — New file (theme-aware centered modal with permission toggles)
+- `components/dev/DevBanner.tsx` — Simplified to button + modal, removed inline panel
+- `App.tsx` — Updated Sidebar, MobileNav, MobileDrawer, AppLayout to use context's hasPermission
+
+---
+
+### 🔧 Dev Mode UI Refactoring (2026-01-20)
+- **Updated:** 2026-01-20 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Fixed dev mode impersonation UI - moved controls from page content to header, fixed dual state bug
+
+#### Problem
+1. RoleSwitcher component was rendering in the middle of page content (PrototypeDashboards.tsx)
+2. Hard-coded dark theme colors not following global theme system
+3. Dual devMode state instances: App.tsx used `useDevMode()` directly while DevModeSelector used context, causing state desync
+
+#### Changes Made
+
+**1. Refactored App.tsx Architecture**
+- Created `AppLayout` inner component that uses `useDevModeContext()`
+- Moved all layout/navigation logic inside AppLayout
+- Single source of truth for devMode state shared by DevModeSelector, DevBanner, and navigation
+- Import changed from `useDevMode` to `useDevModeContext`
+
+**2. Cleaned Up PrototypeDashboards.tsx**
+- Removed RoleSwitcher import and rendering from page content
+- Removed local DevBanner (handled globally by App.tsx)
+- Changed from `useDevMode()` to `useDevModeContext()` for shared state
+
+**3. DevModeSelector (Already Theme-Aware)**
+- Compact dropdown in header with role selection, mode toggle (UI Only/Strict), and Exit button
+- Uses CSS variable classes (`bg-theme-surface`, `text-theme`, etc.)
+- Only visible to dev users
+
+**4. Fixed DevBanner Visibility**
+- TopHeader now moves to `top-10` when dev mode is active (was `top-0`, blocking banner)
+- Main content area gets `pt-14` padding when dev mode active
+- DevBanner now clearly visible without overlapping header
+
+#### Files Modified
+- `App.tsx` — Refactored to AppLayout pattern, single devMode context
+- `pages/PrototypeDashboards.tsx` — Removed RoleSwitcher and local DevBanner
+- `components/dev/DevModeSelector.tsx` — (Previously created) Theme-aware header dropdown
+
+---
+
+### 🛠️ Development Process: Multi-Session Debugging Practice (2026-01-19)
+- **Updated:** 2026-01-19 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Added lightweight findings practice for debugging that spans multiple sessions
+
+#### Changes Made
+
+**1. Updated CLAUDE.md**
+- Added "For Multi-Session Debugging" section
+- Documents when/how to create `docs/findings/<issue-name>.md` files
+- Captures: what was tried, root causes found, current hypothesis, key code locations
+
+**2. Created docs/findings/ Directory**
+- Empty directory ready for future debugging session notes
+- Added `.gitkeep` to preserve in version control
+
+#### Rationale
+Based on analysis of project history (e.g., Notification RLS saga spanning Jan 7-8), bugs that span multiple sessions often involve re-discovering the same problems. Findings files capture institutional knowledge during investigation, then get summarized into CHANGELOG entries once resolved.
+
+#### Files Modified
+- `CLAUDE.md` — Added multi-session debugging section
+- `docs/findings/.gitkeep` — New file
+
+---
+
+### 📋 Customer Feedback Implementation - Phase 1-3 Complete (2026-01-19)
+- **Updated:** 2026-01-19 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Full implementation of customer feedback requirements across notification systems, admin workflows, and technician features
+
+#### Phase 1: Critical Business Logic
+
+**1. Parts Confirmation Verification Dependency**
+- Admin 1 (Service) cannot finalize jobs until Admin 2 (Store) confirms parts
+- Added validation in `PendingConfirmations.tsx:handleConfirmJob`
+- Database trigger enforces at SQL level (`check_parts_confirmed_before_job_complete`)
+- Error message: "Store Verification Pending: Admin 2 must approve parts before final service closure"
+
+**2. Pricing Hidden from Technicians**
+- Technicians cannot see: Part prices, labor costs, financial summary, extra charges
+- Added `canViewPricing` permission check (`isAdmin || isAccountant || isSupervisor`)
+- Parts display shows "Qty × Part Name" only for technicians
+
+**3. Parts Entry Removed from Technicians**
+- Technicians can no longer directly add parts to jobs
+- Modified `canAddParts` logic to exclude technicians entirely
+- Technicians use "Spare Part Request" workflow instead
+- UI shows hint: "Use Spare Part Request to request additional parts"
+
+#### Phase 2: Technician UX Enhancements
+
+**4. Binary Checklist States (OK / Not OK)**
+- Changed checklist from boolean to three-state: `'ok' | 'not_ok' | undefined`
+- Two buttons per item: green ✓ (OK), red ✗ (Not OK)
+- Added `ChecklistItemState` type and `normalizeChecklistState` helper
+- Backward compatible with existing boolean values
+- Job completion blocked if any mandatory items undefined
+
+**5. Photo-Based Auto-Start Job Timer**
+- First photo upload automatically starts job timer
+- Sets `repair_start_time`, `started_at`, and status to "In Progress"
+- Toast notification: "Job timer started automatically with first photo"
+
+**6. Request Edit Capability**
+- Technicians can edit their own pending requests (status = 'pending')
+- Edit button appears only for pending requests created by current user
+- Added `updateJobRequest()` function in supabaseService
+- RLS policy enforces ownership and status check
+
+**7. Hourmeter Persistence on Reassignment**
+- First technician's hourmeter reading is preserved through reassignment
+- Added `first_hourmeter_recorded_by_id/name/at` fields
+- Subsequent technicians see read-only with "Recorded by [Name]" note
+- Amendment button available for corrections (requires approval)
+
+#### Phase 3: Admin & Notification Features
+
+**8. Dashboard Notification Display**
+- Created `DashboardNotificationCard.tsx` component
+- Shows 5 recent unread notifications
+- Added to TechnicianDashboard, AccountantDashboard
+- Uses `useNotifications()` from NotificationContext
+- Click navigates to relevant page (job detail, pending confirmations)
+
+**9. Multi-Admin Conflict Handling (Job Locking)**
+- In-memory lock system for job confirmation actions
+- `acquireJobLock()`, `releaseJobLock()`, `checkJobLock()` functions
+- 5-minute automatic lock timeout
+- Warning displayed if job locked by another admin
+- Prevents simultaneous edits by multiple admins
+
+**10. Pre-Job Spare Parts Amendment for Admin 2**
+- Admin 2 (Store) can add parts for jobs in New/Assigned status
+- Expanded `canAddParts` to include `isAdminStore` for pre-job states
+- Parts can be allocated before technician starts work
+
+#### Files Changed
+
+| File | Changes |
+|------|---------|
+| `pages/JobDetail.tsx` | Pricing visibility, parts entry removal, checklist binary states, photo auto-timer, hourmeter display, request edit |
+| `pages/PendingConfirmations.tsx` | Parts confirmation dependency, job locking |
+| `services/supabaseService.ts` | updateJobRequest, job locking functions, modified hourmeter logic |
+| `types/index.ts` | ChecklistItemState type, first_hourmeter fields |
+| `components/DashboardNotificationCard.tsx` | New component |
+| `components/dashboards/TechnicianDashboard.tsx` | Added notification card |
+| `components/dashboards/AccountantDashboard.tsx` | Added notification card |
+
+#### Database Migration
+
+New migration: `supabase/migrations/20260119000001_customer_feedback_implementation.sql`
+- Hourmeter persistence columns
+- Parts confirmation enforcement trigger
+- RLS policy for request edits
+- Notification indexes for performance
+
+---
+
+### 🔧 Dev UI Control Panel - Slide-out Panel for Developers (2026-01-19)
+- **Updated:** 2026-01-19 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Comprehensive developer control panel with role simulation, permission overrides, feature flags, and quick actions
+
+#### Features:
+
+**1. Slide-out Dev Panel**
+- Floating gear button in bottom-right corner (only visible to dev users)
+- Keyboard shortcut: `Ctrl+Shift+D` to toggle panel
+- Non-intrusive design that doesn't block app content
+- Persists settings across page reloads
+
+**2. Role Simulation (Enhanced)**
+- Role dropdown to switch between any role (Admin, Technician, etc.)
+- UI Only mode: See UI as role, keep real permissions
+- Strict mode: Full role simulation with enforced permissions
+
+**3. Permission Overrides (New)**
+- Toggle ANY of the 27 permissions on/off individually
+- Override the role's default permissions for testing edge cases
+- Example: "What if Technician COULD create jobs?"
+- Visual indicator for overridden vs role default
+- "Reset to Role Defaults" button
+
+**4. Feature Flags (New)**
+- Toggle experimental features on/off:
+  - `realtimeNotifications` - Enable/disable real-time notifications
+  - `experimentalUI` - Enable experimental UI components
+  - `dashboardV5` - Future dashboard version toggle (placeholder)
+  - `debugMode` - Show extra debug info in console
+  - `aiSummary` - AI summary generation for jobs
+  - `darkModeBeta` - Dark mode beta features
+- Persisted to localStorage
+
+**5. Quick Actions (New)**
+- Copy State as JSON - Export current dev settings
+- Reset All Dev - Clear all dev mode settings
+- Test Toasts - Trigger sample notifications
+- Clear Dev Storage - Clear only dev-related localStorage
+- Clear All Storage - Full localStorage reset
+
+#### Architecture:
+
+**New Files:**
+```
+/contexts/FeatureFlagContext.tsx     — Feature flag state management
+/hooks/useFeatureFlags.ts            — Feature flag hook
+/components/dev/
+  ├── DevPanel.tsx                   — Main slide-out panel
+  ├── DevPanelToggle.tsx             — Floating button + keyboard shortcut
+  ├── RoleSwitcher.tsx               — Enhanced role switcher (updated)
+  ├── PermissionOverrides.tsx        — Permission toggle grid
+  ├── FeatureFlags.tsx               — Feature flag toggles
+  └── QuickActions.tsx               — Utility action buttons
+```
+
+**Updated Files:**
+- `hooks/useDevMode.ts` — Added permission override support
+- `contexts/DevModeContext.tsx` — Added `setPermissionOverride()`, `clearPermissionOverrides()`, enhanced `hasPermission()` to check overrides first
+- `App.tsx` — Added `FeatureFlagProvider`, `DevPanelToggle`
+
+**localStorage Keys:**
+```
+fieldpro_dev_mode              — Role simulation settings
+fieldpro_permission_overrides  — Individual permission overrides
+fieldpro_feature_flags         — Feature flag states
+```
+
+#### Usage:
+1. Login as `dev@test.com`
+2. See floating gear button in corner
+3. Click to open Dev Panel (or press `Ctrl+Shift+D`)
+4. Switch to any role
+5. Toggle individual permissions on/off
+6. Enable/disable feature flags
+7. Use quick actions for testing
+8. Settings persist across page reloads
+
+---
+
+### 🛠️ Dev Mode Complete Role Simulator - Context Provider (2026-01-19)
+- **Updated:** 2026-01-19 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Full role simulation in dev mode using React Context - page content now reflects the simulated role
+
+#### Problem Solved:
+Previously, only route guards and sidebar navigation respected dev mode. Page content (buttons, tabs, data filtering) still used the real user's role. Now the entire app simulates the selected role experience.
+
+#### Architecture:
+
+**New Context Provider:**
+```
+App.tsx
+  └── DevModeProvider (wraps authenticated app)
+        └── Routes
+              └── Any page can call useDevModeContext()
+```
+
+**What the context provides:**
+- `displayRole` - Role to show in UI (always impersonated when active)
+- `permissionRole` - Role for permission checks (impersonated only in STRICT mode)
+- `hasPermission(permission)` - Helper that uses correct role automatically
+- `currentUser` - The actual logged-in user
+
+#### Changes:
+
+| Layer | Before | After |
+|-------|--------|-------|
+| Route guards | ✅ Used `navRole` | ✅ Same |
+| Sidebar/Navigation | ✅ Used `navRole` | ✅ Same |
+| Page content (buttons, tabs) | ❌ Used `currentUser.role` | ✅ Uses `useDevModeContext()` |
+| Nested components | ❌ No access to dev mode | ✅ Can call `useDevModeContext()` |
+
+#### Files Added:
+- `contexts/DevModeContext.tsx` — Context provider with `hasPermission()` helper
+
+#### Files Modified (12 pages):
+- `App.tsx` — Wrap with `<DevModeProvider>`
+- `pages/JobsTabs.tsx` — Use context for "New Job" button visibility
+- `pages/JobBoard.tsx` — Use context for deleted jobs, "My Jobs" header
+- `pages/JobDetail.tsx` — Use context for action permissions
+- `pages/ForkliftsTabs.tsx` — Use context for tab visibility (FleetTab, ServiceDueTab)
+- `pages/People.tsx` — Use context for tab visibility (OverviewTab, LeaveTab)
+- `pages/CreateJob.tsx` — Use context for technician assignment
+- `pages/InventoryPage.tsx` — Use context for Van Stock/Confirmations tabs
+- `pages/ForkliftProfile.tsx` — Use context for rental/maintenance actions
+- `pages/EmployeeProfile.tsx` — Use context for leave approval
+
+#### Usage Pattern:
+```tsx
+// In any component inside the app:
+const { displayRole, hasPermission } = useDevModeContext();
+
+// Check permission
+if (hasPermission('canCreateJobs')) {
+  // Show create button
+}
+
+// Role-based UI
+const title = displayRole === UserRole.TECHNICIAN ? 'My Jobs' : 'All Jobs';
+```
+
+#### Verification:
+1. Login as `dev@test.com`
+2. Switch to Technician + Strict mode
+3. Go to `/jobs` → Header says "My Jobs", no "New Job" button
+4. Go to `/forklifts` → Only Fleet and Service Due tabs visible
+5. Go to `/people` (blocked by route guard) → Redirects to `/`
+6. Click "Show Permissions" in banner → See all 27 permissions with ✅/❌
+3. Try direct URL `/invoices` → Should redirect to `/`
+4. Try direct URL `/forklifts` → Should work (Technician can view)
+5. Click "Show Permissions" in banner → See all 27 permissions color-coded
+6. Switch to UI Only mode → `/invoices` now accessible
+
+---
+
+### 🔒 Dev Mode Strict Navigation Permissions (2026-01-19)
+- **Updated:** 2026-01-19 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Restrict sidebar/navigation to only show tabs the impersonated role can access when dev mode is in "Strict" mode
+
+#### Behavior Change:
+| Mode | Dashboard | Navigation (Before) | Navigation (After) |
+|------|-----------|---------------------|-------------------|
+| UI Only | Impersonated role | Real permissions | Real permissions |
+| Strict | Impersonated role | Real permissions ❌ | Impersonated role's permissions ✅ |
+
+#### Implementation:
+| Component | Change |
+|-----------|--------|
+| App.tsx | Added `useDevMode` hook, created `navRole` from `permissionRole` |
+| Sidebar | Uses `navRole` prop for all permission checks |
+| MobileNav | Uses `navRole` prop for all permission checks |
+| MobileDrawer | Uses `navRole` prop for all permission checks |
+
+#### Files Modified:
+- `App.tsx` — Import useDevMode, add navRole, pass to Sidebar/MobileNav/MobileDrawer, update permission checks
+
+#### Verification:
+1. Login as `dev@test.com`
+2. Use RoleSwitcher to impersonate "Technician"
+3. Set mode to "Strict"
+4. Sidebar should hide Billing, Team tabs (Technician can't access these)
+5. Switch to "UI Only" mode → All original tabs should reappear
+
+---
+
+### 📊 Dashboard Task-Focus Redesign (2026-01-19)
+- **Updated:** 2026-01-19 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Redesign Accountant & Technician dashboards to show users what to do first
+
+#### Accountant Dashboard Changes:
+| Change | Description |
+|--------|-------------|
+| Layout reorder | Finalization Queue moved up as PRIMARY section (before KPIs/Charts) |
+| FIFO sorting | Queue now shows oldest jobs first (longest waiting at top) |
+| Days waiting badge | Each job shows "X days" badge with urgency color |
+| Urgency highlighting | 0-2 days: normal, 3-4: yellow warning, 5-6: orange urgent, 7+: red critical |
+| Enhanced alert banner | Shows urgent count + total queue value |
+| Extended list | Shows 10 items (was 6) |
+
+#### Technician Dashboard Changes:
+| Change | Description |
+|--------|-------------|
+| Today's Schedule Carousel | New PRIMARY section with horizontal swipeable cards |
+| Chronological sort | Jobs sorted by scheduled time |
+| Rich cards | Show job type, title, customer, time, forklift info, status |
+| Urgency indicators | Slot-In unacknowledged: red, Overdue: orange |
+| Section rename | "My Jobs" → "All Active Jobs" |
+
+#### Files Modified:
+- `components/dashboards/AccountantDashboard.tsx` — Layout reorder, urgency logic, queue redesign
+- `components/dashboards/TechnicianDashboard.tsx` — Carousel section, layout reorder
+- `index.css` — Carousel CSS classes (`.schedule-carousel`, `.schedule-card`)
+
+---
+
 ### 🔒 Route Guard Fix: /my-van-stock (2026-01-18)
 - **Updated:** 2026-01-18 (author: Claude)
 - **Status:** ✔️ Completed

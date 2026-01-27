@@ -134,6 +134,20 @@ async function isOnLoginPage(page: any): Promise<boolean> {
          await page.locator('button:has-text("Sign In")').isVisible().catch(() => false);
 }
 
+async function waitForAuthResolution(page: any, timeoutMs = 15000): Promise<'dashboard' | 'login' | 'timeout'> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await page.locator('aside').isVisible().catch(() => false)) {
+      return 'dashboard';
+    }
+    if (await isOnLoginPage(page)) {
+      return 'login';
+    }
+    await page.waitForTimeout(500);
+  }
+  return 'timeout';
+}
+
 test.describe('Authenticated Tests', () => {
 
   test.skip(!CONFIG.testUser.email || !CONFIG.testUser.password, 'No test credentials configured');
@@ -165,17 +179,13 @@ test.describe('Authenticated Tests', () => {
     await page.fill(CONFIG.auth.passwordSelector, CONFIG.testUser.password);
     await page.click(CONFIG.auth.submitSelector);
 
-    await page.waitForTimeout(5000);
-
-    // If still on login page, credentials don't exist in Supabase - that's OK
-    if (await isOnLoginPage(page)) {
+    const authState = await waitForAuthResolution(page);
+    if (authState === 'login') {
       expect(await isOnLoginPage(page)).toBeTruthy();
       return;
     }
 
-    // Page should have content
-    const body = await page.locator('body').textContent();
-    expect(body?.length).toBeGreaterThan(100);
+    expect(authState).toBe('dashboard');
   });
 
 });

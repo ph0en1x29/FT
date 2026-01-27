@@ -61,79 +61,90 @@ export enum ForkliftStatus {
   INACTIVE = 'Inactive',             // @deprecated - use OUT_OF_SERVICE
 }
 
+// Checklist item state: OK, Not OK, or not checked
+// Supports boolean for backward compatibility with existing data
+export type ChecklistItemState = 'ok' | 'not_ok' | boolean | undefined;
+
+// Helper to normalize checklist state (converts legacy boolean to new state)
+export const normalizeChecklistState = (value: ChecklistItemState): 'ok' | 'not_ok' | undefined => {
+  if (value === true || value === 'ok') return 'ok';
+  if (value === false || value === 'not_ok') return 'not_ok';
+  return undefined;
+};
+
 // Forklift Condition Checklist Items
 export interface ForkliftConditionChecklist {
   // Drive System
-  drive_front_axle?: boolean;
-  drive_rear_axle?: boolean;
-  drive_motor_engine?: boolean;
-  drive_controller_transmission?: boolean;
-  
+  drive_front_axle?: ChecklistItemState;
+  drive_rear_axle?: ChecklistItemState;
+  drive_motor_engine?: ChecklistItemState;
+  drive_controller_transmission?: ChecklistItemState;
+
   // Hydraulic System
-  hydraulic_pump?: boolean;
-  hydraulic_control_valve?: boolean;
-  hydraulic_hose?: boolean;
-  hydraulic_oil_level?: boolean;
-  
+  hydraulic_pump?: ChecklistItemState;
+  hydraulic_control_valve?: ChecklistItemState;
+  hydraulic_hose?: ChecklistItemState;
+  hydraulic_oil_level?: ChecklistItemState;
+
   // Safety Devices
-  safety_overhead_guard?: boolean;
-  safety_cabin_body?: boolean;
-  safety_backrest?: boolean;
-  safety_seat_belt?: boolean;
-  
+  safety_overhead_guard?: ChecklistItemState;
+  safety_cabin_body?: ChecklistItemState;
+  safety_backrest?: ChecklistItemState;
+  safety_seat_belt?: ChecklistItemState;
+
   // Steering System
-  steering_wheel_valve?: boolean;
-  steering_cylinder?: boolean;
-  steering_motor?: boolean;
-  steering_knuckle?: boolean;
-  
+  steering_wheel_valve?: ChecklistItemState;
+  steering_cylinder?: ChecklistItemState;
+  steering_motor?: ChecklistItemState;
+  steering_knuckle?: ChecklistItemState;
+
   // Load Handling System
-  load_fork?: boolean;
-  load_mast_roller?: boolean;
-  load_chain_wheel?: boolean;
-  load_cylinder?: boolean;
-  
+  load_fork?: ChecklistItemState;
+  load_mast_roller?: ChecklistItemState;
+  load_chain_wheel?: ChecklistItemState;
+  load_cylinder?: ChecklistItemState;
+
   // Lighting
-  lighting_beacon_light?: boolean;
-  lighting_horn?: boolean;
-  lighting_buzzer?: boolean;
-  lighting_rear_view_mirror?: boolean;
-  
+  lighting_beacon_light?: ChecklistItemState;
+  lighting_horn?: ChecklistItemState;
+  lighting_buzzer?: ChecklistItemState;
+  lighting_rear_view_mirror?: ChecklistItemState;
+
   // Braking System
-  braking_brake_pedal?: boolean;
-  braking_parking_brake?: boolean;
-  braking_fluid_pipe?: boolean;
-  braking_master_pump?: boolean;
-  
+  braking_brake_pedal?: ChecklistItemState;
+  braking_parking_brake?: ChecklistItemState;
+  braking_fluid_pipe?: ChecklistItemState;
+  braking_master_pump?: ChecklistItemState;
+
   // Diesel/LPG/Petrol
-  fuel_engine_oil_level?: boolean;
-  fuel_line_leaks?: boolean;
-  fuel_radiator?: boolean;
-  fuel_exhaust_piping?: boolean;
-  
+  fuel_engine_oil_level?: ChecklistItemState;
+  fuel_line_leaks?: ChecklistItemState;
+  fuel_radiator?: ChecklistItemState;
+  fuel_exhaust_piping?: ChecklistItemState;
+
   // Tyres
-  tyres_front?: boolean;
-  tyres_rear?: boolean;
-  tyres_rim?: boolean;
-  tyres_screw_nut?: boolean;
-  
+  tyres_front?: ChecklistItemState;
+  tyres_rear?: ChecklistItemState;
+  tyres_rim?: ChecklistItemState;
+  tyres_screw_nut?: ChecklistItemState;
+
   // Electrical System
-  electrical_ignition?: boolean;
-  electrical_battery?: boolean;
-  electrical_wiring?: boolean;
-  electrical_instruments?: boolean;
-  
+  electrical_ignition?: ChecklistItemState;
+  electrical_battery?: ChecklistItemState;
+  electrical_wiring?: ChecklistItemState;
+  electrical_instruments?: ChecklistItemState;
+
   // Transmission
-  transmission_fluid_level?: boolean;
-  transmission_inching_valve?: boolean;
-  transmission_air_cleaner?: boolean;
-  transmission_lpg_regulator?: boolean;
-  
+  transmission_fluid_level?: ChecklistItemState;
+  transmission_inching_valve?: ChecklistItemState;
+  transmission_air_cleaner?: ChecklistItemState;
+  transmission_lpg_regulator?: ChecklistItemState;
+
   // Wheels
-  wheels_drive?: boolean;
-  wheels_load?: boolean;
-  wheels_support?: boolean;
-  wheels_hub_nut?: boolean;
+  wheels_drive?: ChecklistItemState;
+  wheels_load?: ChecklistItemState;
+  wheels_support?: ChecklistItemState;
+  wheels_hub_nut?: ChecklistItemState;
 }
 
 // Forklift Ownership Type
@@ -715,7 +726,10 @@ export interface Job {
   forklift_id?: string;
   forklift?: Forklift;
   hourmeter_reading?: number;
-  
+  first_hourmeter_recorded_by_id?: string;  // Technician who first recorded the hourmeter
+  first_hourmeter_recorded_by_name?: string;
+  first_hourmeter_recorded_at?: string;     // When the hourmeter was first recorded
+
   // Condition checklist (checked when starting job)
   condition_checklist?: ForkliftConditionChecklist;
   job_carried_out?: string; // Description of work done

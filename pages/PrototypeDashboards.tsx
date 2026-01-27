@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Job, User } from '../types';
 import { SupabaseDb } from '../services/supabaseService';
-import { useDevMode } from '../hooks/useDevMode';
-import { DevBanner } from '../components/dev/DevBanner';
-import { RoleSwitcher } from '../components/dev/RoleSwitcher';
+import { useDevModeContext } from '../contexts/DevModeContext';
 import DashboardPreviewV4 from '../components/dashboards/DashboardPreviewV4';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 
@@ -21,8 +19,8 @@ const DashboardV4: React.FC<DashboardV4Props> = ({ currentUser }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Dev mode hook - only affects devs
-  const devMode = useDevMode(currentUser.email, currentUser.role);
+  // Dev mode from context - shared with header DevModeSelector
+  const devMode = useDevModeContext();
 
   // Load data for ALL users
   useEffect(() => {
@@ -84,44 +82,13 @@ const DashboardV4: React.FC<DashboardV4Props> = ({ currentUser }) => {
   }
 
   return (
-    <>
-      {/* Dev Banner (when impersonating) - only for devs */}
-      {devMode.isDevModeActive && (
-        <div className="fixed top-0 left-0 right-0 z-50">
-          <DevBanner
-            impersonatedRole={devMode.impersonatedRole!}
-            actualRole={currentUser.role}
-            devModeType={devMode.devModeType}
-            onExit={devMode.deactivateDevMode}
-          />
-        </div>
-      )}
-
-      {/* Dev Role Switcher - only for devs */}
-      {devMode.isDev && (
-        <div className="flex justify-end mb-4">
-          <RoleSwitcher
-            currentRole={currentUser.role}
-            impersonatedRole={devMode.impersonatedRole}
-            devModeType={devMode.devModeType}
-            onRoleChange={devMode.setImpersonatedRole}
-            onModeTypeChange={devMode.setDevModeType}
-            onDeactivate={devMode.deactivateDevMode}
-          />
-        </div>
-      )}
-
-      {/* Dashboard Content */}
-      <div className={devMode.isDevModeActive ? 'mt-10' : ''}>
-        <DashboardPreviewV4
-          currentUser={currentUser}
-          displayRole={devMode.displayRole}
-          jobs={jobs}
-          users={users}
-          onRefresh={handleRefresh}
-        />
-      </div>
-    </>
+    <DashboardPreviewV4
+      currentUser={currentUser}
+      displayRole={devMode.displayRole}
+      jobs={jobs}
+      users={users}
+      onRefresh={handleRefresh}
+    />
   );
 };
 

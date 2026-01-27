@@ -37,6 +37,122 @@
 | 9 | KPI Dashboard | ✔️ Completed |
 | 10 | Photo Categorization + ZIP | ✔️ Completed |
 | 11 | Partial Work Tracking | ⏳ Pending Client Confirmation |
+| 12 | Customer Feedback Implementation | ✔️ Completed (2026-01-19) |
+
+---
+
+## Customer Feedback Implementation (2026-01-19)
+
+### Overview
+Implementation of customer feedback requirements covering admin workflows, technician restrictions, and notification enhancements.
+
+### Parts Confirmation Workflow
+
+**Two-Admin Confirmation Required:**
+
+```
+Job Completed by Technician
+           │
+           ▼
+┌─────────────────────────────┐
+│  Awaiting Finalization      │
+│  (parts_used.length > 0)    │
+└─────────────────────────────┘
+           │
+           ▼
+┌─────────────────────────────┐
+│  Admin Store (Admin 2)      │ ◄── Confirms parts against inventory
+│  Confirms Parts             │
+└─────────────────────────────┘
+           │
+           ▼
+┌─────────────────────────────┐
+│  Admin Service (Admin 1)    │ ◄── Cannot proceed until parts confirmed
+│  Finalizes Job              │
+└─────────────────────────────┘
+           │
+           ▼
+       Completed
+```
+
+**Enforcement Rules:**
+- `job_confirmed_at` cannot be set until `parts_confirmed_at` is set (or `parts_confirmation_skipped` is true)
+- Database trigger `enforce_parts_confirmation` enforces this at SQL level
+- Frontend shows "Store Verification Pending" error if attempted prematurely
+
+### Technician Restrictions
+
+**Pricing Hidden:**
+- Technicians cannot see: part prices, labor costs, financial summary, extra charges
+- Parts display shows "Qty × Part Name" only
+- Permission check: `canViewPricing = isAdmin || isAccountant || isSupervisor`
+
+**Parts Entry Removed:**
+- Technicians cannot directly add parts to jobs
+- Must use "Spare Part Request" workflow
+- Permission check: `canAddParts` excludes `isTechnician`
+
+### Binary Checklist States
+
+**Checklist State Values:**
+- `'ok'` - Item passes inspection (green checkmark)
+- `'not_ok'` - Item fails inspection (red X)
+- `undefined` - Not yet checked
+
+**Validation:**
+- Job completion blocked if any mandatory items are `undefined`
+- Backward compatible with existing boolean values (`true` → `'ok'`, `false` → `'not_ok'`)
+
+### Photo Auto-Start Timer
+
+**Trigger:**
+- First photo upload on a job with no existing photos
+- Condition: `job.media.length === 0 && !job.repair_start_time`
+
+**Actions:**
+- Set `repair_start_time` to current timestamp
+- Set `started_at` to current timestamp
+- Update status to "In Progress"
+- Show toast: "Job timer started automatically with first photo"
+
+### Request Edit Capability
+
+**Allowed:**
+- Technicians can edit their own pending requests
+- Only while status = 'pending'
+
+**Not Allowed:**
+- Editing requests created by others
+- Editing approved/rejected requests
+
+### Hourmeter Persistence
+
+**First Recording:**
+- When technician records hourmeter, store `first_hourmeter_recorded_by_id/name/at`
+- First recorder can edit the value
+
+**After Reassignment:**
+- New technician sees read-only hourmeter with "Recorded by [Name]" note
+- Amendment button available for corrections (requires approval)
+
+### Multi-Admin Conflict Prevention
+
+**Lock System:**
+- 5-minute in-memory lock per job
+- Acquired when admin starts confirmation action
+- Released after action completes or timeout
+
+**Behavior:**
+- Same admin: Lock refreshes
+- Different admin: Shows "Job Locked - Being reviewed by [Name]"
+- After 5 minutes: Lock auto-releases
+
+### Pre-Job Parts Allocation
+
+**Admin Store Capability:**
+- Can add parts to jobs in "New" or "Assigned" status
+- Parts ready when technician starts work
+- Permission check: `isAdminStore && (isNew || isAssigned)`
 
 ---
 

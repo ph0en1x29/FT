@@ -1,10 +1,17 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import type { Session } from '@supabase/supabase-js';
 import { Sun, Moon } from 'lucide-react';
 import { User, UserRole, ROLE_PERMISSIONS } from './types';
+import { useDevModeContext } from './contexts/DevModeContext';
 import NotificationBell from './components/NotificationBell';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { DevModeProvider } from './contexts/DevModeContext';
+import { FeatureFlagProvider } from './contexts/FeatureFlagContext';
+import DevBanner from './components/dev/DevBanner';
+import DevModeSelector from './components/dev/DevModeSelector';
+import { supabase, SupabaseDb } from './services/supabaseService';
 import {
   LayoutDashboard, List, Package, LogOut,
   Building2, Truck, FileText, Menu, X, User as UserIcon,
@@ -38,8 +45,10 @@ const PageLoader = () => (
   </div>
 );
 
-// Permission helper
-const hasPermission = (role: UserRole, permission: keyof typeof ROLE_PERMISSIONS[UserRole]) => {
+// Permission helper (local fallback - used when context unavailable)
+// NOTE: Components inside DevModeProvider should use devMode.hasPermission() instead
+// to respect permission overrides
+const hasPermissionLocal = (role: UserRole, permission: keyof typeof ROLE_PERMISSIONS[UserRole]) => {
   return ROLE_PERMISSIONS[role]?.[permission] ?? false;
 };
 
@@ -123,28 +132,30 @@ interface SidebarProps {
   onLogout: () => void;
   isCollapsed: boolean;
   setIsCollapsed: (v: boolean) => void;
+  navRole: UserRole;
 }
 
-const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: SidebarProps) => {
+const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed, navRole }: SidebarProps) => {
   const location = useLocation();
+  const { hasPermission } = useDevModeContext();
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
-  // Permissions
-  const canViewDashboard = hasPermission(currentUser.role, 'canViewDashboard');
-  const canViewForklifts = hasPermission(currentUser.role, 'canViewForklifts');
-  const canViewCustomers = hasPermission(currentUser.role, 'canViewCustomers');
-  const canManageInventory = hasPermission(currentUser.role, 'canManageInventory');
-  const canFinalizeInvoices = hasPermission(currentUser.role, 'canFinalizeInvoices');
-  const canViewHR = hasPermission(currentUser.role, 'canViewHR');
-  const canManageUsers = hasPermission(currentUser.role, 'canManageUsers');
-  const canViewOwnProfile = hasPermission(currentUser.role, 'canViewOwnProfile');
+  // Permissions - use context's hasPermission to respect overrides
+  const canViewDashboard = hasPermission('canViewDashboard');
+  const canViewForklifts = hasPermission('canViewForklifts');
+  const canViewCustomers = hasPermission('canViewCustomers');
+  const canManageInventory = hasPermission('canManageInventory');
+  const canFinalizeInvoices = hasPermission('canFinalizeInvoices');
+  const canViewHR = hasPermission('canViewHR');
+  const canManageUsers = hasPermission('canManageUsers');
+  const canViewOwnProfile = hasPermission('canViewOwnProfile');
 
   // Show People/Team if user can manage users OR view HR OR view reports
-  const canViewTeam = canManageUsers || canViewHR || hasPermission(currentUser.role, 'canViewKPI');
+  const canViewTeam = canManageUsers || canViewHR || hasPermission('canViewKPI');
 
   const NavItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => (
     <Link
@@ -207,7 +218,7 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
       <div className="flex-shrink-0 p-2 border-t border-slate-700/50">
         <div className="space-y-1">
           <NavItem to="/my-leave" icon={CalendarDays} label="My Leave" />
-          {currentUser.role === UserRole.TECHNICIAN && (
+          {navRole === UserRole.TECHNICIAN && (
             <NavItem to="/my-van-stock" icon={Truck} label="My Van Stock" />
           )}
           {canViewOwnProfile && (
@@ -237,14 +248,16 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed }: Sidebar
 };
 
 // Top Header
-const TopHeader = ({ currentUser, isDark, onToggleTheme }: { currentUser: User; isDark: boolean; onToggleTheme: () => void }) => {
+const TopHeader = ({ currentUser, isDark, onToggleTheme, devModeActive }: { currentUser: User; isDark: boolean; onToggleTheme: () => void; devModeActive?: boolean }) => {
   return (
-    <div className="bg-theme-surface border-b border-theme px-4 py-3 mb-6 -mx-4 md:-mx-8 -mt-4 md:-mt-8 flex justify-between items-center sticky top-0 z-40 theme-transition">
+    <div className={`bg-theme-surface border-b border-theme px-4 py-3 mb-6 -mx-4 md:-mx-8 -mt-4 md:-mt-8 flex justify-between items-center sticky z-40 theme-transition ${devModeActive ? 'top-10' : 'top-0'}`}>
       <div className="md:hidden">
         <h1 className="text-lg font-bold text-theme">FieldPro</h1>
       </div>
       <div className="hidden md:block" />
       <div className="flex items-center gap-3">
+        {/* Dev Mode Selector - only visible to dev users */}
+        <DevModeSelector />
         <button
           onClick={onToggleTheme}
           className="flex items-center gap-2 px-3 py-2 bg-theme-surface-2 border border-theme rounded-lg text-theme-muted hover:text-theme transition-all"
@@ -268,16 +281,18 @@ const TopHeader = ({ currentUser, isDark, onToggleTheme }: { currentUser: User; 
 };
 
 // Mobile Bottom Nav
-const MobileNav = ({ currentUser, onOpenDrawer }: { currentUser: User; onOpenDrawer: () => void }) => {
+const MobileNav = ({ currentUser, onOpenDrawer, navRole }: { currentUser: User; onOpenDrawer: () => void; navRole: UserRole }) => {
   const location = useLocation();
+  const { hasPermission } = useDevModeContext();
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
-  const canViewDashboard = hasPermission(currentUser.role, 'canViewDashboard');
-  const canViewForklifts = hasPermission(currentUser.role, 'canViewForklifts');
-  const canViewCustomers = hasPermission(currentUser.role, 'canViewCustomers');
+  // Use context's hasPermission to respect overrides
+  const canViewDashboard = hasPermission('canViewDashboard');
+  const canViewForklifts = hasPermission('canViewForklifts');
+  const canViewCustomers = hasPermission('canViewCustomers');
 
   const NavIcon = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => (
     <Link to={to} className={`flex flex-col items-center gap-0.5 p-2 rounded-xl ${isActive(to) ? 'text-blue-600' : 'text-slate-400'}`}>
@@ -301,13 +316,15 @@ const MobileNav = ({ currentUser, onOpenDrawer }: { currentUser: User; onOpenDra
 };
 
 // Mobile Drawer - Simplified navigation matching sidebar
-const MobileDrawer = ({ currentUser, isOpen, onClose, onLogout }: { currentUser: User; isOpen: boolean; onClose: () => void; onLogout: () => void }) => {
-  const canManageInventory = hasPermission(currentUser.role, 'canManageInventory');
-  const canFinalizeInvoices = hasPermission(currentUser.role, 'canFinalizeInvoices');
-  const canViewHR = hasPermission(currentUser.role, 'canViewHR');
-  const canManageUsers = hasPermission(currentUser.role, 'canManageUsers');
-  const canViewOwnProfile = hasPermission(currentUser.role, 'canViewOwnProfile');
-  const canViewTeam = canManageUsers || canViewHR || hasPermission(currentUser.role, 'canViewKPI');
+const MobileDrawer = ({ currentUser, isOpen, onClose, onLogout, navRole }: { currentUser: User; isOpen: boolean; onClose: () => void; onLogout: () => void; navRole: UserRole }) => {
+  const { hasPermission } = useDevModeContext();
+  // Use context's hasPermission to respect overrides
+  const canManageInventory = hasPermission('canManageInventory');
+  const canFinalizeInvoices = hasPermission('canFinalizeInvoices');
+  const canViewHR = hasPermission('canViewHR');
+  const canManageUsers = hasPermission('canManageUsers');
+  const canViewOwnProfile = hasPermission('canViewOwnProfile');
+  const canViewTeam = canManageUsers || canViewHR || hasPermission('canViewKPI');
 
   if (!isOpen) return null;
 
@@ -344,7 +361,7 @@ const MobileDrawer = ({ currentUser, isOpen, onClose, onLogout }: { currentUser:
           <div className="border-t border-slate-700/50 my-3" />
           {/* Personal */}
           <DrawerLink to="/my-leave" icon={CalendarDays} label="My Leave" />
-          {currentUser.role === UserRole.TECHNICIAN && (
+          {navRole === UserRole.TECHNICIAN && (
             <DrawerLink to="/my-van-stock" icon={Truck} label="My Van Stock" />
           )}
           {canViewOwnProfile && <DrawerLink to={`/people/employees/${currentUser.user_id}`} icon={UserIcon} label="My Profile" />}
@@ -364,6 +381,7 @@ const MobileDrawer = ({ currentUser, isOpen, onClose, onLogout }: { currentUser:
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(() => {
@@ -383,39 +401,145 @@ export default function App() {
     }
   }, [isDarkTheme]);
 
+  useEffect(() => {
+    let isMounted = true;
+    const authFallback = window.setTimeout(() => {
+      if (isMounted) setAuthLoading(false);
+    }, 5000);
+
+    const syncUser = async (session: Session | null) => {
+      if (!session?.user) {
+        setCurrentUser(null);
+        return;
+      }
+
+      try {
+        const user = await SupabaseDb.getUserByAuthId(session.user.id);
+        if (!isMounted) return;
+
+        if (user) {
+          setCurrentUser(user);
+        } else {
+          setCurrentUser(null);
+          await supabase.auth.signOut();
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        setCurrentUser(null);
+      }
+    };
+
+    const hydrateSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        await syncUser(session);
+      } catch (error) {
+        if (!isMounted) return;
+        setCurrentUser(null);
+        await supabase.auth.signOut().catch(() => undefined);
+      } finally {
+        if (isMounted) {
+          clearTimeout(authFallback);
+          setAuthLoading(false);
+        }
+      }
+    };
+
+    void hydrateSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      void syncUser(session);
+      if (isMounted) setAuthLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      clearTimeout(authFallback);
+      subscription?.unsubscribe();
+    };
+  }, []);
+
   const toggleTheme = () => setIsDarkTheme(prev => !prev);
-  const handleLogout = () => setCurrentUser(null);
+  const handleLogout = () => {
+    void supabase.auth.signOut();
+    setCurrentUser(null);
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-theme-bg flex items-center justify-center">
+        <PageLoader />
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return <LoginPage onLogin={setCurrentUser} />;
   }
 
-  // Permissions
-  const canViewDashboard = hasPermission(currentUser.role, 'canViewDashboard');
-  const canViewForklifts = hasPermission(currentUser.role, 'canViewForklifts');
-  const canViewCustomers = hasPermission(currentUser.role, 'canViewCustomers');
-  const canManageInventory = hasPermission(currentUser.role, 'canManageInventory');
-  const canFinalizeInvoices = hasPermission(currentUser.role, 'canFinalizeInvoices');
-  const canCreateJobs = hasPermission(currentUser.role, 'canCreateJobs');
-  const canViewHR = hasPermission(currentUser.role, 'canViewHR');
-  const canManageUsers = hasPermission(currentUser.role, 'canManageUsers');
-  const canViewOwnProfile = hasPermission(currentUser.role, 'canViewOwnProfile');
-  const canViewTeam = canManageUsers || canViewHR || hasPermission(currentUser.role, 'canViewKPI');
-
   return (
     <NotificationProvider currentUser={currentUser}>
+      <DevModeProvider currentUser={currentUser}>
+        <AppLayout
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          mobileDrawerOpen={mobileDrawerOpen}
+          setMobileDrawerOpen={setMobileDrawerOpen}
+          isDarkTheme={isDarkTheme}
+          toggleTheme={toggleTheme}
+        />
+      </DevModeProvider>
+    </NotificationProvider>
+  );
+}
+
+// Inner layout component that uses DevModeContext
+interface AppLayoutProps {
+  currentUser: User;
+  onLogout: () => void;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (v: boolean) => void;
+  mobileDrawerOpen: boolean;
+  setMobileDrawerOpen: (v: boolean) => void;
+  isDarkTheme: boolean;
+  toggleTheme: () => void;
+}
+
+function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapsed, mobileDrawerOpen, setMobileDrawerOpen, isDarkTheme, toggleTheme }: AppLayoutProps) {
+  // Use devMode from context - shared with DevModeSelector
+  const devMode = useDevModeContext();
+  const navRole = devMode.permissionRole;
+
+  // Permissions - use context's hasPermission to respect overrides
+  const canViewDashboard = devMode.hasPermission('canViewDashboard');
+  const canViewForklifts = devMode.hasPermission('canViewForklifts');
+  const canViewCustomers = devMode.hasPermission('canViewCustomers');
+  const canManageInventory = devMode.hasPermission('canManageInventory');
+  const canFinalizeInvoices = devMode.hasPermission('canFinalizeInvoices');
+  const canCreateJobs = devMode.hasPermission('canCreateJobs');
+  const canViewHR = devMode.hasPermission('canViewHR');
+  const canManageUsers = devMode.hasPermission('canManageUsers');
+  const canViewOwnProfile = devMode.hasPermission('canViewOwnProfile');
+  const canViewTeam = canManageUsers || canViewHR || devMode.hasPermission('canViewKPI');
+
+  return (
+    <FeatureFlagProvider enabled={devMode.isDev}>
       <Router>
         <style>{sidebarStyles}</style>
         <Toaster position="top-right" richColors closeButton toastOptions={{ duration: 4000, className: 'text-sm' }} />
         <div className="min-h-screen bg-theme-bg flex theme-transition">
           <Sidebar
             currentUser={currentUser}
-            onLogout={handleLogout}
+            onLogout={onLogout}
             isCollapsed={sidebarCollapsed}
             setIsCollapsed={setSidebarCollapsed}
+            navRole={navRole}
           />
-          <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-60'} p-4 md:p-6 lg:p-8 pb-20 md:pb-8`}>
-            <TopHeader currentUser={currentUser} isDark={isDarkTheme} onToggleTheme={toggleTheme} />
+          <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-60'} p-4 md:p-6 lg:p-8 pb-20 md:pb-8 ${devMode.isDevModeActive ? 'pt-14' : ''}`}>
+            <TopHeader currentUser={currentUser} isDark={isDarkTheme} onToggleTheme={toggleTheme} devModeActive={devMode.isDevModeActive} />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 {/* Dashboard - V4 design for all roles */}
@@ -463,7 +587,7 @@ export default function App() {
                 {/* Personal */}
                 <Route path="/my-leave" element={<MyLeaveRequests currentUser={currentUser} />} />
                 <Route path="/my-van-stock" element={
-                  [UserRole.TECHNICIAN, UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR].includes(currentUser.role)
+                  [UserRole.TECHNICIAN, UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR].includes(navRole)
                     ? <MyVanStock currentUser={currentUser} />
                     : <Navigate to="/" />
                 } />
@@ -492,15 +616,26 @@ export default function App() {
               </Routes>
             </Suspense>
           </main>
-          <MobileNav currentUser={currentUser} onOpenDrawer={() => setMobileDrawerOpen(true)} />
+          <MobileNav currentUser={currentUser} onOpenDrawer={() => setMobileDrawerOpen(true)} navRole={navRole} />
           <MobileDrawer
             currentUser={currentUser}
             isOpen={mobileDrawerOpen}
             onClose={() => setMobileDrawerOpen(false)}
-            onLogout={handleLogout}
+            onLogout={onLogout}
+            navRole={navRole}
           />
+          {/* Dev Banner - shows when dev mode is active */}
+          {devMode.isDevModeActive && devMode.impersonatedRole && (
+            <DevBanner
+              impersonatedRole={devMode.impersonatedRole}
+              actualRole={currentUser.role}
+              devModeType={devMode.devModeType}
+              onExit={devMode.deactivateDevMode}
+              permissionRole={devMode.permissionRole}
+            />
+          )}
         </div>
       </Router>
-    </NotificationProvider>
+    </FeatureFlagProvider>
   );
 }

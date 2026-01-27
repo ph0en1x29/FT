@@ -12,11 +12,44 @@
 
 6. **No hallucination** — If referencing a file, read it first. No claims without investigation.
 
-7. **Update docs after every code change** — After completing any code modification, update ALL relevant documentation:
+7. **Verify and simplify after every code change** — After writing/modifying code:
+   - Run build: `npm run build`
+   - Run tests (if applicable): `npm test`
+   - If build passes → automatically simplify the modified code using the code-simplifier skill
+   - Re-verify after simplification to ensure nothing broke
+   - This step is MANDATORY. Never skip verification or simplification.
+
+8. **Update docs after every code change** — MANDATORY, NOT OPTIONAL.
+
+   ⚠️ **STOP** — Do NOT proceed to the next task batch until documentation is updated.
+
+   After completing ANY batch of code changes (not at end of session):
    - **CHANGELOG.md** — Log what changed, why, files affected
    - **USER_GUIDE.md** — If UI/workflow changed, update user instructions
    - **DB_SCHEMA.md** — If database schema changed
    - **WORKFLOW_SPECIFICATION.md** — If business logic changed
    - **docs/README.md** — Add entry to "Recent Documentation Updates"
 
+   **TodoWrite Requirement:** When creating task lists, ALWAYS include "Update documentation" as an explicit task after every 3-5 code tasks. Example:
+   ```
+   - Task 1: Implement feature A
+   - Task 2: Implement feature B
+   - Task 3: Implement feature C
+   - Task 4: Update documentation (CHANGELOG, relevant docs)  ← REQUIRED
+   - Task 5: Implement feature D
+   - ...
+   ```
+
    This ensures continuity when resuming work later. Never skip this step.
+
+---
+
+## For Multi-Session Debugging
+
+When a bug spans multiple sessions, create `docs/findings/<issue-name>.md`:
+- What was tried and failed
+- What was discovered (root causes, workarounds)
+- Current hypothesis
+- Key code locations involved
+
+Delete after resolved (findings become CHANGELOG entry).

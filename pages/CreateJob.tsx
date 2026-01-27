@@ -5,6 +5,7 @@ import { Customer, JobPriority, JobStatus, JobType, User, UserRole, Forklift } f
 import { ArrowLeft, Save, X, Truck, Gauge, CalendarCheck } from 'lucide-react';
 import { Combobox, ComboboxOption } from '../components/Combobox';
 import { showToast } from '../services/toastService';
+import { useDevModeContext } from '../contexts/DevModeContext';
 
 interface CreateJobProps {
   currentUser: User;
@@ -17,7 +18,10 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
   const [technicians, setTechnicians] = useState<User[]>([]);
   const [forklifts, setForklifts] = useState<Forklift[]>([]);
 
-  const canCreateJobs = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR;
+  // Use dev mode context for role-based permissions
+  const { displayRole, hasPermission } = useDevModeContext();
+
+  const canCreateJobs = hasPermission('canCreateJobs');
   
   // Check for pre-filled data from scheduled service
   const scheduledServiceId = searchParams.get('scheduled_id');
@@ -55,7 +59,7 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
         const [customerData, forkliftData, technicianData] = await Promise.all([
           MockDb.getCustomers(),
           MockDb.getForklifts(),
-          currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR
+          canCreateJobs
             ? MockDb.getTechnicians()
             : Promise.resolve([]),
         ]);
@@ -69,7 +73,7 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
     };
 
     loadFormData();
-  }, [currentUser.role]);
+  }, [canCreateJobs]);
 
   useEffect(() => {
     if (!canCreateJobs) {
@@ -113,7 +117,7 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
     let assignedName = '';
     let status = JobStatus.NEW;
 
-    if ((currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR) && formData.assigned_technician_id) {
+    if (canCreateJobs && formData.assigned_technician_id) {
       assignedId = formData.assigned_technician_id;
       const tech = technicians.find(t => t.user_id === assignedId);
       assignedName = tech ? tech.name : '';
@@ -328,9 +332,9 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
                     ))}
                 </select>
             </div>
-            {(currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPERVISOR) && (
+            {canCreateJobs && (
                 <div>
-                     <Combobox 
+                     <Combobox
                         label="Assign Technician (Optional)"
                         options={techOptions}
                         value={formData.assigned_technician_id}
