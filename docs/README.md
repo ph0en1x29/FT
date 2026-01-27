@@ -29,6 +29,13 @@
 
 ## Recent Documentation Updates
 
+
+### 2026-01-27
+- **SETUP_GUIDE.md** — Complete VM setup guide for next developer
+- **CHANGELOG.md** — Added documentation and Claude Code setup entries
+- **CUSTOMER_FEEDBACK_REQUIREMENTS.md** — Customer feedback feature requirements
+- **Superpowers plugin** — Correct installation instructions added
+
 - **2026-01-20:** Permission Modal UI — Replaced cramped inline permission panel in DevBanner with centered modal. New `PermissionModal.tsx` component with 27 permissions in 7 groups, toggle switches, search filter, override indicators (amber highlight), and reset functionality. DevBanner now shows "Permissions" button with badge for override count. **Theme-aware styling** works in both light/dark themes. **Fixed permission overrides** - navigation (Sidebar, MobileNav, MobileDrawer) now uses context's `hasPermission()` so overrides actually affect the whole app.
 - **2026-01-20:** Dev Mode UI Refactoring — Fixed dual state bug between App.tsx and DevModeSelector by refactoring to `AppLayout` inner component. Removed RoleSwitcher from PrototypeDashboards.tsx (was appearing in page content). All dev mode state now shared via `useDevModeContext()`. DevModeSelector provides compact theme-aware controls in header bar.
 - **2026-01-19:** Customer Feedback Implementation (Phase 1-3) — Parts confirmation dependency (Admin 1 blocked until Admin 2 confirms), pricing hidden from technicians, binary checklist states (OK/Not OK), photo auto-start timer, request edit capability, hourmeter persistence, dashboard notifications, multi-admin job locking, pre-job parts for Admin Store. New migration: `20260119000001_customer_feedback_implementation.sql`. New component: `DashboardNotificationCard.tsx`. Updated: `JobDetail.tsx`, `PendingConfirmations.tsx`, `supabaseService.ts`, `types/index.ts`.

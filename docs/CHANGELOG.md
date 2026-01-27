@@ -33,6 +33,44 @@ The existing permission panel in DevBanner was:
 #### Changes Made
 
 **1. Created PermissionModal Component (`components/dev/PermissionModal.tsx`)**
+
+## [2026-01-27] - Documentation & Claude Code Setup Updates
+
+### 📚 Documentation Updates
+- **Updated:** 2026-01-27 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+
+#### Changes Made
+
+**1. SETUP_GUIDE.md Overhauled**
+- Added complete VM setup instructions for next developer
+- Included all test account credentials
+- Added Claude Code environment setup section
+- Removed incorrect "superpowers@claude-plugins-official" reference
+- Added correct superpowers installation instructions (obra/superpowers-marketplace)
+
+**2. Superpowers Plugin Installed**
+- Marketplace: `obra/superpowers-marketplace`
+- Plugin: `superpowers@superpowers-marketplace` v4.1.1
+- Commands: `/superpowers:brainstorm`, `/superpowers:write-plan`, `/superpowers:execute-plan`
+
+**3. Customer Feedback Tests Committed**
+- `tests/customer-feedback.spec.ts` - 12 passing, 2 skipped
+- `docs/CUSTOMER_FEEDBACK_REQUIREMENTS.md` - Requirements documentation
+- `playwright.config.ts` - Test configuration updates
+
+**4. Claude Code Global Setup**
+- `~/.claude/statusline-command.sh` - Custom statusline
+- `~/.claude/settings.json` - Global settings
+
+#### Commits
+- `3f153ea` docs: Add correct superpowers plugin installation instructions
+- `a727013` feat: Customer feedback tests and requirements documentation
+- `752a53b` docs: Remove fake superpowers plugin, clarify project-local skills
+- `27dce9a` feat: Add complete Claude Code environment setup
+- `6cc33c9` docs: Add VM setup guide for next developer
+
+---
 - Centered modal with dark backdrop overlay
 - Theme-aware styling using CSS variables (`bg-theme-surface`, `text-theme`, etc.) - works in both light and dark themes
 - All 27 permissions organized into 7 logical groups
