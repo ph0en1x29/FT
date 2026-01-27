@@ -121,7 +121,7 @@ npx playwright show-report
 - `docs/CHANGELOG.md` - All changes and decisions
 - `docs/WORKFLOW_SPECIFICATION.md` - Business logic
 - `docs/DB_SCHEMA.md` - Database schema
-- `CLAUDE.md` - AI/Developer instructions
+- `claude.md` - AI/Developer instructions
 
 ---
 
@@ -137,146 +137,53 @@ npx playwright show-report
 
 ---
 
-## Claude Code Environment Setup (Full Replication)
+## Claude Code Environment Setup
 
-To get the **exact same Claude Code experience**, run these additional steps:
+### Project Skills (Already in Repo)
 
-### 1. Install Superpowers Plugin
+These are **automatically available** when you open Claude Code in the FT folder:
+
+| File | Purpose |
+|------|---------|
+| `.claude/skills/code-simplifier.md` | Auto-simplifies code after verification passes |
+| `.claude/commands/test.md` | `/test` command for running tests |
+| `.claude/statusline-command.sh` | Custom statusline (optional) |
+| `claude.md` | Project workflow rules |
+
+**No plugins needed** — skills are project-local and work automatically.
+
+### Optional: Custom Statusline
+
+To show `directory | branch | model | context%` in Claude Code status bar:
 
 ```bash
-claude plugins install superpowers@claude-plugins-official
-```
+# Copy to global config
+cp .claude/statusline-command.sh ~/.claude/
+chmod +x ~/.claude/statusline-command.sh
 
-This gives you:
-- `/brainstorm` - Explore ideas before coding
-- `/write-plan` - Create implementation plans
-- `/execute-plan` - Execute plans with checkpoints
-- TDD, debugging, code review skills
-- And more...
-
-### 2. Set Up Global Settings
-
-Create `~/.claude/settings.json`:
-```json
+# Create ~/.claude/settings.json
+cat > ~/.claude/settings.json << 'EOF'
 {
-  "model": "opus",
-  "enabledPlugins": {
-    "superpowers@claude-plugins-official": true
-  },
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh"
   }
 }
-```
-
-### 3. Copy Statusline Script
-
-The statusline script is in the repo at `.claude/statusline-command.sh`. Copy it to your global Claude config:
-
-```bash
-cp .claude/statusline-command.sh ~/.claude/
-chmod +x ~/.claude/statusline-command.sh
-```
-
-This shows: `directory | branch | model | context%` in the Claude Code status bar.
-
-### 4. Project Skills (Already in Repo)
-
-These are automatically available when you open the project:
-- `.claude/skills/code-simplifier.md` - Auto-simplifies code after verification
-- `.claude/commands/test.md` - `/test` command for Athena testing framework
-- `CLAUDE.md` - Project workflow rules (read first, verify always, update docs)
-
----
-
-## Full Setup Script (Everything at Once)
-
-Paste this to Claude Code for complete setup:
-
-```
-Set up this FieldPro project with FULL Claude Code environment:
-
-1. Create .env.local:
-VITE_SUPABASE_URL=https://dljiubrbatmrskrzaazt.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsaml1YnJiYXRtcnNrcnphYXp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzMzQ1OTQsImV4cCI6MjA4MDkxMDU5NH0.YOY4ueelHVxdTkenmvxxwO-SNE4jmqhN_gkDF0nLXWo
-VITE_DEV_EMAILS=dev@test.com
-TEST_ADMIN_EMAIL=dev@test.com
-TEST_ADMIN_PASSWORD=Dev123!
-TEST_SUPERVISOR_EMAIL=super1234@gmail.com
-TEST_SUPERVISOR_PASSWORD=Super123!
-TEST_TECHNICIAN_EMAIL=tech1@example.com
-TEST_TECHNICIAN_PASSWORD=Tech123!
-TEST_ACCOUNTANT_EMAIL=accountant1@example.com
-TEST_ACCOUNTANT_PASSWORD=Account123!
-
-2. Create .claude/settings.local.json with permissions:
-{
-  "permissions": {
-    "allow": [
-      "Bash(npm run dev)",
-      "Bash(npm run build:*)",
-      "Bash(npm run test:*)",
-      "Bash(npm install:*)",
-      "Bash(npx playwright install:*)",
-      "Bash(npx playwright test:*)",
-      "Bash(npx tsc:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(git status:*)",
-      "Bash(git diff:*)",
-      "Bash(git log:*)",
-      "Bash(supabase db:*)",
-      "Bash(claude plugins install:*)"
-    ]
-  }
-}
-
-3. Create global ~/.claude/settings.json:
-{
-  "model": "opus",
-  "enabledPlugins": {
-    "superpowers@claude-plugins-official": true
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "bash ~/.claude/statusline-command.sh"
-  }
-}
-
-4. Copy statusline script:
-cp .claude/statusline-command.sh ~/.claude/
-chmod +x ~/.claude/statusline-command.sh
-
-5. Install superpowers plugin:
-claude plugins install superpowers@claude-plugins-official
-
-6. Install dependencies:
-npm install
-npx playwright install
-
-7. Verify build:
-npm run build
-
-8. Start dev server:
-npm run dev
+EOF
 ```
 
 ---
 
-## What's Included in Repo vs Global
+## What's Included
 
 | Item | Location | Scope |
 |------|----------|-------|
-| `.env.local` | Project root | Project only |
-| `.claude/settings.local.json` | Project `.claude/` | Project permissions |
-| `.claude/skills/code-simplifier.md` | Project `.claude/` | Project skill |
-| `.claude/commands/test.md` | Project `.claude/` | Project command |
-| `.claude/statusline-command.sh` | Project `.claude/` | Copy to global |
-| `~/.claude/settings.json` | User home | Global settings |
-| `superpowers` plugin | Claude plugins | Global plugin |
-| `CLAUDE.md` | Project root | Project workflow |
+| `.env.local` | Project root | Project only (create manually) |
+| `.claude/settings.local.json` | Project `.claude/` | Project permissions (create manually) |
+| `.claude/skills/code-simplifier.md` | Project `.claude/` | ✅ In repo |
+| `.claude/commands/test.md` | Project `.claude/` | ✅ In repo |
+| `.claude/statusline-command.sh` | Project `.claude/` | ✅ In repo (copy to global) |
+| `claude.md` | Project root | ✅ In repo |
 
 ---
 
