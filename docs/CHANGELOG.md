@@ -16,24 +16,6 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
-## [Unreleased] - ACWER Workflow Implementation
-
-### 🎨 Permission Modal UI Improvement (2026-01-20)
-- **Updated:** 2026-01-20 (author: Claude)
-- **Status:** ✔️ Completed
-- **Scope:** Replaced cramped inline permission panel in DevBanner with a clean centered modal; fixed permission overrides to work app-wide
-
-#### Problem
-The existing permission panel in DevBanner was:
-1. Cramped inline display that expanded the banner awkwardly
-2. Read-only - couldn't toggle permissions directly
-3. Poor UX on smaller screens
-4. Permission overrides didn't affect navigation (Sidebar, MobileNav, MobileDrawer used local function instead of context)
-
-#### Changes Made
-
-**1. Created PermissionModal Component (`components/dev/PermissionModal.tsx`)**
-
 ## [2026-01-27] - Documentation & Claude Code Setup Updates
 
 ### 📚 Documentation Updates
@@ -71,6 +53,24 @@ The existing permission panel in DevBanner was:
 - `6cc33c9` docs: Add VM setup guide for next developer
 
 ---
+
+## [Unreleased] - ACWER Workflow Implementation
+
+### 🎨 Permission Modal UI Improvement (2026-01-20)
+- **Updated:** 2026-01-20 (author: Claude)
+- **Status:** ✔️ Completed
+- **Scope:** Replaced cramped inline permission panel in DevBanner with a clean centered modal; fixed permission overrides to work app-wide
+
+#### Problem
+The existing permission panel in DevBanner was:
+1. Cramped inline display that expanded the banner awkwardly
+2. Read-only - couldn't toggle permissions directly
+3. Poor UX on smaller screens
+4. Permission overrides didn't affect navigation (Sidebar, MobileNav, MobileDrawer used local function instead of context)
+
+#### Changes Made
+
+**1. Created PermissionModal Component (`components/dev/PermissionModal.tsx`)**
 - Centered modal with dark backdrop overlay
 - Theme-aware styling using CSS variables (`bg-theme-surface`, `text-theme`, etc.) - works in both light and dark themes
 - All 27 permissions organized into 7 logical groups
