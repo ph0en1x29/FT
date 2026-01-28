@@ -27,6 +27,30 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ---
 
+## [2026-01-28] - Bug Fixes
+
+### 🐛 JobDetail Null Array Fix (2026-01-28)
+- **Added:** 2026-01-28 (author: Phoenix/Clawdbot + Codex review)
+- **Status:** ✔️ Completed
+- **Issue:** Potential runtime crashes when job arrays (`parts_used`, `media`, `extra_charges`) are null/undefined
+
+#### Problem
+API responses could return null/undefined for array fields, causing crashes when accessing `.length` or `.map()` on these properties before proper null checks.
+
+#### Solution
+Added `normalizeJob()` helper function that:
+- Ensures `parts_used`, `media`, `extra_charges` default to empty arrays
+- Wraps all `setJob()` calls automatically
+- Prevents blank page crashes from null array access
+
+#### Files Modified
+- `pages/JobDetail.tsx` — Added normalizeJob helper, safe setJob wrapper
+
+#### Commit
+- `09e5928` fix: Add normalizeJob helper to prevent null array crashes in JobDetail
+
+---
+
 ## [2026-01-29] - Critical Features Implementation
 
 ### 📱 Push Notifications System (2026-01-29)
