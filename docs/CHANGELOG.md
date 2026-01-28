@@ -99,6 +99,51 @@ const canViewPricing = isAdmin || isAccountant || isSupervisor;
 
 ---
 
+### 🔧 Parts Entry Admin Only (2026-01-28)
+- **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Verified Complete
+- **Customer Feedback:** Remove parts entry from technician app - Admin only
+
+#### Implementation Verified
+Technicians cannot directly add parts to jobs. They must use the Spare Part Request workflow:
+
+| Action | Technician | Admin/Supervisor | Accountant |
+|--------|-----------|------------------|------------|
+| Add parts directly | ❌ No | ✅ Yes | ✅ Yes (awaiting finalization) |
+| Request spare parts | ✅ Yes | ✅ Yes | N/A |
+| Approve requests | ❌ No | ✅ Yes | N/A |
+| Pre-job parts | ❌ No | ✅ Admin Store only | N/A |
+
+#### canAddParts Definition
+```typescript
+const canAddParts =
+  !isHelperOnly &&
+  !isTechnician &&  // <-- Technicians excluded
+  (((isAssigned || isInProgress) && (isAdmin || isSupervisor)) ||
+    (isAwaitingFinalization && (isAdmin || isAccountant || isSupervisor)) ||
+    ((isNew || isAssigned) && isAdminStore));
+```
+
+#### Technician Workflow
+1. Technician clicks "Spare Part" button in In-Job Requests section
+2. Describes the part needed + optional photo
+3. Request status: "Pending"
+4. Admin reviews request
+5. Admin selects actual part from inventory
+6. Admin approves → Part added to job automatically
+7. Technician can edit pending requests they created
+
+#### UI Changes for Technicians
+- "Add Part" section hidden
+- Info hint displayed: "Need additional parts? Use **Spare Part Request** in the In-Job Requests section below."
+- "Spare Part" request button prominently shown
+- Pending/approved/rejected requests visible with status
+
+#### Files Verified
+- `pages/JobDetail.tsx` — `canAddParts` excludes technicians; hint shown instead
+
+---
+
 ## [2026-01-27] - Documentation & Claude Code Setup Updates
 
 ### 📚 Documentation Updates

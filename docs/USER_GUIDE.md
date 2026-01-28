@@ -16,9 +16,14 @@
 > - **Photo Validation** - GPS tracking and timestamp verification on photos
 > - **Fleet Dashboard** - Real-time forklift status updates
 >
-> **Latest Update (2026-01-19):**
+> **Latest Update (2026-01-28):**
+> - **Real-Time Job Deletion Sync** - Deleted jobs automatically removed from technician's list
+> - **Job Redirect on Deletion** - Viewing a deleted job redirects to job list with warning
+> - **Pricing Hidden from Technicians** - Financial summary, extra charges, and part prices hidden
+> - **Parts Entry by Admin Only** - Technicians must use Spare Part Request workflow
+>
+> **Previous Update (2026-01-19):**
 > - **Parts Confirmation Workflow** - Admin Service must wait for Admin Store to verify parts
-> - **Technician Pricing Removed** - Technicians no longer see prices (request parts via Spare Part Request)
 > - **Binary Checklist** - Checklist items are now OK ✓ or Not OK ✗
 > - **Photo Auto-Start** - First photo automatically starts job timer
 > - **Edit Pending Requests** - Technicians can edit their own pending requests
@@ -736,5 +741,5 @@ For technical issues or questions:
 
 ---
 
-*Last Updated: January 17, 2026*
-*Version: 2.1 - ACWER Workflow Implementation*
+*Last Updated: January 28, 2026*
+*Version: 2.2 - Customer Feedback Implementation Phase 2*
