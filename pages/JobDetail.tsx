@@ -587,21 +587,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     }
   };
 
-  // Check if technician needs to accept/reject (within 15-min window)
-  const needsAcceptance = isAssigned && isTechnician && !job?.technician_accepted_at && !job?.technician_rejected_at;
-  const hasAccepted = isAssigned && job?.technician_accepted_at;
-  
-  // Calculate remaining time for response
-  const getResponseTimeRemaining = () => {
-    if (!job?.technician_response_deadline) return null;
-    const deadline = new Date(job.technician_response_deadline);
-    const now = new Date();
-    const remaining = deadline.getTime() - now.getTime();
-    if (remaining <= 0) return 'Expired';
-    const minutes = Math.floor(remaining / 60000);
-    const seconds = Math.floor((remaining % 60000) / 1000);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+  // Note: needsAcceptance, hasAccepted, and getResponseTimeRemaining moved after role/status declarations
 
   const handleDeferredCompletion = async () => {
     if (!job || !deferredReason.trim()) return;
@@ -1315,6 +1301,22 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const isSlotIn = job.job_type === JobType.SLOT_IN;
   const isSlotInPendingAck = isSlotIn && !job.acknowledged_at && !isCompleted;
   const isAssignedToCurrentUser = job.assigned_technician_id === currentUser.user_id;
+
+  // Check if technician needs to accept/reject (within 15-min window)
+  const needsAcceptance = isAssigned && isTechnician && !job?.technician_accepted_at && !job?.technician_rejected_at;
+  const hasAccepted = isAssigned && job?.technician_accepted_at;
+  
+  // Calculate remaining time for response
+  const getResponseTimeRemaining = () => {
+    if (!job?.technician_response_deadline) return null;
+    const deadline = new Date(job.technician_response_deadline);
+    const now = new Date();
+    const remaining = deadline.getTime() - now.getTime();
+    if (remaining <= 0) return 'Expired';
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   const totalPartsCost = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
   const laborCost = job.labor_cost || 150;

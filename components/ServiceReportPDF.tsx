@@ -363,8 +363,11 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
   const extra = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
   const total = totalParts + labor + extra;
 
-  const renderCheckMark = (checked?: boolean) => 
-    checked === true ? '✓' : checked === false ? '✗' : '';
+  const renderCheckMark = (checked?: 'ok' | 'not_ok' | boolean | undefined) => {
+    if (checked === 'ok' || checked === true) return '✓';
+    if (checked === 'not_ok' || checked === false) return '✗';
+    return '';
+  };
 
   const checklistHTML = `
     <div class="checklist-grid">

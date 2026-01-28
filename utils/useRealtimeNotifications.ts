@@ -93,9 +93,8 @@ export const showBrowserNotification = async (
         badge: '/favicon.svg',
         tag: notificationTag,
         requireInteraction,
-        vibrate,
         data: { url: options?.url || '/' }
-      });
+      } as NotificationOptions & { vibrate?: number[] });
       return;
     } catch (e) {
       console.warn('[Notifications] Service worker notification failed, falling back:', e);

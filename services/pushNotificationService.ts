@@ -187,9 +187,8 @@ export const sendLocalNotification = (
     const notification = new Notification(title, {
       icon: '/favicon.svg',
       badge: '/favicon.svg',
-      vibrate: [200, 100, 200],
       ...options
-    });
+    } as NotificationOptions & { vibrate?: number[] });
 
     // Handle notification click
     notification.onclick = () => {
@@ -209,10 +208,9 @@ export const sendLocalNotification = (
       swRegistration.showNotification(title, {
         icon: '/favicon.svg',
         badge: '/favicon.svg',
-        vibrate: [200, 100, 200],
         ...options,
         data: { url: options?.url || '/' }
-      });
+      } as NotificationOptions & { vibrate?: number[] });
     }
     
     return null;
