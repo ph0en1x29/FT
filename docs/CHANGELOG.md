@@ -27,6 +27,42 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ---
 
+## [2026-01-28] - Customer Feedback Implementation Phase 2
+
+### 🔄 Real-Time Job Deletion Sync (2026-01-28)
+- **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+- **Customer Feedback:** Deleted jobs remain active in Technician App
+
+#### Problem
+When Admin deleted a job, technicians viewing that job or their job list would not see the update until they manually refreshed. This caused confusion and potential work on cancelled jobs.
+
+#### Changes Made
+
+**1. JobBoard.tsx - Real-Time Subscription**
+- Added Supabase real-time subscription for job deletions
+- When a job is soft-deleted (deleted_at set), it's automatically removed from the technician's list
+- Toast notification: "Job removed - A job has been cancelled or deleted by admin"
+- Also refreshes deleted jobs list for admin/supervisor
+
+**2. JobDetail.tsx - Redirect on Deletion**
+- Added real-time subscription for the specific job being viewed
+- If job is deleted while viewing, user is redirected to /jobs with warning toast
+- Prevents technicians from working on cancelled jobs
+
+#### Files Modified
+- `pages/JobBoard.tsx` — Added real-time subscription for job deletions
+- `pages/JobDetail.tsx` — Added redirect when viewed job is deleted
+
+#### Impact
+| Scenario | Before | After |
+|----------|--------|-------|
+| Job deleted while tech viewing list | No update, stale data | Job disappears immediately |
+| Job deleted while tech viewing detail | No update, can continue working | Redirect to job list with warning |
+| Admin deletes job | Only visible after page refresh | Real-time sync for all users |
+
+---
+
 ## [2026-01-27] - Documentation & Claude Code Setup Updates
 
 ### 📚 Documentation Updates

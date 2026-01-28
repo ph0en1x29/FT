@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Job, JobStatus, JobType, User, DeletedJob, UserRole } from '../types';
-import { SupabaseDb as MockDb } from '../services/supabaseService';
+import { SupabaseDb as MockDb, supabase } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
 import { Briefcase, Calendar, MapPin, User as UserIcon, Search, Filter, X, ChevronDown, AlertTriangle, Trash2, ChevronRight, Clock, Zap } from 'lucide-react';
 import SlotInSLABadge, { getSLAStatus } from '../components/SlotInSLABadge';
@@ -78,36 +78,78 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
   const [showDeletedSection, setShowDeletedSection] = useState(false);
   const canViewDeleted = displayRole === UserRole.ADMIN || displayRole === UserRole.SUPERVISOR;
 
+  // Fetch jobs function (extracted for reuse)
+  const fetchJobs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await MockDb.getJobs(currentUser);
+      setJobs(data);
+      
+      // Fetch recently deleted jobs for admin/supervisor
+      if (canViewDeleted) {
+        try {
+          const deleted = await MockDb.getRecentlyDeletedJobs();
+          setDeletedJobs(deleted);
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.error('Error loading deleted jobs:', error);
+          }
+          showToast.error('Failed to load deleted jobs');
+        }
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error loading jobs:', error);
+      }
+      showToast.error('Failed to load jobs');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser, canViewDeleted]);
+
+  // Initial fetch
   useEffect(() => {
-    const fetchJobs = async () => {
-      setLoading(true);
-      try {
-        const data = await MockDb.getJobs(currentUser);
-        setJobs(data);
-        
-        // Fetch recently deleted jobs for admin/supervisor
-        if (canViewDeleted) {
-          try {
-            const deleted = await MockDb.getRecentlyDeletedJobs();
-            setDeletedJobs(deleted);
-          } catch (error) {
-            if (import.meta.env.DEV) {
-              console.error('Error loading deleted jobs:', error);
+    fetchJobs();
+  }, [fetchJobs]);
+
+  // Real-time subscription for job deletions
+  // This ensures technicians see job removals immediately when admin deletes
+  useEffect(() => {
+    const channel = supabase
+      .channel('job-deletions')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'jobs',
+          filter: 'deleted_at=not.is.null'
+        },
+        (payload) => {
+          const deletedJobId = payload.new?.job_id;
+          if (deletedJobId) {
+            // Remove the deleted job from the list
+            setJobs(prevJobs => {
+              const wasInList = prevJobs.some(j => j.job_id === deletedJobId);
+              if (wasInList) {
+                showToast.info('Job removed', 'A job has been cancelled or deleted by admin');
+              }
+              return prevJobs.filter(j => j.job_id !== deletedJobId);
+            });
+            
+            // Refresh deleted jobs list for admins
+            if (canViewDeleted) {
+              MockDb.getRecentlyDeletedJobs().then(setDeletedJobs).catch(console.error);
             }
-            showToast.error('Failed to load deleted jobs');
           }
         }
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error('Error loading jobs:', error);
-        }
-        showToast.error('Failed to load jobs');
-      } finally {
-        setLoading(false);
-      }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
     };
-    fetchJobs();
-  }, [currentUser, canViewDeleted]);
+  }, [canViewDeleted]);
 
   // Filter jobs based on search and filters
   const filteredJobs = useMemo(() => {

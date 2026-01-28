@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Job, JobStatus, UserRole, Part, JobPriority, JobType, SignatureEntry, User, ForkliftConditionChecklist, MediaCategory, JobRequest, JobRequestType, MANDATORY_CHECKLIST_ITEMS, VanStock, VanStockItem, HourmeterFlagReason, ChecklistItemState, normalizeChecklistState } from '../types';
-import { SupabaseDb as MockDb } from '../services/supabaseService';
+import { SupabaseDb as MockDb, supabase } from '../services/supabaseService';
 import HourmeterAmendmentModal from '../components/HourmeterAmendmentModal';
 import { generateJobSummary } from '../services/geminiService';
 import { SignaturePad } from '../components/SignaturePad';
@@ -278,6 +278,36 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       setUploadPhotoCategory(defaultCategory);
     }
   }, [job?.status, job?.started_at]);
+
+  // Real-time subscription for job deletion
+  // If this job gets deleted while viewing, redirect user to job list
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`job-deletion-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'jobs',
+          filter: `job_id=eq.${id}`
+        },
+        (payload) => {
+          // Check if this job was soft-deleted
+          if (payload.new?.deleted_at !== null) {
+            showToast.warning('Job deleted', 'This job has been cancelled or deleted by admin');
+            navigate('/jobs');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, navigate]);
 
   const loadJob = async () => {
     if (!id) return;
