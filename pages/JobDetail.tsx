@@ -1149,7 +1149,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const canAddParts =
     !isHelperOnly &&
     !isTechnician &&
-    ((isInProgress && (isAdmin || isSupervisor)) ||
+    (((isAssigned || isInProgress) && (isAdmin || isSupervisor)) ||
       (isAwaitingFinalization && (isAdmin || isAccountant || isSupervisor)) ||
       ((isNew || isAssigned) && isAdminStore));
   const repairDuration = getRepairDuration();
@@ -2142,7 +2142,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 )}
               </div>
 
-              {isInProgress && !isHelperOnly && (
+              {(isAssigned || isInProgress) && !isHelperOnly && (
                 <div className="flex gap-2">
                   <input type="text" placeholder="Add a note..." className="input-premium flex-1" value={noteInput} onChange={(e) => setNoteInput(e.target.value)} />
                   <button onClick={handleAddNote} className="btn-premium btn-premium-primary">Add</button>
@@ -2151,8 +2151,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             </div>
           )}
 
-          {/* Requests Section */}
-          {isInProgress && !isHelperOnly && (
+          {/* Requests Section - Available when job is assigned or in progress */}
+          {(isAssigned || isInProgress) && !isHelperOnly && (
             <div className="card-premium p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">

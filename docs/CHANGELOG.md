@@ -54,6 +54,40 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+### 🔧 Spare Parts Before Job Start (2026-01-28)
+- **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+- **Customer Feedback:** Allow spare parts recording before job starts
+
+#### Problem
+Technicians and Admins could only add/request spare parts after a job was started ("in progress"). This limited preparation flexibility — techs couldn't list needed parts while the job was still "assigned".
+
+#### Changes Made
+
+**1. Updated `canAddParts` logic (line 1152)**
+- BEFORE: Admin/Supervisor could only add parts when job "in progress"
+- AFTER: Admin/Supervisor can add parts when job is "assigned" OR "in progress"
+
+**2. Updated Notes input visibility (line 2145)**
+- BEFORE: Only visible when "in progress"
+- AFTER: Visible when "assigned" OR "in progress"
+
+**3. Updated Requests section visibility (line 2155)**
+- BEFORE: Only visible when "in progress"  
+- AFTER: Visible when "assigned" OR "in progress"
+
+#### Result
+| Role | Assigned | In Progress |
+|------|----------|-------------|
+| Technician | ✅ Request parts | ✅ Request parts |
+| Admin | ✅ Direct add + approve | ✅ Direct add + approve |
+| Supervisor | ✅ Direct add + approve | ✅ Direct add + approve |
+
+#### Files Modified
+- `pages/JobDetail.tsx` — 3 condition changes
+
+---
+
 ## [Unreleased] - ACWER Workflow Implementation
 
 ### 🎨 Permission Modal UI Improvement (2026-01-20)

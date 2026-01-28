@@ -31,6 +31,10 @@
 
 
 ### 2026-01-27
+
+### 2026-01-28
+- **JobDetail.tsx** — Spare parts now accessible when job is "assigned" (before starting)
+- **CHANGELOG.md** — Added customer feedback fix entry
 - **SETUP_GUIDE.md** — Complete VM setup guide for next developer
 - **CHANGELOG.md** — Added documentation and Claude Code setup entries
 - **CUSTOMER_FEEDBACK_REQUIREMENTS.md** — Customer feedback feature requirements
