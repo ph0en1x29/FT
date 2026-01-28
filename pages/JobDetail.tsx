@@ -557,15 +557,11 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const handleAcceptJob = async () => {
     if (!job) return;
     try {
-      const updated = {
-        ...job,
-        technician_accepted_at: new Date().toISOString(),
-      };
-      await MockDb.updateJob(job.job_id, updated);
+      const updated = await MockDb.acceptJobAssignment(job.job_id, currentUserId, currentUserName);
       setJob(updated as Job);
       showToast.success('Job accepted', 'You can now start the job when ready.');
     } catch (e) {
-      showToast.error('Failed to accept job');
+      showToast.error('Failed to accept job', (e as Error).message);
     }
   };
 
@@ -579,18 +575,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       return;
     }
     try {
-      const updated = {
-        ...job,
-        technician_rejected_at: new Date().toISOString(),
-        technician_rejection_reason: rejectJobReason.trim(),
-        status: JobStatus.NEW, // Reset to New so admin can reassign
-        assigned_technician_id: '', // Clear assignment
-        assigned_technician_name: '',
-      };
-      await MockDb.updateJob(job.job_id, updated);
-      
-      // Notify admins about the rejection
-      await MockDb.notifyJobRejectedByTech(job.job_id, job.title, currentUserName, rejectJobReason.trim());
+      await MockDb.rejectJobAssignment(job.job_id, currentUserId, currentUserName, rejectJobReason.trim());
       
       showToast.success('Job rejected', 'Admin has been notified for reassignment.');
       setShowRejectJobModal(false);
@@ -598,7 +583,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       // Navigate back to jobs list since this job is no longer assigned to tech
       navigate('/jobs');
     } catch (e) {
-      showToast.error('Failed to reject job');
+      showToast.error('Failed to reject job', (e as Error).message);
     }
   };
 

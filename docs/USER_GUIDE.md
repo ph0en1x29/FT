@@ -16,7 +16,12 @@
 > - **Photo Validation** - GPS tracking and timestamp verification on photos
 > - **Fleet Dashboard** - Real-time forklift status updates
 >
-> **Latest Update (2026-01-28) - Phase 3:**
+> **🆕 Latest Update (2026-01-29) - Critical Features:**
+> - **📱 Push Notifications** - Real browser push notifications (not just in-app)
+> - **⏰ 15-Minute Accept/Reject** - Technicians must accept or reject jobs within 15 minutes
+> - **✅ Dual Approval Flow** - Admin 1 cannot finalize until Admin 2 verifies parts
+>
+> **Update (2026-01-28) - Phase 3:**
 > - **Enhanced Real-Time Updates** - Live updates for job status, assignments, and request approvals
 > - **Connection Health Indicator** - Visual dot showing WebSocket connection status
 > - **Checklist Binary States** - OK/Not OK only, no neutral states, Check All button
@@ -197,6 +202,51 @@ When you log in, you'll see a **personalized Technician Dashboard** showing:
 The dashboard also shows your **Active Jobs** list with quick actions to view or start jobs. Each job displays the customer, forklift, and Slot-In SLA badge (time remaining).
 
 **Quick Actions** at the bottom let you navigate to All Jobs, Van Stock, Fleet, or Customers.
+
+### 📱 Push Notifications (NEW - 2026-01-29)
+
+Enable push notifications to get instant alerts even when the app isn't open!
+
+**What You'll Be Notified About:**
+- New job assignments
+- Request approvals/rejections
+- Job reassignments
+
+**How to Enable:**
+1. You'll see a prompt on your dashboard: "Enable push notifications"
+2. Click **"Enable"**
+3. Your browser will ask for permission - click **"Allow"**
+4. Done! You'll now receive push notifications
+
+**Troubleshooting:**
+- If you see "Notifications Blocked", click the lock icon in your browser's address bar
+- Find "Notifications" and change to "Allow"
+- Refresh the page
+
+### ⏰ Accepting Job Assignments (NEW - 2026-01-29)
+
+When a job is assigned to you, you have **15 minutes** to accept or reject it.
+
+**On the Job List:**
+1. New assigned jobs show **"Accept"** and **"Reject"** buttons
+2. A countdown timer shows remaining response time
+3. Timer turns amber below 10 minutes, red below 5 minutes
+
+**To Accept:**
+1. Click the **"Accept"** button on the job card or job detail page
+2. The job is marked as accepted
+3. You can now start the job when ready
+
+**To Reject:**
+1. Click the **"Reject"** button
+2. Enter a reason for rejection (required)
+3. Click **"Reject Job"**
+4. The job returns to the admin queue for reassignment
+
+**What Happens If You Don't Respond:**
+- After 15 minutes, admins are automatically notified
+- The job remains assigned to you until reassigned
+- Consider communicating with your supervisor if you can't respond in time
 
 ### Starting a Job
 
@@ -545,6 +595,41 @@ View and respond to requests from technicians in the Dashboard or Job Detail:
 1. Review the skill issue described
 2. Click **"Acknowledge"** (no automatic assignment)
 3. Use the Reassign function to assign appropriate technician
+
+### ✅ Dual Approval Workflow (Updated - 2026-01-29)
+
+For jobs to be finalized, **both Admin roles must confirm**:
+
+#### Admin 2 (Store) - Parts Verification
+1. Open job in "Awaiting Finalization" status
+2. Review the "Parts Used" section
+3. Verify parts match what was actually used
+4. Click **"Verify Parts"** button
+5. Your name and timestamp are recorded
+
+**Note:** If no parts were used, this step is automatically skipped.
+
+#### Admin 1 (Service) - Job Finalization
+1. Open job in "Awaiting Finalization" status
+2. Check "Confirmation Status" card shows:
+   - ✅ Parts Confirmation (Admin 2) - Verified
+   - ⏳ Job Confirmation (Admin 1) - Pending
+3. If parts not verified, you'll see "Store Verification Pending" error
+4. Once parts verified, click **"Finalize Invoice"**
+
+**Why Dual Approval?**
+- Ensures inventory accuracy (Admin Store verifies parts)
+- Separates service operations from inventory management
+- Creates audit trail for both functions
+
+### Monitoring Job Responses (NEW - 2026-01-29)
+
+Track technician responses to job assignments:
+
+1. When a job is assigned, technician has 15 minutes to accept/reject
+2. If no response, you receive an urgent notification
+3. View pending response jobs in Dashboard
+4. Consider reassigning if technician unresponsive
 
 ### Managing Helper Technicians (NEW)
 

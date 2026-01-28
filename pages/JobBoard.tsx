@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Job, JobStatus, JobType, User, DeletedJob, UserRole } from '../types';
 import { SupabaseDb as MockDb, supabase } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
-import { Briefcase, Calendar, MapPin, User as UserIcon, Search, Filter, X, ChevronDown, AlertTriangle, Trash2, ChevronRight, Clock, Zap } from 'lucide-react';
+import { Briefcase, Calendar, MapPin, User as UserIcon, Search, Filter, X, ChevronDown, AlertTriangle, Trash2, ChevronRight, Clock, Zap, CheckCircle, XCircle } from 'lucide-react';
 import SlotInSLABadge, { getSLAStatus } from '../components/SlotInSLABadge';
 import { useDevModeContext } from '../contexts/DevModeContext';
 
@@ -77,6 +77,78 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
   const [deletedJobs, setDeletedJobs] = useState<DeletedJob[]>([]);
   const [showDeletedSection, setShowDeletedSection] = useState(false);
   const canViewDeleted = displayRole === UserRole.ADMIN || displayRole === UserRole.SUPERVISOR;
+
+  // On-Call Accept/Reject state
+  const [processingJobId, setProcessingJobId] = useState<string | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectingJobId, setRejectingJobId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const isTechnician = displayRole === UserRole.TECHNICIAN;
+
+  // Accept job handler
+  const handleAcceptJob = async (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation(); // Prevent navigation to job detail
+    setProcessingJobId(jobId);
+    try {
+      await MockDb.acceptJobAssignment(jobId, currentUser.user_id, currentUser.name);
+      showToast.success('Job accepted', 'You can now start the job when ready.');
+      fetchJobs(); // Refresh job list
+    } catch (err) {
+      showToast.error('Failed to accept job', (err as Error).message);
+    } finally {
+      setProcessingJobId(null);
+    }
+  };
+
+  // Open reject modal
+  const handleOpenRejectModal = (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation(); // Prevent navigation to job detail
+    setRejectingJobId(jobId);
+    setRejectReason('');
+    setShowRejectModal(true);
+  };
+
+  // Reject job handler
+  const handleRejectJob = async () => {
+    if (!rejectingJobId || !rejectReason.trim()) {
+      showToast.error('Please provide a reason for rejection');
+      return;
+    }
+    setProcessingJobId(rejectingJobId);
+    try {
+      await MockDb.rejectJobAssignment(rejectingJobId, currentUser.user_id, currentUser.name, rejectReason.trim());
+      showToast.success('Job rejected', 'Admin has been notified for reassignment.');
+      setShowRejectModal(false);
+      setRejectingJobId(null);
+      setRejectReason('');
+      fetchJobs(); // Refresh job list
+    } catch (err) {
+      showToast.error('Failed to reject job', (err as Error).message);
+    } finally {
+      setProcessingJobId(null);
+    }
+  };
+
+  // Helper to check if job needs acceptance (15-min window)
+  const jobNeedsAcceptance = (job: Job): boolean => {
+    if (job.status !== JobStatus.ASSIGNED) return false;
+    if (job.assigned_technician_id !== currentUser.user_id) return false;
+    if (job.technician_accepted_at || job.technician_rejected_at) return false;
+    return true;
+  };
+
+  // Helper to get remaining response time
+  const getResponseTimeRemaining = (job: Job): { text: string; isExpired: boolean; urgency: 'ok' | 'warning' | 'critical' } => {
+    if (!job.technician_response_deadline) return { text: '', isExpired: false, urgency: 'ok' };
+    const deadline = new Date(job.technician_response_deadline);
+    const now = new Date();
+    const remaining = deadline.getTime() - now.getTime();
+    if (remaining <= 0) return { text: 'Expired', isExpired: true, urgency: 'critical' };
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    const urgency = minutes < 5 ? 'critical' : minutes < 10 ? 'warning' : 'ok';
+    return { text: `${minutes}:${seconds.toString().padStart(2, '0')}`, isExpired: false, urgency };
+  };
 
   // Fetch jobs function (extracted for reuse)
   const fetchJobs = useCallback(async () => {
@@ -826,6 +898,55 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
                   </div>
                 )}
               </div>
+
+              {/* On-Call Accept/Reject Buttons for Technicians */}
+              {isTechnician && jobNeedsAcceptance(job) && (
+                <div className="mt-4 pt-3 border-t border-slate-200">
+                  {/* Response timer */}
+                  {job.technician_response_deadline && (
+                    <div className={`flex items-center gap-1 mb-2 text-xs ${
+                      getResponseTimeRemaining(job).urgency === 'critical' ? 'text-red-600' :
+                      getResponseTimeRemaining(job).urgency === 'warning' ? 'text-amber-600' :
+                      'text-slate-500'
+                    }`}>
+                      <Clock className="w-3 h-3" />
+                      <span>
+                        {getResponseTimeRemaining(job).isExpired 
+                          ? 'Response time expired' 
+                          : `Respond within: ${getResponseTimeRemaining(job).text}`}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => handleAcceptJob(e, job.job_id)}
+                      disabled={processingJobId === job.job_id}
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      {processingJobId === job.job_id ? 'Accepting...' : 'Accept'}
+                    </button>
+                    <button
+                      onClick={(e) => handleOpenRejectModal(e, job.job_id)}
+                      disabled={processingJobId === job.job_id}
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium disabled:opacity-50"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Show acceptance status for already accepted jobs */}
+              {isTechnician && job.assigned_technician_id === currentUser.user_id && job.technician_accepted_at && (
+                <div className="mt-3 pt-2 border-t border-green-200">
+                  <span className="text-xs text-green-600 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" />
+                    Accepted - Ready to start
+                  </span>
+                </div>
+              )}
             </div>
           ))}
 
@@ -916,6 +1037,41 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Reject Job Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowRejectModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-slate-800 mb-4">Reject Job Assignment</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              Please provide a reason for rejecting this job. Admin will be notified and can reassign it.
+            </p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Enter reason for rejection..."
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+              rows={3}
+              autoFocus
+            />
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => { setShowRejectModal(false); setRejectingJobId(null); setRejectReason(''); }}
+                className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectJob}
+                disabled={!rejectReason.trim() || processingJobId === rejectingJobId}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
+              >
+                {processingJobId === rejectingJobId ? 'Rejecting...' : 'Reject Job'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

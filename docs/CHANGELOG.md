@@ -27,6 +27,162 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ---
 
+## [2026-01-29] - Critical Features Implementation
+
+### 📱 Push Notifications System (2026-01-29)
+- **Added:** 2026-01-29 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+- **Customer Feedback:** Real push notifications when requests are made/approved
+
+#### Implementation
+
+**1. Service Worker for Push Notifications**
+- New file: `public/sw.js` - handles push events, notification clicks
+- Background notification support (works even when app closed)
+- Notification click opens relevant job page
+- Supports sound and vibration patterns
+
+**2. Push Notification Service**
+- New file: `services/pushNotificationService.ts`
+- Service worker registration
+- Browser permission management
+- Subscription handling (ready for VAPID keys in production)
+- Local notification fallback when push not available
+
+**3. Enhanced Browser Notifications**
+- Priority-based styling (urgent = longer vibration, requires interaction)
+- Job URL in notification data - click navigates to job
+- Uses service worker's showNotification for better reliability
+- Falls back to standard Notification API when needed
+
+**4. Notification Permission Prompt**
+- New component: `components/NotificationSettings.tsx`
+- Shows on Technician Dashboard when permission not granted
+- Explains benefits and guides users to enable
+- Handles blocked permissions with browser settings guidance
+
+**5. Notification Context Integration**
+- `NotificationContext` now tracks push permission state
+- `requestPushPermission()` function available throughout app
+- Auto-initializes service worker on app startup
+
+#### Push Notification Events
+| Event | Recipients | Priority |
+|-------|-----------|----------|
+| Job Assigned | Assigned technician | High |
+| Job Accepted | Admins/Supervisors | Normal |
+| Job Rejected | Admins/Supervisors | High |
+| Request Approved | Requesting technician | High |
+| Request Rejected | Requesting technician | High |
+| No Response (15min) | Admins/Supervisors | Urgent |
+
+#### Files Created
+- `public/sw.js` — Service worker for push notifications
+- `services/pushNotificationService.ts` — Push notification management
+- `components/NotificationSettings.tsx` — Permission prompt component
+
+#### Files Modified
+- `contexts/NotificationContext.tsx` — Push notification state integration
+- `utils/useRealtimeNotifications.ts` — Enhanced notification display
+- `components/dashboards/TechnicianDashboard.tsx` — Permission prompt
+
+---
+
+### ⏰ On-Call Job Accept/Reject System (2026-01-29)
+- **Added:** 2026-01-29 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+- **Customer Feedback:** 15-minute response window for job assignments
+
+#### Implementation
+
+**1. 15-Minute Response Window**
+- When job is assigned, `technician_response_deadline` set to now + 15 minutes
+- Both `assignJob` and `reassignJob` functions updated
+- Previous acceptance/rejection cleared on reassignment
+
+**2. Dedicated Accept/Reject Functions**
+- `acceptJobAssignment()` - Records acceptance, notifies admins
+- `rejectJobAssignment()` - Records rejection with reason, resets job to NEW
+- `checkExpiredJobResponses()` - Finds expired deadlines, alerts admins
+- `getJobsPendingResponse()` - Lists jobs awaiting technician response
+
+**3. JobBoard Accept/Reject Buttons**
+- Accept/Reject buttons shown on job cards for assigned jobs
+- Live countdown timer showing remaining response time
+- Color-coded urgency: green (>10min), amber (5-10min), red (<5min)
+- Reject requires reason input via modal
+- Processing state prevents double-clicks
+
+**4. JobDetail Accept/Reject**
+- Enhanced handlers use new dedicated functions
+- Better error handling with toast messages
+- Admin notification on both accept and reject
+
+**5. Admin Notifications**
+- Job accepted: All admins/supervisors notified
+- Job rejected: Urgent notification with reason
+- No response: Urgent notification after 15 minutes expires
+
+#### Workflow
+```
+Admin assigns job
+    ↓
+technician_response_deadline = now + 15 min
+    ↓
+Technician sees job with Accept/Reject buttons
+    ↓
+┌─────────────────┬─────────────────┬─────────────────┐
+│    ACCEPT       │    REJECT       │   NO RESPONSE   │
+├─────────────────┼─────────────────┼─────────────────┤
+│ Job ready to    │ Job returns to  │ Admin alerted,  │
+│ start, admins   │ NEW status,     │ job remains     │
+│ notified        │ admins notified │ assigned        │
+│                 │ with reason     │                 │
+└─────────────────┴─────────────────┴─────────────────┘
+```
+
+#### Files Modified
+- `services/supabaseService.ts` — New functions: `acceptJobAssignment`, `rejectJobAssignment`, `checkExpiredJobResponses`, updated `assignJob`/`reassignJob`
+- `pages/JobBoard.tsx` — Accept/Reject buttons, countdown timer, reject modal
+- `pages/JobDetail.tsx` — Updated handlers to use new functions
+
+---
+
+### ✅ Job Completion & Approval Flow (2026-01-29)
+- **Added:** 2026-01-29 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Verified Complete
+- **Customer Feedback:** Admin Service cannot finalize until Admin Store verifies parts
+
+#### Implementation Verified
+This feature was previously implemented but verified complete in this review:
+
+**1. Parts Verification Fields**
+- `parts_confirmed_by_id`, `parts_confirmed_by_name`, `parts_confirmed_at` in Job type
+- `parts_confirmation_skipped` for jobs with no parts
+
+**2. "Verify Parts" Button**
+- Shows for Admin 2 (Store) role on jobs in Awaiting Finalization status
+- Button in Confirmation Status card
+- Updates job with verifier info and timestamp
+
+**3. Finalization Blocking**
+- `handleFinalizeInvoice` checks `parts_confirmed_at` before allowing finalization
+- Shows error: "Store Verification Pending: Admin 2 must approve parts before final service closure"
+- Skips check if no parts used or confirmation explicitly skipped
+
+**4. Visual Indicators**
+- Confirmation Status card shows both confirmations:
+  - Parts Confirmation (Admin 2) with status/timestamp
+  - Job Confirmation (Admin 1) with status/timestamp
+- Pending state shown with amber clock icon
+- Completed state shown with green checkmark and verifier name
+
+#### Files Involved
+- `pages/JobDetail.tsx` — Confirmation Status card, `handleConfirmParts`, `handleFinalizeInvoice`
+- `types/index.ts` — Parts confirmation fields
+
+---
+
 ## [2026-01-28] - Customer Feedback Implementation Phase 3
 
 ### ✏️ Request Edit Button (2026-01-28) - Previously Implemented

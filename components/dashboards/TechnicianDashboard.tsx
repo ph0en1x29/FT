@@ -9,6 +9,7 @@ import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
 import SlotInSLABadge from '../SlotInSLABadge';
 import DashboardNotificationCard from '../DashboardNotificationCard';
+import { NotificationPermissionPrompt } from '../NotificationSettings';
 
 interface TechnicianDashboardProps {
   currentUser: User;
@@ -150,6 +151,9 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser }
 
   return (
     <div className="space-y-6 fade-in">
+      {/* Push Notification Permission Prompt */}
+      <NotificationPermissionPrompt />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -66,27 +66,72 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
   return permission === 'granted';
 };
 
-// Show browser notification
-export const showBrowserNotification = (title: string, body: string, onClick?: () => void) => {
+// Show browser notification (with service worker fallback)
+export const showBrowserNotification = async (
+  title: string, 
+  body: string, 
+  options?: { 
+    onClick?: () => void;
+    url?: string;
+    tag?: string;
+    priority?: 'low' | 'normal' | 'high' | 'urgent';
+  }
+) => {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   
-  const notification = new Notification(title, {
-    body,
-    icon: '/favicon.svg',
-    tag: `fieldpro-${Date.now()}`, // Unique tag to allow multiple notifications
-    requireInteraction: false,
-  });
+  const notificationTag = options?.tag || `fieldpro-${Date.now()}`;
+  const requireInteraction = options?.priority === 'urgent' || options?.priority === 'high';
+  const vibrate = options?.priority === 'urgent' ? [200, 100, 200, 100, 200] : [200, 100, 200];
   
-  if (onClick) {
-    notification.onclick = () => {
-      window.focus();
-      onClick();
-      notification.close();
-    };
+  // Try service worker notification first (works better on mobile and when page is in background)
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(title, {
+        body,
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
+        tag: notificationTag,
+        requireInteraction,
+        vibrate,
+        data: { url: options?.url || '/' }
+      });
+      return;
+    } catch (e) {
+      console.warn('[Notifications] Service worker notification failed, falling back:', e);
+    }
   }
   
-  // Auto close after 5 seconds
-  setTimeout(() => notification.close(), 5000);
+  // Fallback to regular Notification API
+  try {
+    const notification = new Notification(title, {
+      body,
+      icon: '/favicon.svg',
+      tag: notificationTag,
+      requireInteraction,
+    });
+    
+    if (options?.onClick) {
+      notification.onclick = () => {
+        window.focus();
+        options.onClick?.();
+        notification.close();
+      };
+    } else if (options?.url) {
+      notification.onclick = () => {
+        window.focus();
+        window.location.href = options.url!;
+        notification.close();
+      };
+    }
+    
+    // Auto close after 5 seconds (unless requires interaction)
+    if (!requireInteraction) {
+      setTimeout(() => notification.close(), 5000);
+    }
+  } catch (e) {
+    console.warn('[Notifications] Browser notification failed:', e);
+  }
 };
 
 // Vibrate device if supported (mobile)
@@ -182,9 +227,19 @@ export const useRealtimeNotifications = (
     // Vibrate on mobile
     vibrateDevice();
     
-    // Show browser notification
+    // Show browser notification with priority and URL
     if (showBrowserNotifications) {
-      showBrowserNotification(newNotification.title, newNotification.message);
+      // Determine URL based on notification type
+      let notificationUrl = '/';
+      if (newNotification.reference_type === 'job' && newNotification.reference_id) {
+        notificationUrl = `/jobs/${newNotification.reference_id}`;
+      }
+      
+      showBrowserNotification(newNotification.title, newNotification.message, {
+        priority: newNotification.priority as 'low' | 'normal' | 'high' | 'urgent',
+        url: notificationUrl,
+        tag: `fieldpro-${newNotification.notification_id}`
+      });
     }
     
     // Show toast with appropriate type

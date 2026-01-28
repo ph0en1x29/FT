@@ -626,6 +626,10 @@ export const SupabaseDb = {
   },
 
   assignJob: async (jobId: string, technicianId: string, technicianName: string, assignedById?: string, assignedByName?: string): Promise<Job> => {
+    const now = new Date();
+    // Set 15-minute response deadline for technician accept/reject
+    const responseDeadline = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes from now
+    
     const { data, error } = await supabase
       .from('jobs')
       .update({
@@ -633,9 +637,15 @@ export const SupabaseDb = {
         assigned_technician_name: technicianName,
         status: JobStatus.ASSIGNED,
         // Audit: Job Assignment
-        assigned_at: new Date().toISOString(),
+        assigned_at: now.toISOString(),
         assigned_by_id: assignedById || null,
         assigned_by_name: assignedByName || null,
+        // On-Call Accept/Reject: 15-minute response window
+        technician_response_deadline: responseDeadline.toISOString(),
+        technician_accepted_at: null, // Clear any previous acceptance
+        technician_rejected_at: null, // Clear any previous rejection
+        technician_rejection_reason: null,
+        no_response_alerted_at: null, // Clear any previous no-response alert
       })
       .eq('job_id', jobId)
       .select(`
@@ -837,6 +847,179 @@ export const SupabaseDb = {
 
     if (error) throw new Error(error.message);
     return data as Job;
+  },
+
+  // =====================
+  // ON-CALL JOB ACCEPT/REJECT (15-minute response window)
+  // =====================
+
+  // Technician accepts job assignment
+  acceptJobAssignment: async (jobId: string, technicianId: string, technicianName: string): Promise<Job> => {
+    const now = new Date().toISOString();
+    
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({
+        technician_accepted_at: now,
+      })
+      .eq('job_id', jobId)
+      .eq('assigned_technician_id', technicianId) // Ensure only assigned tech can accept
+      .select(`
+        *,
+        customer:customers(*),
+        forklift:forklifts!forklift_id(*),
+        parts_used:job_parts(*),
+        media:job_media(*),
+        extra_charges:extra_charges(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+    
+    const job = data as Job;
+    
+    // Notify admins that job was accepted
+    const admins = await SupabaseDb.getAdminsAndSupervisors();
+    for (const admin of admins) {
+      await SupabaseDb.createNotification({
+        user_id: admin.user_id,
+        type: NotificationType.JOB_UPDATED,
+        title: 'Job Accepted',
+        message: `${technicianName} accepted job "${job.title}".`,
+        reference_type: 'job',
+        reference_id: jobId,
+        priority: 'normal',
+      });
+    }
+    
+    return job;
+  },
+
+  // Technician rejects job assignment
+  rejectJobAssignment: async (
+    jobId: string,
+    technicianId: string,
+    technicianName: string,
+    reason: string
+  ): Promise<Job> => {
+    const now = new Date().toISOString();
+    
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({
+        technician_rejected_at: now,
+        technician_rejection_reason: reason,
+        // Reset assignment - job goes back to queue
+        status: JobStatus.NEW,
+        assigned_technician_id: null,
+        assigned_technician_name: null,
+        assigned_at: null,
+        technician_response_deadline: null,
+      })
+      .eq('job_id', jobId)
+      .eq('assigned_technician_id', technicianId) // Ensure only assigned tech can reject
+      .select(`
+        *,
+        customer:customers(*),
+        forklift:forklifts!forklift_id(*),
+        parts_used:job_parts(*),
+        media:job_media(*),
+        extra_charges:extra_charges(*)
+      `)
+      .single();
+
+    if (error) throw new Error(error.message);
+    
+    const job = data as Job;
+    
+    // Notify admins about the rejection
+    await SupabaseDb.notifyJobRejectedByTech(jobId, job.title, technicianName, reason);
+    
+    return job;
+  },
+
+  // Check for jobs with expired response deadlines and alert admins
+  checkExpiredJobResponses: async (): Promise<{ alertedJobs: string[] }> => {
+    const alertedJobs: string[] = [];
+    const now = new Date();
+    
+    try {
+      // Find assigned jobs where:
+      // - Response deadline has passed
+      // - Technician hasn't accepted or rejected
+      // - Admin hasn't been alerted yet
+      const { data: expiredJobs, error } = await supabase
+        .from('jobs')
+        .select(`
+          job_id,
+          title,
+          assigned_technician_id,
+          assigned_technician_name,
+          technician_response_deadline,
+          customer:customers(name)
+        `)
+        .eq('status', JobStatus.ASSIGNED)
+        .is('technician_accepted_at', null)
+        .is('technician_rejected_at', null)
+        .is('no_response_alerted_at', null)
+        .not('technician_response_deadline', 'is', null)
+        .lt('technician_response_deadline', now.toISOString());
+
+      if (error) {
+        console.warn('Failed to check expired responses:', error.message);
+        return { alertedJobs };
+      }
+
+      for (const job of (expiredJobs || [])) {
+        // Alert admins about no response
+        await SupabaseDb.notifyNoResponseFromTech(
+          job.job_id,
+          job.title,
+          job.assigned_technician_name || 'Unknown'
+        );
+
+        // Mark job as alerted to prevent duplicate notifications
+        await supabase
+          .from('jobs')
+          .update({ no_response_alerted_at: now.toISOString() })
+          .eq('job_id', job.job_id);
+
+        alertedJobs.push(job.job_id);
+      }
+
+      return { alertedJobs };
+    } catch (e) {
+      console.warn('Error checking expired responses:', e);
+      return { alertedJobs };
+    }
+  },
+
+  // Get jobs pending technician response (for dashboard/monitoring)
+  getJobsPendingResponse: async (): Promise<Job[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          *,
+          customer:customers(*),
+          forklift:forklifts!forklift_id(*)
+        `)
+        .eq('status', JobStatus.ASSIGNED)
+        .is('technician_accepted_at', null)
+        .is('technician_rejected_at', null)
+        .not('technician_response_deadline', 'is', null)
+        .order('technician_response_deadline', { ascending: true });
+
+      if (error) {
+        console.warn('Failed to get pending response jobs:', error.message);
+        return [];
+      }
+
+      return (data || []) as Job[];
+    } catch (e) {
+      console.warn('Error getting pending response jobs:', e);
+      return [];
+    }
   },
 
   // Update job's hourmeter reading with validation
@@ -2902,14 +3085,24 @@ export const SupabaseDb = {
       const currentJob = await SupabaseDb.getJobById(jobId);
       const oldTechnicianId = currentJob?.assigned_technician_id;
 
+      const now = new Date();
+      // Set 15-minute response deadline for technician accept/reject
+      const responseDeadline = new Date(now.getTime() + 15 * 60 * 1000);
+
       const { data, error } = await supabase
         .from('jobs')
         .update({
           assigned_technician_id: newTechnicianId,
           assigned_technician_name: newTechnicianName,
-          assigned_at: new Date().toISOString(),
+          assigned_at: now.toISOString(),
           assigned_by_id: reassignedById,
           assigned_by_name: reassignedByName,
+          // On-Call Accept/Reject: 15-minute response window
+          technician_response_deadline: responseDeadline.toISOString(),
+          technician_accepted_at: null, // Clear any previous acceptance
+          technician_rejected_at: null, // Clear any previous rejection
+          technician_rejection_reason: null,
+          no_response_alerted_at: null, // Clear any previous no-response alert
         })
         .eq('job_id', jobId)
         .select(`
