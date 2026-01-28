@@ -23,12 +23,16 @@
 
    ⚠️ **STOP** — Do NOT proceed to the next task batch until documentation is updated.
 
-   After completing ANY batch of code changes (not at end of session):
-   - **CHANGELOG.md** — Log what changed, why, files affected
-   - **USER_GUIDE.md** — If UI/workflow changed, update user instructions
-   - **DB_SCHEMA.md** — If database schema changed
-   - **WORKFLOW_SPECIFICATION.md** — If business logic changed
-   - **docs/README.md** — Add entry to "Recent Documentation Updates"
+   ### 📋 Post-Build Checklist
+   After EVERY successful build, complete this checklist:
+   
+   - [ ] **CHANGELOG.md** — Log what changed, why, files affected
+   - [ ] **USER_GUIDE.md** — If UI/workflow changed
+   - [ ] **DB_SCHEMA.md** — If database schema changed
+   - [ ] **WORKFLOW_SPECIFICATION.md** — If business logic changed
+   - [ ] **docs/README.md** — Add entry to "Recent Documentation Updates"
+   
+   Skip items only if genuinely not applicable. When in doubt, update.
 
    **TodoWrite Requirement:** When creating task lists, ALWAYS include "Update documentation" as an explicit task after every 3-5 code tasks. Example:
    ```

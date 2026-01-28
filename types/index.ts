@@ -722,6 +722,13 @@ export interface Job {
   assigned_by_id?: string;
   assigned_by_name?: string;
   
+  // Technician Accept/Reject (15-minute response window)
+  technician_response_deadline?: string; // assigned_at + 15 minutes
+  technician_accepted_at?: string;
+  technician_rejected_at?: string;
+  technician_rejection_reason?: string;
+  no_response_alerted_at?: string; // When admin was alerted about no response
+  
   // Forklift reference
   forklift_id?: string;
   forklift?: Forklift;

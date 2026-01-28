@@ -2564,6 +2564,57 @@ export const SupabaseDb = {
     }
   },
 
+  // Notify admins when technician rejects a job assignment
+  notifyJobRejectedByTech: async (
+    jobId: string,
+    jobTitle: string,
+    technicianName: string,
+    reason: string
+  ): Promise<void> => {
+    try {
+      const admins = await SupabaseDb.getAdminsAndSupervisors();
+      
+      for (const admin of admins) {
+        await SupabaseDb.createNotification({
+          user_id: admin.user_id,
+          type: NotificationType.JOB_PENDING,
+          title: 'Job Rejected - Needs Reassignment',
+          message: `${technicianName} rejected job "${jobTitle}". Reason: ${reason}`,
+          reference_type: 'job',
+          reference_id: jobId,
+          priority: 'high',
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to notify job rejection:', e);
+    }
+  },
+
+  // Notify admins when technician doesn't respond within 15 minutes
+  notifyNoResponseFromTech: async (
+    jobId: string,
+    jobTitle: string,
+    technicianName: string
+  ): Promise<void> => {
+    try {
+      const admins = await SupabaseDb.getAdminsAndSupervisors();
+      
+      for (const admin of admins) {
+        await SupabaseDb.createNotification({
+          user_id: admin.user_id,
+          type: NotificationType.JOB_PENDING,
+          title: 'No Response - Job Acceptance Expired',
+          message: `${technicianName} did not respond to job "${jobTitle}" within 15 minutes. Consider reassigning.`,
+          reference_type: 'job',
+          reference_id: jobId,
+          priority: 'urgent',
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to notify no response:', e);
+    }
+  },
+
   // =====================
   // SCHEDULED SERVICE OPERATIONS
   // =====================

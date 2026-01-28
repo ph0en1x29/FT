@@ -18,7 +18,7 @@ import {
   Info, FileDown, Truck, Gauge, ClipboardList, Receipt, Play, Clock,
   AlertTriangle, CheckSquare, Square, FileCheck, RefreshCw, Download, Filter,
   HandHelping, Wrench, MessageSquarePlus, HelpCircle, Send, MoreVertical, ChevronRight,
-  Zap
+  Zap, XCircle
 } from 'lucide-react';
 import SlotInSLABadge from '../components/SlotInSLABadge';
 
@@ -440,6 +440,71 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     } catch (e) { console.error('Resume job error:', e); showToast.error('Error resuming job'); }
   };
 
+  // Accept job assignment (technician confirms they will do the job)
+  const handleAcceptJob = async () => {
+    if (!job) return;
+    try {
+      const updated = {
+        ...job,
+        technician_accepted_at: new Date().toISOString(),
+      };
+      await MockDb.updateJob(job.job_id, updated);
+      setJob(updated as Job);
+      showToast.success('Job accepted', 'You can now start the job when ready.');
+    } catch (e) {
+      showToast.error('Failed to accept job');
+    }
+  };
+
+  // Reject job assignment (technician declines, needs reassignment)
+  const [showRejectJobModal, setShowRejectJobModal] = useState(false);
+  const [rejectJobReason, setRejectJobReason] = useState('');
+  
+  const handleRejectJob = async () => {
+    if (!job || !rejectJobReason.trim()) {
+      showToast.error('Please provide a reason for rejecting this job');
+      return;
+    }
+    try {
+      const updated = {
+        ...job,
+        technician_rejected_at: new Date().toISOString(),
+        technician_rejection_reason: rejectJobReason.trim(),
+        status: JobStatus.NEW, // Reset to New so admin can reassign
+        assigned_technician_id: '', // Clear assignment
+        assigned_technician_name: '',
+      };
+      await MockDb.updateJob(job.job_id, updated);
+      
+      // Notify admins about the rejection
+      await MockDb.notifyJobRejectedByTech(job.job_id, job.title, currentUserName, rejectJobReason.trim());
+      
+      showToast.success('Job rejected', 'Admin has been notified for reassignment.');
+      setShowRejectJobModal(false);
+      setRejectJobReason('');
+      // Navigate back to jobs list since this job is no longer assigned to tech
+      navigate('/jobs');
+    } catch (e) {
+      showToast.error('Failed to reject job');
+    }
+  };
+
+  // Check if technician needs to accept/reject (within 15-min window)
+  const needsAcceptance = isAssigned && isTechnician && !job?.technician_accepted_at && !job?.technician_rejected_at;
+  const hasAccepted = isAssigned && job?.technician_accepted_at;
+  
+  // Calculate remaining time for response
+  const getResponseTimeRemaining = () => {
+    if (!job?.technician_response_deadline) return null;
+    const deadline = new Date(job.technician_response_deadline);
+    const now = new Date();
+    const remaining = deadline.getTime() - now.getTime();
+    if (remaining <= 0) return 'Expired';
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   const handleDeferredCompletion = async () => {
     if (!job || !deferredReason.trim()) return;
     const hourmeterValue = parseFloat(deferredHourmeter);
@@ -786,8 +851,33 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
 
   const handleFinalizeInvoice = async () => {
     if (!job) return;
+    // Check if store parts have been verified first (Admin 2 must verify before Admin 1 can finalize)
+    // Skip check if no parts were used or if parts confirmation was explicitly skipped
+    const needsPartsVerification = job.parts_used.length > 0 && !job.parts_confirmation_skipped;
+    if (needsPartsVerification && !job.parts_confirmed_at) {
+      showToast.error('Store Verification Pending', 'Admin 2 (Store) must verify parts before final service closure.');
+      setShowFinalizeModal(false);
+      return;
+    }
     try { const updated = await MockDb.finalizeInvoice(job.job_id, currentUserId, currentUserName); setJob({ ...updated } as Job); setShowFinalizeModal(false); showToast.success('Invoice finalized'); }
     catch (e) { showToast.error('Could not finalize invoice', (e as Error).message); }
+  };
+
+  const handleConfirmParts = async () => {
+    if (!job) return;
+    try {
+      const updated = {
+        ...job,
+        parts_confirmed_by_id: currentUserId,
+        parts_confirmed_by_name: currentUserName,
+        parts_confirmed_at: new Date().toISOString(),
+      };
+      await MockDb.updateJob(job.job_id, updated);
+      setJob(updated as Job);
+      showToast.success('Parts verified successfully', 'Admin 1 (Service) can now finalize the job.');
+    } catch (e) {
+      showToast.error('Could not verify parts', (e as Error).message);
+    }
   };
 
   const handleDeleteJob = async () => {
@@ -1224,7 +1314,25 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                 <Zap className="w-4 h-4" /> Acknowledge
               </button>
             )}
-            {(isTechnician || isAdmin || isSupervisor) && isAssigned && !isHelperOnly && (
+            {/* Technician Accept/Reject buttons (before they can start) */}
+            {isTechnician && isAssigned && !isHelperOnly && needsAcceptance && (
+              <>
+                <button onClick={handleAcceptJob} className="btn-premium btn-premium-primary">
+                  <CheckCircle className="w-4 h-4" /> Accept Job
+                </button>
+                <button onClick={() => setShowRejectJobModal(true)} className="btn-premium bg-[var(--error)] text-white hover:opacity-90">
+                  <XCircle className="w-4 h-4" /> Reject
+                </button>
+                {job?.technician_response_deadline && (
+                  <span className="text-xs text-[var(--text-muted)] flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> {getResponseTimeRemaining()}
+                  </span>
+                )}
+              </>
+            )}
+            {/* Start Job button - only after technician accepts (or for admin/supervisor) */}
+            {((isTechnician && isAssigned && !isHelperOnly && hasAccepted) || 
+              ((isAdmin || isSupervisor) && isAssigned && !isHelperOnly)) && (
               <button onClick={handleOpenStartJobModal} className="btn-premium btn-premium-primary">
                 <Play className="w-4 h-4" /> Start Job
               </button>
@@ -1612,9 +1720,19 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                   ) : job.parts_used.length === 0 ? (
                     <span className="text-sm text-[var(--text-muted)] italic">N/A (no parts used)</span>
                   ) : (
-                    <div className="flex items-center gap-2 text-amber-600">
-                      <Clock className="w-4 h-4" />
-                      <span className="text-sm">Pending</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 text-amber-600">
+                        <Clock className="w-4 h-4" />
+                        <span className="text-sm">Pending</span>
+                      </div>
+                      {(isAdminStore || isAdmin || isAccountant) && (
+                        <button 
+                          onClick={handleConfirmParts}
+                          className="ml-2 px-3 py-1 text-xs bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity"
+                        >
+                          Verify Parts
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2652,6 +2770,36 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               <button onClick={() => { setShowDeleteModal(false); setDeletionReason(''); }} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
               <button onClick={handleDeleteJob} disabled={!deletionReason.trim()} className="btn-premium bg-[var(--error)] text-white hover:opacity-90 flex-1 disabled:opacity-50">
                 <Trash2 className="w-4 h-4" /> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Job Modal */}
+      {showRejectJobModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+            <h4 className="font-bold text-lg mb-4 text-[var(--error)] flex items-center gap-2">
+              <XCircle className="w-5 h-5" /> Reject Job Assignment
+            </h4>
+            <div className="bg-[var(--warning-bg)] rounded-xl p-3 mb-4">
+              <p className="text-sm text-[var(--warning)] font-medium">{job?.title}</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1">This job will be returned to Admin for reassignment.</p>
+            </div>
+            <div className="mb-6">
+              <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">Reason for Rejection *</label>
+              <textarea 
+                className="input-premium resize-none h-24" 
+                value={rejectJobReason} 
+                onChange={(e) => setRejectJobReason(e.target.value)} 
+                placeholder="e.g., Already have too many jobs, Not available on scheduled date, etc." 
+              />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => { setShowRejectJobModal(false); setRejectJobReason(''); }} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
+              <button onClick={handleRejectJob} disabled={!rejectJobReason.trim()} className="btn-premium bg-[var(--error)] text-white hover:opacity-90 flex-1 disabled:opacity-50">
+                <XCircle className="w-4 h-4" /> Reject Job
               </button>
             </div>
           </div>

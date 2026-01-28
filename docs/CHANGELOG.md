@@ -4,6 +4,17 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## 📋 Planned / Upcoming
+
+### Supabase Edge Functions
+- **Added:** 2026-01-28 (noted by Jay)
+- **Status:** ❌ Not Started
+- **Priority:** TBD
+
+Implement Supabase Edge Functions for the project. Details to be defined.
+
+---
+
 ## Status Legend
 
 | Icon | Status | Meaning |
