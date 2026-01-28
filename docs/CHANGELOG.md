@@ -29,6 +29,39 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ## [2026-01-28] - Customer Feedback Implementation Phase 3
 
+### 🔧 Tech Job Summary Parts Filter (2026-01-28)
+- **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+- **Customer Feedback:** Filter parts visibility for technicians by confirmation status
+
+#### Problem
+Technicians could see all parts immediately, even before Admin 2 (Store) verified them.
+
+#### Changes Made
+
+**1. Parts Visibility Filter for Technicians**
+- Before Admin 2 confirmation: Shows "Parts Pending Verification" message
+- Displays count of pending parts without showing details
+- After confirmation: Shows all parts (without pricing)
+- Includes verification timestamp and verifier name
+
+**2. UI Changes**
+- Amber warning box for pending verification
+- Green checkmark with verification details for confirmed parts
+- Clear messaging about who verified and when
+
+#### Display Rules
+| Role | Before Confirmation | After Confirmation |
+|------|--------------------|--------------------|
+| Technician | "Pending Verification" message | All parts (no prices) |
+| Admin/Supervisor | All parts with prices | All parts with prices |
+| Accountant | All parts with prices | All parts with prices |
+
+#### Files Modified
+- `pages/JobDetail.tsx` — Added parts visibility filter for technicians
+
+---
+
 ### 🔔 Enhanced Dashboard Notifications (2026-01-28)
 - **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
 - **Status:** ✔️ Completed
