@@ -29,6 +29,43 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ## [2026-01-28] - Customer Feedback Implementation Phase 3
 
+### 🔔 Enhanced Dashboard Notifications (2026-01-28)
+- **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+- **Customer Feedback:** Expand notification display beyond bell icon
+
+#### Problem
+Dashboard only showed a bell icon with count. Users wanted to see full notification list directly on dashboard.
+
+#### Changes Made
+
+**1. Enhanced DashboardNotificationCard**
+- Added toggle between Unread and All notifications
+- Added expand/collapse functionality for full feed
+- Shows up to 20 notifications when expanded (scrollable)
+- Added priority-based visual indicators (border colors)
+- More comprehensive notification type icons
+- Read notifications displayed with reduced opacity
+
+**2. New Features**
+- `showReadNotifications` toggle to view read items
+- `expandable` prop for dashboards that need full feed
+- "Show more" button with remaining count
+- "View all notifications" link to full page
+- Visual unread indicator (blue dot) on unread items
+
+**3. Notification Types Support**
+- Job assigned, completed, pending
+- Request approved/rejected
+- Helper requests, spare part requests
+- Service due, rental ending
+- Leave requests, escalations
+
+#### Files Modified
+- `components/DashboardNotificationCard.tsx` — Complete enhancement
+
+---
+
 ### ✅ Condition Checklist - Binary States (2026-01-28)
 - **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
 - **Status:** ✔️ Completed
