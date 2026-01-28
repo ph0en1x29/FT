@@ -27,6 +27,54 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ---
 
+## [2026-01-28] - Customer Feedback Implementation Phase 3
+
+### 📡 Enhanced Real-Time Updates (2026-01-28)
+- **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+- **Customer Feedback:** Expand real-time updates beyond job deletions
+
+#### Problem
+Real-time subscriptions were limited to job deletions only. Users needed manual refresh to see job status changes, request approvals/rejections, and job assignments.
+
+#### Changes Made
+
+**1. JobBoard.tsx - Comprehensive Real-Time Subscriptions**
+- Added subscription for ALL job updates (not just deletions)
+- Job status changes now update in place with toast notifications
+- Job assignments trigger notifications
+- New job creation triggers list refresh for admins/supervisors
+- Added WebSocket connection state tracking (`isRealtimeConnected`)
+
+**2. JobDetail.tsx - Real-Time Job & Request Updates**
+- Status changes update automatically with toast notifications
+- Reassignment notifications (for current user and others)
+- Job request approvals/rejections trigger live updates
+- New requests on the job trigger notifications
+- Visual connection indicator (green dot) in header
+
+**3. Connection Health Monitoring**
+- Both pages track WebSocket connection status
+- Visual indicator shows live/offline state
+- Console logging for debugging connection issues
+
+#### Subscriptions Added
+| Event | Target | Notification |
+|-------|--------|--------------|
+| Job status change | JobBoard, JobDetail | "Status changed to X" |
+| Job assignment | JobBoard, JobDetail | "Job assigned to X" |
+| Job deletion | JobBoard, JobDetail | "Job removed" + redirect |
+| New job created | JobBoard | "New job created" |
+| Request approved | JobDetail | "Request approved" |
+| Request rejected | JobDetail | "Request rejected" |
+| New request | JobDetail | "New request submitted" |
+
+#### Files Modified
+- `pages/JobBoard.tsx` — Expanded real-time subscription, added connection state
+- `pages/JobDetail.tsx` — Added job & request subscriptions, connection indicator
+
+---
+
 ## [2026-01-28] - Customer Feedback Implementation Phase 2
 
 ### 🔄 Real-Time Job Deletion Sync (2026-01-28)

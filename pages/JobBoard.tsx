@@ -112,44 +112,104 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     fetchJobs();
   }, [fetchJobs]);
 
-  // Real-time subscription for job deletions
-  // This ensures technicians see job removals immediately when admin deletes
+  // Real-time WebSocket connection state
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
+
+  // Real-time subscription for job changes (deletions, status changes, assignments)
+  // This ensures all users see job updates immediately without manual refresh
   useEffect(() => {
     const channel = supabase
-      .channel('job-deletions')
+      .channel('job-board-realtime')
+      // Job deletions
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'jobs',
-          filter: 'deleted_at=not.is.null'
         },
         (payload) => {
-          const deletedJobId = payload.new?.job_id;
-          if (deletedJobId) {
-            // Remove the deleted job from the list
+          const updatedJob = payload.new as Job;
+          const oldJob = payload.old as Partial<Job>;
+          
+          // Handle soft-deleted jobs
+          if (updatedJob?.deleted_at !== null && oldJob?.deleted_at === null) {
             setJobs(prevJobs => {
-              const wasInList = prevJobs.some(j => j.job_id === deletedJobId);
+              const wasInList = prevJobs.some(j => j.job_id === updatedJob.job_id);
               if (wasInList) {
-                showToast.info('Job removed', 'A job has been cancelled or deleted by admin');
+                showToast.info('Job removed', 'A job has been cancelled or deleted');
               }
-              return prevJobs.filter(j => j.job_id !== deletedJobId);
+              return prevJobs.filter(j => j.job_id !== updatedJob.job_id);
             });
             
             // Refresh deleted jobs list for admins
             if (canViewDeleted) {
               MockDb.getRecentlyDeletedJobs().then(setDeletedJobs).catch(console.error);
             }
+            return;
+          }
+          
+          // Handle job status changes - update in place
+          setJobs(prevJobs => {
+            const jobIndex = prevJobs.findIndex(j => j.job_id === updatedJob.job_id);
+            if (jobIndex === -1) return prevJobs;
+            
+            const previousStatus = prevJobs[jobIndex].status;
+            const newStatus = updatedJob.status;
+            
+            // Show toast for significant status changes
+            if (previousStatus !== newStatus) {
+              if (newStatus === JobStatus.IN_PROGRESS) {
+                showToast.info('Job started', `${updatedJob.title || 'A job'} is now in progress`);
+              } else if (newStatus === JobStatus.COMPLETED) {
+                showToast.success('Job completed', `${updatedJob.title || 'A job'} has been completed`);
+              } else if (newStatus === JobStatus.AWAITING_FINALIZATION) {
+                showToast.info('Job awaiting finalization', `${updatedJob.title || 'A job'} needs finalization`);
+              }
+            }
+            
+            // Update job assignment notification
+            if (updatedJob.assigned_technician_id !== prevJobs[jobIndex].assigned_technician_id && updatedJob.assigned_technician_name) {
+              showToast.info('Job assigned', `${updatedJob.title || 'A job'} assigned to ${updatedJob.assigned_technician_name}`);
+            }
+            
+            // Update job in list
+            const updatedJobs = [...prevJobs];
+            updatedJobs[jobIndex] = { ...updatedJobs[jobIndex], ...updatedJob };
+            return updatedJobs;
+          });
+        }
+      )
+      // New job created (for admins/supervisors)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'jobs',
+        },
+        (payload) => {
+          const newJob = payload.new as Job;
+          if (newJob && !newJob.deleted_at) {
+            // Only add if user should see it (will be filtered by role in getJobs)
+            showToast.info('New job created', newJob.title || 'A new job has been added');
+            fetchJobs(); // Refresh to get full job data with relations
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        setIsRealtimeConnected(status === 'SUBSCRIBED');
+        if (status === 'SUBSCRIBED') {
+          console.log('[JobBoard] ✅ Real-time connected');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('[JobBoard] ⚠️ Real-time connection issue:', status);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [canViewDeleted]);
+  }, [canViewDeleted, fetchJobs]);
 
   // Filter jobs based on search and filters
   const filteredJobs = useMemo(() => {
