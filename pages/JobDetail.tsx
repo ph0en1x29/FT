@@ -174,7 +174,27 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [job, setJob] = useState<Job | null>(null);
+  const [job, setJobRaw] = useState<Job | null>(null);
+  
+  // Normalize job data to ensure arrays are never null/undefined (prevents runtime crashes)
+  const normalizeJob = (j: Job | null): Job | null => {
+    if (!j) return null;
+    return {
+      ...j,
+      parts_used: j.parts_used || [],
+      media: j.media || [],
+      extra_charges: j.extra_charges || []
+    };
+  };
+  
+  // Safe setter that normalizes job data before setting state
+  const setJob = (j: Job | null | ((prev: Job | null) => Job | null)) => {
+    if (typeof j === 'function') {
+      setJobRaw(prev => normalizeJob(j(prev)));
+    } else {
+      setJobRaw(normalizeJob(j));
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [parts, setParts] = useState<Part[]>([]);
   const [technicians, setTechnicians] = useState<User[]>([]);
