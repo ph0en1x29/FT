@@ -63,6 +63,42 @@ When Admin deleted a job, technicians viewing that job or their job list would n
 
 ---
 
+### 💰 Pricing Hidden from Technicians (2026-01-28)
+- **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Verified Complete
+- **Customer Feedback:** Remove pricing visibility from technician view
+
+#### Implementation Verified
+The following pricing elements are hidden from technicians via `canViewPricing` check (Admin, Accountant, Supervisor only):
+
+| Element | Location | Status |
+|---------|----------|--------|
+| **Financial Summary Card** | Right sidebar | ✅ Hidden |
+| **Extra Charges Section** | Main content | ✅ Hidden |
+| **Part Prices in List** | Parts Used section | ✅ Hidden (shows qty × name only) |
+| **Price Input for Parts** | Add part form | ✅ Hidden |
+| **Price in Dropdown** | Part selector | ✅ Shows stock only, no RM price |
+| **Van Stock Price** | Van Stock selector | ✅ Shows quantity only, no RM price |
+| **Labor Cost** | Financial summary | ✅ Hidden |
+| **Total Cost** | Financial summary | ✅ Hidden |
+
+#### canViewPricing Definition
+```typescript
+const canViewPricing = isAdmin || isAccountant || isSupervisor;
+```
+
+#### What Technicians See
+- Parts Used: `2× Hydraulic Filter` (no price)
+- Part Selector: `Stock: 15 | Hydraulic` (no RM price)
+- No Financial Summary card
+- No Extra Charges section
+- Info hint to use Spare Part Request workflow
+
+#### Files Verified
+- `pages/JobDetail.tsx` — All pricing conditionally rendered via `canViewPricing`
+
+---
+
 ## [2026-01-27] - Documentation & Claude Code Setup Updates
 
 ### 📚 Documentation Updates
