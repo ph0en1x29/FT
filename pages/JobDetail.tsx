@@ -936,7 +936,24 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   const handleStartEditChecklist = () => { if (!job) return; setEditingChecklist(true); setChecklistEditData(job.condition_checklist || {}); };
   const handleSaveChecklist = async () => {
     if (!job) return;
-    try { const updated = await MockDb.updateConditionChecklist(job.job_id, checklistEditData, currentUserId); setJob({ ...updated } as Job); setEditingChecklist(false); showToast.success('Checklist saved'); }
+    
+    // Auto-set unchecked items to 'not_ok' (Unticked = automatic Cross)
+    const finalChecklist: ForkliftConditionChecklist = { ...checklistEditData };
+    CHECKLIST_CATEGORIES.forEach(cat => {
+      cat.items.forEach(item => {
+        const state = normalizeChecklistState(finalChecklist[item.key as keyof ForkliftConditionChecklist]);
+        if (state === undefined) {
+          finalChecklist[item.key as keyof ForkliftConditionChecklist] = 'not_ok';
+        }
+      });
+    });
+    
+    try { 
+      const updated = await MockDb.updateConditionChecklist(job.job_id, finalChecklist, currentUserId); 
+      setJob({ ...updated } as Job); 
+      setEditingChecklist(false); 
+      showToast.success('Checklist saved', 'Unchecked items marked as Not OK'); 
+    }
     catch (e) { showToast.error('Could not save checklist', (e as Error).message); }
   };
   const handleCancelChecklistEdit = () => { setEditingChecklist(false); setChecklistEditData({}); };
@@ -1953,7 +1970,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                                 <div className="flex gap-1">
                                   <button
                                     type="button"
-                                    onClick={() => setChecklistItemState(item.key, itemState === 'ok' ? undefined : 'ok')}
+                                    onClick={() => setChecklistItemState(item.key, 'ok')}
                                     className={`p-1 rounded text-xs transition-colors ${
                                       itemState === 'ok'
                                         ? 'bg-[var(--success)] text-white'
@@ -1965,7 +1982,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => setChecklistItemState(item.key, itemState === 'not_ok' ? undefined : 'not_ok')}
+                                    onClick={() => setChecklistItemState(item.key, 'not_ok')}
                                     className={`p-1 rounded text-xs transition-colors ${
                                       itemState === 'not_ok'
                                         ? 'bg-[var(--error)] text-white'

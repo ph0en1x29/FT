@@ -29,6 +29,41 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ## [2026-01-28] - Customer Feedback Implementation Phase 3
 
+### ✅ Condition Checklist - Binary States (2026-01-28)
+- **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+- **Customer Feedback:** Enforce binary states in condition checklist
+
+#### Problem
+Checklist items could be left in undefined/neutral state, and buttons allowed toggling back to undefined.
+
+#### Changes Made
+
+**1. Binary State Enforcement**
+- OK and Not OK buttons no longer toggle off (no neutral state)
+- Clicking OK always sets to OK, clicking Not OK always sets to Not OK
+- Can only switch between states, never back to undefined
+
+**2. "Check All" Button**
+- Confirmation modal before checking all items
+- Sets all items to OK with audit logging
+- Reminder to physically verify each item
+
+**3. Auto-Set Unchecked to Not OK**
+- On save, any unchecked items automatically marked as "Not OK"
+- Implements "Unticked = automatic Cross" requirement
+- Toast notification confirms unchecked items marked as Not OK
+
+**4. Mandatory Validation**
+- Job completion blocked if mandatory items not checked
+- Warning modal shows missing items with option to go back and fix
+- All mandatory items marked with red asterisk (*)
+
+#### Files Modified
+- `pages/JobDetail.tsx` — Binary state buttons, auto-set unchecked, validation
+
+---
+
 ### 📡 Enhanced Real-Time Updates (2026-01-28)
 - **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
 - **Status:** ✔️ Completed
