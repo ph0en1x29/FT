@@ -16,7 +16,15 @@
 > - **Photo Validation** - GPS tracking and timestamp verification on photos
 > - **Fleet Dashboard** - Real-time forklift status updates
 >
-> **Latest Update (2026-01-28):**
+> **Latest Update (2026-01-28) - Phase 3:**
+> - **Enhanced Real-Time Updates** - Live updates for job status, assignments, and request approvals
+> - **Connection Health Indicator** - Visual dot showing WebSocket connection status
+> - **Checklist Binary States** - OK/Not OK only, no neutral states, Check All button
+> - **Auto-Set Unchecked Items** - Unchecked checklist items auto-marked as Not OK on save
+> - **Expanded Dashboard Notifications** - Toggle unread/all, expandable full feed
+> - **Tech Parts Filter** - Technicians only see parts after Admin 2 verification
+>
+> **Update (2026-01-28) - Phase 2:**
 > - **Real-Time Job Deletion Sync** - Deleted jobs automatically removed from technician's list
 > - **Job Redirect on Deletion** - Viewing a deleted job redirects to job list with warning
 > - **Pricing Hidden from Technicians** - Financial summary, extra charges, and part prices hidden

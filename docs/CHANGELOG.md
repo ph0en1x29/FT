@@ -29,6 +29,43 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ## [2026-01-28] - Customer Feedback Implementation Phase 3
 
+### ✏️ Request Edit Button (2026-01-28) - Previously Implemented
+- **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Verified Complete
+- **Customer Feedback:** Allow technicians to edit their pending requests
+
+#### Implementation Verified
+- Edit button shown for pending requests created by current user
+- Modal supports edit mode with pre-populated data
+- Only pending requests can be edited (approved/rejected are locked)
+- Server-side validation ensures ownership and status checks
+- RLS policy enforces edit permissions
+
+#### Files Involved
+- `pages/JobDetail.tsx` — Edit button, modal edit mode
+- `services/supabaseService.ts` — `updateJobRequest()` function
+
+---
+
+### ⏱️ Hourmeter - First Tech Only (2026-01-28) - Previously Implemented
+- **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Verified Complete
+- **Customer Feedback:** First technician records hourmeter, reassigned tech keeps original
+
+#### Implementation Verified
+- First technician's hourmeter reading is tracked with timestamp
+- Subsequent technicians see read-only value with "Recorded by [Name]"
+- Edit button only visible to: original recorder, admin, supervisor
+- Amendment button available for corrections (with audit trail)
+- Fields tracked: `first_hourmeter_recorded_by_id`, `first_hourmeter_recorded_by_name`, `first_hourmeter_recorded_at`
+
+#### Files Involved
+- `pages/JobDetail.tsx` — Hourmeter display, edit restrictions, amendment modal
+- `types/index.ts` — First hourmeter tracking fields
+- `components/HourmeterAmendmentModal.tsx` — Amendment request form
+
+---
+
 ### 🔧 Tech Job Summary Parts Filter (2026-01-28)
 - **Updated:** 2026-01-28 (author: Phoenix/Clawdbot)
 - **Status:** ✔️ Completed
