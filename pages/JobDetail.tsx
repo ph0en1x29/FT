@@ -2005,8 +2005,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
             </div>
           )}
 
-          {/* Condition Checklist */}
-          {job.condition_checklist && Object.keys(job.condition_checklist).length > 0 && (
+          {/* Condition Checklist - Always show for technicians when job is in progress */}
+          {(isTechnician || isAdmin || isSupervisor) && (isInProgress || isAwaitingFinalization || (job.condition_checklist && Object.keys(job.condition_checklist).length > 0)) && (
             <div className="card-premium p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -2095,36 +2095,55 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                  {CHECKLIST_CATEGORIES.map(cat => {
-                    // Filter items that have been checked (either OK or Not OK)
-                    const checkedItems = cat.items.filter(item => {
-                      const state = normalizeChecklistState(job.condition_checklist?.[item.key as keyof ForkliftConditionChecklist]);
-                      return state === 'ok' || state === 'not_ok';
-                    });
-                    if (checkedItems.length === 0) return null;
-                    return (
-                      <div key={cat.name} className="bg-[var(--surface)] border border-[var(--border)] p-2 rounded-lg">
-                        <p className="font-medium text-[var(--text-secondary)] text-[10px] uppercase tracking-wide mb-1">{cat.name}</p>
-                        {checkedItems.map(item => {
+                <>
+                  {/* Show empty state with Start button if no checklist data */}
+                  {(!job.condition_checklist || Object.keys(job.condition_checklist).length === 0) ? (
+                    <div className="text-center py-6">
+                      <ClipboardList className="w-12 h-12 text-[var(--text-muted)] mx-auto mb-3 opacity-50" />
+                      <p className="text-[var(--text-muted)] text-sm mb-4">
+                        Condition checklist not started yet.
+                        <br />
+                        <span className="text-xs">All mandatory items must be checked before completing the job.</span>
+                      </p>
+                      {(isInProgress || isAwaitingFinalization) && !isHelperOnly && (
+                        <button onClick={handleStartEditChecklist} className="btn-premium btn-premium-primary">
+                          <ClipboardList className="w-4 h-4" /> Start Checklist
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                      {CHECKLIST_CATEGORIES.map(cat => {
+                        // Filter items that have been checked (either OK or Not OK)
+                        const checkedItems = cat.items.filter(item => {
                           const state = normalizeChecklistState(job.condition_checklist?.[item.key as keyof ForkliftConditionChecklist]);
-                          return (
-                            <div key={item.key} className={`flex items-center gap-1 text-xs ${
-                              state === 'ok' ? 'text-[var(--success)]' : 'text-[var(--error)]'
-                            }`}>
-                              {state === 'ok' ? (
-                                <CheckCircle className="w-3 h-3" />
-                              ) : (
-                                <X className="w-3 h-3" />
-                              )}
-                              {item.label}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
+                          return state === 'ok' || state === 'not_ok';
+                        });
+                        if (checkedItems.length === 0) return null;
+                        return (
+                          <div key={cat.name} className="bg-[var(--surface)] border border-[var(--border)] p-2 rounded-lg">
+                            <p className="font-medium text-[var(--text-secondary)] text-[10px] uppercase tracking-wide mb-1">{cat.name}</p>
+                            {checkedItems.map(item => {
+                              const state = normalizeChecklistState(job.condition_checklist?.[item.key as keyof ForkliftConditionChecklist]);
+                              return (
+                                <div key={item.key} className={`flex items-center gap-1 text-xs ${
+                                  state === 'ok' ? 'text-[var(--success)]' : 'text-[var(--error)]'
+                                }`}>
+                                  {state === 'ok' ? (
+                                    <CheckCircle className="w-3 h-3" />
+                                  ) : (
+                                    <X className="w-3 h-3" />
+                                  )}
+                                  {item.label}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

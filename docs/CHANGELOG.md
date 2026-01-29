@@ -27,6 +27,17 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ---
 
+## [2026-01-29] - Condition Checklist Improvements
+
+### 📋 Condition Checklist Always Visible (2026-01-29)
+- **Issue:** Checklist was hidden from technicians until filled - couldn't start it
+- **Fix:** Now shows for all technicians when job is In Progress
+- **Added:** "Start Checklist" button when checklist is empty
+- **Behavior:** Unchecked items auto-marked as "Not OK" when saving (no blank states)
+- **File:** `pages/JobDetail.tsx`
+
+---
+
 ## [2026-01-28] - Bug Fixes & Performance
 
 ### 🐛 Forklift Search Not Working in Job Creation (2026-01-28 Evening)
