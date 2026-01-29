@@ -27,6 +27,16 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ---
 
+## [2026-01-29] - UX Improvements
+
+### 🔄 Auto-Refresh on Deployment (2026-01-29)
+- **Issue:** After deployments, users get 404 errors when navigating (stale cache)
+- **Fix:** Added `ChunkErrorBoundary` that catches chunk load failures
+- **UX:** Shows "New Version Available - Refresh Now" instead of broken page
+- **Files:** `components/ChunkErrorBoundary.tsx`, `index.tsx`
+
+---
+
 ## [2026-01-29] - Condition Checklist Improvements
 
 ### 📋 Condition Checklist Always Visible (2026-01-29)
