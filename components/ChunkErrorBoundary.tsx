@@ -15,9 +15,10 @@ interface State {
  * and prompts user to refresh instead of showing a broken page.
  */
 class ChunkErrorBoundary extends Component<Props, State> {
+  state: State = { hasError: false, isChunkError: false };
+  
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, isChunkError: false };
   }
 
   static getDerivedStateFromError(error: Error): State {

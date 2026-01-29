@@ -27,6 +27,16 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ---
 
+## [2026-01-29] - Deep Review & Bug Fixes
+
+### 🔍 Code Review & Fixes (2026-01-29)
+- **Storage buckets:** Created `job-photos` and `signatures` buckets in Supabase
+- **Database columns:** Added `technician_accepted_at`, `technician_rejected_at`, `technician_rejection_reason`
+- **TypeScript fix:** Fixed ChunkErrorBoundary class state declaration
+- **Build verified:** All components compile without errors
+
+---
+
 ## [2026-01-29] - UX Improvements
 
 ### 🔄 Auto-Refresh on Deployment (2026-01-29)
