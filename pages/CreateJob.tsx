@@ -186,8 +186,9 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
   }));
 
   // Forklift options with detailed info for easy search
+  // Include all forklifts except those that are out of service
   const forkliftOptions: ComboboxOption[] = forklifts
-    .filter(f => f.status === 'Active' || f.status === 'Under Maintenance')
+    .filter(f => f.status !== 'Out of Service' && f.status !== 'Inactive')
     .map(f => ({
       id: f.forklift_id,
       label: `${f.serial_number} - ${f.make} ${f.model}`,

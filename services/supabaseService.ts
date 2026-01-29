@@ -487,6 +487,8 @@ export const SupabaseDb = {
     logDebug('[getJobs] Fetching jobs for user:', user.user_id, user.role, user.name, options?.status ? `status=${options.status}` : '');
 
     const buildQuery = () => {
+      // PERFORMANCE: Only fetch minimal job_media data for list views
+      // Full media (with URLs) is fetched in getJobById for detail view
       let query = supabase
         .from('jobs')
         .select(`
@@ -494,7 +496,7 @@ export const SupabaseDb = {
           customer:customers(*),
           forklift:forklifts!forklift_id(*),
           parts_used:job_parts(*),
-          media:job_media(*),
+          media:job_media(media_id, category, created_at),
           extra_charges:extra_charges(*)
         `)
         .is('deleted_at', null)

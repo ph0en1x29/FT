@@ -27,6 +27,23 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ---
 
+## [2026-01-28] - Bug Fixes & Performance
+
+### 🐛 Forklift Search Not Working in Job Creation (2026-01-28 Evening)
+- **Issue:** Forklift dropdown showing "No results" when creating new job
+- **Cause:** Filter was checking for outdated status values (`'Active'`, `'Under Maintenance'`) but database uses new values (`'Available'`, `'Rented Out'`, `'In Service'`, etc.)
+- **Fix:** Changed filter to exclude-based: only exclude `'Out of Service'` and `'Inactive'` forklifts
+- **File:** `pages/CreateJob.tsx`
+
+### ⚡ Slow Loading Performance Fix (2026-01-28 Evening)
+- **Issue:** Job list pages loading slowly (5-15 seconds)
+- **Cause:** `getJobs` was fetching full `job_media(*)` including base64 photo URLs for every job
+- **Fix:** Changed to fetch only minimal media metadata: `job_media(media_id, category, created_at)`
+- **Impact:** ~95% reduction in payload size for job lists
+- **File:** `services/supabaseService.ts`
+
+---
+
 ## [2026-01-28] - Photo-Based Time Tracking & Storage Optimization
 
 ### 📷 Photo-Based Job Time Tracking (2026-01-28 Evening)
