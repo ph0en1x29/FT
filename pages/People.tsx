@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { User, UserRole, Employee, EmployeeLeave, EmployeeLicense, EmployeePermit, LeaveStatus, HRDashboardSummary, AttendanceToday } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
@@ -521,11 +521,11 @@ const UsersTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     }
   };
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = useMemo(() => users.filter(user => 
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.role.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ), [users, searchQuery]);
 
   const handleOpenModal = (user?: User) => {
     if (user) {
@@ -796,7 +796,7 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ currentUser, initialStatus,
     }
   };
 
-  const filteredEmployees = employees.filter(emp => {
+  const filteredEmployees = useMemo(() => employees.filter(emp => {
     const matchesSearch = 
       emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -809,9 +809,9 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ currentUser, initialStatus,
     const matchesDept = filterDepartment === 'all' || emp.department === filterDepartment;
     
     return matchesSearch && matchesStatus && matchesDept;
-  });
+  }), [employees, searchQuery, filterStatus, filterDepartment]);
 
-  const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
+  const departments = useMemo(() => [...new Set(employees.map(e => e.department).filter(Boolean))], [employees]);
 
   if (loading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>;

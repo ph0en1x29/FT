@@ -233,7 +233,7 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
           <div className="flex-shrink-0">
             <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center overflow-hidden">
               {employee.profile_photo_url ? (
-                <img
+                <img loading="lazy" decoding="async"
                   src={employee.profile_photo_url}
                   alt={employee.full_name || employee.name || ''}
                   className="w-full h-full object-cover"
@@ -1649,7 +1649,7 @@ function AddLicenseModal({
                   }`}
                 >
                   {frontPreview ? (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={frontPreview}
                       alt="License front"
                       className="w-full h-32 object-contain rounded"
@@ -1685,7 +1685,7 @@ function AddLicenseModal({
                   }`}
                 >
                   {backPreview ? (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={backPreview}
                       alt="License back"
                       className="w-full h-32 object-contain rounded"
@@ -1982,7 +1982,7 @@ function AddPermitModal({
               }`}
             >
               {documentPreview ? (
-                <img
+                <img loading="lazy" decoding="async"
                   src={documentPreview}
                   alt="Permit document"
                   className="w-full h-40 object-contain rounded"

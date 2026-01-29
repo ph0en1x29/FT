@@ -266,6 +266,19 @@ export const SupabaseDb = {
     return data as Forklift[];
   },
 
+  // Lightweight forklift list for dropdowns (faster, smaller payload)
+  getForkliftsForList: async (): Promise<Pick<Forklift, 'forklift_id' | 'serial_number' | 'make' | 'model' | 'type' | 'status' | 'hourmeter' | 'location'>[]> => {
+    const { data, error } = await supabase
+      .from('forklifts')
+      .select('forklift_id, serial_number, make, model, type, status, hourmeter, location')
+      .neq('status', 'Out of Service')
+      .neq('status', 'Inactive')
+      .order('serial_number');
+
+    if (error) throw new Error(error.message);
+    return data as Pick<Forklift, 'forklift_id' | 'serial_number' | 'make' | 'model' | 'type' | 'status' | 'hourmeter' | 'location'>[];
+  },
+
   getForkliftById: async (forkliftId: string): Promise<Forklift | null> => {
     const { data, error } = await supabase
       .from('forklifts')
@@ -466,6 +479,17 @@ export const SupabaseDb = {
 
     if (error) throw new Error(error.message);
     return data as Customer[];
+  },
+
+  // Lightweight customer list for dropdowns (faster, smaller payload)
+  getCustomersForList: async (): Promise<Pick<Customer, 'customer_id' | 'name' | 'address'>[]> => {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('customer_id, name, address')
+      .order('name');
+
+    if (error) throw new Error(error.message);
+    return data as Pick<Customer, 'customer_id' | 'name' | 'address'>[];
   },
 
   createCustomer: async (customerData: Partial<Customer>): Promise<Customer> => {

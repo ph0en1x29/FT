@@ -6,9 +6,10 @@ import HourmeterAmendmentModal from '../components/HourmeterAmendmentModal';
 import { generateJobSummary } from '../services/geminiService';
 import { SignaturePad } from '../components/SignaturePad';
 import { Combobox, ComboboxOption } from '../components/Combobox';
-import { printServiceReport } from '../components/ServiceReportPDF';
-import { printQuotation, generateQuotationFromJob } from '../components/QuotationPDF';
-import { printInvoice } from '../components/InvoicePDF';
+// PDF components are lazy loaded to reduce initial bundle size
+// import { printServiceReport } from '../components/ServiceReportPDF';
+// import { printQuotation, generateQuotationFromJob } from '../components/QuotationPDF';
+// import { printInvoice } from '../components/InvoicePDF';
 import { showToast } from '../services/toastService';
 import { useDevModeContext } from '../contexts/DevModeContext';
 import {
@@ -1008,9 +1009,24 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     catch (e) { showToast.error('Could not delete job', (e as Error).message); }
   };
 
-  const handlePrintServiceReport = () => { if (!job) return; printServiceReport(job); };
-  const handlePrintQuotation = () => { if (!job) return; const quotation = generateQuotationFromJob(job); const quotationNumber = `Q-${new Date().getFullYear()}-${job.job_id.slice(0, 6).toUpperCase()}`; printQuotation(quotation, quotationNumber); };
-  const handleExportPDF = () => { if (!job) return; printInvoice(job); };
+  // Lazy load PDF components on demand (reduces initial bundle by ~50KB)
+  const handlePrintServiceReport = async () => { 
+    if (!job) return; 
+    const { printServiceReport } = await import('../components/ServiceReportPDF');
+    printServiceReport(job); 
+  };
+  const handlePrintQuotation = async () => { 
+    if (!job) return; 
+    const { printQuotation, generateQuotationFromJob } = await import('../components/QuotationPDF');
+    const quotation = generateQuotationFromJob(job); 
+    const quotationNumber = `Q-${new Date().getFullYear()}-${job.job_id.slice(0, 6).toUpperCase()}`; 
+    printQuotation(quotation, quotationNumber); 
+  };
+  const handleExportPDF = async () => { 
+    if (!job) return; 
+    const { printInvoice } = await import('../components/InvoicePDF');
+    printInvoice(job); 
+  };
 
   // Export to AutoCount
   const handleExportToAutoCount = async () => {
@@ -2484,7 +2500,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                       const catInfo = PHOTO_CATEGORIES.find(c => c.value === m.category) || PHOTO_CATEGORIES.find(c => c.value === 'other');
                       return (
                         <div key={m.media_id} className="relative group aspect-square">
-                          <img src={m.url} alt="Job" className="w-full h-full object-cover rounded-xl border border-[var(--border)]" />
+                          <img src={m.url} loading="lazy" decoding="async" alt="Job" className="w-full h-full object-cover rounded-xl border border-[var(--border)]" />
                           <span className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 text-[9px] font-medium text-white rounded ${catInfo?.color || 'bg-slate-500'}`}>
                             {catInfo?.label || 'Other'}
                           </span>
@@ -2746,7 +2762,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                     <div className="flex items-center gap-1 text-[var(--success)] text-xs font-medium mb-2">
                       <CheckCircle className="w-3.5 h-3.5" /> Signed
                     </div>
-                    <img src={job.technician_signature.signature_url} alt="Tech Signature" className="w-full h-16 object-contain bg-white rounded border border-[var(--border)]" />
+                    <img src={job.technician_signature.signature_url} loading="lazy" decoding="async" alt="Tech Signature" className="w-full h-16 object-contain bg-white rounded border border-[var(--border)]" />
                     <p className="text-[10px] text-[var(--text-muted)] mt-1">{job.technician_signature.signed_by_name}</p>
                   </div>
                 ) : (
@@ -2771,7 +2787,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                     <div className="flex items-center gap-1 text-[var(--success)] text-xs font-medium mb-2">
                       <CheckCircle className="w-3.5 h-3.5" /> Signed
                     </div>
-                    <img src={job.customer_signature.signature_url} alt="Customer Signature" className="w-full h-16 object-contain bg-white rounded border border-[var(--border)]" />
+                    <img src={job.customer_signature.signature_url} loading="lazy" decoding="async" alt="Customer Signature" className="w-full h-16 object-contain bg-white rounded border border-[var(--border)]" />
                     <p className="text-[10px] text-[var(--text-muted)] mt-1">{job.customer_signature.signed_by_name}</p>
                   </div>
                 ) : (
@@ -3002,7 +3018,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                   {jobMedia.map((media: any) => (
                     <div key={media.media_id} onClick={() => setSelectedEvidenceIds(prev => prev.includes(media.media_id) ? prev.filter(id => id !== media.media_id) : [...prev, media.media_id])}
                       className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedEvidenceIds.includes(media.media_id) ? 'border-[var(--warning)] ring-2 ring-[var(--warning)]/30' : 'border-transparent hover:border-[var(--warning)]/50'}`}>
-                      <img src={media.url} alt="Evidence" className="w-full h-14 object-cover" />
+                      <img src={media.url} loading="lazy" decoding="async" alt="Evidence" className="w-full h-14 object-cover" />
                       {selectedEvidenceIds.includes(media.media_id) && (
                         <div className="absolute inset-0 bg-[var(--warning)]/30 flex items-center justify-center"><CheckCircle className="w-5 h-5 text-white" /></div>
                       )}
