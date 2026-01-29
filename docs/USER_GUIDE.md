@@ -285,7 +285,11 @@ While the job is "In Progress", you can:
    - After condition
    - Parts replaced
 
-**New: Auto-Start Timer** - Your first photo automatically starts the job timer! No need to manually start the job after taking your first photo.
+**Photo-Based Time Tracking** - The job timer is controlled by photos:
+- **First photo** → Timer starts automatically
+- **"After" category photo** → Timer stops automatically
+- Photos are captured **live** (camera only, no gallery access)
+- Only the **lead technician** can start/stop the timer (helpers cannot)
 
 #### Condition Checklist (Updated - 2026-01-19)
 The checklist now uses binary states:

@@ -245,6 +245,20 @@ Waiting for client responses before proceeding with Phase 1 Quick Wins.
 - [ ] Contract Management - link forklifts to rental agreements
 - [ ] Preventive Maintenance Automation
 
+### Phase 6: External Notifications (Future)
+- [ ] **Telegram Bot Integration** (FREE - Recommended)
+  - Create FieldPro Telegram Bot
+  - Technicians link account via `/start` command
+  - Supabase Edge Function sends alerts for urgent notifications
+  - Job assignments, request approvals, escalations
+- [ ] **WhatsApp Business API** (Paid - If customer demand)
+  - Meta Business verification required
+  - Per-message cost (~RM 0.05-0.15)
+  - Fallback if technicians prefer WhatsApp
+- [ ] **SMS Fallback** (Paid - For critical alerts)
+  - Twilio/Vonage integration
+  - Only for highest priority (escalations, no-response alerts)
+
 ---
 
 ## 📋 Backlog
@@ -259,7 +273,10 @@ Waiting for client responses before proceeding with Phase 1 Quick Wins.
   - [x] Technician → Admin: Helper request, spare part request
   - [x] Admin → Technician: Request approved/rejected, job assigned
 - [x] **Job appears immediately** - When Admin assigns job, it shows in Technician's app instantly
-- [ ] **Push notifications** - Mobile push support (future)
+- [x] **VAPID key configured** - Push subscription now uses proper VAPID key (2026-01-28)
+- [ ] **Server-side push sending** - Supabase Edge Function to send push when app closed
+- [ ] **Telegram Bot notifications** - FREE alternative for instant alerts (Phase 6)
+- [ ] **WhatsApp notifications** - Paid option if customer demand (Phase 6)
 
 ### Features
 - [ ] AutoCount API integration

@@ -1049,6 +1049,48 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     });
   };
 
+  // Helper function to upload photo to Supabase Storage
+  const uploadPhotoToStorage = async (dataURL: string, jobId: string): Promise<string> => {
+    try {
+      // Convert base64 to blob
+      const arr = dataURL.split(',');
+      const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      const blob = new Blob([u8arr], { type: mime });
+      
+      // Upload to storage
+      const timestamp = Date.now();
+      const fileName = `${jobId}/${timestamp}.jpg`;
+      
+      const { data, error } = await supabase.storage
+        .from('job-photos')
+        .upload(fileName, blob, {
+          contentType: mime,
+          upsert: false,
+        });
+      
+      if (error) {
+        console.warn('[Storage] Photo upload failed, using base64:', error.message);
+        return dataURL; // Fallback to base64
+      }
+      
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('job-photos')
+        .getPublicUrl(fileName);
+      
+      return publicUrl;
+    } catch (e) {
+      console.warn('[Storage] Photo upload error, using base64:', e);
+      return dataURL; // Fallback to base64
+    }
+  };
+
   const uploadPhotoFile = async (file: File) => {
     if (!job) return;
     if (!file.type.startsWith('image/')) {
@@ -1073,10 +1115,15 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       try {
         // Wait for GPS
         const gps = await gpsPromise;
+        
+        // Upload photo to Supabase Storage instead of storing base64
+        // This dramatically improves load times and reduces database size
+        const base64Data = reader.result as string;
+        const photoUrl = await uploadPhotoToStorage(base64Data, job.job_id);
 
         const mediaData: any = {
           type: 'photo',
-          url: reader.result as string,
+          url: photoUrl, // Now a CDN URL (or fallback to base64 if storage fails)
           description: file.name,
           created_at: serverTimestamp,
           category: uploadPhotoCategory as MediaCategory,
@@ -1096,13 +1143,35 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
           mediaData.gps_captured_at = serverTimestamp;
         }
 
+        // === PHOTO-BASED TIME TRACKING ===
+        // Only lead technician (not helper) can start/stop timer
+        const isLeadTechnician = job.assigned_technician_id === currentUserId;
+        const isHelperPhoto = isCurrentUserHelper;
+        
         // Check if this is the first photo and job hasn't started - auto-start timer
+        // Only lead technician's photo can start the timer
         const isFirstPhoto = job.media.length === 0;
-        const shouldAutoStart = isFirstPhoto && !job.repair_start_time && !job.started_at;
+        const shouldAutoStart = isFirstPhoto && 
+                                !job.repair_start_time && 
+                                !job.started_at &&
+                                isLeadTechnician &&
+                                !isHelperPhoto;
 
-        // Mark first photo if auto-starting
+        // Check if this is a completion photo (After category) - auto-stop timer
+        // Only lead technician's "After" photo can stop the timer
+        const isCompletionPhoto = uploadPhotoCategory === 'after';
+        const shouldAutoStop = isCompletionPhoto && 
+                               job.repair_start_time && 
+                               !job.repair_end_time &&
+                               isLeadTechnician &&
+                               !isHelperPhoto;
+
+        // Mark photos for audit trail
         if (shouldAutoStart) {
           mediaData.is_start_photo = true;
+        }
+        if (shouldAutoStop) {
+          mediaData.is_completion_photo = true;
         }
 
         const updated = await MockDb.addMedia(
@@ -1113,7 +1182,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
           isCurrentUserHelper
         );
 
-        // Auto-start job timer on first photo
+        // Auto-start job timer on first photo (lead tech only)
         if (shouldAutoStart) {
           const now = new Date().toISOString();
           const startedJob = await MockDb.updateJob(job.job_id, {
@@ -1123,7 +1192,17 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
           });
           setJob({ ...startedJob } as Job);
           showToast.info('Job timer started', 'Timer started automatically with first photo');
-        } else {
+        } 
+        // Auto-stop job timer on completion photo (lead tech only)
+        else if (shouldAutoStop) {
+          const now = new Date().toISOString();
+          const stoppedJob = await MockDb.updateJob(job.job_id, {
+            repair_end_time: now,
+          });
+          setJob({ ...stoppedJob } as Job);
+          showToast.info('Job timer stopped', 'Timer stopped with completion photo');
+        }
+        else {
           setJob({ ...updated } as Job);
         }
 
@@ -1677,7 +1756,10 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                       <p className="text-xs text-[var(--text-muted)]">{new Date(job.repair_end_time).toLocaleDateString()}</p>
                     </>
                   ) : (
-                    <p className="text-[var(--text-muted)] italic text-sm">In Progress</p>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-[var(--success)] rounded-full animate-pulse" />
+                      <p className="text-[var(--success)] font-medium text-sm">Running</p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -2297,6 +2379,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                   <div>
                     <h3 className="font-semibold text-[var(--text)]">Photos</h3>
                     <p className="text-xs text-[var(--text-muted)]">{job.media.length} uploaded</p>
+                    {/* Hint to take completion photo when timer is running */}
+                    {job.repair_start_time && !job.repair_end_time && !isCurrentUserHelper && (
+                      <p className="text-xs text-[var(--success)] mt-1 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-[var(--success)] rounded-full animate-pulse" />
+                        Take "After" photo to stop timer
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -2343,7 +2432,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                           Uploads default to <span className="font-medium text-[var(--text-secondary)]">{PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}</span>
                         </p>
                         <span className="btn-premium btn-premium-primary mt-4 text-xs">Upload Photo</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
                       </label>
                     </>
                   ) : (
@@ -2393,7 +2482,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
                       <Camera className="w-5 h-5 mb-0.5" />
                       <span className="text-[9px]">Add</span>
                       <span className="text-[9px] text-[var(--text-muted)] mt-0.5">{PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
                     </label>
                   </div>
                 )}

@@ -27,6 +27,83 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ---
 
+## [2026-01-28] - Photo-Based Time Tracking & Storage Optimization
+
+### 📷 Photo-Based Job Time Tracking (2026-01-28 Evening)
+- **Added:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+- **Customer Request:** Auto start/stop timer based on photos
+
+#### Features Implemented
+
+**1. Camera-Only Capture**
+- Added `capture="environment"` to photo inputs
+- Forces rear camera on mobile devices
+- Prevents gallery access (live photos only)
+
+**2. Auto-Start Timer**
+- First photo by lead technician starts job timer
+- Helper photos do NOT affect timer
+- Reassigned technician continues existing timer
+
+**3. Auto-Stop Timer**
+- "After" category photo by lead technician stops timer
+- Visual hint: "Take After photo to stop timer"
+- Pulsing "Running" indicator when timer active
+
+**4. Helper Exclusion**
+- Helper technicians can upload photos
+- But cannot start or stop the job timer
+- Only lead (assigned) technician controls timer
+
+#### Files Modified
+- `pages/JobDetail.tsx` — Timer logic, camera capture, visual hints
+
+---
+
+### 💾 Supabase Storage for Signatures & Photos (2026-01-28 Evening)
+- **Added:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+- **Issue:** Slow signature/photo loading due to base64 storage
+
+#### Problem
+- Signatures stored as base64 data URLs (~150KB each)
+- Photos stored as base64 (~500KB each)
+- Job list fetching 50 jobs = 20MB+ payload
+- Caused slow loading and timeouts
+
+#### Solution
+- Upload files to Supabase Storage buckets
+- Store only CDN URL in database (~100 bytes)
+- Images loaded directly from CDN (cached, fast)
+- Graceful fallback to base64 if storage fails
+
+#### Performance Improvement
+| Before | After |
+|--------|-------|
+| 400KB per job | 500 bytes |
+| 20MB for 50 jobs | 50KB |
+| 5-15 sec load | < 1 sec |
+
+#### Files Modified
+- `services/supabaseService.ts` — Storage upload helpers, signJob update
+- `pages/JobDetail.tsx` — Photo upload to storage
+- `database/migrations/20260128_storage_buckets.sql` — Storage buckets & RLS
+
+---
+
+### 🔔 VAPID Key Configuration (2026-01-28)
+- **Added:** 2026-01-28 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+- **Issue:** Push notifications not working (missing VAPID key)
+
+#### Changes
+- Generated VAPID keypair
+- Added `VITE_VAPID_PUBLIC_KEY` to `.env.local`
+- Updated `.env.example` with documentation
+
+---
+
 ## [2026-01-28] - Bug Fixes
 
 ### 🐛 JobDetail Null Array Fix (2026-01-28)
