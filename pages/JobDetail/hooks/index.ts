@@ -1,2 +1,4 @@
-// JobDetail hooks barrel export
+// Job detail custom hooks
 export { useJobRealtime } from './useJobRealtime';
+export { useJobDetailState, type JobDetailState } from './useJobDetailState';
+export { useJobActions } from './useJobActions';

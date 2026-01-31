@@ -4,6 +4,66 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - TechnicianDashboard Modular Split
+
+### 🏗️ TechnicianDashboard.tsx Modular Split (2026-02-02)
+- **Status:** ✔️ Completed
+- Split 583 lines into `components/dashboards/TechnicianDashboard/` folder structure
+
+**Main file (70 lines):**
+- `TechnicianDashboard.tsx` — Orchestrates dashboard with header, alerts, schedule, stats, and quick actions
+
+**Hooks (109 lines):**
+- `hooks/useTechnicianDashboard.ts` — Data loading, van stock check, job statistics (today, in-progress, completed, active)
+
+**Components:**
+- `components/DashboardHeader.tsx` (41 lines) — Greeting and van stock button
+- `components/SlotInAlertBanner.tsx` (39 lines) — Urgent Slot-In SLA alert banner
+- `components/TodayScheduleSection.tsx` (56 lines) — Today's jobs carousel container
+- `components/ScheduleCard.tsx` (84 lines) — Individual job card for schedule carousel
+- `components/KPIStatsGrid.tsx` (113 lines) — 4-stat grid (today, in-progress, completed, van stock)
+- `components/ActiveJobsList.tsx` (69 lines) — Active jobs list with empty state
+- `components/ActiveJobItem.tsx` (83 lines) — Individual job row in active list
+- `components/QuickActionsGrid.tsx` (60 lines) — Quick action buttons for common tasks
+- `components/LoadingState.tsx` (17 lines) — Loading spinner state
+
+**Supporting files:**
+- `types.ts` (17 lines) — TypeScript interfaces for dashboard props and stats
+- `helpers.ts` (65 lines) — Utility functions (getGreeting, getStatusColor, getJobTypeColor, isJobOverdue, formatters)
+- `index.tsx` — Re-export for backward compatibility
+
+**Backward compatibility:** Original `components/dashboards/TechnicianDashboard.tsx` re-exports default
+
+---
+
+## [2026-02-02] - EmployeeProfilePage Further Split
+
+### 🏗️ EmployeeProfilePage.tsx Further Split (2026-02-02)
+- **Status:** ✔️ Completed
+- Further split existing `pages/EmployeeProfile/` folder, reducing main file from 493 lines to 218 lines
+
+**Main file (218 lines):**
+- `EmployeeProfilePage.tsx` — Orchestrates hooks, components, and modal handlers
+
+**New Hooks (148 lines total):**
+- `hooks/useEmployeeProfile.ts` (106 lines) — Employee loading, editing state, save logic
+- `hooks/useEmployeeModals.ts` (42 lines) — Modal visibility state management
+- `hooks/index.ts` — Barrel export
+
+**New Components:**
+- `components/ProfileHeader.tsx` (75 lines) — Navigation, title, edit/save controls
+- `components/ProfileCard.tsx` (92 lines) — Avatar and basic info grid
+- `components/ProfileTabs.tsx` (82 lines) — Tab navigation for profile sections
+- `components/ProfileStates.tsx` (64 lines) — Loading, NotSetUp, NotFound states
+
+**Existing components retained:**
+- InfoItem, InfoTab, LicensesTab, PermitsTab, LeavesTab
+- AddLicenseModal, AddPermitModal, AddLeaveModal, LeaveCalendarModal
+
+**Also fixed:** Circular re-export issues in `components/AssetDashboard.tsx` and `pages/CreateJob.tsx`
+
+---
+
 ## [2026-02-02] - AssetDashboard Modular Split
 
 ### 🏗️ AssetDashboard.tsx Modular Split (2026-02-02)

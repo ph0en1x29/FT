@@ -1,49 +1,24 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
-
 import { CustomerProfileProps, RentalTab, ServiceTab } from './types';
 import {
-  useCustomerData,
-  useAIAnalysis,
-  useRentalSelection,
-  useBulkEndRentals,
-  useRentForklifts,
-  useResultModal,
-  useRentalActions,
+  useCustomerData, useAIAnalysis, useRentalSelection,
+  useBulkEndRentals, useRentForklifts, useResultModal, useRentalActions,
 } from './hooks';
 import {
-  CustomerHeader,
-  CustomerKPIStrip,
-  RentalsSection,
-  ServiceHistory,
-  InsightsSidebar,
-  EditRentalModal,
-  BulkEndRentalModal,
-  RentForkliftModal,
-  ResultModal,
+  CustomerHeader, CustomerKPIStrip, RentalsSection, ServiceHistory,
+  InsightsSidebar, EditRentalModal, BulkEndRentalModal, RentForkliftModal, ResultModal,
 } from './components';
 
 const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  // Load customer data via hook
-  const {
-    customer,
-    jobs,
-    availableForklifts,
-    loading,
-    stats,
-    activeRentals,
-    pastRentals,
-    activeJobs,
-    cancelledJobs,
-    openJobs,
-    completedJobs,
-    loadCustomerData,
-    loadAvailableForklifts,
-  } = useCustomerData(id);
+  // Core data
+  const customerData = useCustomerData(id);
+  const { customer, jobs, availableForklifts, loading, stats, loadCustomerData, loadAvailableForklifts } = customerData;
+  const { activeRentals, pastRentals, activeJobs, cancelledJobs, openJobs, completedJobs } = customerData;
 
   // Tab states
   const [rentalTab, setRentalTab] = useState<RentalTab>('active');
@@ -55,62 +30,21 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
   const isSupervisor = currentUser.role.toString().toLowerCase() === 'supervisor';
   const canViewCancelled = isAdmin || isSupervisor;
 
-  // Result modal
+  // Hooks
   const { resultModal, setResultModal, closeResultModal } = useResultModal();
+  const aiAnalysis = useAIAnalysis(customer, jobs);
+  const rentalSelection = useRentalSelection(activeRentals);
+  const bulkEnd = useBulkEndRentals(
+    rentalSelection.selectedRentals, currentUser, loadCustomerData, 
+    rentalSelection.resetSelection, setResultModal
+  );
+  const rentForklifts = useRentForklifts(
+    customer, availableForklifts, currentUser, 
+    loadAvailableForklifts, loadCustomerData, setResultModal
+  );
+  const rentalActions = useRentalActions(currentUser, loadCustomerData);
 
-  // AI Analysis
-  const { aiAnalysis, generatingAI, handleGenerateAnalysis, clearAnalysis } = 
-    useAIAnalysis(customer, jobs);
-
-  // Rental selection (multi-select)
-  const {
-    isSelectionMode,
-    selectedRentalIds,
-    selectedRentals,
-    toggleSelectionMode,
-    toggleRentalSelection,
-    selectAllActiveRentals,
-    deselectAll,
-    resetSelection,
-  } = useRentalSelection(activeRentals);
-
-  // Bulk end rentals
-  const {
-    showBulkEndModal,
-    bulkEndDate,
-    bulkProcessing,
-    setBulkEndDate,
-    openBulkEndModal,
-    closeBulkEndModal,
-    handleBulkEndRentals,
-  } = useBulkEndRentals(selectedRentals, currentUser, loadCustomerData, resetSelection, setResultModal);
-
-  // Rent forklifts
-  const {
-    showRentModal,
-    selectedForkliftIds,
-    rentStartDate,
-    rentEndDate,
-    rentNotes,
-    rentMonthlyRate,
-    forkliftSearchQuery,
-    rentProcessing,
-    setRentStartDate,
-    setRentEndDate,
-    setRentNotes,
-    setRentMonthlyRate,
-    setForkliftSearchQuery,
-    toggleForkliftForRent,
-    openRentModal,
-    closeRentModal,
-    handleRentForklifts,
-  } = useRentForklifts(customer, availableForklifts, currentUser, loadAvailableForklifts, loadCustomerData, setResultModal);
-
-  // Individual rental actions
-  const { editingRental, setEditingRental, handleEndRental, handleSaveRentalEdit } = 
-    useRentalActions(currentUser, loadCustomerData);
-
-  // Filtered jobs based on tab
+  // Filtered jobs
   const filteredJobs = useMemo(() => {
     switch (serviceTab) {
       case 'open': return openJobs;
@@ -119,13 +53,10 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
     }
   }, [serviceTab, activeJobs, openJobs, completedJobs]);
 
-  // Customer deletion handler
+  // Handlers
   const handleDeleteCustomer = async () => {
     if (!customer) return;
-    
-    const confirmed = confirm(`Are you sure you want to delete customer: "${customer.name}"?\n\nThis action cannot be undone.`);
-    if (!confirmed) return;
-    
+    if (!confirm(`Are you sure you want to delete customer: "${customer.name}"?\n\nThis action cannot be undone.`)) return;
     try {
       await MockDb.deleteCustomer(customer.customer_id);
       navigate('/customers');
@@ -134,14 +65,8 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
     }
   };
 
-  // Loading / not found states
-  if (loading) {
-    return <div className="p-8 text-center text-slate-500">Loading customer profile...</div>;
-  }
-
-  if (!customer) {
-    return <div className="p-8 text-center text-red-500">Customer not found</div>;
-  }
+  if (loading) return <div className="p-8 text-center text-slate-500">Loading customer profile...</div>;
+  if (!customer) return <div className="p-8 text-center text-red-500">Customer not found</div>;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -150,19 +75,13 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
         isAdmin={isAdmin}
         isSupervisor={isSupervisor}
         onNavigateBack={() => navigate(-1)}
-        onRentForklift={openRentModal}
+        onRentForklift={rentForklifts.openRentModal}
         onCreateJob={() => navigate(`/jobs/new?customer_id=${customer.customer_id}`)}
         onEditCustomer={() => navigate(`/customers/${customer.customer_id}/edit`)}
         onDeleteCustomer={handleDeleteCustomer}
       />
 
-      <CustomerKPIStrip
-        totalJobs={stats.totalJobs}
-        activeRentalsCount={stats.activeRentalsCount}
-        totalServiceRevenue={stats.totalServiceRevenue}
-        totalRentalRevenue={stats.totalRentalRevenue}
-        totalRevenue={stats.totalRevenue}
-      />
+      <CustomerKPIStrip {...stats} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-4">
@@ -170,17 +89,17 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
             activeRentals={activeRentals}
             pastRentals={pastRentals}
             rentalTab={rentalTab}
-            setRentalTab={(tab) => { setRentalTab(tab); resetSelection(); }}
-            isSelectionMode={isSelectionMode}
-            selectedRentalIds={selectedRentalIds}
+            setRentalTab={(tab) => { setRentalTab(tab); rentalSelection.resetSelection(); }}
+            isSelectionMode={rentalSelection.isSelectionMode}
+            selectedRentalIds={rentalSelection.selectedRentalIds}
             isAdmin={isAdmin}
-            onToggleSelectionMode={toggleSelectionMode}
-            onToggleRentalSelection={toggleRentalSelection}
-            onSelectAllActiveRentals={selectAllActiveRentals}
-            onDeselectAll={deselectAll}
-            onOpenBulkEndModal={openBulkEndModal}
-            onEditRental={setEditingRental}
-            onEndRental={handleEndRental}
+            onToggleSelectionMode={rentalSelection.toggleSelectionMode}
+            onToggleRentalSelection={rentalSelection.toggleRentalSelection}
+            onSelectAllActiveRentals={rentalSelection.selectAllActiveRentals}
+            onDeselectAll={rentalSelection.deselectAll}
+            onOpenBulkEndModal={bulkEnd.openBulkEndModal}
+            onEditRental={rentalActions.setEditingRental}
+            onEndRental={rentalActions.handleEndRental}
             onNavigateToForklift={(forkliftId) => navigate(`/forklifts/${forkliftId}`)}
           />
         </div>
@@ -207,56 +126,55 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
             avgResponseTime={stats.avgResponseTime}
             avgJobValue={stats.avgJobValue}
             topIssues={stats.topIssues}
-            aiAnalysis={aiAnalysis}
-            generatingAI={generatingAI}
+            aiAnalysis={aiAnalysis.aiAnalysis}
+            generatingAI={aiAnalysis.generatingAI}
             hasJobs={jobs.length > 0}
-            onGenerateAnalysis={handleGenerateAnalysis}
-            onClearAnalysis={clearAnalysis}
+            onGenerateAnalysis={aiAnalysis.handleGenerateAnalysis}
+            onClearAnalysis={aiAnalysis.clearAnalysis}
           />
         </div>
       </div>
 
-      {/* Modals */}
-      {editingRental && (
+      {rentalActions.editingRental && (
         <EditRentalModal
-          rental={editingRental}
+          rental={rentalActions.editingRental}
           isAdmin={isAdmin}
-          onClose={() => setEditingRental(null)}
-          onSave={handleSaveRentalEdit}
+          onClose={() => rentalActions.setEditingRental(null)}
+          onSave={rentalActions.handleSaveRentalEdit}
         />
       )}
 
-      {showBulkEndModal && (
+      {bulkEnd.showBulkEndModal && (
         <BulkEndRentalModal
-          selectedRentals={selectedRentals}
-          bulkEndDate={bulkEndDate}
-          setBulkEndDate={setBulkEndDate}
-          bulkProcessing={bulkProcessing}
-          onClose={closeBulkEndModal}
-          onConfirm={handleBulkEndRentals}
+          selectedRentals={rentalSelection.selectedRentals}
+          bulkEndDate={bulkEnd.bulkEndDate}
+          setBulkEndDate={bulkEnd.setBulkEndDate}
+          bulkProcessing={bulkEnd.bulkProcessing}
+          onClose={bulkEnd.closeBulkEndModal}
+          onConfirm={bulkEnd.handleBulkEndRentals}
         />
       )}
 
-      {showRentModal && (
+      {rentForklifts.showRentModal && (
         <RentForkliftModal
           customerName={customer.name}
           availableForklifts={availableForklifts}
-          selectedForkliftIds={selectedForkliftIds}
-          rentStartDate={rentStartDate}
-          rentEndDate={rentEndDate}
-          rentNotes={rentNotes}
-          rentMonthlyRate={rentMonthlyRate}
-          forkliftSearchQuery={forkliftSearchQuery}
-          rentProcessing={rentProcessing}
+          selectedForkliftIds={rentForklifts.selectedForkliftIds}
+          rentStartDate={rentForklifts.rentStartDate}
+          rentEndDate={rentForklifts.rentEndDate}
+          rentNotes={rentForklifts.rentNotes}
+          rentMonthlyRate={rentForklifts.rentMonthlyRate}
+          forkliftSearchQuery={rentForklifts.forkliftSearchQuery}
+          rentProcessing={rentForklifts.rentProcessing}
           isAdmin={isAdmin}
-          onClose={closeRentModal}
-          onToggleForklift={toggleForkliftForRent}
-          onSetStartDate={setRentStartDate}
-          onSetEndDate={setRentEndDate}
-          onSetNotes={setRentNotes}
-          onSetMonthlyRate={setRentMonthlyRate}
-          onSetSearchQuery={setForkliftSearchQuery}
-          onConfirm={handleRentForklifts}
+          onClose={rentForklifts.closeRentModal}
+          onToggleForklift={rentForklifts.toggleForkliftForRent}
+          onSetStartDate={rentForklifts.setRentStartDate}
+          onSetEndDate={rentForklifts.setRentEndDate}
+          onSetNotes={rentForklifts.setRentNotes}
+          onSetMonthlyRate={rentForklifts.setRentMonthlyRate}
+          onSetSearchQuery={rentForklifts.setForkliftSearchQuery}
+          onConfirm={rentForklifts.handleRentForklifts}
         />
       )}
 
