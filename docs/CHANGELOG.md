@@ -47,6 +47,32 @@ All notable changes, decisions, and client requirements for this project.
 - Main file: 138 lines
 - Components: OverviewTab, UsersTab, EmployeesTab, LeaveTab
 
+### 🏗️ ForkliftProfile.tsx Modular Split (2026-01-31)
+- **Status:** ✔️ Completed
+- Split 988 lines into folder structure
+- Main file: 164 lines (goal was <300)
+- Structure:
+  ```
+  pages/ForkliftProfile/
+  ├── index.tsx (4 lines)
+  ├── ForkliftProfilePage.tsx (164 lines)
+  ├── utils.ts (36 lines)
+  ├── components/
+  │   ├── ForkliftHeader.tsx
+  │   ├── ForkliftInfoCard.tsx
+  │   ├── NextServiceAlert.tsx
+  │   ├── CurrentAssignmentCard.tsx
+  │   ├── ScheduledServicesSection.tsx
+  │   ├── ServiceHistorySection.tsx
+  │   ├── RentalHistorySection.tsx
+  │   ├── HourmeterHistorySection.tsx
+  │   ├── AssignForkliftModal.tsx
+  │   ├── EditRentalRateModal.tsx
+  │   └── ScheduleServiceModal.tsx
+  └── hooks/
+      └── useForkliftData.ts (112 lines)
+  ```
+
 ### 🏗️ PendingConfirmations.tsx Modular Split (2026-01-31)
 - **Status:** ✔️ Completed
 - Split 629 lines into folder structure
