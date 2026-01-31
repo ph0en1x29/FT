@@ -20,7 +20,7 @@ DROP VIEW IF EXISTS public.most_active_forklifts CASCADE;
 CREATE VIEW public.most_active_forklifts AS
 SELECT 
   f.forklift_id,
-  f.forklift_no,
+  f.fleet_number,
   f.model,
   f.serial_number,
   COUNT(j.job_id) as job_count,
@@ -29,7 +29,7 @@ FROM forklifts f
 LEFT JOIN jobs j ON f.forklift_id = j.forklift_id 
   AND j.status IN ('Completed', 'Completed Awaiting Ack')
   AND j.completed_at >= NOW() - INTERVAL '30 days'
-GROUP BY f.forklift_id, f.forklift_no, f.model, f.serial_number
+GROUP BY f.forklift_id, f.fleet_number, f.model, f.serial_number
 ORDER BY job_count DESC;
 
 -- 2. pending_hourmeter_amendments
