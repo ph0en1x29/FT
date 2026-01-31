@@ -4,6 +4,35 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - TechnicianJobsTab Modular Split
+
+### 🏗️ TechnicianJobsTab.tsx Modular Split (2026-02-02)
+- **Status:** ✔️ Completed
+- Split 386 lines into `components/TechnicianJobsTab/` folder structure
+
+**Main file (106 lines):**
+- `TechnicianJobsTab.tsx` — Orchestrates job loading, filtering, and renders stats/filter/list
+
+**Hooks:**
+- `hooks/useJobFilters.ts` (98 lines) — Filter state, computed filtered jobs, stats calculation
+
+**Components:**
+- `components/StatsGrid.tsx` (58 lines) — 3-stat grid (current, completed total, this month)
+- `components/FilterBar.tsx` (116 lines) — Mode tabs, status/type dropdowns, date range filters
+- `components/JobCard.tsx` (87 lines) — Individual job card with type icon, badges, navigation
+- `components/EmptyState.tsx` (28 lines) — Empty state message based on filter mode
+
+**Utils:**
+- `utils/jobStyles.ts` (48 lines) — Tone styles and status/type styling helpers
+
+**Exports (index.tsx):**
+- Default export for backward compatibility
+- Named exports for all sub-components, hooks, and utils
+
+**Build verified:** ✔️ `npm run build` passes
+
+---
+
 ## [2026-02-02] - CustomerProfilePage Modular Split
 
 ### 🏗️ CustomerProfilePage.tsx Further Split (2026-02-02)
