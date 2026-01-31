@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { JobPriority, JobStatus, JobType, User, Forklift, Customer } from '../../../types';

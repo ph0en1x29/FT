@@ -1,3 +1,4 @@
+import React from 'react';
 import { Customer, User, ForkliftRental, ForkliftServiceEntry, Forklift } from '../../types';
 
 export interface CustomerProfileProps {

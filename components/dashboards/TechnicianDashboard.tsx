@@ -2,5 +2,5 @@
  * @deprecated This file is kept for backward compatibility.
  * Import from './TechnicianDashboard' folder instead.
  */
-export { default } from './TechnicianDashboard';
+export { default } from './TechnicianDashboard/TechnicianDashboard';
 export type { TechnicianDashboardProps } from './TechnicianDashboard/types';
