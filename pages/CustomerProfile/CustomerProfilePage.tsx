@@ -117,7 +117,6 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
       const analysis = await generateCustomerAnalysis(customer, jobs);
       setAiAnalysis(analysis);
     } catch (error) {
-      console.error('AI Analysis error:', error);
       setAiAnalysis('Unable to generate analysis at this time.');
       showToast.error('AI analysis failed');
     } finally {

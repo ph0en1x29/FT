@@ -42,7 +42,6 @@ export const uploadToStorage = async (
       });
     
     if (error) {
-      console.error(`[Storage] Upload to ${bucket} failed:`, error.message);
       // Fallback to base64 if storage fails
       return dataURL;
     }
@@ -55,7 +54,6 @@ export const uploadToStorage = async (
     logDebug(`[Storage] Uploaded to ${bucket}:`, fileName);
     return publicUrl;
   } catch (e) {
-    console.error('[Storage] Upload error:', e);
     // Fallback to base64 if storage fails
     return dataURL;
   }
@@ -76,14 +74,12 @@ export const deleteFromStorage = async (
       .remove([filePath]);
     
     if (error) {
-      console.error(`[Storage] Delete from ${bucket} failed:`, error.message);
       return false;
     }
     
     logDebug(`[Storage] Deleted from ${bucket}:`, filePath);
     return true;
   } catch (e) {
-    console.error('[Storage] Delete error:', e);
     return false;
   }
 };
@@ -105,13 +101,11 @@ export const getSignedUrl = async (
       .createSignedUrl(filePath, expiresIn);
     
     if (error) {
-      console.error(`[Storage] Signed URL failed:`, error.message);
       return null;
     }
     
     return data.signedUrl;
   } catch (e) {
-    console.error('[Storage] Signed URL error:', e);
     return null;
   }
 };

@@ -46,7 +46,6 @@ export const getAccountants = async (): Promise<User[]> => {
     .eq('is_active', true);
 
   if (error) {
-    console.warn('Failed to get accountants:', error.message);
     return [];
   }
   return data as User[];
@@ -64,12 +63,10 @@ export const getAdminsAndSupervisors = async (): Promise<User[]> => {
       .eq('is_active', true);
 
     if (error) {
-      console.warn('Failed to get admins/supervisors:', error.message);
       return [];
     }
     return data as User[];
   } catch (e) {
-    console.warn('Admins/supervisors fetch failed:', e);
     return [];
   }
 };
@@ -150,7 +147,6 @@ export const updateUser = async (userId: string, updates: Partial<User> & { pass
       });
       
       if (authError) {
-        console.warn('Password update failed - admin password reset requires server-side implementation:', authError.message);
       }
     }
   }

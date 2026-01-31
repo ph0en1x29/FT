@@ -62,7 +62,6 @@ export default function HourmeterReview({ currentUser, hideHeader = false }: Hou
       const data = await SupabaseDb.getHourmeterAmendments();
       setAmendments(data);
     } catch (error) {
-      console.error('Error loading amendments:', error);
       showToast.error('Failed to load hourmeter amendments');
     }
     setLoading(false);

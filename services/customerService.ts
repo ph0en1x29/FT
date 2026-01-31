@@ -97,7 +97,6 @@ export const getCustomerFinancialSummary = async (customerId: string): Promise<a
       .eq('customer_id', customerId);
     
     if (rentalsError) {
-      console.warn('Failed to get customer rentals:', rentalsError.message);
     }
     
     // Get all jobs for customer
@@ -149,7 +148,6 @@ export const getCustomerFinancialSummary = async (customerId: string): Promise<a
       total_jobs: (jobs || []).length,
     };
   } catch (e) {
-    console.warn('Failed to get customer financial summary:', e);
     return null;
   }
 };
@@ -173,7 +171,6 @@ export const getCustomerJobsWithCancelled = async (customerId: string): Promise<
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.warn('Customer jobs with cancelled query failed:', error.message);
       return [];
     }
 
@@ -182,7 +179,6 @@ export const getCustomerJobsWithCancelled = async (customerId: string): Promise<
       is_cancelled: job.deleted_at !== null,
     }));
   } catch (e) {
-    console.warn('Customer jobs with cancelled not available:', e);
     return [];
   }
 };

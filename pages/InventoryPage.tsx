@@ -84,7 +84,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
       const data = await MockDb.getParts();
       setParts(data);
     } catch (error) {
-      console.error('Error loading parts:', error);
       showToast.error('Failed to load inventory');
     }
     setLoading(false);
@@ -204,7 +203,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
       resetForm();
       setEditingPart(null);
     } catch (error) {
-      console.error('Error saving part:', error);
       showToast.error('Failed to save part', (error as Error).message);
     }
   };
@@ -217,7 +215,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
       await loadParts();
       showToast.success('Part deleted');
     } catch (error) {
-      console.error('Error deleting part:', error);
       showToast.error('Failed to delete part', (error as Error).message);
     }
   };

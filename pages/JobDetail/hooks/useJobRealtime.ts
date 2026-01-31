@@ -1,6 +1,23 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
+import type { Job, JobRequest } from '../../../types';
+
+// Database row types for realtime payloads (subset of full types)
+interface JobRow {
+  job_id: string;
+  deleted_at: string | null;
+  status: string;
+  assigned_technician_id: string | null;
+  assigned_technician_name: string | null;
+}
+
+interface JobRequestRow {
+  request_id: string;
+  job_id: string;
+  status: string;
+  request_type: string;
+}
 
 interface UseJobRealtimeProps {
   jobId: string | undefined;
@@ -38,8 +55,8 @@ export function useJobRealtime({
           filter: `job_id=eq.${jobId}`
         },
         (payload) => {
-          const updatedJob = payload.new as any;
-          const oldJob = payload.old as any;
+          const updatedJob = payload.new as JobRow;
+          const oldJob = payload.old as Partial<JobRow>;
           
           // Check if this job was soft-deleted
           if (updatedJob?.deleted_at !== null && oldJob?.deleted_at === null) {
@@ -71,7 +88,6 @@ export function useJobRealtime({
       .subscribe((status) => {
         setIsConnected(status === 'SUBSCRIBED');
         if (status === 'SUBSCRIBED') {
-          console.log('[JobDetail] ✅ Real-time connected for job:', jobId);
         }
       });
 
@@ -95,8 +111,8 @@ export function useJobRealtime({
           filter: `job_id=eq.${jobId}`
         },
         (payload) => {
-          const updatedRequest = payload.new as any;
-          const oldRequest = payload.old as any;
+          const updatedRequest = payload.new as JobRequestRow;
+          const oldRequest = payload.old as Partial<JobRequestRow>;
           
           // Notify on status change
           if (oldRequest?.status !== updatedRequest?.status) {

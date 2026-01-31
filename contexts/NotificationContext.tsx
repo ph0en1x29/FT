@@ -51,7 +51,6 @@ export const NotificationProvider = ({ currentUser, children }: NotificationProv
       setPushPermission(result.permission);
       
       if (result.supported && result.permission === 'granted') {
-        console.log('[Push] Push notifications initialized successfully');
       }
     };
     

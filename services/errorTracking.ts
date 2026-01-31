@@ -18,7 +18,6 @@ export const initErrorTracking = () => {
   
   if (!dsn) {
     if (!isDev) {
-      console.warn('[ErrorTracking] VITE_SENTRY_DSN not configured - error tracking disabled');
     }
     return;
   }
@@ -58,7 +57,6 @@ export const initErrorTracking = () => {
     },
   });
 
-  console.log('[ErrorTracking] Sentry initialized');
 };
 
 /**
@@ -68,7 +66,6 @@ export const captureError = (
   error: Error,
   context?: Record<string, any>
 ) => {
-  console.error('[Error]', error.message, context);
   
   if (!isDev && import.meta.env.VITE_SENTRY_DSN) {
     Sentry.captureException(error, {
@@ -85,7 +82,6 @@ export const captureMessage = (
   level: 'info' | 'warning' | 'error' = 'info',
   context?: Record<string, any>
 ) => {
-  console.log(`[${level.toUpperCase()}]`, message, context);
   
   if (!isDev && import.meta.env.VITE_SENTRY_DSN) {
     Sentry.captureMessage(message, {

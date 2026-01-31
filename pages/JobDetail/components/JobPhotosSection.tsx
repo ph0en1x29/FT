@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Job, MediaCategory } from '../../../types';
+import { Job, MediaCategory, JobMedia } from '../../../types';
 import { SupabaseDb as MockDb, supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { RoleFlags, StatusFlags } from '../types';
 import { PHOTO_CATEGORIES, getDefaultPhotoCategory } from '../constants';
 import { Camera, Download, CheckCircle } from 'lucide-react';
+
+// Type for media data being created (without ID fields that are auto-generated)
+type NewMediaData = Omit<JobMedia, 'media_id' | 'job_id' | 'uploaded_by_id' | 'uploaded_by_name' | 'is_helper_photo' | 'uploaded_by_assignment_id'>;
 
 interface JobPhotosSectionProps {
   job: Job;
@@ -51,7 +54,6 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
           });
         },
         (error) => {
-          console.warn('GPS error:', error.message);
           resolve(null);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
@@ -83,7 +85,6 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
         });
       
       if (error) {
-        console.warn('[Storage] Photo upload failed, using base64:', error.message);
         return dataURL;
       }
       
@@ -93,7 +94,6 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
       
       return publicUrl;
     } catch (e) {
-      console.warn('[Storage] Photo upload error, using base64:', e);
       return dataURL;
     }
   };
@@ -118,7 +118,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
         const base64Data = reader.result as string;
         const photoUrl = await uploadPhotoToStorage(base64Data, job.job_id);
 
-        const mediaData: any = {
+        const mediaData: NewMediaData = {
           type: 'photo',
           url: photoUrl,
           description: file.name,
@@ -129,14 +129,13 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
           server_timestamp: serverTimestamp,
           timestamp_mismatch: timestampMismatch,
           timestamp_mismatch_minutes: timestampMismatch ? timeDiffMinutes : undefined,
+          ...(gps && {
+            gps_latitude: gps.latitude,
+            gps_longitude: gps.longitude,
+            gps_accuracy: gps.accuracy,
+            gps_captured_at: serverTimestamp,
+          }),
         };
-
-        if (gps) {
-          mediaData.gps_latitude = gps.latitude;
-          mediaData.gps_longitude = gps.longitude;
-          mediaData.gps_accuracy = gps.accuracy;
-          mediaData.gps_captured_at = serverTimestamp;
-        }
 
         const updated = await MockDb.addMedia(
           job.job_id,
@@ -230,7 +229,6 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
       URL.revokeObjectURL(url);
       showToast.success('Photos downloaded', `${photosToDownload.length} photos`);
     } catch (e) {
-      console.error('Failed to download photos:', e);
       showToast.error('Download failed', e instanceof Error ? e.message : 'Unknown error');
     } finally {
       setDownloadingPhotos(false);

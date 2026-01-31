@@ -96,7 +96,6 @@ const ForkliftProfile: React.FC<ForkliftProfileProps> = ({ currentUser }) => {
       const hourmeterData = await MockDb.getForkliftHourmeterHistory(id);
       setHourmeterHistory(hourmeterData);
     } catch (error) {
-      console.error('Error loading forklift:', error);
     } finally {
       setLoading(false);
     }

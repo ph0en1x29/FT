@@ -204,7 +204,6 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       const technicians = await MockDb.getTechnicians();
       setAllTechnicians(technicians);
     } catch (error) {
-      console.error('Failed to load technicians:', error);
       if (selectedVanStock.technician) {
         setAllTechnicians([selectedVanStock.technician]);
       }

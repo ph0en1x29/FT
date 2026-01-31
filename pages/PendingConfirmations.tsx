@@ -63,7 +63,6 @@ export default function PendingConfirmations({ currentUser, hideHeader = false }
       );
       setJobs(awaitingJobs);
     } catch (error) {
-      console.error('Error loading jobs:', error);
       showToast.error('Failed to load pending confirmations');
     } finally {
       setLoading(false);

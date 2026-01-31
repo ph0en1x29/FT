@@ -168,7 +168,6 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
         .eq('status', 'active');
       
       if (rentalsError) {
-        console.warn('Error fetching rentals:', rentalsError);
       }
       
       // Fetch open jobs (not completed, not cancelled, not awaiting ack)
@@ -283,7 +282,6 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
       });
 
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
       showToast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);

@@ -36,7 +36,6 @@ export default function LeaveCalendarModal({
       });
       setLeaves(data.filter(l => l.status === LeaveStatus.APPROVED || l.status === LeaveStatus.PENDING));
     } catch (error) {
-      console.error('Error loading leaves:', error);
       showToast.error('Failed to load leave history');
     } finally {
       setLoading(false);

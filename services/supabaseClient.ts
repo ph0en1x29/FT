@@ -90,7 +90,7 @@ export const uploadToStorage = async (
       });
     
     if (error) {
-      console.error(`[Storage] Upload to ${bucket} failed:`, error.message);
+      logError(`[Storage] Upload to ${bucket} failed:`, error.message);
       return dataURL; // Fallback to base64
     }
     
@@ -101,7 +101,7 @@ export const uploadToStorage = async (
     logDebug(`[Storage] Uploaded to ${bucket}:`, fileName);
     return publicUrl;
   } catch (e) {
-    console.error('[Storage] Upload error:', e);
+    logError('[Storage] Upload error:', e);
     return dataURL; // Fallback to base64
   }
 };

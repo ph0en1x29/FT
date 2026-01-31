@@ -1,7 +1,13 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { supabase } from '../services/supabaseService';
-import type { User } from '../types';
+import type { User, Job, JobRequest } from '../types';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { showToast } from '../services/toastService';
+
+// WebkitAudioContext for Safari support
+interface WebkitWindow extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
 
 // Inline notification type to avoid import issues
 interface AppNotification {
@@ -29,12 +35,11 @@ const initAudio = async () => {
   if (audioContext) return;
   
   try {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioContext = new (window.AudioContext || (window as WebkitWindow).webkitAudioContext!)();
     const response = await fetch(NOTIFICATION_SOUND_URL);
     const arrayBuffer = await response.arrayBuffer();
     notificationBuffer = await audioContext.decodeAudioData(arrayBuffer);
   } catch (e) {
-    console.warn('Audio initialization failed:', e);
   }
 };
 
@@ -51,7 +56,6 @@ export const playNotificationSound = () => {
     source.connect(audioContext.destination);
     source.start(0);
   } catch (e) {
-    console.warn('Failed to play notification sound:', e);
   }
 };
 
@@ -97,7 +101,6 @@ export const showBrowserNotification = async (
       } as NotificationOptions & { vibrate?: number[] });
       return;
     } catch (e) {
-      console.warn('[Notifications] Service worker notification failed, falling back:', e);
     }
   }
   
@@ -129,7 +132,6 @@ export const showBrowserNotification = async (
       setTimeout(() => notification.close(), 5000);
     }
   } catch (e) {
-    console.warn('[Notifications] Browser notification failed:', e);
   }
 };
 
@@ -146,8 +148,8 @@ export const vibrateDevice = (pattern: number | number[] = [200, 100, 200]) => {
 
 interface UseRealtimeNotificationsOptions {
   onNewNotification?: (notification: AppNotification) => void;
-  onJobUpdate?: (job: any) => void;
-  onRequestUpdate?: (request: any) => void;
+  onJobUpdate?: (job: Job) => void;
+  onRequestUpdate?: (request: JobRequest) => void;
   playSound?: boolean;
   showBrowserNotifications?: boolean;
 }
@@ -167,7 +169,7 @@ export const useRealtimeNotifications = (
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
   const mountedRef = useRef(true);
   
   // Use refs for callbacks to avoid re-subscription on callback changes
@@ -242,9 +244,13 @@ export const useRealtimeNotifications = (
     }
     
     // Show toast with appropriate type
-    const toastType = newNotification.priority === 'urgent' ? 'error' : 
-                      newNotification.priority === 'high' ? 'warning' : 'info';
-    (showToast as any)[toastType](newNotification.title, newNotification.message);
+    if (newNotification.priority === 'urgent') {
+      showToast.error(newNotification.title, newNotification.message);
+    } else if (newNotification.priority === 'high') {
+      showToast.warning(newNotification.title, newNotification.message);
+    } else {
+      showToast.info(newNotification.title, newNotification.message);
+    }
     
     // Callback via ref
     onNewNotificationRef.current?.(newNotification);
@@ -258,7 +264,6 @@ export const useRealtimeNotifications = (
     
     // Clean up any existing channel first
     if (channelRef.current) {
-      console.log('[Realtime] Cleaning up existing channel');
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
@@ -266,7 +271,6 @@ export const useRealtimeNotifications = (
     // STABLE channel name - based only on user_id
     const channelName = `fieldpro-notifications-${currentUser.user_id}`;
     
-    console.log('[Realtime] Creating channel:', channelName);
     const channel = supabase.channel(channelName);
     
     // Subscribe to notifications for this user
@@ -279,7 +283,6 @@ export const useRealtimeNotifications = (
         filter: `user_id=eq.${currentUser.user_id}`,
       },
       (payload) => {
-        console.log('[Realtime] New notification received:', payload.new);
         handleNewNotification(payload.new as AppNotification);
       }
     );
@@ -296,7 +299,6 @@ export const useRealtimeNotifications = (
           filter: `assigned_technician_id=eq.${currentUser.user_id}`,
         },
         (payload) => {
-          console.log('[Realtime] Job update for technician:', payload.new);
           onJobUpdateRef.current?.(payload.new);
         }
       );
@@ -311,7 +313,6 @@ export const useRealtimeNotifications = (
           filter: `requested_by=eq.${currentUser.user_id}`,
         },
         (payload) => {
-          console.log('[Realtime] Request update for technician:', payload.new);
           onRequestUpdateRef.current?.(payload.new);
         }
       );
@@ -326,7 +327,6 @@ export const useRealtimeNotifications = (
           filter: `assigned_technician_id=eq.${currentUser.user_id}`,
         },
         (payload) => {
-          console.log('[Realtime] New job assigned to technician:', payload.new);
           onJobUpdateRef.current?.(payload.new);
         }
       );
@@ -342,7 +342,6 @@ export const useRealtimeNotifications = (
           table: 'job_requests',
         },
         (payload) => {
-          console.log('[Realtime] New job request:', payload.new);
           onRequestUpdateRef.current?.(payload.new);
         }
       );
@@ -356,7 +355,6 @@ export const useRealtimeNotifications = (
           table: 'job_requests',
         },
         (payload) => {
-          console.log('[Realtime] Job request updated:', payload.new);
           onRequestUpdateRef.current?.(payload.new);
         }
       );
@@ -366,17 +364,13 @@ export const useRealtimeNotifications = (
     channel.subscribe((status, error) => {
       if (!mountedRef.current) return;
       
-      console.log('[Realtime] Subscription status:', status, error || '');
       
       if (status === 'SUBSCRIBED') {
         setIsConnected(true);
-        console.log('[Realtime] ✅ Notifications connected for user:', currentUser.user_id);
       } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
         setIsConnected(false);
-        console.warn('[Realtime] ⚠️ Connection closed/error:', status);
       } else if (status === 'TIMED_OUT') {
         setIsConnected(false);
-        console.warn('[Realtime] ⚠️ Connection timed out, will retry...');
       }
     });
     
@@ -386,7 +380,6 @@ export const useRealtimeNotifications = (
     return () => {
       mountedRef.current = false;
       if (channelRef.current) {
-        console.log('[Realtime] Removing channel on cleanup');
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
@@ -408,10 +401,9 @@ export const useRealtimeNotifications = (
         
         if (!error && data && mountedRef.current) {
           setNotifications(data as AppNotification[]);
-          setUnreadCount(data.filter((n: any) => !n.is_read).length);
+          setUnreadCount(data.filter((n: AppNotification) => !n.is_read).length);
         }
       } catch (e) {
-        console.warn('Failed to load notifications:', e);
       }
     };
     
@@ -462,7 +454,7 @@ export const useRealtimeNotifications = (
     
     if (data && mountedRef.current) {
       setNotifications(data as AppNotification[]);
-      setUnreadCount(data.filter((n: any) => !n.is_read).length);
+      setUnreadCount(data.filter((n: AppNotification) => !n.is_read).length);
     }
   }, [currentUser?.user_id]);
   

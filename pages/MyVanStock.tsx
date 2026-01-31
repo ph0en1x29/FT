@@ -53,7 +53,6 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
       setUsageHistory(historyData);
       setReplenishments(replenishmentData);
     } catch (error) {
-      console.error('Error loading van stock:', error);
       showToast.error('Failed to load Van Stock data');
     }
     setLoading(false);

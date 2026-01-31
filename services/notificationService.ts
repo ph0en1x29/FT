@@ -38,12 +38,10 @@ export const getNotifications = async (userId: string, unreadOnly: boolean = fal
 
     const { data, error } = await query;
     if (error) {
-      console.warn('Notifications query failed:', error.message);
       return [];
     }
     return data as Notification[];
   } catch (e) {
-    console.warn('Notifications not available:', e);
     return [];
   }
 };
@@ -83,12 +81,10 @@ export const createNotification = async (notification: Partial<Notification>): P
       });
 
     if (error) {
-      console.warn('Failed to create notification:', error.message);
       return false;
     }
     return true;
   } catch (e) {
-    console.warn('Notification creation failed:', e);
     return false;
   }
 };
@@ -100,7 +96,6 @@ export const markNotificationRead = async (notificationId: string): Promise<void
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('notification_id', notificationId);
   } catch (e) {
-    console.warn('Failed to mark notification read:', e);
   }
 };
 
@@ -112,7 +107,6 @@ export const markAllNotificationsRead = async (userId: string): Promise<void> =>
       .eq('user_id', userId)
       .eq('is_read', false);
   } catch (e) {
-    console.warn('Failed to mark all notifications read:', e);
   }
 };
 
@@ -128,7 +122,6 @@ export const getAccountants = async (): Promise<{ user_id: string; name: string 
     .eq('is_active', true);
 
   if (error) {
-    console.warn('Failed to get accountants:', error.message);
     return [];
   }
   return data || [];
@@ -143,12 +136,10 @@ export const getAdminsAndSupervisors = async (): Promise<{ user_id: string; name
       .eq('is_active', true);
 
     if (error) {
-      console.warn('Failed to get admins/supervisors:', error.message);
       return [];
     }
     return data || [];
   } catch (e) {
-    console.warn('Admins/supervisors fetch failed:', e);
     return [];
   }
 };
@@ -192,7 +183,6 @@ export const notifyPendingFinalization = async (job: Job): Promise<void> => {
       });
     }
   } catch (e) {
-    console.warn('Failed to notify pending finalization:', e);
   }
 };
 
@@ -225,7 +215,6 @@ export const notifyAdminsOfRequest = async (
       });
     }
   } catch (e) {
-    console.warn('Failed to notify admins of request:', e);
   }
 };
 
@@ -246,7 +235,6 @@ export const notifyRequestApproved = async (
       priority: 'high',
     });
   } catch (e) {
-    console.warn('Failed to notify request approved:', e);
   }
 };
 
@@ -267,7 +255,6 @@ export const notifyRequestRejected = async (
       priority: 'high',
     });
   } catch (e) {
-    console.warn('Failed to notify request rejected:', e);
   }
 };
 
@@ -288,7 +275,6 @@ export const notifyJobReassigned = async (
       priority: 'high',
     });
   } catch (e) {
-    console.warn('Failed to notify job reassigned:', e);
   }
 };
 
@@ -313,7 +299,6 @@ export const notifyJobRejectedByTech = async (
       });
     }
   } catch (e) {
-    console.warn('Failed to notify job rejection:', e);
   }
 };
 
@@ -337,6 +322,5 @@ export const notifyNoResponseFromTech = async (
       });
     }
   } catch (e) {
-    console.warn('Failed to notify no response:', e);
   }
 };

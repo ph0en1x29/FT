@@ -300,6 +300,10 @@ export interface Job {
   converted_by_id?: string;
   converted_by_name?: string;
 
+  // Callback/Return Visit Tracking (for KPI calculation)
+  is_callback?: boolean; // True if this job is a return visit/callback
+  callback_parent_job_id?: string; // Reference to original job if callback
+
   // Courier/Collection POD (Proof of Delivery)
   courier_type?: 'delivery' | 'collection' | 'both';
   courier_items?: CourierItem[];

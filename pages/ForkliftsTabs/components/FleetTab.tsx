@@ -94,13 +94,11 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
       setForklifts(forkliftData);
       setCustomers(customerData);
     } catch (error) {
-      console.error('Error loading data:', error);
       showToast.error('Failed to load forklifts');
       try {
         const data = await MockDb.getForklifts();
         setForklifts(data);
       } catch (fallbackError) {
-        console.error('Error loading forklifts fallback:', fallbackError);
         showToast.error('Failed to load forklifts fallback');
       }
     } finally {

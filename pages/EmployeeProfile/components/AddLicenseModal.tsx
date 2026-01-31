@@ -79,7 +79,6 @@ export default function AddLicenseModal({
         status: LicenseStatus.ACTIVE,
       });
     } catch (error) {
-      console.error('Error saving license:', error);
       showToast.error('Failed to save license');
       alert('Failed to save license. Please try again.');
     } finally {

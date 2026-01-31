@@ -46,7 +46,6 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser, hide
       setTechnicians(techData);
       setAllJobs(jobData);
     } catch (error) {
-      console.error('Error loading KPI data:', error);
       showToast.error('Failed to load KPI data');
     }
     setLoading(false);
@@ -112,7 +111,7 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser, hide
       );
 
       // First Time Fix Rate (jobs without callbacks)
-      const callbackJobs = techJobs.filter(j => (j as any).is_callback === true);
+      const callbackJobs = techJobs.filter(j => j.is_callback === true);
       const ftfr = completedJobs.length > 0 
         ? ((completedJobs.length - callbackJobs.length) / completedJobs.length) * 100 
         : 0;

@@ -30,7 +30,6 @@ export default function VanStockWidget({ currentUser }: VanStockWidgetProps) {
       const data = await MockDb.getVanStockByTechnician(currentUser.user_id);
       setVanStock(data);
     } catch (error) {
-      console.error('Error loading van stock:', error);
     }
     setLoading(false);
   };

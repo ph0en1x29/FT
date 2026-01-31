@@ -54,7 +54,6 @@ export function useCustomerData(customerId: string | undefined): UseCustomerData
       const customerRentals = await MockDb.getCustomerRentals(customerId);
       setRentals(customerRentals);
     } catch (error) {
-      console.error('Error loading customer:', error);
       showToast.error('Failed to load customer profile');
     } finally {
       setLoading(false);
@@ -67,7 +66,6 @@ export function useCustomerData(customerId: string | undefined): UseCustomerData
       const available = forkliftsWithCustomers.filter(f => !f.current_customer_id);
       setAvailableForklifts(available);
     } catch (error) {
-      console.error('Error loading available forklifts:', error);
       showToast.error('Failed to load available forklifts');
     }
   }, []);

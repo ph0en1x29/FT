@@ -93,7 +93,6 @@ export default function EmployeeProfilePage({ currentUser }: EmployeeProfileProp
         setEditData(data);
       }
     } catch (error) {
-      console.error('Error loading employee:', error);
       showToast.error('Failed to load employee profile');
     } finally {
       setLoading(false);
@@ -105,7 +104,6 @@ export default function EmployeeProfilePage({ currentUser }: EmployeeProfileProp
       const types = await HRService.getLeaveTypes();
       setLeaveTypes(types);
     } catch (error) {
-      console.error('Error loading leave types:', error);
       showToast.error('Failed to load leave types');
     }
   };
@@ -121,7 +119,6 @@ export default function EmployeeProfilePage({ currentUser }: EmployeeProfileProp
       setEmployee({ ...employee!, ...editData });
       setEditing(false);
     } catch (error) {
-      console.error('Error updating employee:', error);
       showToast.error('Failed to update employee');
       alert('Failed to update employee');
     }

@@ -183,7 +183,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ currentUser, onNavigate }) =>
       setPendingLeaves(leavesData);
       setTodaysAttendance(attendanceData);
     } catch (error) {
-      console.error('Error loading HR dashboard:', error);
       showToast.error('Failed to load HR dashboard');
     } finally {
       setLoading(false);
@@ -196,7 +195,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ currentUser, onNavigate }) =>
       loadDashboardData();
       showToast.success('Leave request approved');
     } catch (error) {
-      console.error('Error approving leave:', error);
       showToast.error('Failed to approve leave');
     }
   };
@@ -453,7 +451,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ currentUser, onNavigate }) =>
                     <UserIcon className="w-4 h-4 text-slate-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-theme">{(leave as any).user?.full_name || (leave as any).user?.name || 'Unknown'}</p>
+                    <p className="text-sm font-medium text-theme">{leave.user?.full_name || leave.user?.name || 'Unknown'}</p>
                     <p className="text-xs text-theme-muted">
                       {new Date(leave.start_date).toLocaleDateString()} - {new Date(leave.end_date).toLocaleDateString()}
                     </p>
@@ -514,7 +512,6 @@ const UsersTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       const data = await MockDb.getUsers();
       setUsers(data);
     } catch (error) {
-      console.error('Error loading users:', error);
       showToast.error('Failed to load users');
     } finally {
       setLoading(false);
@@ -577,7 +574,6 @@ const UsersTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       showToast.success(`User ${confirmModal.action}d successfully`);
       loadUsers();
     } catch (error) {
-      console.error('Error updating user status:', error);
       showToast.error('Failed to update user status');
     } finally {
       setConfirmModal({ isOpen: false, user: null, action: 'deactivate' });
@@ -790,7 +786,6 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ currentUser, initialStatus,
       const data = await MockDb.getUsers();
       setEmployees(data);
     } catch (error) {
-      console.error('Error loading employees:', error);
       showToast.error('Failed to load employees');
     } finally {
       setLoading(false);
@@ -943,7 +938,6 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilte
       setAllLeaves(all.length > 0 ? all : pending);
       setTodayLeaves(today);
     } catch (error) {
-      console.error('Error loading leaves:', error);
       showToast.error('Failed to load leave requests');
     } finally {
       setLoading(false);
@@ -1051,10 +1045,10 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilte
               {displayLeaves.map(leave => (
                 <tr key={leave.leave_id} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-900">{(leave as any).user?.full_name || (leave as any).user?.name || 'Unknown'}</p>
+                    <p className="font-medium text-slate-900">{leave.user?.full_name || leave.user?.name || 'Unknown'}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm capitalize">{(leave.leave_type as any)?.name?.replace('_', ' ') || 'Unknown'}</span>
+                    <span className="text-sm capitalize">{leave.leave_type?.name?.replace('_', ' ') || 'Unknown'}</span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-sm">

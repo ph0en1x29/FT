@@ -41,7 +41,6 @@ export const getPushPermissionState = (): PushPermissionState => {
  */
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   if (!isPushSupported()) {
-    console.warn('[Push] Push notifications not supported in this browser');
     return null;
   }
 
@@ -50,16 +49,13 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
       scope: '/'
     });
     
-    console.log('[Push] Service Worker registered:', registration.scope);
     swRegistration = registration;
     
     // Wait for the service worker to be ready
     await navigator.serviceWorker.ready;
-    console.log('[Push] Service Worker ready');
     
     return registration;
   } catch (error) {
-    console.error('[Push] Service Worker registration failed:', error);
     return null;
   }
 };
@@ -69,16 +65,13 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
  */
 export const requestPushPermission = async (): Promise<PushPermissionState> => {
   if (!isPushSupported()) {
-    console.warn('[Push] Push notifications not supported');
     return 'unsupported';
   }
 
   try {
     const permission = await Notification.requestPermission();
-    console.log('[Push] Permission result:', permission);
     return permission as PushPermissionState;
   } catch (error) {
-    console.error('[Push] Permission request failed:', error);
     return 'denied';
   }
 };
@@ -89,13 +82,11 @@ export const requestPushPermission = async (): Promise<PushPermissionState> => {
  */
 export const subscribeToPush = async (): Promise<PushSubscription | null> => {
   if (!swRegistration) {
-    console.warn('[Push] Service worker not registered');
     swRegistration = await registerServiceWorker();
     if (!swRegistration) return null;
   }
 
   if (Notification.permission !== 'granted') {
-    console.warn('[Push] Notification permission not granted');
     return null;
   }
 
@@ -104,7 +95,6 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
     let subscription = await swRegistration.pushManager.getSubscription();
     
     if (subscription) {
-      console.log('[Push] Existing subscription found');
       return subscription;
     }
 
@@ -119,11 +109,9 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
     }
 
     subscription = await swRegistration.pushManager.subscribe(subscribeOptions);
-    console.log('[Push] New subscription created:', subscription.endpoint);
     
     return subscription;
   } catch (error) {
-    console.error('[Push] Subscription failed:', error);
     return null;
   }
 };
@@ -138,12 +126,10 @@ export const unsubscribeFromPush = async (): Promise<boolean> => {
     const subscription = await swRegistration.pushManager.getSubscription();
     if (subscription) {
       await subscription.unsubscribe();
-      console.log('[Push] Unsubscribed from push notifications');
       return true;
     }
     return false;
   } catch (error) {
-    console.error('[Push] Unsubscription failed:', error);
     return false;
   }
 };
@@ -160,7 +146,6 @@ export const getCurrentSubscription = async (): Promise<PushSubscription | null>
   try {
     return await swRegistration.pushManager.getSubscription();
   } catch (error) {
-    console.error('[Push] Failed to get subscription:', error);
     return null;
   }
 };
@@ -174,12 +159,10 @@ export const sendLocalNotification = (
   options?: NotificationOptions & { url?: string }
 ): Notification | null => {
   if (!('Notification' in window)) {
-    console.warn('[Push] Notifications not supported');
     return null;
   }
 
   if (Notification.permission !== 'granted') {
-    console.warn('[Push] Notification permission not granted');
     return null;
   }
 
@@ -202,7 +185,6 @@ export const sendLocalNotification = (
     return notification;
   } catch (error) {
     // Fallback for browsers that require SW for notifications
-    console.warn('[Push] Direct notification failed, trying via SW:', error);
     
     if (swRegistration) {
       swRegistration.showNotification(title, {
@@ -233,7 +215,6 @@ export const initializePushNotifications = async (): Promise<{
   };
 
   if (!result.supported) {
-    console.log('[Push] Push notifications not supported');
     return result;
   }
 

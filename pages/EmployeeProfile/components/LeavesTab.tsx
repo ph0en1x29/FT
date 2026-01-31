@@ -57,7 +57,6 @@ export default function LeavesTab({
       );
       onRefresh();
     } catch (error) {
-      console.error('Error approving leave:', error);
       showToast.error('Failed to approve leave');
       alert('Failed to approve leave');
     }
@@ -75,7 +74,6 @@ export default function LeavesTab({
       );
       onRefresh();
     } catch (error) {
-      console.error('Error rejecting leave:', error);
       showToast.error('Failed to reject leave');
       alert('Failed to reject leave');
     }
@@ -87,7 +85,6 @@ export default function LeavesTab({
       await HRService.cancelLeave(leaveId);
       onRefresh();
     } catch (error) {
-      console.error('Error canceling leave:', error);
       showToast.error('Failed to cancel leave');
       alert('Failed to cancel leave');
     }

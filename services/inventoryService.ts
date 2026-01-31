@@ -15,6 +15,15 @@ import type {
   ReplenishmentStatus 
 } from '../types';
 
+// Database row types for Supabase responses (before transformation)
+interface VanStockItemRow extends VanStockItem {
+  part?: Part;
+}
+
+interface VanStockRow extends VanStock {
+  items?: VanStockItemRow[];
+}
+
 // =====================
 // PARTS CRUD
 // =====================
@@ -105,7 +114,6 @@ export const deletePart = async (partId: string): Promise<void> => {
 
 export const getAllVanStocks = async (): Promise<VanStock[]> => {
   try {
-    console.log('[VanStock] Fetching all van stocks...');
     const { data, error } = await supabase
       .from('van_stocks')
       .select(`
@@ -117,10 +125,8 @@ export const getAllVanStocks = async (): Promise<VanStock[]> => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[VanStock] Query failed:', error.message, error);
       return [];
     }
-    console.log('[VanStock] Loaded:', data?.length || 0, 'records');
 
     return (data || []).map((vs: any) => ({
       ...vs,
@@ -130,7 +136,6 @@ export const getAllVanStocks = async (): Promise<VanStock[]> => {
       }, 0) || 0,
     })) as VanStock[];
   } catch (e) {
-    console.warn('Van stocks not available:', e);
     return [];
   }
 };
@@ -150,7 +155,6 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
 
     if (error) {
       if (error.code === 'PGRST116') return null;
-      console.warn('Van stock query failed:', error.message);
       return null;
     }
 
@@ -162,7 +166,6 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
 
     return { ...data, total_value } as VanStock;
   } catch (e) {
-    console.warn('Van stock not available:', e);
     return null;
   }
 };
@@ -180,7 +183,6 @@ export const getVanStockById = async (vanStockId: string): Promise<VanStock | nu
       .single();
 
     if (error) {
-      console.warn('Van stock query failed:', error.message);
       return null;
     }
 
@@ -192,7 +194,6 @@ export const getVanStockById = async (vanStockId: string): Promise<VanStock | nu
 
     return { ...data, total_value } as VanStock;
   } catch (e) {
-    console.warn('Van stock not available:', e);
     return null;
   }
 };
@@ -205,7 +206,6 @@ export const createVanStock = async (
   createdByName?: string,
   notes?: string
 ): Promise<VanStock> => {
-  console.log('[VanStock] Creating van stock for:', technicianName, technicianId, 'Code:', vanCode);
   const { data, error } = await supabase
     .from('van_stocks')
     .insert({
@@ -221,14 +221,12 @@ export const createVanStock = async (
     .single();
 
   if (error) {
-    console.error('[VanStock] Create failed:', error.message, error);
     throw new Error(error.message);
   }
   const result = {
     ...data,
     technician_name: data.technician?.name || technicianName,
   };
-  console.log('[VanStock] Created successfully:', result);
   return result as VanStock;
 };
 
@@ -375,12 +373,10 @@ export const getPendingVanStockApprovals = async (): Promise<VanStockUsage[]> =>
       .order('used_at', { ascending: false });
 
     if (error) {
-      console.warn('Van stock approvals query failed:', error.message);
       return [];
     }
     return data as VanStockUsage[];
   } catch (e) {
-    console.warn('Van stock approvals not available:', e);
     return [];
   }
 };
@@ -517,12 +513,10 @@ export const getReplenishmentRequests = async (filters?: {
 
     const { data, error } = await query;
     if (error) {
-      console.warn('Replenishment requests query failed:', error.message);
       return [];
     }
     return data as VanStockReplenishment[];
   } catch (e) {
-    console.warn('Replenishment requests not available:', e);
     return [];
   }
 };
@@ -645,7 +639,6 @@ export const getLowStockItems = async (technicianId: string): Promise<VanStockIt
 
     return vanStock.items.filter((item: any) => item.quantity <= item.min_quantity) as VanStockItem[];
   } catch (e) {
-    console.warn('Low stock items not available:', e);
     return [];
   }
 };
@@ -689,12 +682,10 @@ export const getVanStockUsageHistory = async (
       .limit(limit);
 
     if (error) {
-      console.warn('Usage history query failed:', error.message);
       return [];
     }
     return data as VanStockUsage[];
   } catch (e) {
-    console.warn('Usage history not available:', e);
     return [];
   }
 };

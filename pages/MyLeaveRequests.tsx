@@ -60,7 +60,6 @@ export default function MyLeaveRequests({ currentUser }: MyLeaveRequestsProps) {
       setLeaves(leavesData);
       setLeaveTypes(typesData);
     } catch (error) {
-      console.error('Error loading leave data:', error);
       showToast.error('Failed to load leave data');
     } finally {
       setLoading(false);
@@ -74,7 +73,6 @@ export default function MyLeaveRequests({ currentUser }: MyLeaveRequestsProps) {
       loadData();
       showToast.success('Leave request cancelled');
     } catch (error) {
-      console.error('Error canceling leave:', error);
       showToast.error('Failed to cancel leave');
     }
   };
@@ -472,7 +470,6 @@ function AddLeaveModal({
         total_days: totalDays,
       });
     } catch (error) {
-      console.error('Error submitting leave:', error);
       alert('Failed to submit leave request');
     } finally {
       setSaving(false);
@@ -694,7 +691,6 @@ function LeaveCalendarModal({
       });
       setLeaves(data.filter(l => l.status === LeaveStatus.APPROVED || l.status === LeaveStatus.PENDING));
     } catch (error) {
-      console.error('Error loading leaves:', error);
     } finally {
       setLoading(false);
     }

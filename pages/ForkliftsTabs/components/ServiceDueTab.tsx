@@ -36,7 +36,6 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser }) => {
       const forklifts = await MockDb.getForkliftsDueForService(30);
       setDueForklifts(forklifts);
     } catch (e) {
-      console.error('Failed to load service due data:', e);
       showToast.error('Failed to load service due data');
     } finally {
       setLoading(false);

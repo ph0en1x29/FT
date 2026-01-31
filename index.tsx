@@ -4,10 +4,14 @@ import './index.css';
 import App from './App';
 import ChunkErrorBoundary from './components/ChunkErrorBoundary';
 import { QueryProvider } from './contexts/QueryProvider';
-import { initErrorTracking } from './services/errorTracking';
 
-// Initialize error tracking (Sentry)
-initErrorTracking();
+// Lazy load error tracking (Sentry) - not needed on initial render
+// This reduces main bundle by ~50KB
+if (!import.meta.env.DEV) {
+  import('./services/errorTracking').then(({ initErrorTracking }) => {
+    initErrorTracking();
+  });
+}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

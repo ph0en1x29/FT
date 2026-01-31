@@ -48,7 +48,6 @@ const ServiceDue: React.FC = () => {
       const forklifts = await SupabaseDb.getForkliftsDueForService(30);
       setDueForklifts(forklifts);
     } catch (e) {
-      console.error('Failed to load service due data:', e);
       showToast.error('Failed to load service due data');
     } finally {
       setLoading(false);

@@ -33,7 +33,6 @@ const Customers: React.FC = () => {
       const data = await MockDb.getCustomers();
       setCustomers(data);
     } catch (error) {
-      console.error('Error loading customers:', error);
     } finally {
       setLoading(false);
     }

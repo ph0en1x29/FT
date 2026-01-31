@@ -36,7 +36,6 @@ export function useVanStockData({ currentUser }: UseVanStockDataProps) {
       setVanStocks(filteredStocks);
       setReplenishments(replenishmentsData);
     } catch (error) {
-      console.error('Error loading van stocks:', error);
       showToast.error('Failed to load Van Stock data');
     }
     setLoading(false);

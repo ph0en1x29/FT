@@ -66,7 +66,6 @@ const loadStoredFlags = (): Partial<FeatureFlags> | null => {
       return JSON.parse(stored);
     }
   } catch (e) {
-    console.error('Failed to load feature flags:', e);
   }
   return null;
 };
@@ -76,7 +75,6 @@ const saveFlags = (flags: FeatureFlags) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(flags));
   } catch (e) {
-    console.error('Failed to save feature flags:', e);
   }
 };
 
@@ -130,7 +128,6 @@ export const FeatureFlagProvider = ({ children, enabled = true }: FeatureFlagPro
   // Debug mode logging
   useEffect(() => {
     if (flags.debugMode) {
-      console.log('[FeatureFlags] Current flags:', flags);
     }
   }, [flags]);
 

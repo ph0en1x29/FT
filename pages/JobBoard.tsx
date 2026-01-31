@@ -164,14 +164,12 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           setDeletedJobs(deleted);
         } catch (error) {
           if (import.meta.env.DEV) {
-            console.error('Error loading deleted jobs:', error);
           }
           showToast.error('Failed to load deleted jobs');
         }
       }
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Error loading jobs:', error);
       }
       showToast.error('Failed to load jobs');
     } finally {
@@ -216,7 +214,6 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
             
             // Refresh deleted jobs list for admins
             if (canViewDeleted) {
-              MockDb.getRecentlyDeletedJobs().then(setDeletedJobs).catch(console.error);
             }
             return;
           }
@@ -272,9 +269,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
       .subscribe((status) => {
         setIsRealtimeConnected(status === 'SUBSCRIBED');
         if (status === 'SUBSCRIBED') {
-          console.log('[JobBoard] ✅ Real-time connected');
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('[JobBoard] ⚠️ Real-time connection issue:', status);
         }
       });
 

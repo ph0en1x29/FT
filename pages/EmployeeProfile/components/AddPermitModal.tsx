@@ -79,7 +79,6 @@ export default function AddPermitModal({
         status: LicenseStatus.ACTIVE,
       });
     } catch (error) {
-      console.error('Error saving permit:', error);
       showToast.error('Failed to save permit');
       alert('Failed to save permit. Please try again.');
     } finally {

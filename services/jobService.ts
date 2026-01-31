@@ -198,7 +198,7 @@ export const getJobByIdFast = async (jobId: string): Promise<Job | null> => {
     .single();
 
   if (error) {
-    console.error('Error fetching job:', error);
+    logError('Error fetching job:', error);
     return null;
   }
 
@@ -211,7 +211,7 @@ export const getJobByIdFast = async (jobId: string): Promise<Job | null> => {
     .maybeSingle();
 
   if (helperError) {
-    console.warn('Failed to fetch helper assignment:', helperError.message);
+    logError('Failed to fetch helper assignment:', helperError.message);
   }
 
   const job = data as Job;
@@ -238,7 +238,7 @@ export const getJobById = async (jobId: string): Promise<Job | null> => {
     .single();
 
   if (error) {
-    console.error('Error fetching job:', error);
+    logError('Error fetching job:', error);
     return null;
   }
 
@@ -251,7 +251,7 @@ export const getJobById = async (jobId: string): Promise<Job | null> => {
     .maybeSingle();
 
   if (helperError) {
-    console.warn('Failed to fetch helper assignment:', helperError.message);
+    logError('Failed to fetch helper assignment:', helperError.message);
   }
 
   const job = data as Job;
@@ -579,7 +579,7 @@ export const checkExpiredJobResponses = async (): Promise<{ alertedJobs: string[
       .lt('technician_response_deadline', now.toISOString());
 
     if (error) {
-      console.warn('Failed to check expired responses:', error.message);
+      logError('Failed to check expired responses:', error.message);
       return { alertedJobs };
     }
 
@@ -591,7 +591,7 @@ export const checkExpiredJobResponses = async (): Promise<{ alertedJobs: string[
 
     return { alertedJobs };
   } catch (e) {
-    console.warn('Error checking expired responses:', e);
+    logError('Error checking expired responses:', e);
     return { alertedJobs };
   }
 };
@@ -608,13 +608,13 @@ export const getJobsPendingResponse = async (): Promise<Job[]> => {
       .order('technician_response_deadline', { ascending: true });
 
     if (error) {
-      console.warn('Failed to get pending response jobs:', error.message);
+      logError('Failed to get pending response jobs:', error.message);
       return [];
     }
 
     return (data || []) as Job[];
   } catch (e) {
-    console.warn('Error getting pending response jobs:', e);
+    logError('Error getting pending response jobs:', e);
     return [];
   }
 };
@@ -718,7 +718,7 @@ export const addPartToJob = async (
       .update({ stock_quantity: part.stock_quantity - quantity })
       .eq('part_id', partId);
     if (stockError) {
-      console.warn('Part added, but stock update failed (RLS?):', stockError.message);
+      logError('Part added, but stock update failed (RLS?):', stockError.message);
     }
   }
 
@@ -837,7 +837,7 @@ export const removePartFromJob = async (jobId: string, jobPartId: string, actorR
         .update({ stock_quantity: part.stock_quantity + jobPart.quantity })
         .eq('part_id', jobPart.part_id);
       if (stockError) {
-        console.warn('Removed part, but stock restore failed (RLS?):', stockError.message);
+        logError('Removed part, but stock restore failed (RLS?):', stockError.message);
       }
     }
   }
@@ -1087,7 +1087,7 @@ export const getRecentlyDeletedJobs = async (): Promise<any[]> => {
     .order('deleted_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching recently deleted jobs:', error);
+    logError('Error fetching recently deleted jobs:', error);
     return [];
   }
 
@@ -1213,7 +1213,7 @@ export const getJobServiceRecord = async (jobId: string): Promise<any> => {
     .limit(1);
 
   if (error) {
-    console.warn('Error fetching service record:', error.message);
+    logError('Error fetching service record:', error.message);
     return null;
   }
   return data?.[0] ?? null;
@@ -1349,7 +1349,7 @@ export const reassignJob = async (
       .single();
 
     if (error) {
-      console.warn('Failed to reassign job:', error.message);
+      logError('Failed to reassign job:', error.message);
       return null;
     }
 
@@ -1371,7 +1371,7 @@ export const reassignJob = async (
 
     return updatedJob;
   } catch (e) {
-    console.warn('Job reassignment failed:', e);
+    logError('Job reassignment failed:', e);
     return null;
   }
 };
@@ -1389,12 +1389,12 @@ export const getJobAssignments = async (jobId: string): Promise<JobAssignment[]>
       .order('assigned_at', { ascending: false });
 
     if (error) {
-      console.error('Failed to get job assignments:', error.message);
+      logError('Failed to get job assignments:', error.message);
       return [];
     }
     return data || [];
   } catch (e) {
-    console.error('Job assignments fetch error:', e);
+    logError('Job assignments fetch error:', e);
     return [];
   }
 };
@@ -1410,12 +1410,12 @@ export const getActiveHelper = async (jobId: string): Promise<JobAssignment | nu
       .maybeSingle();
 
     if (error) {
-      console.error('Failed to get active helper:', error.message);
+      logError('Failed to get active helper:', error.message);
       return null;
     }
     return data || null;
   } catch (e) {
-    console.error('Active helper fetch error:', e);
+    logError('Active helper fetch error:', e);
     return null;
   }
 };
@@ -1448,12 +1448,12 @@ export const assignHelper = async (
       .single();
 
     if (error) {
-      console.error('Failed to assign helper:', error.message);
+      logError('Failed to assign helper:', error.message);
       return null;
     }
     return data;
   } catch (e) {
-    console.error('Helper assignment error:', e);
+    logError('Helper assignment error:', e);
     return null;
   }
 };
@@ -1468,12 +1468,12 @@ export const removeHelper = async (jobId: string): Promise<boolean> => {
       .eq('is_active', true);
 
     if (error) {
-      console.error('Failed to remove helper:', error.message);
+      logError('Failed to remove helper:', error.message);
       return false;
     }
     return true;
   } catch (e) {
-    console.error('Helper removal error:', e);
+    logError('Helper removal error:', e);
     return false;
   }
 };
@@ -1486,12 +1486,12 @@ export const startHelperWork = async (assignmentId: string): Promise<boolean> =>
       .eq('assignment_id', assignmentId);
 
     if (error) {
-      console.error('Failed to start helper work:', error.message);
+      logError('Failed to start helper work:', error.message);
       return false;
     }
     return true;
   } catch (e) {
-    console.error('Helper start work error:', e);
+    logError('Helper start work error:', e);
     return false;
   }
 };
@@ -1504,12 +1504,12 @@ export const endHelperWork = async (assignmentId: string): Promise<boolean> => {
       .eq('assignment_id', assignmentId);
 
     if (error) {
-      console.error('Failed to end helper work:', error.message);
+      logError('Failed to end helper work:', error.message);
       return false;
     }
     return true;
   } catch (e) {
-    console.error('Helper end work error:', e);
+    logError('Helper end work error:', e);
     return false;
   }
 };
@@ -1524,12 +1524,12 @@ export const getHelperJobs = async (technicianId: string): Promise<string[]> => 
       .eq('is_active', true);
 
     if (error) {
-      console.error('Failed to get helper jobs:', error.message);
+      logError('Failed to get helper jobs:', error.message);
       return [];
     }
     return data?.map(d => d.job_id) || [];
   } catch (e) {
-    console.error('Helper jobs fetch error:', e);
+    logError('Helper jobs fetch error:', e);
     return [];
   }
 };
@@ -1546,12 +1546,12 @@ export const isUserHelperOnJob = async (jobId: string, userId: string): Promise<
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Failed to check helper status:', error.message);
+      logError('Failed to check helper status:', error.message);
       return false;
     }
     return !!data;
   } catch (e) {
-    console.error('Helper status check error:', e);
+    logError('Helper status check error:', e);
     return false;
   }
 };
@@ -1578,7 +1578,7 @@ export const getUserAssignmentType = async (jobId: string, userId: string): Prom
 
     return null;
   } catch (e) {
-    console.error('Assignment type check error:', e);
+    logError('Assignment type check error:', e);
     return null;
   }
 };
@@ -1609,7 +1609,7 @@ export const createJobRequest = async (
       .single();
 
     if (error) {
-      console.error('Failed to create job request:', error.message);
+      logError('Failed to create job request:', error.message);
       return null;
     }
 
@@ -1624,7 +1624,7 @@ export const createJobRequest = async (
 
     return data;
   } catch (e) {
-    console.error('Job request create error:', e);
+    logError('Job request create error:', e);
     return null;
   }
 };
@@ -1646,17 +1646,17 @@ export const updateJobRequest = async (
       .single();
 
     if (checkError || !existing) {
-      console.error('Request not found:', checkError?.message);
+      logError('Request not found:', checkError?.message);
       return false;
     }
 
     if (existing.status !== 'pending') {
-      console.error('Cannot edit non-pending request');
+      logError('Cannot edit non-pending request');
       return false;
     }
 
     if (existing.requested_by !== requestedBy) {
-      console.error('Cannot edit request created by another user');
+      logError('Cannot edit request created by another user');
       return false;
     }
 
@@ -1666,13 +1666,13 @@ export const updateJobRequest = async (
       .eq('request_id', requestId);
 
     if (error) {
-      console.error('Failed to update job request:', error.message);
+      logError('Failed to update job request:', error.message);
       return false;
     }
 
     return true;
   } catch (e) {
-    console.error('Job request update error:', e);
+    logError('Job request update error:', e);
     return false;
   }
 };
@@ -1691,12 +1691,12 @@ export const getJobRequests = async (jobId: string): Promise<any[]> => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Failed to get job requests:', error.message);
+      logError('Failed to get job requests:', error.message);
       return [];
     }
     return data || [];
   } catch (e) {
-    console.error('Job requests fetch error:', e);
+    logError('Job requests fetch error:', e);
     return [];
   }
 };
@@ -1714,12 +1714,12 @@ export const getPendingRequests = async (): Promise<any[]> => {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Failed to get pending requests:', error.message);
+      logError('Failed to get pending requests:', error.message);
       return [];
     }
     return data || [];
   } catch (e) {
-    console.error('Pending requests fetch error:', e);
+    logError('Pending requests fetch error:', e);
     return [];
   }
 };
@@ -1739,7 +1739,7 @@ export const approveSparePartRequest = async (
       .single();
 
     if (reqError || !request) {
-      console.error('Request not found:', reqError?.message);
+      logError('Request not found:', reqError?.message);
       return false;
     }
 
@@ -1750,12 +1750,12 @@ export const approveSparePartRequest = async (
       .single();
 
     if (partError || !part) {
-      console.error('Part not found:', partError?.message);
+      logError('Part not found:', partError?.message);
       return false;
     }
 
     if (part.stock_quantity < quantity) {
-      console.error('Insufficient stock');
+      logError('Insufficient stock');
       return false;
     }
 
@@ -1772,7 +1772,7 @@ export const approveSparePartRequest = async (
       .eq('request_id', requestId);
 
     if (updateError) {
-      console.error('Failed to update request:', updateError.message);
+      logError('Failed to update request:', updateError.message);
       return false;
     }
 
@@ -1787,7 +1787,7 @@ export const approveSparePartRequest = async (
       });
 
     if (insertError) {
-      console.error('Failed to add part to job:', insertError.message);
+      logError('Failed to add part to job:', insertError.message);
       return false;
     }
 
@@ -1797,7 +1797,7 @@ export const approveSparePartRequest = async (
       .eq('part_id', partId);
 
     if (stockError) {
-      console.error('Failed to update stock:', stockError.message);
+      logError('Failed to update stock:', stockError.message);
     }
 
     await notifyRequestApproved(
@@ -1809,7 +1809,7 @@ export const approveSparePartRequest = async (
 
     return true;
   } catch (e) {
-    console.error('Approve spare part request error:', e);
+    logError('Approve spare part request error:', e);
     return false;
   }
 };
@@ -1827,7 +1827,7 @@ export const rejectRequest = async (
       .single();
 
     if (reqError || !request) {
-      console.error('Request not found for rejection:', reqError?.message);
+      logError('Request not found for rejection:', reqError?.message);
       return false;
     }
 
@@ -1842,7 +1842,7 @@ export const rejectRequest = async (
       .eq('request_id', requestId);
 
     if (error) {
-      console.error('Failed to reject request:', error.message);
+      logError('Failed to reject request:', error.message);
       return false;
     }
 
@@ -1855,7 +1855,7 @@ export const rejectRequest = async (
 
     return true;
   } catch (e) {
-    console.error('Reject request error:', e);
+    logError('Reject request error:', e);
     return false;
   }
 };
@@ -1873,7 +1873,7 @@ export const acknowledgeSkillfulTechRequest = async (
       .single();
 
     if (reqError || !request) {
-      console.error('Request not found:', reqError?.message);
+      logError('Request not found:', reqError?.message);
       return false;
     }
 
@@ -1888,7 +1888,7 @@ export const acknowledgeSkillfulTechRequest = async (
       .eq('request_id', requestId);
 
     if (error) {
-      console.error('Failed to acknowledge skillful tech request:', error.message);
+      logError('Failed to acknowledge skillful tech request:', error.message);
       return false;
     }
 
@@ -1901,7 +1901,7 @@ export const acknowledgeSkillfulTechRequest = async (
 
     return true;
   } catch (e) {
-    console.error('Acknowledge skillful tech request error:', e);
+    logError('Acknowledge skillful tech request error:', e);
     return false;
   }
 };
@@ -1920,7 +1920,7 @@ export const approveAssistanceRequest = async (
       .single();
 
     if (reqError || !request) {
-      console.error('Request not found:', reqError?.message);
+      logError('Request not found:', reqError?.message);
       return false;
     }
 
@@ -1950,7 +1950,7 @@ export const approveAssistanceRequest = async (
       .eq('request_id', requestId);
 
     if (updateError) {
-      console.error('Failed to update request:', updateError.message);
+      logError('Failed to update request:', updateError.message);
       return false;
     }
 
@@ -1982,7 +1982,7 @@ export const approveAssistanceRequest = async (
 
     return result !== null;
   } catch (e) {
-    console.error('Approve assistance request error:', e);
+    logError('Approve assistance request error:', e);
     return false;
   }
 };
@@ -2002,7 +2002,7 @@ export const getRequestCounts = async (): Promise<{ pending: number; total: numb
 
     return { pending: pending || 0, total: total || 0 };
   } catch (e) {
-    console.error('Request counts error:', e);
+    logError('Request counts error:', e);
     return { pending: 0, total: 0 };
   }
 };

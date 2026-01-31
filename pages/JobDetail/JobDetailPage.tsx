@@ -169,7 +169,6 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         }
       }
     } catch (error) {
-      console.error('Error loading job:', error);
       showToast.error('Failed to load job');
       setJob(null);
     } finally {
@@ -183,7 +182,6 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       const requests = await MockDb.getJobRequests(id);
       setJobRequests(requests);
     } catch (error) {
-      console.error('Error loading requests:', error);
       showToast.error('Failed to load requests');
     }
   }, [id]);
@@ -194,7 +192,6 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       const data = await MockDb.getVanStockByTechnician(currentUserId);
       setVanStock(data);
     } catch (error) {
-      console.error('Error loading Van Stock:', error);
     }
   }, [currentUserId, currentUserRole]);
 
@@ -356,7 +353,6 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       setJob({ ...updated } as Job);
       setNoteInput('');
     } catch (error) {
-      console.error('Error adding note:', error);
       showToast.error('Could not add note', (error as Error).message);
     }
   };
@@ -487,7 +483,6 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         showToast.error('Failed to update job');
       }
     } catch (e) {
-      console.error('Continue tomorrow error:', e);
       showToast.error('Error updating job');
     } finally {
       setSubmittingContinue(false);
@@ -505,7 +500,6 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         showToast.error('Failed to resume job');
       }
     } catch (e) {
-      console.error('Resume job error:', e);
       showToast.error('Error resuming job');
     }
   };

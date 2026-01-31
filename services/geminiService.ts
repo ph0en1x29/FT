@@ -43,7 +43,6 @@ export const generateJobSummary = async (job: Job): Promise<string> => {
 
     return response.text || "Could not generate summary.";
   } catch (error) {
-    console.error("Gemini Error:", error);
     return "Error generating summary. Please check connection.";
   }
 };
@@ -89,7 +88,6 @@ export const generateCustomerAnalysis = async (customer: Customer, jobs: Job[]):
 
     return response.text || "Could not generate analysis.";
   } catch (error) {
-    console.error("Gemini Error:", error);
     return "Error generating analysis. Please check connection.";
   }
 };

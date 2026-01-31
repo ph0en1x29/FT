@@ -95,7 +95,6 @@ export default function AutoCountExport({ currentUser, hideHeader = false }: Aut
       const jobs = await SupabaseDb.getJobsPendingExport();
       setPendingJobs(jobs);
     } catch (error) {
-      console.error('Error loading data:', error);
       showToast.error('Failed to load export data');
     }
     setLoading(false);

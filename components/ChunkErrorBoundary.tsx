@@ -33,8 +33,6 @@ class ChunkErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[ChunkErrorBoundary] Caught error:', error.message);
-    console.error('[ChunkErrorBoundary] Error info:', errorInfo);
   }
 
   handleRefresh = () => {

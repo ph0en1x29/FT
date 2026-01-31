@@ -127,7 +127,6 @@ const ServiceIntervalsConfig: React.FC<Props> = ({ currentUser }) => {
         showToast.error('Failed to create service interval');
       }
     } catch (error) {
-      console.error('Error creating service interval:', error);
       showToast.error('Failed to create service interval');
     }
   };
@@ -171,7 +170,6 @@ const ServiceIntervalsConfig: React.FC<Props> = ({ currentUser }) => {
         showToast.error('Failed to update service interval');
       }
     } catch (error) {
-      console.error('Error updating service interval:', error);
       showToast.error('Failed to update service interval');
     }
   };
@@ -188,7 +186,6 @@ const ServiceIntervalsConfig: React.FC<Props> = ({ currentUser }) => {
         showToast.error('Failed to delete service interval');
       }
     } catch (error) {
-      console.error('Error deleting service interval:', error);
       showToast.error('Failed to delete service interval');
     }
   };

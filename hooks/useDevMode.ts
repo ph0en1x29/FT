@@ -54,7 +54,6 @@ const loadStoredState = (): StoredDevMode | null => {
       return JSON.parse(stored);
     }
   } catch (e) {
-    console.error('Failed to load dev mode state:', e);
   }
   return null;
 };
@@ -67,7 +66,6 @@ const loadPermissionOverrides = (): PermissionOverrides => {
       return JSON.parse(stored);
     }
   } catch (e) {
-    console.error('Failed to load permission overrides:', e);
   }
   return {};
 };
@@ -81,7 +79,6 @@ const savePermissionOverrides = (overrides: PermissionOverrides) => {
       localStorage.setItem(OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
     }
   } catch (e) {
-    console.error('Failed to save permission overrides:', e);
   }
 };
 

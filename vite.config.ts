@@ -33,6 +33,14 @@ export default defineConfig(({ mode }) => {
               'vendor-charts': ['recharts'],
               // UI utilities - loaded as needed
               'vendor-ui': ['sonner', 'lucide-react'],
+              // Error monitoring - loaded after initial render
+              'vendor-sentry': ['@sentry/react'],
+              // Data fetching - loaded with first query
+              'vendor-query': ['@tanstack/react-query'],
+              // AI features - loaded only when AI is used
+              'vendor-genai': ['@google/genai'],
+              // Zip utilities - loaded for export features
+              'vendor-zip': ['jszip'],
             }
           }
         },

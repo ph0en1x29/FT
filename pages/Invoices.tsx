@@ -126,7 +126,6 @@ const InvoiceHistoryTab: React.FC<{ currentUser: User }> = ({ currentUser }) => 
       const data = await MockDb.getJobs(currentUser, { status: JobStatus.COMPLETED });
       setJobs(data);
     } catch (error) {
-      console.error('Error loading jobs:', error);
       showToast.error('Failed to load invoices');
     }
     setLoading(false);

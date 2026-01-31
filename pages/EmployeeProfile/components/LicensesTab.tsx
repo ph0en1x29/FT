@@ -37,7 +37,6 @@ export default function LicensesTab({
       await HRService.deleteLicense(licenseId);
       onRefresh();
     } catch (error) {
-      console.error('Error deleting license:', error);
       showToast.error('Failed to delete license');
       alert('Failed to delete license');
     }
