@@ -57,6 +57,31 @@ All notable changes, decisions, and client requirements for this project.
   - `ServiceRecordsTable.tsx` — Data table (127 lines)
   - `ServiceRecordsLoading.tsx` — Skeleton state (51 lines)
 
+### 🏗️ JobBoard.tsx Modular Split (2026-01-31)
+- **Status:** ✔️ Completed
+- Split 1,081 lines into modular folder structure
+- Main file: 177 lines (goal was under 200)
+- **Structure:**
+  - `pages/JobBoard/` folder with:
+    - `JobBoard.tsx` — Main orchestration component (177 lines)
+    - `types.ts` — Type definitions (JobWithHelperFlag, DateFilter, StatusCounts)
+    - `constants.ts` — Color mappings (getStatusColor, getJobTypeColor)
+  - **Hooks:**
+    - `useJobData.ts` — Data fetching & real-time subscriptions (151 lines)
+    - `useJobFilters.ts` — Filtering, search, status counts (294 lines)
+    - `useJobAcceptance.ts` — Technician accept/reject flow (130 lines)
+  - **Components:**
+    - `QuickStats.tsx` — Status count buttons (124 lines)
+    - `SearchFilterBar.tsx` — Search & filter controls (166 lines)
+    - `SlotInAlertBanner.tsx` — SLA alert banner (36 lines)
+    - `SpecialFilterBanner.tsx` — Special filter banner (94 lines)
+    - `JobCard.tsx` — Individual job card (152 lines)
+    - `DeletedJobsSection.tsx` — Admin deleted jobs view (92 lines)
+    - `RejectJobModal.tsx` — Job rejection modal (66 lines)
+    - `EmptyJobsState.tsx` — Empty state message (30 lines)
+    - `LoadingState.tsx` — Loading spinner (13 lines)
+- Total: 1,332 lines across all files (well-organized)
+
 ### 🏗️ ForkliftProfile.tsx Modular Split (2026-01-31)
 - **Status:** ✔️ Completed
 - Split 988 lines into folder structure
