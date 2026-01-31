@@ -21,7 +21,7 @@ import {
 import { useJobRealtime, useJobDetailState, useJobActions } from './hooks';
 
 // Utils
-import { getRoleFlags, getStatusFlags, getDefaultPhotoCategory } from './utils';
+import { getRoleFlags, getStatusFlags } from './utils';
 import { JobDetailProps } from './types';
 
 const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {

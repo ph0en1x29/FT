@@ -4,6 +4,42 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - Customers & ServiceDue Page Modular Split
+
+### 🏗️ Customers.tsx Modular Split
+- **Status:** ✔️ Completed
+- Split 324 lines into `pages/Customers/` folder structure
+
+**Main file (170 lines):**
+- `Customers.tsx` — Customer list with search, grid display, and create modal trigger
+
+**Components:**
+- `components/CustomerCard.tsx` (85 lines) — Individual customer card with contact info
+- `components/CreateCustomerModal.tsx` (125 lines) — Modal form for creating new customers
+- `components/index.ts` — Barrel exports
+
+**Backward Compatibility:**
+- Original `pages/Customers.tsx` re-exports from new module
+
+### 🏗️ ServiceDue.tsx Modular Split
+- **Status:** ✔️ Completed
+- Split 309 lines into `pages/ServiceDue/` folder structure
+
+**Main file (156 lines):**
+- `ServiceDue.tsx` — Service due overview with filters, stats, and daily check controls
+
+**Components:**
+- `components/ServiceStatsCards.tsx` (77 lines) — Filter stat cards (total/overdue/due soon/job created)
+- `components/ServiceDueTable.tsx` (145 lines) — Forklifts table with status badges and navigation
+- `components/index.ts` — Barrel exports
+
+**Backward Compatibility:**
+- Original `pages/ServiceDue.tsx` re-exports from new module
+
+**Build verified:** ✔️ `npm run build` passes
+
+---
+
 ## [2026-02-02] - AccountantDashboard Modular Split
 
 ### 🏗️ AccountantDashboard.tsx Modular Split (2026-02-02)
