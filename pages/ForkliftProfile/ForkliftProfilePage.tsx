@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Forklift, ForkliftRental, Job, User, ForkliftStatus, RentalStatus, Customer, ScheduledService, UserRole, ForkliftServiceEntry } from '../types';
-import { SupabaseDb as MockDb } from '../services/supabaseService';
-import { showToast } from '../services/toastService';
-import { useDevModeContext } from '../contexts/DevModeContext';
+import { Forklift, ForkliftRental, Job, User, ForkliftStatus, RentalStatus, Customer, ScheduledService, UserRole, ForkliftServiceEntry } from '../../types';
+import { SupabaseDb as MockDb } from '../../services/supabaseService';
+import { showToast } from '../../services/toastService';
+import { useDevModeContext } from '../../contexts/DevModeContext';
 import { 
   ArrowLeft, Truck, MapPin, Gauge, Calendar, Wrench, 
   CheckCircle, Clock, AlertCircle, Building2, User as UserIcon,
