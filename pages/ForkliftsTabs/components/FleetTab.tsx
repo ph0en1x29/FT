@@ -1,41 +1,38 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Forklift, ForkliftType, ForkliftStatus, Customer, UserRole } from '../../../types';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import {
-  Plus, Search, Filter, Truck, Edit2, Trash2, X, Save,
-  Gauge, Calendar, MapPin, CheckCircle, AlertCircle, Clock,
-  Building2, ChevronRight, Square, CheckSquare, CircleOff, Loader2
-} from 'lucide-react';
+import { Plus, Square, CheckSquare, Loader2 } from 'lucide-react';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { TabProps, ResultModalState } from '../types';
-import ForkliftCard from './ForkliftCard';
+import ForkliftGrid from './ForkliftGrid';
+import ForkliftFilters from './ForkliftFilters';
+import BulkActionsBar from './BulkActionsBar';
+import BulkEndRentalModal from './BulkEndRentalModal';
 import AddEditForkliftModal from './AddEditForkliftModal';
 import AssignForkliftModal from './AssignForkliftModal';
 import ResultModal from './ResultModal';
 
 const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
-  const navigate = useNavigate();
   const [forklifts, setForklifts] = useState<Forklift[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { displayRole } = useDevModeContext();
-  
+
   // Filters
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterMake, setFilterMake] = useState<string>('all');
   const [filterAssigned, setFilterAssigned] = useState<string>('all');
-  
+
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [editingForklift, setEditingForklift] = useState<Forklift | null>(null);
   const [assigningForklift, setAssigningForklift] = useState<Forklift | null>(null);
-  
+
   // Multi-select states
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedForkliftIds, setSelectedForkliftIds] = useState<Set<string>>(new Set());
@@ -44,8 +41,11 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
   const [bulkProcessing, setBulkProcessing] = useState(false);
 
   // Result modal state
-  const [resultModal, setResultModal] = useState<ResultModalState>({ 
-    show: false, type: 'success', title: '', message: '' 
+  const [resultModal, setResultModal] = useState<ResultModalState>({
+    show: false,
+    type: 'success',
+    title: '',
+    message: '',
   });
 
   // Form data for add/edit
@@ -68,8 +68,6 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
   const [endDate, setEndDate] = useState('');
   const [rentalNotes, setRentalNotes] = useState('');
   const [monthlyRentalRate, setMonthlyRentalRate] = useState('');
-
-  // Bulk end rental form
   const [bulkEndDate, setBulkEndDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Permission check
@@ -89,7 +87,7 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
     try {
       const [forkliftData, customerData] = await Promise.all([
         MockDb.getForkliftsWithCustomers(),
-        MockDb.getCustomers()
+        MockDb.getCustomers(),
       ]);
       setForklifts(forkliftData);
       setCustomers(customerData);
@@ -106,17 +104,14 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
     }
   };
 
-  // Get unique makes for filter dropdown
   const uniqueMakes = useMemo(() => {
-    const makes = [...new Set(forklifts.map(f => f.make))].filter(Boolean).sort();
-    return makes;
+    return [...new Set(forklifts.map((f) => f.make))].filter(Boolean).sort();
   }, [forklifts]);
 
-  // Filtered and searched forklifts
   const filteredForklifts = useMemo(() => {
-    return forklifts.filter(forklift => {
+    return forklifts.filter((forklift) => {
       const searchLower = searchQuery.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         forklift.serial_number.toLowerCase().includes(searchLower) ||
         forklift.make.toLowerCase().includes(searchLower) ||
         forklift.model.toLowerCase().includes(searchLower) ||
@@ -126,9 +121,9 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
       const matchesType = filterType === 'all' || forklift.type === filterType;
       const matchesStatus = filterStatus === 'all' || forklift.status === filterStatus;
       const matchesMake = filterMake === 'all' || forklift.make === filterMake;
-      
       const hasCustomer = !!forklift.current_customer_id;
-      const matchesAssigned = filterAssigned === 'all' || 
+      const matchesAssigned =
+        filterAssigned === 'all' ||
         (filterAssigned === 'assigned' && hasCustomer) ||
         (filterAssigned === 'unassigned' && !hasCustomer);
 
@@ -136,18 +131,25 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
     });
   }, [forklifts, searchQuery, filterType, filterStatus, filterMake, filterAssigned]);
 
-  // Selection helpers
-  const selectedForklifts = useMemo(() => {
-    return filteredForklifts.filter(f => selectedForkliftIds.has(f.forklift_id));
-  }, [filteredForklifts, selectedForkliftIds]);
+  const selectedForklifts = useMemo(
+    () => filteredForklifts.filter((f) => selectedForkliftIds.has(f.forklift_id)),
+    [filteredForklifts, selectedForkliftIds]
+  );
+  const availableSelectedForklifts = useMemo(
+    () => selectedForklifts.filter((f) => !f.current_customer_id),
+    [selectedForklifts]
+  );
+  const rentedSelectedForklifts = useMemo(
+    () => selectedForklifts.filter((f) => !!f.current_customer_id),
+    [selectedForklifts]
+  );
 
-  const availableSelectedForklifts = useMemo(() => {
-    return selectedForklifts.filter(f => !f.current_customer_id);
-  }, [selectedForklifts]);
-
-  const rentedSelectedForklifts = useMemo(() => {
-    return selectedForklifts.filter(f => !!f.current_customer_id);
-  }, [selectedForklifts]);
+  const hasFilters =
+    searchQuery ||
+    filterType !== 'all' ||
+    filterStatus !== 'all' ||
+    filterMake !== 'all' ||
+    filterAssigned !== 'all';
 
   const resetForm = () => {
     setFormData({
@@ -200,13 +202,12 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!formData.serial_number || !formData.make || !formData.model) {
       setResultModal({
         show: true,
         type: 'error',
         title: 'Validation Error',
-        message: 'Please fill in Serial Number, Make, and Model'
+        message: 'Please fill in Serial Number, Make, and Model',
       });
       return;
     }
@@ -220,7 +221,6 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
       } else {
         await MockDb.createForklift(formData);
       }
-      
       await loadData();
       setShowAddModal(false);
       resetForm();
@@ -230,7 +230,7 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         show: true,
         type: 'error',
         title: 'Error',
-        message: 'Error saving forklift: ' + (error as Error).message
+        message: 'Error saving forklift: ' + (error as Error).message,
       });
     }
   };
@@ -241,7 +241,7 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         show: true,
         type: 'error',
         title: 'Validation Error',
-        message: 'Please select a customer and start date'
+        message: 'Please select a customer and start date',
       });
       return;
     }
@@ -257,9 +257,8 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         currentUser?.name,
         monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined
       );
-      
-      const customer = customers.find(c => c.customer_id === selectedCustomerId);
-      
+
+      const customer = customers.find((c) => c.customer_id === selectedCustomerId);
       setShowAssignModal(false);
       setAssigningForklift(null);
       setMonthlyRentalRate('');
@@ -273,90 +272,68 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         details: [
           `✓ Rental created successfully`,
           `✓ Start date: ${new Date(startDate).toLocaleDateString()}`,
-          monthlyRentalRate ? `✓ Monthly rate: RM${parseFloat(monthlyRentalRate).toLocaleString()}` : ''
-        ].filter(Boolean)
+          monthlyRentalRate ? `✓ Monthly rate: RM${parseFloat(monthlyRentalRate).toLocaleString()}` : '',
+        ].filter(Boolean),
       });
     } catch (error) {
-      setResultModal({
-        show: true,
-        type: 'error',
-        title: 'Error',
-        message: (error as Error).message
-      });
+      setResultModal({ show: true, type: 'error', title: 'Error', message: (error as Error).message });
     }
   };
 
   const handleDelete = async (forklift: Forklift, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm(`Delete forklift ${forklift.serial_number}?\n\nThis cannot be undone.`)) return;
-    
     try {
       await MockDb.deleteForklift(forklift.forklift_id);
       await loadData();
     } catch (error) {
-      setResultModal({
-        show: true,
-        type: 'error',
-        title: 'Error',
-        message: (error as Error).message
-      });
+      setResultModal({ show: true, type: 'error', title: 'Error', message: (error as Error).message });
     }
   };
 
-  // Selection mode handlers
   const toggleSelectionMode = () => {
-    if (isSelectionMode) {
-      setSelectedForkliftIds(new Set());
-    }
+    if (isSelectionMode) setSelectedForkliftIds(new Set());
     setIsSelectionMode(!isSelectionMode);
   };
 
   const toggleForkliftSelection = (forkliftId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const newSelected = new Set(selectedForkliftIds);
-    if (newSelected.has(forkliftId)) {
-      newSelected.delete(forkliftId);
-    } else {
-      newSelected.add(forkliftId);
-    }
+    if (newSelected.has(forkliftId)) newSelected.delete(forkliftId);
+    else newSelected.add(forkliftId);
     setSelectedForkliftIds(newSelected);
   };
 
-  const selectAllFiltered = () => {
-    const allIds = new Set(filteredForklifts.map(f => f.forklift_id));
-    setSelectedForkliftIds(allIds);
-  };
-
-  const deselectAll = () => {
-    setSelectedForkliftIds(new Set());
-  };
-
-  // Bulk operations
   const handleBulkRentOut = async () => {
-    if (availableSelectedForklifts.length === 0) {
-      setResultModal({ show: true, type: 'error', title: 'No Forklifts Selected', message: 'No available (unrented) forklifts selected' });
-      return;
-    }
-
-    if (!selectedCustomerId || !startDate) {
-      setResultModal({ show: true, type: 'error', title: 'Validation Error', message: 'Please select a customer and start date' });
+    if (availableSelectedForklifts.length === 0 || !selectedCustomerId || !startDate) {
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Validation Error',
+        message: availableSelectedForklifts.length === 0 ? 'No available forklifts selected' : 'Please select a customer and start date',
+      });
       return;
     }
 
     setBulkProcessing(true);
     try {
-      const forkliftIds = availableSelectedForklifts.map(f => f.forklift_id);
+      const forkliftIds = availableSelectedForklifts.map((f) => f.forklift_id);
       const result = await MockDb.bulkAssignForkliftsToCustomer(
-        forkliftIds, selectedCustomerId, startDate, endDate || undefined,
-        rentalNotes || undefined, currentUser?.user_id, currentUser?.name,
+        forkliftIds,
+        selectedCustomerId,
+        startDate,
+        endDate || undefined,
+        rentalNotes || undefined,
+        currentUser?.user_id,
+        currentUser?.name,
         monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined
       );
 
-      const customer = customers.find(c => c.customer_id === selectedCustomerId);
+      const customer = customers.find((c) => c.customer_id === selectedCustomerId);
       const details: string[] = [];
-      result.success.forEach(r => details.push(`✓ ${r.forklift?.serial_number || 'Unknown'} - Rented successfully`));
-      result.failed.forEach(f => {
-        const forklift = forklifts.find(fl => fl.forklift_id === f.forkliftId);
+      result.success.forEach((r) => details.push(`✓ ${r.forklift?.serial_number || 'Unknown'} - Rented successfully`));
+      result.failed.forEach((f) => {
+        const forklift = forklifts.find((fl) => fl.forklift_id === f.forkliftId);
         details.push(`✗ ${forklift?.serial_number || f.forkliftId} - ${f.error}`);
       });
 
@@ -365,7 +342,7 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         type: result.failed.length === 0 ? 'success' : result.success.length === 0 ? 'error' : 'mixed',
         title: result.failed.length === 0 ? 'Forklifts Rented Successfully' : 'Bulk Rent Out Complete',
         message: `Successfully rented out ${result.success.length} forklift(s) to ${customer?.name || 'customer'}${result.failed.length > 0 ? `. ${result.failed.length} failed.` : '.'}`,
-        details
+        details,
       });
 
       setShowBulkRentModal(false);
@@ -390,13 +367,13 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
 
     setBulkProcessing(true);
     try {
-      const forkliftIds = rentedSelectedForklifts.map(f => f.forklift_id);
+      const forkliftIds = rentedSelectedForklifts.map((f) => f.forklift_id);
       const result = await MockDb.bulkEndRentals(forkliftIds, bulkEndDate || undefined, currentUser?.user_id, currentUser?.name);
 
       const details: string[] = [];
-      result.success.forEach(r => details.push(`✓ ${r.forklift?.serial_number || 'Unknown'} - Rental ended`));
-      result.failed.forEach(f => {
-        const forklift = forklifts.find(fl => fl.forklift_id === f.forkliftId);
+      result.success.forEach((r) => details.push(`✓ ${r.forklift?.serial_number || 'Unknown'} - Rental ended`));
+      result.failed.forEach((f) => {
+        const forklift = forklifts.find((fl) => fl.forklift_id === f.forkliftId);
         details.push(`✗ ${forklift?.serial_number || f.forkliftId} - ${f.error}`);
       });
 
@@ -405,7 +382,7 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         type: result.failed.length === 0 ? 'success' : result.success.length === 0 ? 'error' : 'mixed',
         title: result.failed.length === 0 ? 'Rentals Ended Successfully' : 'Bulk End Rental Complete',
         message: `Successfully ended ${result.success.length} rental(s)${result.failed.length > 0 ? `. ${result.failed.length} failed.` : '.'}`,
-        details
+        details,
       });
 
       setShowBulkEndRentalModal(false);
@@ -426,11 +403,6 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
     setRentalNotes('');
     setMonthlyRentalRate('');
     setShowBulkRentModal(true);
-  };
-
-  const openBulkEndRentalModal = () => {
-    setBulkEndDate(new Date().toISOString().split('T')[0]);
-    setShowBulkEndRentalModal(true);
   };
 
   if (loading) {
@@ -455,9 +427,7 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
           <button
             onClick={toggleSelectionMode}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-              isSelectionMode 
-                ? 'bg-blue-100 text-blue-700 border border-blue-300' 
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              isSelectionMode ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
             {isSelectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
@@ -474,128 +444,48 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         </div>
       </div>
 
-      {/* Selection Actions Bar */}
       {isSelectionMode && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div className="flex flex-wrap gap-2">
-              <button onClick={selectAllFiltered} className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                Select All ({filteredForklifts.length})
-              </button>
-              <span className="text-slate-300">|</span>
-              <button onClick={deselectAll} className="text-sm text-slate-600 hover:text-slate-800 font-medium">
-                Deselect All
-              </button>
-            </div>
-            
-            {selectedForkliftIds.size > 0 && (
-              <div className="flex flex-wrap gap-2">
-                <div className="text-sm text-slate-600 mr-2 self-center">
-                  <span className="font-medium">{availableSelectedForklifts.length}</span> available, 
-                  <span className="font-medium ml-1">{rentedSelectedForklifts.length}</span> rented
-                </div>
-                
-                {availableSelectedForklifts.length > 0 && (
-                  <button onClick={openBulkRentModal} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium shadow-sm">
-                    <Building2 className="w-4 h-4" /> Rent Out ({availableSelectedForklifts.length})
-                  </button>
-                )}
-                
-                {rentedSelectedForklifts.length > 0 && (
-                  <button onClick={openBulkEndRentalModal} className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-medium shadow-sm">
-                    <CircleOff className="w-4 h-4" /> End Rental ({rentedSelectedForklifts.length})
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        <BulkActionsBar
+          totalCount={filteredForklifts.length}
+          selectedCount={selectedForkliftIds.size}
+          availableCount={availableSelectedForklifts.length}
+          rentedCount={rentedSelectedForklifts.length}
+          onSelectAll={() => setSelectedForkliftIds(new Set(filteredForklifts.map((f) => f.forklift_id)))}
+          onDeselectAll={() => setSelectedForkliftIds(new Set())}
+          onBulkRent={openBulkRentModal}
+          onBulkEndRental={() => {
+            setBulkEndDate(new Date().toISOString().split('T')[0]);
+            setShowBulkEndRentalModal(true);
+          }}
+        />
       )}
 
-      {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-sm p-4 space-y-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by S/N, make, model, location, customer..."
-              className="w-full pl-10 pr-4 py-2.5 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-theme placeholder-slate-400"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+      <ForkliftFilters
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        filterType={filterType}
+        setFilterType={setFilterType}
+        filterStatus={filterStatus}
+        setFilterStatus={setFilterStatus}
+        filterAssigned={filterAssigned}
+        setFilterAssigned={setFilterAssigned}
+        filterMake={filterMake}
+        setFilterMake={setFilterMake}
+        uniqueMakes={uniqueMakes}
+      />
 
-          <div className="flex flex-wrap gap-3">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-theme-muted" />
-              <select className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-                <option value="all">All Types</option>
-                {Object.values(ForkliftType).map(type => <option key={type} value={type}>{type}</option>)}
-              </select>
-            </div>
+      <ForkliftGrid
+        forklifts={filteredForklifts}
+        isSelectionMode={isSelectionMode}
+        selectedForkliftIds={selectedForkliftIds}
+        canEdit={canEditForklifts}
+        hasFilters={!!hasFilters}
+        onToggleSelection={toggleForkliftSelection}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onAssign={handleAssign}
+      />
 
-            <select className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-              <option value="all">All Status</option>
-              {Object.values(ForkliftStatus).map(status => <option key={status} value={status}>{status}</option>)}
-            </select>
-
-            <select className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme" value={filterAssigned} onChange={(e) => setFilterAssigned(e.target.value)}>
-              <option value="all">All Rentals</option>
-              <option value="assigned">Rented</option>
-              <option value="unassigned">Available</option>
-            </select>
-
-            {uniqueMakes.length > 0 && (
-              <select className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme" value={filterMake} onChange={(e) => setFilterMake(e.target.value)}>
-                <option value="all">All Makes</option>
-                {uniqueMakes.map(make => <option key={make} value={make}>{make}</option>)}
-              </select>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Forklifts Grid */}
-      {filteredForklifts.length === 0 ? (
-        <div className="card-theme rounded-xl p-12 text-center">
-          <Truck className="w-12 h-12 text-theme-muted opacity-40 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-theme mb-2">No forklifts found</h3>
-          <p className="text-sm text-theme-muted">
-            {searchQuery || filterType !== 'all' || filterStatus !== 'all' || filterMake !== 'all' || filterAssigned !== 'all'
-              ? 'Try adjusting your search or filters'
-              : 'Add your first forklift to get started'}
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredForklifts.map(forklift => (
-            <ForkliftCard
-              key={forklift.forklift_id}
-              forklift={forklift}
-              isSelectionMode={isSelectionMode}
-              isSelected={selectedForkliftIds.has(forklift.forklift_id)}
-              canEdit={canEditForklifts}
-              onSelect={(id, e) => toggleForkliftSelection(id, e)}
-              onClick={() => {
-                if (isSelectionMode) {
-                  const newSelected = new Set(selectedForkliftIds);
-                  if (newSelected.has(forklift.forklift_id)) newSelected.delete(forklift.forklift_id);
-                  else newSelected.add(forklift.forklift_id);
-                  setSelectedForkliftIds(newSelected);
-                } else {
-                  navigate(`/forklifts/${forklift.forklift_id}`);
-                }
-              }}
-              onEdit={(f, e) => handleEdit(f, e)}
-              onDelete={(f, e) => handleDelete(f, e)}
-              onAssign={(f, e) => handleAssign(f, e)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Modals */}
       {showAddModal && (
         <AddEditForkliftModal
           isOpen={showAddModal}
@@ -627,7 +517,6 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         />
       )}
 
-      {/* Bulk Rent Modal */}
       {showBulkRentModal && (
         <AssignForkliftModal
           isOpen={showBulkRentModal}
@@ -649,6 +538,16 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
           isProcessing={bulkProcessing}
         />
       )}
+
+      <BulkEndRentalModal
+        isOpen={showBulkEndRentalModal}
+        onClose={() => setShowBulkEndRentalModal(false)}
+        count={rentedSelectedForklifts.length}
+        endDate={bulkEndDate}
+        setEndDate={setBulkEndDate}
+        onSubmit={handleBulkEndRental}
+        isProcessing={bulkProcessing}
+      />
 
       <ResultModal
         isOpen={resultModal.show}
