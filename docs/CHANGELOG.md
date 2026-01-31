@@ -4,6 +4,46 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - ForkliftsTabs Modular Split
+
+### 🏗️ Split ForkliftsTabs.tsx into Modular Components (2026-02-02)
+- **Added:** 2026-02-02 (author: Clawdbot)
+- **Status:** ✔️ Completed
+
+The monolithic `ForkliftsTabs.tsx` (1,603 lines) has been split into a modular folder structure for better maintainability.
+
+#### New Structure:
+```
+pages/ForkliftsTabs/
+├── index.tsx                           # Re-export (9 lines)
+├── ForkliftsTabsPage.tsx               # Main container with tabs (118 lines)
+├── types.ts                            # TypeScript interfaces (52 lines)
+└── components/
+    ├── FleetTab.tsx                    # Fleet management tab (667 lines)
+    ├── ServiceIntervalsTab.tsx         # Service intervals tab (326 lines)
+    ├── ServiceDueTab.tsx               # Service due tracking tab (236 lines)
+    ├── ForkliftCard.tsx                # Reusable forklift card (159 lines)
+    ├── AddEditForkliftModal.tsx        # Add/Edit forklift modal (189 lines)
+    ├── AssignForkliftModal.tsx         # Assign/Rent modal (160 lines)
+    └── ResultModal.tsx                 # Result feedback modal (93 lines)
+```
+
+#### Key Benefits:
+- **Main file reduced from 1,603 → 118 lines** (93% reduction)
+- **Tab isolation:** Each tab is a self-contained component
+- **Reusable modals:** Modals extracted for single responsibility
+- **Shared types:** Common interfaces in dedicated types.ts
+- **Better maintainability:** Changes to one tab don't affect others
+
+#### Tabs Overview:
+- **Dashboard:** Asset overview (admin/supervisor only)
+- **Fleet:** CRUD operations for forklifts with bulk actions
+- **Service Intervals:** Configure maintenance schedules (admin only)
+- **Service Due:** Track upcoming maintenance
+- **Hourmeter Review:** Review readings (admin/supervisor only)
+
+---
+
 ## [2026-02-02] - CustomerProfile Modular Split
 
 ### 🏗️ Split CustomerProfile.tsx into Modular Components (2026-02-02)
