@@ -208,6 +208,28 @@ Confirmed by: _________________ Date: _________
 | **Docs first** | Always update CHANGELOG.md and relevant docs BEFORE asking to push |
 | **Ask to push** | Only ask "Ready to push to git?" after Jay says all is fixed and tested |
 
+### Documentation Updates (CRITICAL)
+
+**After EVERY code change, check and update ALL affected docs:**
+
+| Doc | When to Update |
+|-----|----------------|
+| `CHANGELOG.md` | Every change — features, fixes, refactors |
+| `PROJECT_STRUCTURE.md` | Architecture changes — new files, splits, folder structure, service reorganization |
+| `USER_GUIDE.md` | User-facing changes — new features, UI changes, workflow changes |
+| `DB_SCHEMA.md` | Database changes — new tables, columns, migrations |
+
+**Why this matters:**
+- Don't lose track of architecture evolution
+- New developers/AI can understand the codebase
+- Prevents knowledge gaps between code and docs
+
+**Checklist before commit:**
+- [ ] CHANGELOG updated with what changed
+- [ ] PROJECT_STRUCTURE updated if files/folders changed
+- [ ] USER_GUIDE updated if user-facing
+- [ ] DB_SCHEMA updated if database changed
+
 ### Code Standards
 
 | Rule | Details |
