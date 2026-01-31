@@ -93,6 +93,36 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - EmployeeProfilePage Further Split
+
+### 🏗️ EmployeeProfilePage.tsx Further Split (2026-02-02)
+- **Status:** ✔️ Completed
+- Further split existing `pages/EmployeeProfile/` folder, reducing main file from 493 lines to 218 lines
+
+**Main file (218 lines):**
+- `EmployeeProfilePage.tsx` — Orchestrates hooks, components, and modal handlers
+
+**New Hooks (148 lines total):**
+- `hooks/useEmployeeProfile.ts` (106 lines) — Employee loading, editing state, save logic
+- `hooks/useEmployeeModals.ts` (42 lines) — Modal visibility state management
+- `hooks/index.ts` — Barrel export
+
+**New Components:**
+- `components/ProfileHeader.tsx` (75 lines) — Navigation, title, edit/save controls
+- `components/ProfileCard.tsx` (92 lines) — Avatar and basic info grid
+- `components/ProfileTabs.tsx` (82 lines) — Tab navigation for profile sections
+- `components/ProfileStates.tsx` (64 lines) — Loading, NotSetUp, NotFound states
+
+**Existing components retained:**
+- InfoItem, InfoTab, LicensesTab, PermitsTab, LeavesTab
+- AddLicenseModal, AddPermitModal, AddLeaveModal, LeaveCalendarModal
+
+**Also fixed:** Circular re-export issues in `components/AssetDashboard.tsx` and `pages/CreateJob.tsx`
+
+**Build verified:** ✔️ `npm run build` passes
+
+---
+
 ## [2026-02-02] - TechnicianDashboard Modular Split
 
 ### 🏗️ TechnicianDashboard.tsx Modular Split (2026-02-02)
