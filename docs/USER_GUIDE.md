@@ -223,6 +223,36 @@ Enable push notifications to get instant alerts even when the app isn't open!
 - Find "Notifications" and change to "Allow"
 - Refresh the page
 
+### 📲 Telegram Notifications (NEW - 2026-01-31)
+
+Get instant notifications on Telegram! No app needed - use your existing Telegram.
+
+**How to Connect:**
+1. Go to **My Profile** (click your name in the sidebar)
+2. Scroll to the **Notifications** section
+3. Click **"Connect Telegram"**
+4. Telegram opens → tap **"Start"**
+5. Choose your language: 🇬🇧 English or 🇲🇾 Bahasa Melayu
+6. Done! You'll now receive job notifications on Telegram
+
+**What You'll Receive:**
+- 🔧 New job assignments (with Accept/Reject buttons)
+- ✅ Request approvals
+- ❌ Request rejections
+- 🚨 Escalation alerts
+- 📋 Daily reminders for pending items
+
+**Notification Preferences:**
+In the Telegram section of your profile, you can toggle which notifications you want:
+- Job Assignments
+- Job Accepted/Rejected
+- Request Status Updates
+- Escalation Alerts
+- Daily Reminders
+
+**For Admins:**
+You can view which team members have Telegram connected in the Team Status section.
+
 ### ⏰ Accepting Job Assignments (NEW - 2026-01-29)
 
 When a job is assigned to you, you have **15 minutes** to accept or reject it.

@@ -45,6 +45,7 @@ import {
   Briefcase,
 } from 'lucide-react';
 import TechnicianJobsTab from '../components/TechnicianJobsTab';
+import TelegramConnect from '../components/TelegramConnect';
 
 interface EmployeeProfileProps {
   currentUser: User;
@@ -372,12 +373,23 @@ export default function EmployeeProfile({ currentUser }: EmployeeProfileProps) {
 
         <div className="p-6">
           {activeTab === 'info' && (
-            <InfoTab
-              employee={employee}
-              editing={editing}
-              editData={editData}
-              setEditData={setEditData}
-            />
+            <>
+              <InfoTab
+                employee={employee}
+                editing={editing}
+                editData={editData}
+                setEditData={setEditData}
+              />
+              {/* Telegram Notifications - only show on own profile */}
+              {isOwnProfile && !editing && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-theme mb-3 flex items-center gap-2">
+                    <span>📱</span> Notifications
+                  </h3>
+                  <TelegramConnect currentUser={currentUser} />
+                </div>
+              )}
+            </>
           )}
 
           {activeTab === 'jobs' && isTechnician && (

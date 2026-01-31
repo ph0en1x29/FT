@@ -245,12 +245,16 @@ Waiting for client responses before proceeding with Phase 1 Quick Wins.
 - [ ] Contract Management - link forklifts to rental agreements
 - [ ] Preventive Maintenance Automation
 
-### Phase 6: External Notifications (Future)
-- [ ] **Telegram Bot Integration** (FREE - Recommended)
-  - Create FieldPro Telegram Bot
-  - Technicians link account via `/start` command
-  - Supabase Edge Function sends alerts for urgent notifications
-  - Job assignments, request approvals, escalations
+### Phase 6: External Notifications (In Progress)
+- [x] **Telegram Bot Integration** (FREE - Recommended) 🔨 IN PROGRESS
+  - [x] Bot created: @Acwer_Job_Bot
+  - [x] Database schema: `user_telegram_links`, `telegram_notification_log`
+  - [x] UI: TelegramConnect component in user profile
+  - [x] UI: TelegramTeamStatus for admin dashboard
+  - [x] Bilingual support: English + Bahasa Melayu
+  - [ ] Edge Functions (requires Supabase Pro)
+  - [ ] Database triggers for automatic notifications
+  - [ ] Accept/Reject jobs directly from Telegram
 - [ ] **WhatsApp Business API** (Paid - If customer demand)
   - Meta Business verification required
   - Per-message cost (~RM 0.05-0.15)

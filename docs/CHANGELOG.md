@@ -15,6 +15,54 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ---
 
+## [2026-01-31] - Telegram Bot Integration (Foundation)
+
+### 📱 Telegram Notifications System (2026-01-31)
+- **Added:** 2026-01-31 (author: Phoenix/Clawdbot)
+- **Status:** 🔨 In Development (awaiting Supabase Pro for Edge Functions)
+- **Bot:** @Acwer_Job_Bot
+
+#### Foundation Completed
+
+**1. Database Schema**
+- Created `user_telegram_links` table for linking FieldPro users to Telegram
+- Created `telegram_notification_log` table for audit trail
+- RLS policies for user self-management and admin visibility
+- Indexes for fast lookups
+
+**2. UI Components**
+- `TelegramConnect.tsx` — Connect/disconnect Telegram, language selection (EN/MS), notification preferences
+- `TelegramTeamStatus.tsx` — Admin view showing team connection status
+
+**3. User Profile Integration**
+- Added "Connect Telegram" button to My Profile page (EmployeeProfile.tsx)
+- Shows when viewing own profile
+- Notification preferences: job assignments, approvals, escalations, reminders
+
+**4. Features Planned (Pending Pro)**
+- Bilingual notifications (English + Bahasa Melayu)
+- Accept/Reject jobs directly from Telegram
+- Job summary in notifications
+- Edge Functions: webhook handler, notification sender, callback handler
+- Database triggers for automatic notifications
+
+#### Files Added
+- `database/migrations/20260131_telegram_integration.sql`
+- `components/TelegramConnect.tsx`
+- `components/TelegramTeamStatus.tsx`
+- `docs/TELEGRAM_BOT_PLAN.md`
+
+#### Files Modified
+- `pages/EmployeeProfile.tsx` — Added TelegramConnect to profile info tab
+
+#### Next Steps
+1. Upgrade to Supabase Pro
+2. Deploy Edge Functions (webhook, notify, callback)
+3. Configure database triggers
+4. Test with real users
+
+---
+
 ## Status Legend
 
 | Icon | Status | Meaning |
