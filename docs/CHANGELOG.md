@@ -4,6 +4,89 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - CustomerProfile Modular Split
+
+### 🏗️ Split CustomerProfile.tsx into Modular Components (2026-02-02)
+- **Added:** 2026-02-02 (author: Clawdbot)
+- **Status:** ✔️ Completed
+
+The monolithic `CustomerProfile.tsx` (1,305 lines) has been split into a modular folder structure for better maintainability.
+
+#### New Structure:
+```
+pages/CustomerProfile/
+├── index.tsx                     # Re-export (6 lines)
+├── CustomerProfilePage.tsx       # Main container (500 lines)
+├── types.ts                      # TypeScript interfaces (142 lines)
+├── components/
+│   ├── index.ts                  # Component barrel export
+│   ├── CustomerHeader.tsx        # Header with actions (86 lines)
+│   ├── CustomerKPIStrip.tsx      # KPI stats cards (37 lines)
+│   ├── RentalsSection.tsx        # Active/past rentals (169 lines)
+│   ├── ServiceHistory.tsx        # Job history tabs (175 lines)
+│   ├── InsightsSidebar.tsx       # Stats & AI insights (94 lines)
+│   ├── EditRentalModal.tsx       # Edit rental modal (112 lines)
+│   ├── BulkEndRentalModal.tsx    # Bulk end rentals (79 lines)
+│   ├── RentForkliftModal.tsx     # Rent forklift modal (185 lines)
+│   └── ResultModal.tsx           # Result/confirmation (76 lines)
+└── hooks/
+    └── useCustomerData.ts        # Data management hook (166 lines)
+```
+
+#### Key Benefits:
+- **Main file reduced from 1,305 → 500 lines** (62% reduction)
+- **Separation of concerns:** Data logic in `useCustomerData` hook, UI in components
+- **Reusable modals:** EditRentalModal, ResultModal can be used elsewhere
+- **Better type safety:** Dedicated types.ts with all interfaces
+- **Easier testing:** Each component can be unit tested independently
+
+---
+
+## [2026-02-02] - VanStockPage Modular Split
+
+### 🏗️ Split VanStockPage.tsx into Modular Components (2026-02-02)
+- **Added:** 2026-02-02 (author: Clawdbot)
+- **Status:** ✔️ Completed
+
+The monolithic `VanStockPage.tsx` (1,385 lines) has been split into a modular folder structure for better maintainability.
+
+#### New Structure:
+```
+pages/VanStockPage/
+├── index.tsx                     # Re-export (6 lines)
+├── VanStockPageMain.tsx          # Main container (444 lines)
+├── types.ts                      # TypeScript interfaces (68 lines)
+├── components/
+│   ├── index.ts                  # Component barrel export
+│   ├── VanStockHeader.tsx        # Page header (58 lines)
+│   ├── VanStockStats.tsx         # Stats cards (105 lines)
+│   ├── VanStockFilters.tsx       # Search/filter bar (59 lines)
+│   ├── VanStockCard.tsx          # Van stock card (106 lines)
+│   ├── VanStockGrid.tsx          # Grid container (55 lines)
+│   └── modals/
+│       ├── index.ts              # Modal barrel export
+│       ├── VanStockDetailModal.tsx   # Detail view (297 lines)
+│       ├── AssignVanStockModal.tsx   # Assign modal (121 lines)
+│       ├── AddItemModal.tsx          # Add item modal (135 lines)
+│       ├── EditVanStockModal.tsx     # Edit modal (138 lines)
+│       ├── DeleteConfirmModal.tsx    # Delete confirm (86 lines)
+│       └── TransferItemsModal.tsx    # Transfer modal (136 lines)
+└── hooks/
+    └── useVanStockData.ts        # Data management hook (137 lines)
+```
+
+#### Key Benefits:
+- **Main file reduced from 1,385 → 444 lines** (68% reduction)
+- **Separation of concerns:** Data logic in hook, UI in components
+- **Reusable components:** Modals can be used elsewhere
+- **Easier testing:** Each component can be unit tested independently
+- **Better code navigation:** Find specific functionality quickly
+
+#### Also Fixed:
+- **Types namespace conflict:** Removed duplicate `EmploymentStatus` re-export from `hr.types.ts` that caused build errors
+
+---
+
 ## [2026-02-02] - Types Refactoring
 
 ### 🏗️ Split types/index.ts into Domain-Specific Files (2026-02-02)
