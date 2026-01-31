@@ -47,6 +47,16 @@ All notable changes, decisions, and client requirements for this project.
 - Main file: 138 lines
 - Components: OverviewTab, UsersTab, EmployeesTab, LeaveTab
 
+### 🏗️ ServiceRecords.tsx Modular Split (2026-01-31)
+- **Status:** ✔️ Completed
+- Split 619 lines into folder structure
+- Main file: 142 lines (goal was under 300)
+- Components:
+  - `ServiceReportPDF.ts` — PDF generation (298 lines)
+  - `ServiceRecordsFilters.tsx` — Search/filter UI (120 lines)
+  - `ServiceRecordsTable.tsx` — Data table (127 lines)
+  - `ServiceRecordsLoading.tsx` — Skeleton state (51 lines)
+
 ### 🏗️ ForkliftProfile.tsx Modular Split (2026-01-31)
 - **Status:** ✔️ Completed
 - Split 988 lines into folder structure
