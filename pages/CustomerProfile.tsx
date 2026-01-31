@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Customer, Job, User, UserRole, ForkliftRental, Forklift, ForkliftServiceEntry } from '../types';
+import { Customer, Job, User, UserRole, ForkliftRental, Forklift, ForkliftServiceEntry, JobPartUsed, ExtraCharge } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { generateCustomerAnalysis } from '../services/geminiService';
 import { showToast } from '../services/toastService';
@@ -105,7 +105,7 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   const loadAvailableForklifts = async () => {
     try {
       const forkliftsWithCustomers = await MockDb.getForkliftsWithCustomers();
-      const available = forkliftsWithCustomers.filter(f => !(f as any).current_customer_id);
+      const available = forkliftsWithCustomers.filter(f => !f.current_customer_id);
       setAvailableForklifts(available);
     } catch (error) {
       console.error('Error loading available forklifts:', error);
@@ -273,7 +273,7 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
     setEditStartDate(rental.start_date);
     setEditEndDate(rental.end_date || '');
     setEditNotes(rental.notes || '');
-    setEditMonthlyRate((rental as any).monthly_rental_rate?.toString() || '0');
+    setEditMonthlyRate(rental.monthly_rental_rate?.toString() || '0');
   };
 
   const handleSaveRentalEdit = async () => {
@@ -413,14 +413,14 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   // Calculate stats (use activeJobs to exclude cancelled jobs from metrics)
   const totalJobs = activeJobs.length;
   const totalServiceRevenue = activeJobs.reduce((acc, job) => {
-    const partsCost = (job.parts_used || []).reduce((sum: number, p: any) => sum + (p.sell_price_at_time * p.quantity), 0);
+    const partsCost = (job.parts_used || []).reduce((sum: number, p: JobPartUsed) => sum + (p.sell_price_at_time * p.quantity), 0);
     const laborCost = job.labor_cost || 150;
-    const extraChargesCost = (job.extra_charges || []).reduce((sum: number, c: any) => sum + c.amount, 0);
+    const extraChargesCost = (job.extra_charges || []).reduce((sum: number, c: ExtraCharge) => sum + c.amount, 0);
     return acc + partsCost + laborCost + extraChargesCost;
   }, 0);
   
   const totalRentalRevenue = rentals.reduce((acc, rental) => {
-    const monthlyRate = (rental as any).monthly_rental_rate || 0;
+    const monthlyRate = rental.monthly_rental_rate || 0;
     if (monthlyRate <= 0) return acc;
     
     const start = new Date(rental.start_date);
@@ -670,9 +670,9 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ currentUser }) => {
                               <span className="text-slate-400">→ {new Date(rental.end_date).toLocaleDateString()}</span>
                             )}
                           </div>
-                          {isActive && (rental as any).monthly_rental_rate > 0 && (
+                          {isActive && (rental.monthly_rental_rate || 0) > 0 && (
                             <div className="mt-1.5 text-xs font-medium text-green-700">
-                              RM{((rental as any).monthly_rental_rate).toLocaleString()}/mo
+                              RM{(rental.monthly_rental_rate || 0).toLocaleString()}/mo
                             </div>
                           )}
                         </div>

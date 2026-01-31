@@ -21,8 +21,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     try {
       const user = await MockDb.login(email, password);
       onLogin(user);
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }

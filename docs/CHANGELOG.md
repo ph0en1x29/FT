@@ -15,6 +15,52 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ---
 
+## [2026-01-31] - TypeScript & UI Consistency Improvements
+
+### 🛠️ Code Quality & Loading States (2026-01-31)
+- **Added:** 2026-01-31 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed
+
+#### TypeScript Improvements
+
+**1. Removed `any` types across pages**
+- Fixed 20+ usages of `: any` and `as any` in pages
+- Replaced with proper types or type guards
+- Improved type safety in error handling (using `error instanceof Error`)
+
+**2. Files Updated:**
+- `ServiceRecords.tsx` — Fixed `currentUser: any` to `User` type
+- `CustomerProfile.tsx` — Removed unnecessary casts, added `JobPartUsed` and `ExtraCharge` types
+- `People.tsx` — Fixed error handling in async functions
+- `PrototypeDashboards.tsx` — Fixed error handling
+- `LoginPage.tsx` — Fixed error type in catch block
+- `ForkliftsTabs.tsx` — Removed unnecessary `as any` casts for Forklift properties
+- `ServiceDue.tsx` — Fixed filter type initialization and error handling
+- `JobDetail.tsx` — Fixed error handling, replaced `any` with `Partial<JobMedia>`
+
+#### Skeleton Loading Components
+
+**1. New Component: `components/Skeleton.tsx`**
+- `Skeleton` — Base skeleton with configurable width/height/circle
+- `SkeletonText` — Multi-line text placeholder
+- `SkeletonCard` — Card placeholder with avatar and text
+- `SkeletonTableRow` — Table row placeholder
+- `SkeletonListItem` — List item placeholder
+- `SkeletonGrid` — Grid of skeleton cards
+- `SkeletonStats` — Stat cards placeholder
+
+**2. Pages Updated with Skeleton Loading:**
+- `ServiceRecords.tsx` — Table skeleton while loading
+- `Customers.tsx` — Grid skeleton while loading
+- `InventoryPage.tsx` — Stats and table skeleton while loading
+
+#### Impact
+- Improved type safety reduces runtime errors
+- Better loading UX with visual placeholders
+- Consistent patterns across pages
+
+---
+
 ## [2026-01-31] - Security Fixes (Supabase Linter)
 
 ### 🔒 Security Improvements (2026-01-31)

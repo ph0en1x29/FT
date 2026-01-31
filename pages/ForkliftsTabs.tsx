@@ -256,13 +256,13 @@ const FleetTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
         forklift.make.toLowerCase().includes(searchLower) ||
         forklift.model.toLowerCase().includes(searchLower) ||
         (forklift.location || '').toLowerCase().includes(searchLower) ||
-        ((forklift as any).current_customer?.name || '').toLowerCase().includes(searchLower);
+        (forklift.current_customer?.name || '').toLowerCase().includes(searchLower);
 
       const matchesType = filterType === 'all' || forklift.type === filterType;
       const matchesStatus = filterStatus === 'all' || forklift.status === filterStatus;
       const matchesMake = filterMake === 'all' || forklift.make === filterMake;
       
-      const hasCustomer = !!(forklift as any).current_customer_id;
+      const hasCustomer = !!forklift.current_customer_id;
       const matchesAssigned = filterAssigned === 'all' || 
         (filterAssigned === 'assigned' && hasCustomer) ||
         (filterAssigned === 'unassigned' && !hasCustomer);
@@ -277,11 +277,11 @@ const FleetTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   }, [filteredForklifts, selectedForkliftIds]);
 
   const availableSelectedForklifts = useMemo(() => {
-    return selectedForklifts.filter(f => !(f as any).current_customer_id);
+    return selectedForklifts.filter(f => !f.current_customer_id);
   }, [selectedForklifts]);
 
   const rentedSelectedForklifts = useMemo(() => {
-    return selectedForklifts.filter(f => !!(f as any).current_customer_id);
+    return selectedForklifts.filter(f => !!f.current_customer_id);
   }, [selectedForklifts]);
 
   const resetForm = () => {
@@ -735,7 +735,7 @@ const FleetTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredForklifts.map(forklift => {
-            const currentCustomer = (forklift as any).current_customer;
+            const currentCustomer = forklift.current_customer;
             const isSelected = selectedForkliftIds.has(forklift.forklift_id);
             
             return (
@@ -1419,8 +1419,8 @@ const ServiceDueTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       setLastResult(`Created ${result.jobs_created} jobs, ${result.notifications_created} notifications`);
       showToast.success(`Created ${result.jobs_created} jobs`);
       await loadData();
-    } catch (e: any) {
-      setLastResult(`Error: ${e.message}`);
+    } catch (e) {
+      setLastResult(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
       showToast.error('Daily service check failed');
     } finally {
       setRunning(false);

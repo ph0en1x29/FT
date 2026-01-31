@@ -11,6 +11,7 @@ import {
 import VanStockPage from './VanStockPage';
 import PendingConfirmations from './PendingConfirmations';
 import { useDevModeContext } from '../contexts/DevModeContext';
+import { Skeleton, SkeletonTableRow, SkeletonStats } from '../components/Skeleton';
 
 interface InventoryPageProps {
   currentUser: User;
@@ -387,8 +388,28 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ currentUser }) => {
 
           {/* Parts List */}
           {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-slate-500">Loading inventory...</div>
+            <div className="space-y-4">
+              <SkeletonStats count={4} />
+              <div className="card-theme rounded-xl overflow-hidden theme-transition">
+                <div className="bg-theme-surface-2 px-4 py-3 border-b border-theme">
+                  <Skeleton width={120} height={20} className="mb-1" />
+                  <Skeleton width={80} height={14} />
+                </div>
+                <table className="w-full">
+                  <thead className="bg-theme-surface-2">
+                    <tr>
+                      {['Code', 'Name', 'Cost', 'Sell', 'Warranty', 'Stock', 'Actions'].map((h) => (
+                        <th key={h} className="px-4 py-3 text-left text-xs text-theme-muted">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <SkeletonTableRow key={i} columns={7} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : Object.keys(groupedParts).length === 0 ? (
             <div className="card-theme rounded-xl p-12 text-center theme-transition">

@@ -27,10 +27,14 @@ const ServiceDue: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialFilter = searchParams.get('filter') || 'all';
+  const validFilters = ['all', 'overdue', 'due_soon', 'job_created'] as const;
+  type FilterType = typeof validFilters[number];
   
   const [loading, setLoading] = useState(true);
   const [dueForklifts, setDueForklifts] = useState<ForkliftDue[]>([]);
-  const [filter, setFilter] = useState<'all' | 'overdue' | 'due_soon' | 'job_created'>(initialFilter as any);
+  const [filter, setFilter] = useState<FilterType>(
+    validFilters.includes(initialFilter as FilterType) ? initialFilter as FilterType : 'all'
+  );
   const [running, setRunning] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
 
@@ -60,8 +64,8 @@ const ServiceDue: React.FC = () => {
       setLastResult(`Created ${result.jobs_created} jobs, ${result.notifications_created} notifications`);
       showToast.success(`Created ${result.jobs_created} jobs`);
       await loadData();
-    } catch (e: any) {
-      setLastResult(`Error: ${e.message}`);
+    } catch (e) {
+      setLastResult(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
       showToast.error('Daily service check failed');
     } finally {
       setRunning(false);

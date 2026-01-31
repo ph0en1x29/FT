@@ -4,6 +4,7 @@ import { Customer } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
 import { MapPin, Phone, Mail, Users, Search, Eye, Plus, X } from 'lucide-react';
+import { SkeletonGrid, Skeleton } from '../components/Skeleton';
 
 const Customers: React.FC = () => {
   const navigate = useNavigate();
@@ -115,7 +116,7 @@ const Customers: React.FC = () => {
 
       {/* Customers Grid */}
       {loading ? (
-        <div className="text-center py-12 text-theme-muted">Loading customers...</div>
+        <SkeletonGrid count={6} columns={3} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCustomers.map(customer => (

@@ -33,8 +33,8 @@ const DashboardV4: React.FC<DashboardV4Props> = ({ currentUser }) => {
         ]);
         setJobs(jobsData);
         setUsers(usersData);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
       } finally {
         setLoading(false);
       }
@@ -50,7 +50,7 @@ const DashboardV4: React.FC<DashboardV4Props> = ({ currentUser }) => {
       ]);
       setJobs(jobsData);
       setUsers(usersData);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Refresh failed:', err);
     }
   };

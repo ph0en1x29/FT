@@ -513,7 +513,7 @@ const UsersTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     try {
       const data = await MockDb.getUsers();
       setUsers(data);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading users:', error);
       showToast.error('Failed to load users');
     } finally {
@@ -565,8 +565,8 @@ const UsersTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       }
       setIsModalOpen(false);
       loadUsers();
-    } catch (error: any) {
-      showToast.error('Failed to save user', error.message);
+    } catch (error) {
+      showToast.error('Failed to save user', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
@@ -576,7 +576,8 @@ const UsersTab: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       await MockDb.updateUser(confirmModal.user.user_id, { is_active: !confirmModal.user.is_active });
       showToast.success(`User ${confirmModal.action}d successfully`);
       loadUsers();
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Error updating user status:', error);
       showToast.error('Failed to update user status');
     } finally {
       setConfirmModal({ isOpen: false, user: null, action: 'deactivate' });

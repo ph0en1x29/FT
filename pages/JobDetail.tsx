@@ -861,8 +861,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
         setEditingHourmeter(false);
         setHourmeterInput('');
         showToast.warning('Hourmeter saved with flags', 'This reading has been flagged for review. Consider requesting an amendment.');
-      } catch (e: any) {
-        showToast.error(e.message || 'Could not update hourmeter');
+      } catch (e) {
+        showToast.error(e instanceof Error ? e.message : 'Could not update hourmeter');
       }
       return;
     }
@@ -878,8 +878,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       setHourmeterInput('');
       setHourmeterFlagReasons([]);
       showToast.success('Hourmeter updated');
-    } catch (e: any) {
-      showToast.error(e.message || 'Could not update hourmeter');
+    } catch (e) {
+      showToast.error(e instanceof Error ? e.message : 'Could not update hourmeter');
     }
   };
   const handleCancelHourmeterEdit = () => { setEditingHourmeter(false); setHourmeterInput(''); };
@@ -1024,8 +1024,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     try {
       await MockDb.createAutoCountExport(job.job_id, currentUserId, currentUserName);
       showToast.success('Export created', 'Invoice queued for AutoCount export');
-    } catch (e: any) {
-      showToast.error('Export failed', e.message);
+    } catch (e) {
+      showToast.error('Export failed', e instanceof Error ? e.message : 'Unknown error');
     }
     setExportingToAutoCount(false);
   };
@@ -1126,7 +1126,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
         const base64Data = reader.result as string;
         const photoUrl = await uploadPhotoToStorage(base64Data, job.job_id);
 
-        const mediaData: any = {
+        const mediaData: Partial<JobMedia> = {
           type: 'photo',
           url: photoUrl, // Now a CDN URL (or fallback to base64 if storage fails)
           description: file.name,
@@ -1286,7 +1286,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       showToast.success('Photos downloaded', `${photosToDownload.length} photos`);
-    } catch (e: any) { console.error('Failed to download photos:', e); showToast.error('Download failed', e.message); }
+    } catch (e) { console.error('Failed to download photos:', e); showToast.error('Download failed', e instanceof Error ? e.message : 'Unknown error'); }
     finally { setDownloadingPhotos(false); }
   };
 
@@ -3004,7 +3004,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
               <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">Evidence Photos * (min 1)</label>
               {jobMedia.length > 0 ? (
                 <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto p-2 bg-[var(--bg-subtle)] rounded-xl">
-                  {jobMedia.map((media: any) => (
+                  {jobMedia.map((media) => (
                     <div key={media.media_id} onClick={() => setSelectedEvidenceIds(prev => prev.includes(media.media_id) ? prev.filter(id => id !== media.media_id) : [...prev, media.media_id])}
                       className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedEvidenceIds.includes(media.media_id) ? 'border-[var(--warning)] ring-2 ring-[var(--warning)]/30' : 'border-transparent hover:border-[var(--warning)]/50'}`}>
                       <img src={media.url} loading="lazy" decoding="async" alt="Evidence" className="w-full h-14 object-cover" />
