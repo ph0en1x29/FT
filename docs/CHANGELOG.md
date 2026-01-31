@@ -4,6 +4,50 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - Types Refactoring
+
+### 🏗️ Split types/index.ts into Domain-Specific Files (2026-02-02)
+- **Added:** 2026-02-02 (author: Clawdbot)
+- **Status:** ✔️ Completed
+
+The monolithic `types/index.ts` (1,898 lines) has been split into focused domain files for better maintainability.
+
+#### New Structure:
+```
+types/
+├── index.ts              # Barrel export (re-exports everything)
+├── common.types.ts       # Shared/utility types (ChecklistItemState, SignatureEntry, etc.)
+├── user.types.ts         # User, UserRole, RolePermissions, ROLE_PERMISSIONS
+├── customer.types.ts     # Customer, CustomerAcknowledgement, CustomerFinancialSummary
+├── forklift.types.ts     # Forklift, ForkliftRental, ServiceInterval, FleetDashboardMetrics
+├── inventory.types.ts    # Part, VanStock, VanStockItem, Replenishment, Audit types
+├── job.types.ts          # Job, JobStatus, JobType, JobMedia, Hourmeter, KPI types
+├── notification.types.ts # NotificationType, Notification
+├── hr.types.ts           # Leave, License, Permit, HRAlert types
+└── integration.types.ts  # AutoCount export/mapping types
+```
+
+#### Key Benefits:
+- **Better Organization:** Types grouped by domain (job, forklift, HR, etc.)
+- **Easier Navigation:** Find types faster in smaller, focused files
+- **Reduced Conflicts:** Multiple developers can work on different domains
+- **Backward Compatible:** All imports via `types/` still work
+
+#### File Sizes:
+| File | Lines | Domain |
+|------|-------|--------|
+| job.types.ts | ~650 | Jobs, requests, media, hourmeter, KPIs |
+| user.types.ts | ~270 | Users, roles, permissions |
+| forklift.types.ts | ~250 | Forklifts, rentals, fleet metrics |
+| inventory.types.ts | ~220 | Parts, Van Stock system |
+| hr.types.ts | ~200 | HR, licenses, permits, leave |
+| notification.types.ts | ~70 | Notifications |
+| customer.types.ts | ~50 | Customers |
+| common.types.ts | ~60 | Shared utilities |
+| integration.types.ts | ~100 | AutoCount |
+
+---
+
 ## [2026-02-02] - JobDetail Component Refactoring
 
 ### 🏗️ Split JobDetail.tsx into Modular Components (2026-02-02)
