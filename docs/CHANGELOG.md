@@ -4,6 +4,33 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - AssetDashboard Modular Split
+
+### 🏗️ AssetDashboard.tsx Modular Split (2026-02-02)
+- **Status:** ✔️ Completed
+- Split 669 lines into `components/AssetDashboard/` folder structure
+
+**Main file (103 lines):**
+- `AssetDashboard.tsx` — Orchestrates dashboard with header, cards, search, and table
+
+**Hooks (203 lines):**
+- `hooks/useAssetDashboard.ts` — Data loading, state management, filtering, pagination logic
+
+**Components:**
+- `components/StatusCard.tsx` (112 lines) — Individual status cards + StatusCardGrid
+- `components/MetricsBar.tsx` (27 lines) — Jobs completed and avg duration display
+- `components/SearchBar.tsx` (55 lines) — Search input + ResultsCount
+- `components/ForkliftTable.tsx` (166 lines) — Forklift list with pagination controls
+
+**Supporting files:**
+- `types.ts` (76 lines) — TypeScript interfaces for forklifts, status, metrics
+- `constants.ts` (67 lines) — STATUS_CONFIG with colors/icons/labels
+- `index.tsx` — Re-exports with full type/hook/component exports
+
+**Backward compatibility:** Original `components/AssetDashboard.tsx` re-exports default
+
+---
+
 ## [2026-02-02] - CreateJob Modular Split
 
 ### 🏗️ CreateJob.tsx Modular Split (2026-02-02)
