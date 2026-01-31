@@ -8,7 +8,7 @@ import { InfoTabProps } from '../types';
  * Shows address, emergency contact, and notes in view mode
  * Provides form inputs for editing all employee details
  */
-export default function InfoTab({
+export function InfoTab({
   employee,
   editing,
   editData,

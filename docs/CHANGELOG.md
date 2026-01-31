@@ -4,6 +4,31 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - CreateJob Modular Split
+
+### 🏗️ CreateJob.tsx Modular Split (2026-02-02)
+- **Status:** ✔️ Completed
+- Split 419 lines into `pages/CreateJob/` folder structure
+
+**Main file (168 lines):**
+- `CreateJobPage.tsx` — Main form component with comboboxes and form submission
+
+**Hooks (173 lines):**
+- `hooks/useCreateJobForm.ts` — Form state, prefilled data handling, submission logic, customer creation
+
+**Components:**
+- `components/NewCustomerModal.tsx` (113 lines) — Inline new customer creation modal
+- `components/ForkliftSelectionSection.tsx` (92 lines) — Equipment selection with hourmeter input
+
+**Supporting files:**
+- `types.ts` (36 lines) — TypeScript interfaces for form data and props
+- `constants.ts` (7 lines) — Shared input/select styling constants
+- `index.tsx` — Re-export for backward compatibility
+
+**Backward compatibility:** Original `pages/CreateJob.tsx` deleted; folder's index.tsx serves as entry point
+
+---
+
 ## [2026-02-01] - MyVanStock Modular Split
 
 ### 🏗️ MyVanStock.tsx Modular Split (2026-02-01)

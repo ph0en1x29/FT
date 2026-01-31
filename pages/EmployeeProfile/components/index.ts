@@ -7,12 +7,12 @@ export { ProfileTabs } from './ProfileTabs';
 export { LoadingState, ProfileNotSetUp, EmployeeNotFound } from './ProfileStates';
 
 // Tab components
-export { LicensesTab } from './LicensesTab';
-export { PermitsTab } from './PermitsTab';
-export { LeavesTab } from './LeavesTab';
+export { default as LicensesTab } from './LicensesTab';
+export { default as PermitsTab } from './PermitsTab';
+export { default as LeavesTab } from './LeavesTab';
 
 // Modal components
-export { AddLicenseModal } from './AddLicenseModal';
-export { AddPermitModal } from './AddPermitModal';
-export { AddLeaveModal } from './AddLeaveModal';
-export { LeaveCalendarModal } from './LeaveCalendarModal';
+export { default as AddLicenseModal } from './AddLicenseModal';
+export { default as AddPermitModal } from './AddPermitModal';
+export { default as AddLeaveModal } from './AddLeaveModal';
+export { default as LeaveCalendarModal } from './LeaveCalendarModal';
