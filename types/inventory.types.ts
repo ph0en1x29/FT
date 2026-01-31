@@ -109,6 +109,10 @@ export interface VanStockUsage {
   approved_at?: string;
   approval_status: 'pending' | 'approved' | 'rejected';
   rejection_reason?: string;
+
+  // Relations (populated on fetch)
+  van_stock_item?: VanStockItem;
+  job?: { job_id: string; title: string };
 }
 
 // Replenishment request status

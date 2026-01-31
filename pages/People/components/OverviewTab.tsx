@@ -323,7 +323,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ currentUser, onNavigate }) =>
                     <UserIcon className="w-4 h-4 text-slate-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-theme">{(leave as any).user?.full_name || (leave as any).user?.name || 'Unknown'}</p>
+                    <p className="text-sm font-medium text-theme">{leave.user?.full_name || leave.user?.name || 'Unknown'}</p>
                     <p className="text-xs text-theme-muted">
                       {new Date(leave.start_date).toLocaleDateString()} - {new Date(leave.end_date).toLocaleDateString()}
                     </p>

@@ -346,9 +346,9 @@ export const createJob = async (jobData: Partial<Job>, createdById?: string, cre
   if (error) throw new Error(error.message);
   
   const job = data as Job;
-  (job as any).parts_used = (job as any).parts_used ?? [];
-  (job as any).media = (job as any).media ?? [];
-  (job as any).extra_charges = (job as any).extra_charges ?? [];
+  job.parts_used = job.parts_used ?? [];
+  job.media = job.media ?? [];
+  job.extra_charges = job.extra_charges ?? [];
   
   if (jobData.assigned_technician_id) {
     await notifyJobAssignment(jobData.assigned_technician_id, job);
@@ -358,7 +358,8 @@ export const createJob = async (jobData: Partial<Job>, createdById?: string, cre
 };
 
 export const updateJob = async (jobId: string, updates: Partial<Job>): Promise<Job> => {
-  const { customer, forklift, parts_used, media, extra_charges, ...safeUpdates } = updates as any;
+  // Destructure to remove relations that shouldn't be sent to database
+  const { customer, forklift, parts_used, media, extra_charges, ...safeUpdates } = updates;
 
   const { data, error } = await supabase
     .from('jobs')
@@ -448,7 +449,7 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
     }
   }
   
-  const updates: any = { status };
+  const updates: Partial<Job> = { status };
   const now = new Date().toISOString();
 
   // Set timestamps based on status

@@ -34,7 +34,7 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser }
       try {
         const vanStock = await MockDb.getVanStockByTechnician(currentUser.user_id);
         if (vanStock && vanStock.items) {
-          const lowItems = vanStock.items.filter((item: any) =>
+          const lowItems = vanStock.items.filter((item) =>
             item.quantity <= (item.min_quantity || 2)
           );
           setVanStockLow(lowItems.length);
@@ -42,7 +42,7 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser }
       } catch (e) {
         // Van stock might not be set up
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       showToast.error('Failed to load data');
     } finally {
       setLoading(false);

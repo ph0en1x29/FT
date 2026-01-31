@@ -163,10 +163,10 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilte
               {displayLeaves.map(leave => (
                 <tr key={leave.leave_id} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-900">{(leave as any).user?.full_name || (leave as any).user?.name || 'Unknown'}</p>
+                    <p className="font-medium text-slate-900">{leave.user?.full_name || leave.user?.name || 'Unknown'}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm capitalize">{(leave.leave_type as any)?.name?.replace('_', ' ') || 'Unknown'}</span>
+                    <span className="text-sm capitalize">{leave.leave_type?.name?.replace('_', ' ') || 'Unknown'}</span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-sm">

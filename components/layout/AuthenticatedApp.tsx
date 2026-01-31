@@ -20,7 +20,8 @@ import { QueryProvider } from '../../contexts/QueryProvider';
 import {
   LayoutDashboard, List, Package, LogOut,
   Building2, Truck, FileText, Menu, X, User as UserIcon,
-  CalendarDays, ChevronLeft, Zap, Loader2, Users
+  CalendarDays, ChevronLeft, Zap, Loader2, Users,
+  type LucideIcon
 } from 'lucide-react';
 
 // Lazy load all pages
@@ -151,7 +152,7 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed, navRole }
   const canViewOwnProfile = hasPermission('canViewOwnProfile');
   const canViewTeam = canManageUsers || canViewHR || hasPermission('canViewKPI');
 
-  const NavItem = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => (
+  const NavItem = ({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) => (
     <Link
       to={to}
       className={`nav-item relative flex items-center gap-3 px-3 py-2.5 ${isActive(to) ? 'nav-item-active' : 'text-slate-400 hover:text-slate-200'}`}
@@ -247,7 +248,7 @@ const MobileNav = ({ currentUser, onOpenDrawer, navRole }: { currentUser: User; 
   const canViewForklifts = hasPermission('canViewForklifts');
   const canViewCustomers = hasPermission('canViewCustomers');
 
-  const NavIcon = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => (
+  const NavIcon = ({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) => (
     <Link to={to} className={`flex flex-col items-center gap-0.5 p-2 rounded-xl ${isActive(to) ? 'text-blue-600' : 'text-slate-400'}`}>
       <Icon className="w-6 h-6" />
       <span className="text-[10px] font-medium">{label}</span>
@@ -279,7 +280,7 @@ const MobileDrawer = ({ currentUser, isOpen, onClose, onLogout, navRole }: { cur
 
   if (!isOpen) return null;
 
-  const DrawerLink = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => (
+  const DrawerLink = ({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) => (
     <Link to={to} onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700/50 transition">
       <Icon className="w-5 h-5 text-slate-400" />
       {label}

@@ -29,7 +29,7 @@ const AccountantDashboard: React.FC<AccountantDashboardProps> = ({ currentUser }
     try {
       const jobsData = await MockDb.getJobs(currentUser);
       setJobs(jobsData || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       showToast.error('Failed to load data');
     } finally {
       setLoading(false);

@@ -383,17 +383,17 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
                     <tr key={usage.usage_id} className="hover:bg-theme-surface-2">
                       <td className="p-3">
                         <div className="font-medium text-theme">
-                          {(usage as any).van_stock_item?.part?.part_name || 'Unknown'}
+                          {usage.van_stock_item?.part?.part_name || 'Unknown'}
                         </div>
                         <div className="text-xs text-theme-muted">
-                          {(usage as any).van_stock_item?.part?.part_code}
+                          {usage.van_stock_item?.part?.part_code}
                         </div>
                       </td>
                       <td className="p-3 text-center font-medium text-theme">
                         {usage.quantity_used}
                       </td>
                       <td className="p-3">
-                        <span className="text-theme">{(usage as any).job?.title || usage.job_id}</span>
+                        <span className="text-theme">{usage.job?.title || usage.job_id}</span>
                       </td>
                       <td className="p-3 text-theme-muted">
                         {new Date(usage.used_at).toLocaleDateString()}

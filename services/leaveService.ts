@@ -188,7 +188,7 @@ export const LeaveService = {
     const leaveRequest = data as EmployeeLeave;
 
     try {
-      const leaveTypeName = (leaveRequest.leave_type as any)?.name || 'Leave';
+      const leaveTypeName = leaveRequest.leave_type?.name || 'Leave';
       const startDate = new Date(leaveRequest.start_date).toLocaleDateString();
       const endDate = new Date(leaveRequest.end_date).toLocaleDateString();
       const dateRange =
@@ -241,7 +241,7 @@ export const LeaveService = {
     const leaveRequest = data as EmployeeLeave;
 
     try {
-      const leaveTypeName = (leaveRequest.leave_type as any)?.name || 'Leave';
+      const leaveTypeName = leaveRequest.leave_type?.name || 'Leave';
       const startDate = new Date(leaveRequest.start_date).toLocaleDateString();
       const endDate = new Date(leaveRequest.end_date).toLocaleDateString();
       const dateRange =
@@ -304,7 +304,7 @@ export const LeaveService = {
 
     if (error) throw new Error(error.message);
 
-    return (data || []).map((balance: any) => ({
+    return (data || []).map((balance: EmployeeLeaveBalance) => ({
       ...balance,
       available_days:
         balance.entitled_days +

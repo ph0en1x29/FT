@@ -5,14 +5,19 @@
  */
 
 import { supabase } from './supabaseClient';
-import type { Job } from '../types';
+import type { Job, ForkliftConditionChecklist } from '../types';
 import { JobStatus as JobStatusEnum } from '../types';
+
+// Type for forklift hourmeter query result
+interface ForkliftHourmeterRow {
+  hourmeter?: number;
+}
 
 // =====================
 // JOB CONDITION & CHECKLIST
 // =====================
 
-export const updateJobConditionChecklist = async (jobId: string, checklist: any): Promise<Job> => {
+export const updateJobConditionChecklist = async (jobId: string, checklist: ForkliftConditionChecklist): Promise<Job> => {
   const { data, error } = await supabase
     .from('jobs')
     .update({ condition_checklist: checklist })
@@ -60,7 +65,7 @@ export const updateJobCarriedOut = async (jobId: string, jobCarriedOut: string, 
   return data as Job;
 };
 
-export const updateConditionChecklist = async (jobId: string, checklist: any, userId?: string): Promise<Job> => {
+export const updateConditionChecklist = async (jobId: string, checklist: ForkliftConditionChecklist, userId?: string): Promise<Job> => {
   const { data, error } = await supabase
     .from('jobs')
     .update({ condition_checklist: checklist })
@@ -112,7 +117,7 @@ export const getJobServiceRecord = async (jobId: string): Promise<any> => {
 };
 
 export const updateJobRepairTimes = async (jobId: string, startTime?: string, endTime?: string): Promise<Job> => {
-  const updates: any = {};
+  const updates: Partial<Job> = {};
   if (startTime) updates.repair_start_time = startTime;
   if (endTime) updates.repair_end_time = endTime;
 
@@ -137,7 +142,7 @@ export const updateJobRepairTimes = async (jobId: string, startTime?: string, en
 export const startJobWithCondition = async (
   jobId: string, 
   hourmeterReading: number, 
-  checklist: any,
+  checklist: ForkliftConditionChecklist,
   startedById?: string,
   startedByName?: string
 ): Promise<Job> => {
@@ -151,7 +156,7 @@ export const startJobWithCondition = async (
   
   if (fetchError) throw new Error(fetchError.message);
   
-  const currentHourmeter = (jobData?.forklift as any)?.hourmeter || 0;
+  const currentHourmeter = (jobData?.forklift as ForkliftHourmeterRow | null)?.hourmeter || 0;
   if (hourmeterReading < currentHourmeter) {
     throw new Error(`Hourmeter reading (${hourmeterReading}) cannot be less than forklift's current reading (${currentHourmeter})`);
   }
