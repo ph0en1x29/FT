@@ -4,6 +4,53 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - EmployeeProfile Modular Split
+
+### 🏗️ Split EmployeeProfile.tsx into Modular Components (2026-02-02)
+- **Added:** 2026-02-02 (author: Clawdbot)
+- **Status:** ✔️ Completed
+
+The monolithic `EmployeeProfile.tsx` (2,632 lines) has been split into a modular folder structure following the JobDetail pattern.
+
+#### New Structure:
+```
+pages/EmployeeProfile/
+├── index.tsx                           # Re-export (6 lines)
+├── EmployeeProfilePage.tsx             # Main container (496 lines)
+├── types.ts                            # TypeScript interfaces (109 lines)
+└── components/
+    ├── index.ts                        # Barrel exports (12 lines)
+    ├── InfoItem.tsx                    # Reusable info display (20 lines)
+    ├── InfoTab.tsx                     # Personal info tab (238 lines)
+    ├── LicensesTab.tsx                 # Driving licenses tab (198 lines)
+    ├── PermitsTab.tsx                  # Special permits tab (207 lines)
+    ├── LeavesTab.tsx                   # Leave history tab (314 lines)
+    ├── AddLicenseModal.tsx             # Add license modal (317 lines)
+    ├── AddPermitModal.tsx              # Add permit modal (305 lines)
+    ├── AddLeaveModal.tsx               # Request leave modal (351 lines)
+    └── LeaveCalendarModal.tsx          # Leave calendar view (229 lines)
+```
+
+#### Key Benefits:
+- **Main file reduced from 2,632 → 496 lines** (81% reduction)
+- **9 components extracted** for single responsibility
+- **Typed props:** All components use typed interfaces from types.ts
+- **Barrel exports:** Clean imports via components/index.ts
+- **Backward compatible:** Import path unchanged due to index.tsx re-export
+
+#### Components Overview:
+- **InfoItem:** Reusable icon + label + value display
+- **InfoTab:** View/edit employee personal information
+- **LicensesTab:** Manage driving licenses with expiry alerts
+- **PermitsTab:** Manage special permits with area restrictions
+- **LeavesTab:** View/approve/reject leave requests
+- **AddLicenseModal:** Form for adding licenses with image upload
+- **AddPermitModal:** Form for adding permits with document upload
+- **AddLeaveModal:** Leave request form with half-day support
+- **LeaveCalendarModal:** Visual calendar of employee leaves
+
+---
+
 ## [2026-02-02] - ForkliftsTabs Modular Split
 
 ### 🏗️ Split ForkliftsTabs.tsx into Modular Components (2026-02-02)
