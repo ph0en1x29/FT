@@ -1,21 +1,16 @@
-/**
- * JobTimerCard - Repair time tracking widget
- */
-
 import React from 'react';
+import { Job } from '../../../types';
+import { getRepairDuration } from '../utils';
 import { Clock } from 'lucide-react';
-import { useJobDetail } from './JobDetailContext';
-import { useJobComputed } from './hooks/useJobComputed';
 
-export const JobTimerCard: React.FC = () => {
-  const { job } = useJobDetail();
-  const { statusFlags, repairDuration } = useJobComputed();
+interface JobTimerCardProps {
+  job: Job;
+}
 
-  const { isInProgress, isAwaitingFinalization, isCompleted } = statusFlags;
-
-  // Only show when job has started
-  if (!job?.repair_start_time) return null;
-  if (!isInProgress && !isAwaitingFinalization && !isCompleted) return null;
+export const JobTimerCard: React.FC<JobTimerCardProps> = ({ job }) => {
+  const repairDuration = getRepairDuration(job);
+  
+  if (!job.repair_start_time) return null;
 
   return (
     <div className="card-premium card-tint-info p-5">
@@ -54,5 +49,3 @@ export const JobTimerCard: React.FC = () => {
     </div>
   );
 };
-
-export default JobTimerCard;

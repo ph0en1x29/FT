@@ -4,6 +4,60 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - JobDetail Component Refactoring
+
+### 🏗️ Split JobDetail.tsx into Modular Components (2026-02-02)
+- **Added:** 2026-02-02 (author: Clawdbot)
+- **Status:** ✔️ Completed
+
+The monolithic `pages/JobDetail.tsx` (~3263 lines) has been split into smaller, focused components for better maintainability and code organization.
+
+#### New Component Structure:
+```
+pages/
+├── JobDetail/
+│   ├── index.tsx               # Re-export barrel for backward compatibility
+│   ├── JobDetailPage.tsx       # Main container (~1050 lines)
+│   ├── constants.ts            # Checklist categories, photo categories
+│   ├── types.ts                # TypeScript interfaces (RoleFlags, StatusFlags, etc.)
+│   ├── utils.ts                # Helper functions (duration calc, status checks, etc.)
+│   ├── components/
+│   │   ├── index.ts            # Components barrel export
+│   │   ├── JobHeader.tsx       # Header with actions and status badges
+│   │   ├── JobTimerCard.tsx    # Repair duration card
+│   │   ├── EquipmentCard.tsx   # Forklift info with hourmeter editing
+│   │   ├── FinancialSummary.tsx # Cost breakdown in sidebar
+│   │   ├── JobTimeline.tsx     # Timeline with created/assigned/started events
+│   │   ├── SignaturesCard.tsx  # Technician and customer signatures
+│   │   ├── AIAssistantCard.tsx # AI summary generator
+│   │   └── JobPhotosSection.tsx # Photo upload, filtering, download
+│   └── hooks/
+│       ├── index.ts            # Hooks barrel export
+│       └── useJobRealtime.ts   # WebSocket subscriptions for live updates
+```
+
+#### Key Benefits:
+- **Reduced Complexity:** Main file down from 3263 to ~1050 lines
+- **Reusable Components:** Individual sections can be tested and maintained separately
+- **Better Organization:** Related logic grouped in utils.ts, constants.ts, and types.ts
+- **Real-time Isolation:** WebSocket logic extracted to dedicated hook
+- **Backward Compatibility:** `import JobDetail from './pages/JobDetail'` still works
+
+#### Components Extracted:
+| Component | Lines | Purpose |
+|-----------|-------|---------|
+| JobHeader | 230 | Action buttons, status badges, SLA badge |
+| JobPhotosSection | 361 | Photo upload, categorization, GPS tracking, download |
+| EquipmentCard | 152 | Forklift info, hourmeter editing, amendment requests |
+| SignaturesCard | 114 | Technician and customer signature collection |
+| FinancialSummary | 96 | Labor, parts, extra charges summary |
+| JobTimeline | 65 | Created/assigned/started/completed events |
+| JobTimerCard | 51 | Repair start/end time display |
+| AIAssistantCard | 42 | Gemini AI summary generation |
+| useJobRealtime | 134 | WebSocket subscription hook |
+
+---
+
 ## [2026-02-02] - Service Architecture Refactoring
 
 ### 🏗️ Split supabaseService.ts into Focused Modules (2026-02-02)

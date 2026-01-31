@@ -1,10 +1,6 @@
-/**
- * Shared constants for JobDetail components
- */
+import { Job, JobStatus, MediaCategory } from '../../types';
 
-import { Job, MediaCategory } from '../../types';
-
-// Checklist categories for the condition check
+// Checklist categories for the forklift condition check
 export const CHECKLIST_CATEGORIES = [
   {
     name: 'Drive System',
@@ -127,14 +123,13 @@ export const PHOTO_CATEGORIES = [
 ];
 
 /**
- * Get default photo category based on job status
+ * Get the default photo category based on job status
  */
 export const getDefaultPhotoCategory = (job: Job | null): MediaCategory => {
   if (!job) return 'other';
-  const statusLower = (job.status || '').toString().toLowerCase().trim();
-  
-  if (statusLower === 'new' || statusLower === 'assigned') return 'before';
-  if (statusLower === 'in progress' || statusLower === 'in_progress') {
+  const status = job.status;
+  if (status === JobStatus.NEW || status === JobStatus.ASSIGNED) return 'before';
+  if (status === JobStatus.IN_PROGRESS) {
     const startTime = job.started_at ? new Date(job.started_at) : null;
     if (startTime) {
       const now = new Date();
@@ -143,6 +138,6 @@ export const getDefaultPhotoCategory = (job: Job | null): MediaCategory => {
     }
     return 'other';
   }
-  if (statusLower === 'awaiting finalization' || statusLower === 'awaiting_finalization') return 'after';
+  if (status === JobStatus.AWAITING_FINALIZATION) return 'after';
   return 'other';
 };

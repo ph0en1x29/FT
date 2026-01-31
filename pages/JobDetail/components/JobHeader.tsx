@@ -1,59 +1,66 @@
-/**
- * JobHeader - Title, status badges, and action buttons
- */
-
-import React, { useState } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Job, JobType, JobPriority, JobStatus } from '../../../types';
+import { RoleFlags, StatusFlags } from '../types';
+import { getStatusBadgeClass, getResponseTimeRemaining } from '../utils';
+import SlotInSLABadge from '../../../components/SlotInSLABadge';
 import {
-  ArrowLeft, Play, CheckCircle, Clock, XCircle, Trash2, FileCheck, FileDown, Send, Zap
+  ArrowLeft, CheckCircle, XCircle, Play, Clock, Trash2, FileDown, FileCheck,
+  Send, Zap
 } from 'lucide-react';
-import { JobStatus, JobType, JobPriority } from '../../types';
-import SlotInSLABadge from '../../components/SlotInSLABadge';
-import { useJobDetail } from './JobDetailContext';
-import { useJobActions } from './hooks/useJobActions';
-import { useJobComputed } from './hooks/useJobComputed';
 
 interface JobHeaderProps {
-  onShowFinalizeModal: () => void;
-  onShowDeleteModal: () => void;
-  onShowStartJobModal: () => void;
-  onShowContinueTomorrowModal: () => void;
-  onShowDeferredModal: () => void;
-  onShowRejectJobModal: () => void;
+  job: Job;
+  isRealtimeConnected: boolean;
+  roleFlags: RoleFlags;
+  statusFlags: StatusFlags;
   exportingToAutoCount: boolean;
-  setExportingToAutoCount: (v: boolean) => void;
+  // Action handlers
+  onAcceptJob: () => void;
+  onRejectJob: () => void;
+  onStartJob: () => void;
+  onCompleteJob: () => void;
+  onContinueTomorrow: () => void;
+  onResumeJob: () => void;
+  onCustomerUnavailable: () => void;
+  onFinalizeInvoice: () => void;
+  onPrintServiceReport: () => void;
+  onExportPDF: () => void;
+  onExportToAutoCount: () => void;
+  onDeleteJob: () => void;
+  onAcknowledgeJob: () => void;
 }
 
 export const JobHeader: React.FC<JobHeaderProps> = ({
-  onShowFinalizeModal,
-  onShowDeleteModal,
-  onShowStartJobModal,
-  onShowContinueTomorrowModal,
-  onShowDeferredModal,
-  onShowRejectJobModal,
+  job,
+  isRealtimeConnected,
+  roleFlags,
+  statusFlags,
   exportingToAutoCount,
-  setExportingToAutoCount,
+  onAcceptJob,
+  onRejectJob,
+  onStartJob,
+  onCompleteJob,
+  onContinueTomorrow,
+  onResumeJob,
+  onCustomerUnavailable,
+  onFinalizeInvoice,
+  onPrintServiceReport,
+  onExportPDF,
+  onExportToAutoCount,
+  onDeleteJob,
+  onAcknowledgeJob,
 }) => {
-  const { job, isRealtimeConnected, navigate } = useJobDetail();
-  const { roleFlags, statusFlags, statusBadgeClass, responseTimeRemaining } = useJobComputed();
-  const actions = useJobActions();
-
-  if (!job) return null;
-
+  const navigate = useNavigate();
   const {
     isAdmin, isSupervisor, isTechnician, isAccountant, isHelperOnly
   } = roleFlags;
-
+  
   const {
-    isNew, isAssigned, isInProgress, isAwaitingFinalization, isCompleted,
-    isIncompleteContinuing, isAwaitingAck, isDisputed, isEscalated, isOvertime,
-    isSlotIn, isSlotInPendingAck, isAssignedToCurrentUser, needsAcceptance, hasAccepted, hasBothSignatures
+    isAssigned, isInProgress, isAwaitingFinalization, isCompleted,
+    isIncompleteContinuing, hasBothSignatures, isSlotIn, isSlotInPendingAck,
+    isAssignedToCurrentUser, needsAcceptance, hasAccepted, isAwaitingAck, isDisputed
   } = statusFlags;
-
-  const handleExportToAutoCount = async () => {
-    setExportingToAutoCount(true);
-    await actions.handleExportToAutoCount();
-    setExportingToAutoCount(false);
-  };
 
   return (
     <div className="bg-[var(--surface)] border-b border-[var(--border)] -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 py-4 sticky top-0 z-30 shadow-premium-xs">
@@ -68,13 +75,14 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-semibold text-[var(--text)]">{job.title}</h1>
+              {/* Real-time connection indicator */}
               <span 
                 className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-gray-400'}`}
                 title={isRealtimeConnected ? 'Live updates active' : 'Connecting...'}
               />
             </div>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className={`badge ${statusBadgeClass}`}>{job.status}</span>
+              <span className={`badge ${getStatusBadgeClass(statusFlags)}`}>{job.status}</span>
               {job.job_type && (
                 <span className={`badge ${
                   job.job_type === JobType.SLOT_IN ? 'badge-error' :
@@ -87,12 +95,13 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
               {job.priority === JobPriority.EMERGENCY && (
                 <span className="badge badge-error">Emergency</span>
               )}
-              {isEscalated && (
+              {statusFlags.isEscalated && (
                 <span className="badge badge-error animate-pulse">⚠️ Escalated</span>
               )}
-              {isOvertime && (
+              {statusFlags.isOvertime && (
                 <span className="badge bg-purple-100 text-purple-700">OT Job</span>
               )}
+              {/* Slot-In SLA Badge */}
               {isSlotIn && (
                 <SlotInSLABadge
                   createdAt={job.created_at}
@@ -110,43 +119,42 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
           {/* Acknowledge Slot-In Job Button */}
           {isSlotInPendingAck && (isAssigned || isInProgress) && (isAssignedToCurrentUser || isAdmin || isSupervisor) && (
             <button
-              onClick={actions.handleAcknowledgeJob}
+              onClick={onAcknowledgeJob}
               className="btn-premium bg-red-600 hover:bg-red-700 text-white border-red-600"
             >
               <Zap className="w-4 h-4" /> Acknowledge
             </button>
           )}
           
-          {/* Technician Accept/Reject buttons */}
+          {/* Technician Accept/Reject buttons (before they can start) */}
           {isTechnician && isAssigned && !isHelperOnly && needsAcceptance && (
             <>
-              <button onClick={actions.handleAcceptJob} className="btn-premium btn-premium-primary">
+              <button onClick={onAcceptJob} className="btn-premium btn-premium-primary">
                 <CheckCircle className="w-4 h-4" /> Accept Job
               </button>
-              <button onClick={onShowRejectJobModal} className="btn-premium bg-[var(--error)] text-white hover:opacity-90">
+              <button onClick={onRejectJob} className="btn-premium bg-[var(--error)] text-white hover:opacity-90">
                 <XCircle className="w-4 h-4" /> Reject
               </button>
-              {job.technician_response_deadline && (
+              {job?.technician_response_deadline && (
                 <span className="text-xs text-[var(--text-muted)] flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> {responseTimeRemaining}
+                  <Clock className="w-3 h-3" /> {getResponseTimeRemaining(job)}
                 </span>
               )}
             </>
           )}
           
-          {/* Start Job button */}
+          {/* Start Job button - only after technician accepts (or for admin/supervisor) */}
           {((isTechnician && isAssigned && !isHelperOnly && hasAccepted) || 
             ((isAdmin || isSupervisor) && isAssigned && !isHelperOnly)) && (
-            <button onClick={onShowStartJobModal} className="btn-premium btn-premium-primary">
+            <button onClick={onStartJob} className="btn-premium btn-premium-primary">
               <Play className="w-4 h-4" /> Start Job
             </button>
           )}
           
-          {/* Complete button */}
           {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && (
             <div className="relative group">
               <button 
-                onClick={() => actions.handleStatusChange(JobStatus.AWAITING_FINALIZATION)} 
+                onClick={onCompleteJob} 
                 disabled={!hasBothSignatures}
                 className={`btn-premium ${hasBothSignatures ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
               >
@@ -160,55 +168,48 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
             </div>
           )}
           
-          {/* Continue Tomorrow */}
           {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && (
-            <button onClick={onShowContinueTomorrowModal} className="btn-premium btn-premium-secondary">
+            <button onClick={onContinueTomorrow} className="btn-premium btn-premium-secondary">
               <Clock className="w-4 h-4" /> Continue Tomorrow
             </button>
           )}
           
-          {/* Resume Job */}
           {(isTechnician || isAdmin || isSupervisor) && isIncompleteContinuing && !isHelperOnly && (
-            <button onClick={actions.handleResumeJob} className="btn-premium btn-premium-primary">
+            <button onClick={onResumeJob} className="btn-premium btn-premium-primary">
               <Play className="w-4 h-4" /> Resume Job
             </button>
           )}
           
-          {/* Customer Unavailable */}
           {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && job.technician_signature && !job.customer_signature && (
             <button
-              onClick={onShowDeferredModal}
+              onClick={onCustomerUnavailable}
               className="btn-premium btn-premium-secondary border-[var(--warning)] text-[var(--warning)] hover:bg-[var(--warning-bg)] hover:border-[var(--warning)] hover:text-[var(--warning)]"
             >
               <CheckCircle className="w-4 h-4" /> Customer Unavailable
             </button>
           )}
           
-          {/* Finalize Invoice */}
           {(isAccountant || isAdmin) && isAwaitingFinalization && (
-            <button onClick={onShowFinalizeModal} className="btn-premium btn-premium-primary">
+            <button onClick={onFinalizeInvoice} className="btn-premium btn-premium-primary">
               Finalize Invoice
             </button>
           )}
           
-          {/* Service Report */}
           {(isTechnician || isAdmin || isSupervisor) && (isInProgress || isAwaitingFinalization || isCompleted || isAwaitingAck || isDisputed) && (
-            <button onClick={actions.handlePrintServiceReport} className="btn-premium btn-premium-secondary">
+            <button onClick={onPrintServiceReport} className="btn-premium btn-premium-secondary">
               <FileCheck className="w-4 h-4" /> Report
             </button>
           )}
           
-          {/* Invoice PDF */}
           {(isAccountant || isAdmin) && (isAwaitingFinalization || isCompleted) && (
-            <button onClick={actions.handleExportPDF} className="btn-premium btn-premium-secondary">
+            <button onClick={onExportPDF} className="btn-premium btn-premium-secondary">
               <FileDown className="w-4 h-4" /> Invoice
             </button>
           )}
           
-          {/* AutoCount Export */}
           {(isAccountant || isAdmin) && isCompleted && (
             <button
-              onClick={handleExportToAutoCount}
+              onClick={onExportToAutoCount}
               disabled={exportingToAutoCount}
               className="btn-premium btn-premium-secondary"
               title="Export to AutoCount"
@@ -217,9 +218,8 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
             </button>
           )}
           
-          {/* Delete */}
           {(isAdmin || isSupervisor) && !isCompleted && (
-            <button onClick={onShowDeleteModal} className="btn-premium btn-premium-ghost text-[var(--error)] hover:bg-[var(--error-bg)] hover:text-[var(--error)]">
+            <button onClick={onDeleteJob} className="btn-premium btn-premium-ghost text-[var(--error)] hover:bg-[var(--error-bg)] hover:text-[var(--error)]">
               <Trash2 className="w-4 h-4" />
             </button>
           )}
@@ -228,5 +228,3 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
     </div>
   );
 };
-
-export default JobHeader;
