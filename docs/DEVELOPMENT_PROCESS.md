@@ -270,9 +270,72 @@ Special: `Completed Awaiting Ack`, `Incomplete-Continuing`, `Incomplete-Reassign
 
 ---
 
+---
+
+## Code Architecture Patterns
+
+### Modular Page Pattern
+
+**When to use:** Any page over 500 lines.
+
+**Structure:**
+```
+pages/[PageName]/
+├── index.tsx              # Re-export: export { default } from './[PageName]Page'
+├── [PageName]Page.tsx     # Main container (target: 300-500 lines)
+├── types.ts               # TypeScript interfaces
+├── components/
+│   ├── index.ts           # Barrel export
+│   └── [Component].tsx    # UI components (target: 100-200 lines each)
+└── hooks/
+    └── use[Feature].ts    # Data/logic hooks
+```
+
+**Rules:**
+1. `index.tsx` must re-export default for backward compatibility
+2. Keep main page under 500 lines
+3. Extract modals, cards, sections as separate components
+4. Data fetching logic goes in hooks/
+
+**Example pages using this pattern:**
+- `JobDetail/` — 8 components, 1 hook
+- `EmployeeProfile/` — 9 components
+- `ForkliftsTabs/` — 7 components (tab-based)
+- `CustomerProfile/` — 9 components, 1 hook
+- `VanStockPage/` — 11 components, 1 hook
+
+See [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) for full details.
+
+### Service Architecture
+
+Services split by domain with barrel export:
+```
+services/
+├── supabaseClient.ts      # Client init
+├── jobService.ts          # Job operations
+├── customerService.ts     # Customer operations
+├── forkliftService.ts     # Fleet operations
+├── ...                    # Other domain services
+└── supabaseService.ts     # Barrel re-export (backward compatible)
+```
+
+### Types Architecture
+
+Types split by domain:
+```
+types/
+├── index.ts              # Barrel re-export
+├── job.types.ts          # Job-related types
+├── customer.types.ts     # Customer types
+├── ...                   # Other domain types
+```
+
+---
+
 ## Revision History
 
 | Date | Change |
 |------|--------|
+| 2026-01-31 | Added Code Architecture Patterns section |
 | Jan 2026 | Added AI/Developer Quick Reference section |
 | Jan 2026 | Initial process documentation |

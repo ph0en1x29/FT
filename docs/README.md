@@ -17,6 +17,7 @@
 
 | Document | Description |
 |----------|-------------|
+| [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) | **Codebase architecture** — folder patterns, modular pages, services |
 | [DB_SCHEMA.md](./DB_SCHEMA.md) | **Database structure** — tables, columns, relationships, enums |
 | [WORKFLOW_SPECIFICATION.md](./WORKFLOW_SPECIFICATION.md) | Technical spec for ACWER implementation — schemas, APIs, logic |
 | [SERVICE_AUTOMATION_SPEC.md](./SERVICE_AUTOMATION_SPEC.md) | Service due automation specification |
@@ -73,6 +74,11 @@
 ---
 
 ## Document Purposes
+
+### PROJECT_STRUCTURE.md
+- **Audience:** Engineers, AI assistants
+- **Content:** Codebase architecture, folder patterns, modular page structure, service/type organization
+- **Update when:** Architecture patterns change, new patterns established
 
 ### DB_SCHEMA.md
 - **Audience:** Engineers, AI assistants
