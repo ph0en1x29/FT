@@ -7,7 +7,12 @@ import {
   EmploymentStatus,
   LeaveStatus,
   UserRole,
+  EmployeeLeave,
+  LeaveType,
 } from '../types';
+
+// Type for employee leave with joined relations
+type EmployeeLeaveWithRelations = EmployeeLeave & { user: User; leave_type: LeaveType };
 
 // Re-export all HR-related services for backwards compatibility
 export { LeaveService } from './leaveService';
@@ -266,7 +271,7 @@ export const HRService = {
         .lte('start_date', today)
         .gte('end_date', today);
 
-      const onLeave = (leavesData || []) as any[];
+      const onLeave = (leavesData || []) as EmployeeLeaveWithRelations[];
       const onLeaveUserIds = onLeave.map((l) => l.user_id);
 
       const { data: allUsers } = await supabase
@@ -275,7 +280,7 @@ export const HRService = {
         .eq('employment_status', EmploymentStatus.ACTIVE);
 
       const available = (allUsers || []).filter(
-        (u) => !onLeaveUserIds.includes(u.user_id)
+        (u: User) => !onLeaveUserIds.includes(u.user_id)
       ) as User[];
 
       return { available, onLeave };

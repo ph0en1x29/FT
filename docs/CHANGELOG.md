@@ -4,6 +4,48 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - Bundle Size Optimization with Lazy Loading
+
+### 🚀 Reduced Main Bundle from 351KB to 83KB (2026-02-02)
+- **Added:** 2026-02-02 (author: Clawdbot)
+- **Status:** ✔️ Completed
+
+Implemented comprehensive lazy loading and code splitting to dramatically reduce initial bundle size.
+
+#### Changes Made:
+1. **Lazy-loaded AuthenticatedApp** - The entire authenticated layout (sidebar, header, navigation) is now lazy-loaded after login
+2. **Lazy-loaded Sentry** - Error tracking initializes asynchronously in production only
+3. **Moved QueryProvider** - React Query now loads with authenticated app, not at startup
+4. **Optimized vendor chunking** - Better code splitting for dependencies:
+   - `vendor-react-dom`: 180KB (ReactDOM)
+   - `vendor-supabase`: 172KB (Supabase SDK)
+   - `vendor-router`: 37KB (React Router)
+   - `vendor-icons`: 40KB (Lucide icons)
+   - `vendor-query`: 38KB (React Query)
+   - `vendor-toast`: 33KB (Sonner)
+   - `vendor-genai`: 47KB (Gemini AI)
+   - `vendor-zip`: 97KB (JSZip)
+
+#### New File Structure:
+```
+components/layout/
+└── AuthenticatedApp.tsx    # Main authenticated layout (lazy-loaded)
+```
+
+#### Bundle Size Results:
+| Metric | Before | After | Reduction |
+|--------|--------|-------|-----------|
+| Main Entry | 351KB | 83KB | **76% smaller** |
+| Largest App Chunk | 351KB | 83KB | Code split |
+| Page Chunks | Lazy-loaded | Still lazy | ✓ |
+
+#### Performance Impact:
+- **Faster initial load** - Users see the login page faster
+- **Better caching** - Vendor chunks are stable, app code changes don't invalidate them
+- **Reduced bandwidth** - Only needed code is downloaded per page
+
+---
+
 ## [2026-02-02] - EmployeeProfile Modular Split
 
 ### 🏗️ Split EmployeeProfile.tsx into Modular Components (2026-02-02)

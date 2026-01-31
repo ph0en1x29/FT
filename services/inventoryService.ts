@@ -128,9 +128,9 @@ export const getAllVanStocks = async (): Promise<VanStock[]> => {
       return [];
     }
 
-    return (data || []).map((vs: any) => ({
+    return (data || []).map((vs: VanStockRow) => ({
       ...vs,
-      total_value: vs.items?.reduce((sum: number, item: any) => {
+      total_value: vs.items?.reduce((sum: number, item: VanStockItemRow) => {
         const partCost = item.part?.cost_price || 0;
         return sum + (partCost * item.quantity);
       }, 0) || 0,
@@ -158,8 +158,8 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
       return null;
     }
 
-    const items = data.items || [];
-    const total_value = items.reduce((sum: number, item: any) => {
+    const items = (data.items || []) as VanStockItemRow[];
+    const total_value = items.reduce((sum: number, item: VanStockItemRow) => {
       const partCost = item.part?.cost_price || 0;
       return sum + (partCost * item.quantity);
     }, 0);
@@ -186,8 +186,8 @@ export const getVanStockById = async (vanStockId: string): Promise<VanStock | nu
       return null;
     }
 
-    const items = data.items || [];
-    const total_value = items.reduce((sum: number, item: any) => {
+    const items = (data.items || []) as VanStockItemRow[];
+    const total_value = items.reduce((sum: number, item: VanStockItemRow) => {
       const partCost = item.part?.cost_price || 0;
       return sum + (partCost * item.quantity);
     }, 0);
@@ -637,7 +637,7 @@ export const getLowStockItems = async (technicianId: string): Promise<VanStockIt
 
     if (!vanStock?.items) return [];
 
-    return vanStock.items.filter((item: any) => item.quantity <= item.min_quantity) as VanStockItem[];
+    return (vanStock.items as VanStockItemRow[]).filter((item) => item.quantity <= item.min_quantity) as VanStockItem[];
   } catch (e) {
     return [];
   }

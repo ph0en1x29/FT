@@ -3,10 +3,8 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import ChunkErrorBoundary from './components/ChunkErrorBoundary';
-import { QueryProvider } from './contexts/QueryProvider';
 
 // Lazy load error tracking (Sentry) - not needed on initial render
-// This reduces main bundle by ~50KB
 if (!import.meta.env.DEV) {
   import('./services/errorTracking').then(({ initErrorTracking }) => {
     initErrorTracking();
@@ -22,9 +20,7 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ChunkErrorBoundary>
-      <QueryProvider>
-        <App />
-      </QueryProvider>
+      <App />
     </ChunkErrorBoundary>
   </React.StrictMode>
 );

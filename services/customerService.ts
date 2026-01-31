@@ -5,7 +5,21 @@
  */
 
 import { supabase } from './supabaseClient';
-import type { Customer } from '../types';
+import type { Customer, Job, JobPartUsed, ExtraCharge } from '../types';
+
+// Database row types for query results
+interface RentalRow {
+  monthly_rental_rate?: number;
+  start_date: string;
+  end_date?: string;
+  status?: string;
+}
+
+interface JobWithRelations extends Job {
+  parts_used?: JobPartUsed[];
+  extra_charges?: ExtraCharge[];
+  deleted_at?: string | null;
+}
 
 /**
  * Get all customers
@@ -107,7 +121,7 @@ export const getCustomerFinancialSummary = async (customerId: string): Promise<a
 
     // Calculate rental revenue
     let totalRentalRevenue = 0;
-    (rentals || []).forEach((rental: any) => {
+    ((rentals || []) as RentalRow[]).forEach((rental) => {
       const rate = rental.monthly_rental_rate || 0;
       if (rate > 0) {
         const startDate = new Date(rental.start_date);
@@ -123,11 +137,11 @@ export const getCustomerFinancialSummary = async (customerId: string): Promise<a
     let totalLaborRevenue = 0;
     let totalExtraCharges = 0;
 
-    (jobs || []).forEach((job: any) => {
-      const partsTotal = (job.parts_used || []).reduce((sum: number, p: any) => 
+    ((jobs || []) as JobWithRelations[]).forEach((job) => {
+      const partsTotal = (job.parts_used || []).reduce((sum: number, p: JobPartUsed) => 
         sum + (p.sell_price_at_time * p.quantity), 0);
       const laborCost = job.labor_cost || 0;
-      const extraCharges = (job.extra_charges || []).reduce((sum: number, c: any) => 
+      const extraCharges = (job.extra_charges || []).reduce((sum: number, c: ExtraCharge) => 
         sum + c.amount, 0);
 
       totalPartsRevenue += partsTotal;
@@ -144,7 +158,7 @@ export const getCustomerFinancialSummary = async (customerId: string): Promise<a
       total_labor_revenue: totalLaborRevenue,
       total_extra_charges: totalExtraCharges,
       grand_total: totalRentalRevenue + totalServiceRevenue,
-      active_rentals: (rentals || []).filter((r: any) => r.status === 'active').length,
+      active_rentals: ((rentals || []) as RentalRow[]).filter((r) => r.status === 'active').length,
       total_jobs: (jobs || []).length,
     };
   } catch (e) {
@@ -155,7 +169,7 @@ export const getCustomerFinancialSummary = async (customerId: string): Promise<a
 /**
  * Get customer jobs including cancelled ones
  */
-export const getCustomerJobsWithCancelled = async (customerId: string): Promise<any[]> => {
+export const getCustomerJobsWithCancelled = async (customerId: string): Promise<(Job & { is_cancelled: boolean })[]> => {
   try {
     const { data, error } = await supabase
       .from('jobs')
@@ -174,10 +188,10 @@ export const getCustomerJobsWithCancelled = async (customerId: string): Promise<
       return [];
     }
 
-    return (data || []).map((job: any) => ({
+    return ((data || []) as JobWithRelations[]).map((job) => ({
       ...job,
       is_cancelled: job.deleted_at !== null,
-    }));
+    })) as (Job & { is_cancelled: boolean })[];
   } catch (e) {
     return [];
   }

@@ -109,7 +109,7 @@ const TelegramConnect: React.FC<TelegramConnectProps> = ({ currentUser, compact 
           language: data.language
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError('Failed to load Telegram status');
     } finally {
       setLoading(false);
@@ -132,7 +132,7 @@ const TelegramConnect: React.FC<TelegramConnectProps> = ({ currentUser, compact 
 
       setTelegramLink(null);
       setShowSettings(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError('Failed to disconnect');
     } finally {
       setSaving(false);
@@ -156,7 +156,7 @@ const TelegramConnect: React.FC<TelegramConnectProps> = ({ currentUser, compact 
 
       setTelegramLink({ ...telegramLink, ...preferences });
       setShowSettings(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError('Failed to save preferences');
     } finally {
       setSaving(false);

@@ -279,7 +279,7 @@ const TeamStatusTab: React.FC<TeamStatusTabProps> = ({ currentUser }) => {
                             className="px-4 py-2 text-sm hover:bg-[var(--bg-subtle)] cursor-pointer transition-colors"
                           >
                             <p className="font-medium text-theme truncate">
-                              {(job as any).job_number || job.title}
+                              {job.job_number || job.title}
                             </p>
                             <p className="text-xs text-theme-muted truncate">
                               {job.customer?.name || 'No customer'} &middot; {job.status}

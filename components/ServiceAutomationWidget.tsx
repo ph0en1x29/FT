@@ -49,7 +49,7 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
       const result = await SupabaseDb.runDailyServiceCheck();
       setLastResult(`Created ${result.jobs_created} jobs, ${result.notifications_created} alerts`);
       await loadStats();
-    } catch (e: any) {
+    } catch (e: unknown) {
       setLastResult(`Error: ${e.message}`);
     } finally {
       setRunning(false);

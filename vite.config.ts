@@ -24,23 +24,55 @@ export default defineConfig(({ mode }) => {
       build: {
         rollupOptions: {
           output: {
-            manualChunks: {
-              // Core React/Router - loaded immediately
-              'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-              // Supabase - loaded with first auth check
-              'vendor-supabase': ['@supabase/supabase-js'],
-              // Charts - loaded when dashboard renders
-              'vendor-charts': ['recharts'],
-              // UI utilities - loaded as needed
-              'vendor-ui': ['sonner', 'lucide-react'],
-              // Error monitoring - loaded after initial render
-              'vendor-sentry': ['@sentry/react'],
-              // Data fetching - loaded with first query
-              'vendor-query': ['@tanstack/react-query'],
-              // AI features - loaded only when AI is used
-              'vendor-genai': ['@google/genai'],
-              // Zip utilities - loaded for export features
-              'vendor-zip': ['jszip'],
+            manualChunks(id) {
+              // Vendor chunking based on node_modules path
+              if (id.includes('node_modules')) {
+                // Core React - split react-dom separately (larger)
+                if (id.includes('react-dom')) {
+                  return 'vendor-react-dom';
+                }
+                // React Router - loaded with app
+                if (id.includes('react-router')) {
+                  return 'vendor-router';
+                }
+                // Core React
+                if (id.includes('/react/') || id.includes('/scheduler/')) {
+                  return 'vendor-react';
+                }
+                // Supabase SDK - heavy, load on auth
+                if (id.includes('@supabase')) {
+                  return 'vendor-supabase';
+                }
+                // Charts - only needed on dashboard
+                if (id.includes('recharts') || id.includes('d3-')) {
+                  return 'vendor-charts';
+                }
+                // Icons - split from main bundle
+                if (id.includes('lucide-react')) {
+                  return 'vendor-icons';
+                }
+                // Toast notifications
+                if (id.includes('sonner')) {
+                  return 'vendor-toast';
+                }
+                // React Query - loaded with authenticated app
+                if (id.includes('@tanstack')) {
+                  return 'vendor-query';
+                }
+                // AI features - loaded only when used
+                if (id.includes('@google/genai')) {
+                  return 'vendor-genai';
+                }
+                // Error tracking - lazy loaded
+                if (id.includes('@sentry')) {
+                  return 'vendor-sentry';
+                }
+                // Zip utilities - loaded on export
+                if (id.includes('jszip')) {
+                  return 'vendor-zip';
+                }
+              }
+              // Don't force other node_modules into one chunk - let Vite decide
             }
           }
         },

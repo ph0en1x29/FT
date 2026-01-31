@@ -67,6 +67,6 @@ export const logout = async (): Promise<void> => {
 /**
  * Listen for auth state changes
  */
-export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
+export const onAuthStateChange = (callback: (event: string, session: { user: { id: string; email?: string } } | null) => void) => {
   return supabase.auth.onAuthStateChange(callback);
 };

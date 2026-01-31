@@ -44,9 +44,9 @@ export const showToast = {
 };
 
 // Async operation wrapper with loading/success/error states
-interface AsyncToastOptions {
+interface AsyncToastOptions<T = unknown> {
   loading?: string;
-  success?: string | ((data: any) => string);
+  success?: string | ((data: T) => string);
   error?: string | ((error: Error) => string);
 }
 

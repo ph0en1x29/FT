@@ -101,7 +101,7 @@ const TelegramTeamStatus: React.FC<TelegramTeamStatusProps> = ({ currentUser }) 
       }));
 
       setTeamStatus(merged);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError('Failed to load team status');
     } finally {
       setLoading(false);

@@ -171,6 +171,7 @@ export interface JobMedia {
 
 export interface Job {
   job_id: string;
+  job_number?: string; // Auto-generated job number for display
   customer_id: string;
   customer: Customer;
   title: string;

@@ -334,7 +334,7 @@ const TechnicianJobsTab: React.FC<TechnicianJobsTabProps> = ({ employee, current
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-theme truncate">
-                          {(job as any).job_number || job.title}
+                          {job.job_number || job.title}
                         </p>
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-theme-muted">

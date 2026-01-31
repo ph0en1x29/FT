@@ -345,7 +345,7 @@ const AdminDashboard: React.FC<{
                             >
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
-                                  {(job as any).job_number || job.title}
+                                  {job.job_number || job.title}
                                 </p>
                                 <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                                   {job.customer?.name || 'Unknown'}
@@ -374,7 +374,7 @@ const AdminDashboard: React.FC<{
                             >
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
-                                  {(job as any).job_number || job.title}
+                                  {job.job_number || job.title}
                                 </p>
                                 <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                                   {job.customer?.name || 'Unknown'}
@@ -403,7 +403,7 @@ const AdminDashboard: React.FC<{
                             >
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
-                                  {(job as any).job_number || job.title}
+                                  {job.job_number || job.title}
                                 </p>
                                 <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                                   {job.customer?.name || 'Unknown'}
@@ -432,7 +432,7 @@ const AdminDashboard: React.FC<{
                             >
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
-                                  {(job as any).job_number || job.title}
+                                  {job.job_number || job.title}
                                 </p>
                                 <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                                   {job.customer?.name || 'Unknown'}
@@ -500,7 +500,7 @@ const AdminDashboard: React.FC<{
               </div>
             ) : (
               queueItems.slice(0, 8).map(({ job, type, urgent }) => (
-                <QueueItem key={job.job_id} type={type} jobNumber={(job as any).job_number || job.title} customer={job.customer?.name || 'Unknown'} detail={job.job_type || ''} urgent={urgent} onClick={() => navigate(`/jobs/${job.job_id}`)} />
+                <QueueItem key={job.job_id} type={type} jobNumber={job.job_number || job.title} customer={job.customer?.name || 'Unknown'} detail={job.job_type || ''} urgent={urgent} onClick={() => navigate(`/jobs/${job.job_id}`)} />
               ))
             )}
           </div>
@@ -638,7 +638,7 @@ const TechnicianDashboard: React.FC<{
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide" style={{ color: '#FF9500' }}>Currently Working</p>
-                <p className="font-semibold text-lg" style={{ color: 'var(--text)' }}>{(inProgressJob as any).job_number || inProgressJob.title}</p>
+                <p className="font-semibold text-lg" style={{ color: 'var(--text)' }}>{inProgressJob.job_number || inProgressJob.title}</p>
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{inProgressJob.customer?.name}</p>
               </div>
             </div>
@@ -671,7 +671,7 @@ const TechnicianDashboard: React.FC<{
             </div>
           ) : (
             assignedJobs.map(job => (
-              <QueueItem key={job.job_id} type="assigned" jobNumber={(job as any).job_number || job.title} customer={job.customer?.name || 'Unknown'} detail={job.job_type || ''} onClick={() => navigate(`/jobs/${job.job_id}`)} />
+              <QueueItem key={job.job_id} type="assigned" jobNumber={job.job_number || job.title} customer={job.customer?.name || 'Unknown'} detail={job.job_type || ''} onClick={() => navigate(`/jobs/${job.job_id}`)} />
             ))
           )}
         </div>
@@ -739,7 +739,7 @@ const AccountantDashboard: React.FC<{
             awaitingFinalization.slice(0, 5).map(job => (
               <div key={job.job_id} onClick={() => navigate(`/jobs/${job.job_id}`)} className="p-4 flex items-center gap-4 cursor-pointer hover:bg-[var(--surface-2)] transition-colors">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate" style={{ color: 'var(--text)' }}>{(job as any).job_number || job.title}</p>
+                  <p className="font-medium truncate" style={{ color: 'var(--text)' }}>{job.job_number || job.title}</p>
                   <p className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>{job.customer?.name} · {job.job_type}</p>
                 </div>
                 <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />

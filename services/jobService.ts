@@ -556,7 +556,7 @@ export const updateJobHourmeter = async (jobId: string, hourmeterReading: number
   
   if (jobError) throw new Error(jobError.message);
   
-  const currentHourmeter = (jobData?.forklift as any)?.hourmeter || 0;
+  const currentHourmeter = (jobData?.forklift as ForkliftHourmeterRow | null)?.hourmeter || 0;
   if (hourmeterReading < currentHourmeter) {
     throw new Error(`Hourmeter reading (${hourmeterReading}) cannot be less than forklift's current reading (${currentHourmeter})`);
   }
@@ -692,7 +692,7 @@ export const getRecentlyDeletedJobs = async (): Promise<any[]> => {
     return [];
   }
 
-  return (data || []).map((job: any) => ({
+  return (data || []).map((job: DeletedJobRow) => ({
     ...job,
     customer_name: job.customer?.name || 'Unknown',
     forklift_serial: job.forklift?.serial_number,
