@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Job, JobStatus, UserRole, Part, JobPriority, JobType, SignatureEntry, User, ForkliftConditionChecklist, MediaCategory, JobRequest, JobRequestType, MANDATORY_CHECKLIST_ITEMS, VanStock, VanStockItem, HourmeterFlagReason, ChecklistItemState, normalizeChecklistState } from '../types';
 import { SupabaseDb as MockDb, supabase } from '../services/supabaseService';
+import { useTechnicians, usePartsForList, useJobFast, useInvalidateQueries, queryKeys } from '../hooks/useQueryHooks';
+import { useQueryClient } from '@tanstack/react-query';
 import HourmeterAmendmentModal from '../components/HourmeterAmendmentModal';
 import { generateJobSummary } from '../services/geminiService';
 import { SignaturePad } from '../components/SignaturePad';
@@ -197,8 +199,16 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     }
   };
   const [loading, setLoading] = useState(true);
-  const [parts, setParts] = useState<Part[]>([]);
-  const [technicians, setTechnicians] = useState<User[]>([]);
+  
+  // Use cached hooks for static data (parts/technicians rarely change)
+  const { data: cachedParts = [] } = usePartsForList();
+  const { data: cachedTechnicians = [] } = useTechnicians();
+  const queryClient = useQueryClient();
+  const { invalidateJobs } = useInvalidateQueries();
+  
+  // Map cached data for compatibility (cast to any for partial type)
+  const parts = cachedParts as unknown as Part[];
+  const technicians = cachedTechnicians as User[];
   
   // All existing state variables
   const [noteInput, setNoteInput] = useState('');
@@ -282,16 +292,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
   // AutoCount export state
   const [exportingToAutoCount, setExportingToAutoCount] = useState(false);
 
-  // All existing useEffect hooks and handler functions remain the same
+  // Load job-specific data on mount
+  // Note: Parts and technicians are now loaded via React Query hooks (cached)
   useEffect(() => {
     loadJob();
-    loadParts();
     loadRequests();
     loadVanStock();
-    if (currentUserRole === UserRole.ADMIN || currentUserRole === UserRole.SUPERVISOR) {
-      loadTechnicians();
-    }
-  }, [id, currentUserRole]);
+  }, [id]);
 
   useEffect(() => {
     if (job) {
@@ -444,25 +451,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ currentUser }) => {
     }
   };
 
-  const loadParts = async () => {
-    try {
-      const data = await MockDb.getParts();
-      setParts(data);
-    } catch (error) {
-      console.error('Error loading parts:', error);
-      showToast.error('Failed to load parts');
-    }
-  };
-
-  const loadTechnicians = async () => {
-    try {
-      const data = await MockDb.getTechnicians();
-      setTechnicians(data);
-    } catch (error) {
-      console.error('Error loading technicians:', error);
-      showToast.error('Failed to load technicians');
-    }
-  };
+  // loadParts and loadTechnicians removed - now using React Query hooks for caching
 
   const loadRequests = async () => {
     if (!id) return;

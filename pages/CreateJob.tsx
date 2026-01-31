@@ -6,6 +6,7 @@ import { ArrowLeft, Save, X, Truck, Gauge, CalendarCheck } from 'lucide-react';
 import { Combobox, ComboboxOption } from '../components/Combobox';
 import { showToast } from '../services/toastService';
 import { useDevModeContext } from '../contexts/DevModeContext';
+import { useCustomersForList, useForkliftsForList, useTechnicians } from '../hooks/useQueryHooks';
 
 interface CreateJobProps {
   currentUser: User;
@@ -14,9 +15,16 @@ interface CreateJobProps {
 const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [technicians, setTechnicians] = useState<User[]>([]);
-  const [forklifts, setForklifts] = useState<Forklift[]>([]);
+  
+  // Use cached data from React Query (shared across app, no duplicate fetches)
+  const { data: cachedCustomers = [] } = useCustomersForList();
+  const { data: cachedForklifts = [] } = useForkliftsForList();
+  const { data: cachedTechnicians = [] } = useTechnicians();
+  
+  // Map cached data for compatibility
+  const customers = cachedCustomers as unknown as Customer[];
+  const forklifts = cachedForklifts as unknown as Forklift[];
+  const technicians = cachedTechnicians as User[];
 
   // Use dev mode context for role-based permissions
   const { displayRole, hasPermission } = useDevModeContext();
@@ -53,27 +61,7 @@ const CreateJob: React.FC<CreateJobProps> = ({ currentUser }) => {
     address: ''
   });
 
-  useEffect(() => {
-    const loadFormData = async () => {
-      try {
-        const [customerData, forkliftData, technicianData] = await Promise.all([
-          MockDb.getCustomers(),
-          MockDb.getForklifts(),
-          canCreateJobs
-            ? MockDb.getTechnicians()
-            : Promise.resolve([]),
-        ]);
-        setCustomers(customerData);
-        setForklifts(forkliftData);
-        setTechnicians(technicianData);
-      } catch (error) {
-        console.error('Error loading job form data:', error);
-        showToast.error('Failed to load job form data');
-      }
-    };
-
-    loadFormData();
-  }, [canCreateJobs]);
+  // Data loading is now handled by React Query hooks above (cached + shared)
 
   useEffect(() => {
     if (!canCreateJobs) {

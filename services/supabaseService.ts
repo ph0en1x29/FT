@@ -564,6 +564,18 @@ export const SupabaseDb = {
     return data as Part[];
   },
 
+  // Lightweight parts list for dropdowns (smaller payload)
+  getPartsForList: async (): Promise<Pick<Part, 'part_id' | 'part_name' | 'part_code' | 'category' | 'sell_price'>[]> => {
+    const { data, error } = await supabase
+      .from('parts')
+      .select('part_id, part_name, part_code, category, sell_price')
+      .order('category')
+      .order('part_name');
+
+    if (error) throw new Error(error.message);
+    return data as Pick<Part, 'part_id' | 'part_name' | 'part_code' | 'category' | 'sell_price'>[];
+  },
+
   // =====================
   // CUSTOMER OPERATIONS
   // =====================
@@ -711,15 +723,18 @@ export const SupabaseDb = {
         const newHelperJobIds = helperJobIds.filter(id => !existingJobIds.has(id));
         
         if (newHelperJobIds.length > 0) {
+          // PERFORMANCE: Use same optimized profile as main query (inline to avoid TS parse issues)
           let helperQuery = supabase
             .from('jobs')
             .select(`
-              *,
-              customer:customers(*),
-              forklift:forklifts!forklift_id(*),
-              parts_used:job_parts(*),
-              media:job_media(*),
-              extra_charges:extra_charges(*)
+              job_id, title, status, priority, job_type,
+              customer_id, customer:customers(customer_id, name, address, phone),
+              forklift_id, forklift:forklifts!forklift_id(serial_number, make, model, type),
+              assigned_technician_id, assigned_technician_name, helper_technician_id,
+              arrival_time, started_at, repair_start_time, repair_end_time, completed_at,
+              technician_accepted_at, technician_rejected_at, created_at, scheduled_date,
+              parts_used:job_parts(job_part_id, part_name, quantity),
+              media:job_media(media_id, category, created_at)
             `)
             .in('job_id', newHelperJobIds)
             .is('deleted_at', null);
@@ -748,6 +763,51 @@ export const SupabaseDb = {
     
     logDebug('[getJobs] Found jobs:', allJobs.length || 0);
     return allJobs;
+  },
+
+  // Fast job fetch with minimal media fields (for initial page load)
+  getJobByIdFast: async (jobId: string): Promise<Job | null> => {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select(`
+        *,
+        customer:customers(customer_id, name, address, phone, email, contact_person),
+        forklift:forklifts!forklift_id(forklift_id, serial_number, make, model, type, status, hourmeter, location),
+        parts_used:job_parts(job_part_id, part_id, part_name, quantity, unit_cost),
+        media:job_media(media_id, type, category, url, description, created_at),
+        extra_charges:extra_charges(charge_id, description, amount, created_at)
+      `)
+      .eq('job_id', jobId)
+      .is('deleted_at', null)
+      .single();
+
+    if (error) {
+      console.error('Error fetching job:', error);
+      return null;
+    }
+
+    // Fetch active helper assignment
+    const { data: helperData, error: helperError } = await supabase
+      .from('job_assignments')
+      .select(`
+        *,
+        technician:users!job_assignments_technician_id_fkey(user_id, name, email, phone, role)
+      `)
+      .eq('job_id', jobId)
+      .eq('assignment_type', 'assistant')
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (helperError) {
+      console.warn('Failed to fetch helper assignment:', helperError.message);
+    }
+
+    const job = data as Job;
+    if (helperData) {
+      job.helper_assignment = helperData as JobAssignment;
+    }
+
+    return job;
   },
 
   getJobById: async (jobId: string): Promise<Job | null> => {

@@ -3,11 +3,16 @@
  * 
  * Cached hooks for common data fetching patterns.
  * These replace direct API calls with cached, deduplicated queries.
+ * 
+ * USAGE: Import hooks in your components to get automatic caching:
+ * - Data is cached and shared across components
+ * - Duplicate requests are deduplicated
+ * - Stale data is automatically refreshed in background
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { SupabaseDb } from '../services/supabaseService';
-import { User, Customer, Forklift, Job, JobStatus } from '../types';
+import { User, Customer, Forklift, Job, JobStatus, Part } from '../types';
 
 // Query keys for cache management
 export const queryKeys = {
@@ -15,9 +20,12 @@ export const queryKeys = {
   customersForList: ['customers', 'list'] as const,
   forklifts: ['forklifts'] as const,
   forkliftsForList: ['forklifts', 'list'] as const,
+  parts: ['parts'] as const,
+  partsForList: ['parts', 'list'] as const,
   jobs: (userId: string, status?: JobStatus) => ['jobs', userId, status] as const,
   jobsLightweight: (userId: string, status?: JobStatus) => ['jobs', 'lightweight', userId, status] as const,
   job: (jobId: string) => ['job', jobId] as const,
+  jobFast: (jobId: string) => ['job', 'fast', jobId] as const,
   notifications: (userId: string) => ['notifications', userId] as const,
   notificationCount: (userId: string) => ['notifications', 'count', userId] as const,
   technicians: ['technicians'] as const,
@@ -56,6 +64,56 @@ export const useTechnicians = () => {
     queryKey: queryKeys.technicians,
     queryFn: () => SupabaseDb.getTechnicians(),
     staleTime: 5 * 60 * 1000,
+  });
+};
+
+/**
+ * Cached parts list for dropdowns
+ * Stale time: 5 minutes (parts rarely change)
+ */
+export const usePartsForList = () => {
+  return useQuery({
+    queryKey: queryKeys.partsForList,
+    queryFn: () => SupabaseDb.getPartsForList(),
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+/**
+ * Full parts list (when full details needed)
+ * Stale time: 5 minutes
+ */
+export const useParts = () => {
+  return useQuery({
+    queryKey: queryKeys.parts,
+    queryFn: () => SupabaseDb.getParts(),
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+/**
+ * Cached job detail (fast version with minimal relations)
+ * Stale time: 30 seconds
+ */
+export const useJobFast = (jobId: string | undefined) => {
+  return useQuery({
+    queryKey: queryKeys.jobFast(jobId || ''),
+    queryFn: () => jobId ? SupabaseDb.getJobByIdFast(jobId) : Promise.resolve(null),
+    staleTime: 30 * 1000,
+    enabled: !!jobId,
+  });
+};
+
+/**
+ * Full job detail (all relations)
+ * Stale time: 30 seconds
+ */
+export const useJob = (jobId: string | undefined) => {
+  return useQuery({
+    queryKey: queryKeys.job(jobId || ''),
+    queryFn: () => jobId ? SupabaseDb.getJobById(jobId) : Promise.resolve(null),
+    staleTime: 30 * 1000,
+    enabled: !!jobId,
   });
 };
 
@@ -122,6 +180,10 @@ export default {
   useCustomersForList,
   useForkliftsForList,
   useTechnicians,
+  useParts,
+  usePartsForList,
+  useJob,
+  useJobFast,
   useNotificationCount,
   useNotifications,
   useJobsLightweight,
