@@ -1,13 +1,27 @@
+/**
+ * Supabase Client Initialization & Shared Helpers
+ * 
+ * This module contains:
+ * - Supabase client instance
+ * - Logging helpers
+ * - Storage utilities
+ * - Query profiles for optimized fetches
+ */
+
 import { createClient } from '@supabase/supabase-js';
+
+// =====================
+// CLIENT INITIALIZATION
+// =====================
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// ===================
-// DEVELOPMENT HELPERS
-// ===================
+// =====================
+// LOGGING HELPERS
+// =====================
 
 const isDev = import.meta.env.DEV;
 
@@ -23,6 +37,10 @@ export const logError = (...args: unknown[]) => {
   }
 };
 
+// =====================
+// UTILITY HELPERS
+// =====================
+
 export const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export const isNetworkError = (error: unknown) => {
@@ -30,10 +48,67 @@ export const isNetworkError = (error: unknown) => {
   return error instanceof TypeError || /Failed to fetch|NetworkError|ERR_CONNECTION_CLOSED|fetch failed/i.test(message);
 };
 
-// ===================
+// =====================
+// STORAGE HELPERS
+// =====================
+
+/**
+ * Convert base64 data URL to Blob
+ */
+export const dataURLtoBlob = (dataURL: string): Blob => {
+  const arr = dataURL.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+};
+
+/**
+ * Upload file to Supabase Storage and return public URL
+ * @param bucket - Storage bucket name ('signatures' or 'job-photos')
+ * @param fileName - Unique file name
+ * @param dataURL - Base64 data URL
+ * @returns Public URL of uploaded file
+ */
+export const uploadToStorage = async (
+  bucket: string,
+  fileName: string,
+  dataURL: string
+): Promise<string> => {
+  try {
+    const blob = dataURLtoBlob(dataURL);
+    
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, blob, {
+        contentType: blob.type,
+        upsert: true,
+      });
+    
+    if (error) {
+      console.error(`[Storage] Upload to ${bucket} failed:`, error.message);
+      return dataURL; // Fallback to base64
+    }
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(fileName);
+    
+    logDebug(`[Storage] Uploaded to ${bucket}:`, fileName);
+    return publicUrl;
+  } catch (e) {
+    console.error('[Storage] Upload error:', e);
+    return dataURL; // Fallback to base64
+  }
+};
+
+// =====================
 // QUERY PROFILES
-// ===================
-// Use specific field selections based on use case to minimize data transfer
+// =====================
 
 /**
  * Job query profiles - fetch only what's needed for each use case
@@ -127,18 +202,16 @@ export const JOB_SELECT = {
   `,
 };
 
-// ==========================================================================
+// =====================
 // MALAYSIA TIMEZONE HELPERS (UTC+8)
-// ==========================================================================
+// =====================
 
-const MALAYSIA_TZ = 'Asia/Kuala_Lumpur';
+export const MALAYSIA_TZ = 'Asia/Kuala_Lumpur';
 
-// Get current time in Malaysia
 export function getMalaysiaTime(): Date {
   return new Date(new Date().toLocaleString('en-US', { timeZone: MALAYSIA_TZ }));
 }
 
-// Format date as YYYY-MM-DD in Malaysia timezone
 export function formatDateMalaysia(date: Date): string {
   const options: Intl.DateTimeFormatOptions = {
     timeZone: MALAYSIA_TZ,
@@ -153,7 +226,6 @@ export function formatDateMalaysia(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-// Check if date is Sunday in Malaysia timezone
 export function isSundayMalaysia(date: Date): boolean {
   const dayStr = new Intl.DateTimeFormat('en-US', { 
     timeZone: MALAYSIA_TZ, 
@@ -162,33 +234,25 @@ export function isSundayMalaysia(date: Date): boolean {
   return dayStr === 'Sun';
 }
 
-// Check if date is a holiday (comparing in Malaysia timezone)
 export function isHolidayMalaysia(date: Date, holidays: string[]): boolean {
   const dateStr = formatDateMalaysia(date);
   return holidays.includes(dateStr);
 }
 
-// Helper: Get next business day at 8 AM Malaysia time
 export function getNextBusinessDay8AM(date: Date, holidays: string[]): Date {
-  // Start from the next day
   const next = new Date(date);
   next.setDate(next.getDate() + 1);
   
-  // Skip Sundays and holidays (checking in Malaysia timezone)
   while (isSundayMalaysia(next) || isHolidayMalaysia(next, holidays)) {
     next.setDate(next.getDate() + 1);
   }
   
-  // Set to 8:00 AM Malaysia time (UTC+8)
-  // Get the date string in Malaysia timezone, then create a new date at 8 AM MYT
   const dateStr = formatDateMalaysia(next);
-  // 8 AM MYT = 0 AM UTC (8 - 8 = 0)
   const myt8am = new Date(`${dateStr}T00:00:00.000Z`);
   
   return myt8am;
 }
 
-// Add business days to a date (Malaysia timezone)
 export function addBusinessDaysMalaysia(date: Date, days: number, holidays: string[]): Date {
   const result = new Date(date);
   let added = 0;

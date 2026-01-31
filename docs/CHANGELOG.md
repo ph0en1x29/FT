@@ -4,6 +4,48 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - Service Architecture Refactoring
+
+### 🏗️ Split supabaseService.ts into Focused Modules (2026-02-02)
+- **Added:** 2026-02-02 (author: Clawdbot)
+- **Status:** ✔️ Completed
+
+The monolithic `supabaseService.ts` (~7000 lines) has been split into smaller, focused service modules for better maintainability and code organization.
+
+#### New Service Structure:
+```
+services/
+├── supabaseClient.ts      # Supabase client init, helpers, query profiles, timezone utils
+├── authService.ts         # Authentication (login, logout, session)
+├── userService.ts         # User management (CRUD, role fetching)
+├── customerService.ts     # Customer operations
+├── forkliftService.ts     # Fleet management, rentals, hourmeter, service scheduling
+├── inventoryService.ts    # Parts CRUD, van stock management
+├── notificationService.ts # Notification CRUD and triggers
+├── jobService.ts          # Job CRUD, assignments, requests, locking
+├── supabaseService.ts     # Re-export barrel for backward compatibility
+```
+
+#### Key Benefits:
+- **Maintainability:** Each service is now 2-30KB instead of one 7KB file
+- **Discoverability:** Easy to find functions by domain
+- **Code Splitting:** Vite can now better optimize bundle sizes
+- **Backward Compatibility:** All existing imports from `supabaseService` continue to work via the re-export barrel
+
+#### Migration Notes:
+- **No breaking changes** - existing code works as-is
+- New code can import directly from specific services for cleaner imports:
+  ```typescript
+  // Before (still works)
+  import { SupabaseDb, getJobs, createJob } from '../services/supabaseService';
+  
+  // New option (preferred for new code)
+  import { getJobs, createJob } from '../services/jobService';
+  import { getForklifts } from '../services/forkliftService';
+  ```
+
+---
+
 ## 📋 Planned / Upcoming
 
 ### Supabase Edge Functions

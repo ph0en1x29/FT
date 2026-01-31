@@ -1,11 +1,16 @@
+/**
+ * Authentication Service
+ * 
+ * Handles user authentication and session management
+ */
+
 import { supabase } from './supabaseClient';
-import { User } from '../types';
+import type { User } from '../types';
 
-// =====================
-// AUTHENTICATION OPERATIONS
-// =====================
-
-const fetchUserByAuthId = async (authId: string): Promise<User | null> => {
+/**
+ * Fetch user by auth ID from the users table
+ */
+export const fetchUserByAuthId = async (authId: string): Promise<User | null> => {
   const { data: userData, error: userError } = await supabase
     .from('users')
     .select('*')
@@ -19,44 +24,49 @@ const fetchUserByAuthId = async (authId: string): Promise<User | null> => {
   return userData as User;
 };
 
-export const AuthService = {
-  login: async (email: string, password: string): Promise<User> => {
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+/**
+ * Login with email and password
+ */
+export const login = async (email: string, password: string): Promise<User> => {
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-    if (authError) throw new Error(authError.message);
-    if (!authData.user) throw new Error('Login failed');
+  if (authError) throw new Error(authError.message);
+  if (!authData.user) throw new Error('Login failed');
 
-    const userData = await fetchUserByAuthId(authData.user.id);
-    if (!userData) throw new Error('User profile not found');
+  const userData = await fetchUserByAuthId(authData.user.id);
+  if (!userData) throw new Error('User profile not found');
 
-    return userData;
-  },
+  return userData;
+};
 
-  getUserByAuthId: fetchUserByAuthId,
+/**
+ * Alias for fetchUserByAuthId
+ */
+export const getUserByAuthId = fetchUserByAuthId;
 
-  logout: async (): Promise<void> => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw new Error(error.message);
-  },
+/**
+ * Get the current session
+ */
+export const getSession = async () => {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error) throw new Error(error.message);
+  return session;
+};
 
-  getCurrentSession: async () => {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) throw new Error(error.message);
-    return session;
-  },
+/**
+ * Sign out the current user
+ */
+export const logout = async (): Promise<void> => {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw new Error(error.message);
+};
 
-  resetPassword: async (email: string): Promise<void> => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) throw new Error(error.message);
-  },
-
-  updatePassword: async (newPassword: string): Promise<void> => {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword
-    });
-    if (error) throw new Error(error.message);
-  },
+/**
+ * Listen for auth state changes
+ */
+export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
+  return supabase.auth.onAuthStateChange(callback);
 };
