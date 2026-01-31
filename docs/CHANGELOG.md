@@ -4,6 +4,32 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - CustomerProfilePage Modular Split
+
+### 🏗️ CustomerProfilePage.tsx Further Split (2026-02-02)
+- **Status:** ✔️ Completed
+- Further split existing `pages/CustomerProfile/` folder, reducing main file from 499 lines to 193 lines
+
+**Main file (193 lines):**
+- `CustomerProfilePage.tsx` — Orchestrates hooks, components, and modal rendering
+
+**New Hooks (407 lines total):**
+- `hooks/useAIAnalysis.ts` (48 lines) — AI analysis state and generation
+- `hooks/useRentalSelection.ts` (72 lines) — Multi-select rental operations
+- `hooks/useBulkEndRentals.ts` (94 lines) — Bulk rental termination logic
+- `hooks/useRentForklifts.ts` (175 lines) — Forklift rental modal state/handlers
+- `hooks/useResultModal.ts` (30 lines) — Result modal state management
+- `hooks/useRentalActions.ts` (62 lines) — Individual rental edit/end actions
+- `hooks/index.ts` (7 lines) — Barrel exports
+
+**Existing hooks/components retained:**
+- `hooks/useCustomerData.ts` (164 lines) — Customer data loading and stats
+- All components in `components/` folder (modals, sections, UI pieces)
+
+**Build verified:** ✔️ `npm run build` passes
+
+---
+
 ## [2026-02-02] - TechnicianDashboard Modular Split
 
 ### 🏗️ TechnicianDashboard.tsx Modular Split (2026-02-02)
