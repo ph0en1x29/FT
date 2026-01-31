@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User } from '../../types';
-import { SupabaseDb as MockDb } from '../../services/supabaseService';
-import { showToast } from '../../services/toastService';
+import { User } from '../../../types';
+import { SupabaseDb as MockDb } from '../../../services/supabaseService';
+import { showToast } from '../../../services/toastService';
 import { Users, Search, ChevronRight, Loader2 } from 'lucide-react';
 
 interface EmployeesTabProps {

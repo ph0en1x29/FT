@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, EmployeeLeave, LeaveStatus } from '../../types';
-import { HRService } from '../../services/hrService';
-import { showToast } from '../../services/toastService';
+import { User, EmployeeLeave, LeaveStatus } from '../../../types';
+import { HRService } from '../../../services/hrService';
+import { showToast } from '../../../services/toastService';
 import { Calendar, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { useDevModeContext } from '../../contexts/DevModeContext';
+import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { LeaveFilterType } from '../types';
 
 interface LeaveTabProps {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, UserRole } from '../../types';
-import { SupabaseDb as MockDb } from '../../services/supabaseService';
-import { showToast } from '../../services/toastService';
+import { User, UserRole } from '../../../types';
+import { SupabaseDb as MockDb } from '../../../services/supabaseService';
+import { showToast } from '../../../services/toastService';
 import {
   Users, UserCheck, UserX, Shield, Wrench, FileText, Plus, Edit2, Search,
   CheckCircle, XCircle, X, Loader2
