@@ -47,6 +47,20 @@ All notable changes, decisions, and client requirements for this project.
 - Main file: 138 lines
 - Components: OverviewTab, UsersTab, EmployeesTab, LeaveTab
 
+### 🏗️ PendingConfirmations.tsx Modular Split (2026-01-31)
+- **Status:** ✔️ Completed
+- Split 629 lines into folder structure
+- Main file: 116 lines (target was <300)
+- Structure:
+  - `hooks/usePendingConfirmations.ts` — All state and business logic (239 lines)
+  - `components/Header.tsx` — Page header with refresh
+  - `components/Tabs.tsx` — Parts/Jobs tab navigation
+  - `components/SummaryCards.tsx` — Stats dashboard
+  - `components/JobCard.tsx` — Individual job display with actions (211 lines)
+  - `components/EmptyState.tsx` — Empty list message
+  - `components/RejectionModal.tsx` — Rejection dialog
+  - `types.ts` — Shared TypeScript interfaces
+
 ### 🏗️ MyLeaveRequests.tsx Modular Split (2026-01-31)
 - **Status:** ✔️ Completed
 - Split 823 lines into folder structure (138 lines main file)
