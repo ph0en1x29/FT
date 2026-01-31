@@ -15,6 +15,45 @@ Implement Supabase Edge Functions for the project. Details to be defined.
 
 ---
 
+## [2026-01-31] - Security Fixes (Supabase Linter)
+
+### 🔒 Security Improvements (2026-01-31)
+- **Added:** 2026-01-31 (author: Phoenix/Clawdbot)
+- **Status:** ✔️ Completed (migration ready to apply)
+
+#### Issues Fixed
+
+**1. SECURITY DEFINER Views (13 views)**
+- Removed SECURITY DEFINER from all views
+- Views now respect RLS of the querying user
+- Affected: `most_active_forklifts`, `pending_hourmeter_amendments`, `flagged_hourmeter_readings`, `jobs_monthly_summary`, `slot_in_sla_metrics`, `flagged_photos`, `pending_van_stock_approvals`, `fleet_dashboard_summary`, `autocount_export_history`, `pending_camera_fallbacks`, `pending_autocount_exports`, `pending_parts_confirmations`, `van_stock_summary`
+
+**2. RLS Disabled Tables (18 tables)**
+- Enabled RLS on all public tables
+- Created appropriate policies for each table
+- Affected: `van_stock_replenishments`, `van_stock_replenishment_items`, `van_stock_audits`, `van_stock_audit_items`, `job_type_change_requests`, `job_type_change_log`, `duration_alert_configs`, `job_duration_alerts`, `van_stocks`, `van_stock_items`, `van_stock_usage`, `hourmeter_validation_configs`, `autocount_exports`, `autocount_customer_mappings`, `autocount_item_mappings`, `autocount_settings`
+
+**3. Function Search Path (10 functions)**
+- Added `SET search_path = public` to all functions
+- Prevents search path manipulation attacks
+- Affected: `update_job_assignments_updated_at`, `update_user_timestamp`, `calculate_slot_in_sla`, `update_job_requests_updated_at`, `check_parts_confirmation_needed`, `prepare_autocount_export`, `escalate_pending_confirmations`, `get_my_user_id`, `get_user_id_from_auth`, `validate_hourmeter_reading`
+
+**4. Helper Functions Added**
+- `is_admin_or_supervisor()` — Check if user has elevated access
+- `is_technician_owner(UUID)` — Check if user owns a resource
+
+#### Files Added
+- `database/migrations/20260131_security_fixes.sql`
+
+#### How to Apply
+Run the migration in Supabase SQL Editor or via CLI:
+```sql
+-- Run the entire migration file
+\i database/migrations/20260131_security_fixes.sql
+```
+
+---
+
 ## [2026-01-31] - Telegram Bot Integration (Foundation)
 
 ### 📱 Telegram Notifications System (2026-01-31)
