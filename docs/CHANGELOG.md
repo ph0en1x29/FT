@@ -4,6 +4,40 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-02] - AccountantDashboard Modular Split
+
+### 🏗️ AccountantDashboard.tsx Modular Split (2026-02-02)
+- **Status:** ✔️ Completed
+- Split 586 lines into `components/dashboards/AccountantDashboard/` folder structure
+
+**Main file (103 lines):**
+- `AccountantDashboard.tsx` — Orchestrates dashboard with header, alerts, queue, stats, charts, and quick actions
+
+**Hooks (159 lines):**
+- `hooks/useAccountantDashboardData.ts` — Data loading, revenue calculations, urgency levels, job filtering
+
+**Types (38 lines):**
+- `types.ts` — Shared types (UrgencyLevel, UrgencyStyle, RevenueDataPoint, InvoiceStatusDataPoint, AccountantDashboardData)
+
+**Components:**
+- `components/DashboardHeader.tsx` (44 lines) — Greeting, date, and View Invoices button
+- `components/FinalizationAlertBanner.tsx` (58 lines) — Alert banner for jobs needing attention
+- `components/FinalizationQueue.tsx` (87 lines) — Main finalization queue section (FIFO ordered)
+- `components/FinalizationQueueItem.tsx` (73 lines) — Individual queue item with urgency styling
+- `components/AccountantKPIStats.tsx` (109 lines) — 4-stat grid (revenue, to finalize, awaiting ack, completed)
+- `components/RevenueChart.tsx` (82 lines) — Revenue trend area chart (7 days)
+- `components/InvoiceStatusChart.tsx` (65 lines) — Invoice status pie chart with legend
+- `components/AccountantQuickActions.tsx` (61 lines) — Quick action buttons grid
+- `components/index.ts` (10 lines) — Barrel exports
+
+**Backward Compatibility:**
+- Original `AccountantDashboard.tsx` re-exports from new module
+- `index.tsx` provides default export for folder imports
+
+**Build verified:** ✔️ `npm run build` passes
+
+---
+
 ## [2026-02-02] - TechnicianJobsTab Modular Split
 
 ### 🏗️ TechnicianJobsTab.tsx Modular Split (2026-02-02)
