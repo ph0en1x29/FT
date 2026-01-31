@@ -47,6 +47,25 @@ All notable changes, decisions, and client requirements for this project.
 - Main file: 138 lines
 - Components: OverviewTab, UsersTab, EmployeesTab, LeaveTab
 
+### 🏗️ MyLeaveRequests.tsx Modular Split (2026-01-31)
+- **Status:** ✔️ Completed
+- Split 823 lines into folder structure (138 lines main file)
+- Structure:
+  ```
+  pages/MyLeaveRequests/
+  ├── index.tsx (re-export)
+  ├── MyLeaveRequestsPage.tsx (138 lines)
+  ├── components/
+  │   ├── LeaveRequestCard.tsx
+  │   ├── LeaveStatsCards.tsx
+  │   ├── LeaveStatusBadge.tsx
+  │   ├── LeaveFilterTabs.tsx
+  │   ├── NewLeaveRequestModal.tsx
+  │   └── LeaveCalendar.tsx
+  └── hooks/
+      └── useLeaveData.ts
+  ```
+
 ---
 
 ## [2026-01-31] - Bundle Size Optimization with Lazy Loading
