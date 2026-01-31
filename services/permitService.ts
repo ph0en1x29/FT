@@ -40,12 +40,12 @@ export const PermitService = {
 
     if (error) throw new Error(error.message);
 
-    return (data || []).map((permit: any) => ({
+    return (data || []).map((permit: EmployeePermit) => ({
       ...permit,
       days_until_expiry: Math.ceil(
         (new Date(permit.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
       ),
-    })) as EmployeePermit[];
+    }));
   },
 
   createPermit: async (

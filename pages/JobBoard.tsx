@@ -7,6 +7,11 @@ import { Briefcase, Calendar, MapPin, User as UserIcon, Search, Filter, X, Chevr
 import SlotInSLABadge, { getSLAStatus } from '../components/SlotInSLABadge';
 import { useDevModeContext } from '../contexts/DevModeContext';
 
+// Extended Job type with helper assignment flag (added at runtime by jobService)
+interface JobWithHelperFlag extends Job {
+  _isHelperAssignment?: boolean;
+}
+
 interface JobBoardProps {
   currentUser: User;
   hideHeader?: boolean;
@@ -16,7 +21,7 @@ type DateFilter = 'today' | 'unfinished' | 'week' | 'month' | 'all' | 'custom';
 type SpecialFilter = 'overdue' | 'unassigned' | 'escalated' | 'awaiting-ack' | null;
 
 const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) => {
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<JobWithHelperFlag[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -842,7 +847,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
                     </span>
                   )}
                   {/* Helper badge for technicians viewing helper assignments */}
-                  {(job as any)._isHelperAssignment && (
+                  {job._isHelperAssignment && (
                     <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
                       Helper
                     </span>

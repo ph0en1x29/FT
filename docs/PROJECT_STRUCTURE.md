@@ -86,17 +86,37 @@ Services are split by domain, with a barrel export for backward compatibility:
 
 ```
 services/
-├── supabaseClient.ts      # Client initialization & helpers
-├── authService.ts         # Authentication (login, logout, session)
-├── userService.ts         # User CRUD operations
-├── customerService.ts     # Customer operations
-├── forkliftService.ts     # Fleet, rentals, hourmeter
-├── inventoryService.ts    # Parts, van stock
-├── jobService.ts          # Jobs, assignments, requests
-├── notificationService.ts # Notifications
-├── storageService.ts      # File uploads
-├── hrService.ts           # HR (leaves, licenses, permits)
-└── supabaseService.ts     # ⚠️ Legacy barrel (re-exports all)
+├── supabaseClient.ts         # Client initialization & helpers
+├── authService.ts            # Authentication (login, logout, session)
+├── userService.ts            # User CRUD operations
+├── customerService.ts        # Customer operations
+│
+├── # Job services (split from jobService.ts)
+├── jobService.ts             # Core job CRUD + re-exports
+├── jobAssignmentService.ts   # Assignment, reassignment, helper tech
+├── jobRequestService.ts      # In-job requests (spare parts, helpers)
+├── jobChecklistService.ts    # Condition checklist operations
+├── jobInvoiceService.ts      # Invoice/billing, parts, extra charges
+├── jobMediaService.ts        # Photos, signatures
+├── jobLockingService.ts      # Concurrent edit prevention
+│
+├── # Forklift services (split from forkliftService.ts)
+├── forkliftService.ts        # Core forklift CRUD + re-exports
+├── rentalService.ts          # Rental operations (assign, end, extend)
+├── hourmeterService.ts       # Hourmeter readings, amendments
+├── serviceScheduleService.ts # Service due, intervals, predictions
+│
+├── # HR services (split from hrService.ts)
+├── hrService.ts              # Employee ops + re-exports
+├── leaveService.ts           # Leave requests, balances, approvals
+├── licenseService.ts         # Driving licenses CRUD
+├── permitService.ts          # Special permits CRUD
+├── hrAlertService.ts         # HR alerts and expiry notifications
+│
+├── inventoryService.ts       # Parts, van stock
+├── notificationService.ts    # Notifications
+├── storageService.ts         # File uploads
+└── supabaseService.ts        # ⚠️ Legacy barrel (re-exports all)
 ```
 
 ### Usage

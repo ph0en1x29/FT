@@ -183,14 +183,14 @@ export const MockDb = {
     const idx = USERS.findIndex(u => u.user_id === userId);
     if (idx === -1) throw new Error("User not found");
 
-    const updatedUser = { ...USERS[idx], ...updates };
+    // Destructure password from updates to avoid saving it to the user object
+    const { password: rawPassword, ...cleanUpdates } = updates;
+    const updatedUser = { ...USERS[idx], ...cleanUpdates };
     
     // Handle password change if provided
-    if (updates.password) {
-      updatedUser.password_hash = hashPassword(updates.password);
+    if (rawPassword) {
+      updatedUser.password_hash = hashPassword(rawPassword);
     }
-    // Don't accidentally save the plain password field if it leaked into updates
-    delete (updatedUser as any).password;
 
     USERS[idx] = updatedUser;
     

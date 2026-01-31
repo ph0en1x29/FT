@@ -4,9 +4,54 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
-## [2026-02-02] - Bundle Size Optimization with Lazy Loading
+## [2026-01-31] - Code Quality & Performance Improvements
 
-### 🚀 Reduced Main Bundle from 351KB to 83KB (2026-02-02)
+### 🧹 Console Log Cleanup (2026-01-31)
+- **Status:** ✔️ Completed
+- Removed 291 of 296 console.log/warn/error statements (98% reduction)
+- Kept only `logDebug`/`logError` helper definitions and test utilities
+- Production code no longer outputs debug noise
+
+### 🔧 TypeScript Any Type Fixes (2026-01-31)
+- **Status:** ✔️ Completed
+- Reduced `any` types from 78 to 16 (80% reduction)
+- Added proper types for Supabase realtime payloads
+- Created database row types (`JobRow`, `JobRequestRow`, etc.)
+- Remaining 16 are legitimate uses (Supabase relation casts, password handling)
+
+### 🏗️ Service Architecture Splits (2026-01-31)
+- **Status:** ✔️ Completed
+
+**jobService.ts (2,101 → 718 lines):**
+- `jobAssignmentService.ts` — Assignment, reassignment, helper tech
+- `jobRequestService.ts` — In-job requests (spare parts, helpers)
+- `jobChecklistService.ts` — Condition checklist operations
+- `jobInvoiceService.ts` — Invoice/billing, parts, extra charges
+- `jobMediaService.ts` — Photos, signatures
+- `jobLockingService.ts` — Concurrent edit prevention
+
+**forkliftService.ts (1,173 → 277 lines):**
+- `rentalService.ts` — Rental operations
+- `hourmeterService.ts` — Readings & amendments
+- `serviceScheduleService.ts` — Service due & intervals
+
+**hrService.ts (1,067 → 311 lines):**
+- `leaveService.ts` — Leave requests & approvals
+- `licenseService.ts` — Driving licenses CRUD
+- `permitService.ts` — Special permits CRUD
+- `hrAlertService.ts` — HR alerts & notifications
+
+### 🏗️ People.tsx Modular Split (2026-01-31)
+- **Status:** ✔️ Completed
+- Split 1,128 lines into folder structure
+- Main file: 138 lines
+- Components: OverviewTab, UsersTab, EmployeesTab, LeaveTab
+
+---
+
+## [2026-01-31] - Bundle Size Optimization with Lazy Loading
+
+### 🚀 Reduced Main Bundle from 351KB to 83KB (2026-01-31)
 - **Added:** 2026-02-02 (author: Clawdbot)
 - **Status:** ✔️ Completed
 
@@ -46,9 +91,9 @@ components/layout/
 
 ---
 
-## [2026-02-02] - EmployeeProfile Modular Split
+## [2026-01-31] - EmployeeProfile Modular Split
 
-### 🏗️ Split EmployeeProfile.tsx into Modular Components (2026-02-02)
+### 🏗️ Split EmployeeProfile.tsx into Modular Components (2026-01-31)
 - **Added:** 2026-02-02 (author: Clawdbot)
 - **Status:** ✔️ Completed
 
@@ -93,9 +138,9 @@ pages/EmployeeProfile/
 
 ---
 
-## [2026-02-02] - ForkliftsTabs Modular Split
+## [2026-01-31] - ForkliftsTabs Modular Split
 
-### 🏗️ Split ForkliftsTabs.tsx into Modular Components (2026-02-02)
+### 🏗️ Split ForkliftsTabs.tsx into Modular Components (2026-01-31)
 - **Added:** 2026-02-02 (author: Clawdbot)
 - **Status:** ✔️ Completed
 
@@ -133,9 +178,9 @@ pages/ForkliftsTabs/
 
 ---
 
-## [2026-02-02] - CustomerProfile Modular Split
+## [2026-01-31] - CustomerProfile Modular Split
 
-### 🏗️ Split CustomerProfile.tsx into Modular Components (2026-02-02)
+### 🏗️ Split CustomerProfile.tsx into Modular Components (2026-01-31)
 - **Added:** 2026-02-02 (author: Clawdbot)
 - **Status:** ✔️ Completed
 
@@ -171,9 +216,9 @@ pages/CustomerProfile/
 
 ---
 
-## [2026-02-02] - VanStockPage Modular Split
+## [2026-01-31] - VanStockPage Modular Split
 
-### 🏗️ Split VanStockPage.tsx into Modular Components (2026-02-02)
+### 🏗️ Split VanStockPage.tsx into Modular Components (2026-01-31)
 - **Added:** 2026-02-02 (author: Clawdbot)
 - **Status:** ✔️ Completed
 
@@ -216,9 +261,9 @@ pages/VanStockPage/
 
 ---
 
-## [2026-02-02] - Types Refactoring
+## [2026-01-31] - Types Refactoring
 
-### 🏗️ Split types/index.ts into Domain-Specific Files (2026-02-02)
+### 🏗️ Split types/index.ts into Domain-Specific Files (2026-01-31)
 - **Added:** 2026-02-02 (author: Clawdbot)
 - **Status:** ✔️ Completed
 
@@ -260,9 +305,9 @@ types/
 
 ---
 
-## [2026-02-02] - JobDetail Component Refactoring
+## [2026-01-31] - JobDetail Component Refactoring
 
-### 🏗️ Split JobDetail.tsx into Modular Components (2026-02-02)
+### 🏗️ Split JobDetail.tsx into Modular Components (2026-01-31)
 - **Added:** 2026-02-02 (author: Clawdbot)
 - **Status:** ✔️ Completed
 
@@ -314,9 +359,9 @@ pages/
 
 ---
 
-## [2026-02-02] - Service Architecture Refactoring
+## [2026-01-31] - Service Architecture Refactoring
 
-### 🏗️ Split supabaseService.ts into Focused Modules (2026-02-02)
+### 🏗️ Split supabaseService.ts into Focused Modules (2026-01-31)
 - **Added:** 2026-02-02 (author: Clawdbot)
 - **Status:** ✔️ Completed
 

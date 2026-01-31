@@ -5,7 +5,7 @@
  */
 
 import { supabase } from './supabaseClient';
-import type { ScheduledService, Job } from '../types';
+import type { ScheduledService, Job, ForkliftServiceEntry } from '../types';
 
 // =====================
 // SCHEDULED SERVICES
@@ -265,7 +265,7 @@ export const getForkliftServiceHistory = async (forkliftId: string): Promise<Job
   }
 };
 
-export const getForkliftServiceHistoryWithCancelled = async (forkliftId: string): Promise<any[]> => {
+export const getForkliftServiceHistoryWithCancelled = async (forkliftId: string): Promise<ForkliftServiceEntry[]> => {
   try {
     const { data, error } = await supabase
       .from('jobs')
@@ -277,7 +277,7 @@ export const getForkliftServiceHistoryWithCancelled = async (forkliftId: string)
       return [];
     }
 
-    return (data || []).map((job: any) => ({
+    return (data || []).map((job: Job) => ({
       ...job,
       is_cancelled: job.deleted_at !== null,
     }));

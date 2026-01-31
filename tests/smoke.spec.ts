@@ -5,7 +5,7 @@
  * Run: npm run test:smoke
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { ErrorCapture, smokeTest } from './utilities/core';
 
 // ===========================================
@@ -129,12 +129,12 @@ test.describe('Smoke Tests', () => {
 // ===========================================
 
 // Helper to check if we're on login page
-async function isOnLoginPage(page: any): Promise<boolean> {
+async function isOnLoginPage(page: Page): Promise<boolean> {
   return await page.locator('input[type="email"]').isVisible().catch(() => false) ||
          await page.locator('button:has-text("Sign In")').isVisible().catch(() => false);
 }
 
-async function waitForAuthResolution(page: any, timeoutMs = 15000): Promise<'dashboard' | 'login' | 'timeout'> {
+async function waitForAuthResolution(page: Page, timeoutMs = 15000): Promise<'dashboard' | 'login' | 'timeout'> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     if (await page.locator('aside').isVisible().catch(() => false)) {

@@ -21,6 +21,29 @@ interface AssetDashboardProps {
 
 type OperationalStatus = 'out_of_service' | 'rented_out' | 'in_service' | 'service_due' | 'awaiting_parts' | 'reserved' | 'available';
 
+// Type for rental data from Supabase query
+interface RentalQueryResult {
+  rental_id: string;
+  forklift_id: string;
+  customer_id: string;
+  status: string;
+  customers: { name: string } | null;
+}
+
+// Type for forklift data from getForkliftsWithCustomers
+interface ForkliftDbRow {
+  forklift_id: string;
+  serial_number: string;
+  make: string;
+  model: string;
+  type: string;
+  hourmeter: number;
+  status: string;
+  next_service_due: string | null;
+  next_service_hourmeter?: number | null;
+  current_customer_id?: string | null;
+}
+
 interface ForkliftWithStatus {
   forklift_id: string;
   serial_number: string;
@@ -178,7 +201,7 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
 
       // Build rental lookup
       const rentalLookup = new Map<string, { customer_id: string; customer_name: string }>();
-      (rentalsData || []).forEach((r: any) => {
+      ((rentalsData || []) as RentalQueryResult[]).forEach((r) => {
         rentalLookup.set(r.forklift_id, {
           customer_id: r.customer_id,
           customer_name: r.customers?.name || 'Unknown'
@@ -197,7 +220,7 @@ const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
       const now = new Date();
       const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-      const processedForklifts: ForkliftWithStatus[] = forkliftData.map((f: any) => {
+      const processedForklifts: ForkliftWithStatus[] = (forkliftData as ForkliftDbRow[]).map((f) => {
         const rental = rentalLookup.get(f.forklift_id);
         const openJobId = openJobLookup.get(f.forklift_id);
         const hasOpenJob = !!openJobId;

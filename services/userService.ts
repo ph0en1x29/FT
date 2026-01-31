@@ -121,7 +121,7 @@ export const createUser = async (userData: Partial<User> & { password?: string }
  */
 export const updateUser = async (userId: string, updates: Partial<User> & { password?: string }): Promise<User> => {
   // Extract password from updates (passwords are in Supabase Auth, not users table)
-  const { password, ...userUpdates } = updates as any;
+  const { password, ...userUpdates } = updates;
   
   // Update user profile in users table (without password)
   const { data, error } = await supabase

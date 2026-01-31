@@ -40,12 +40,12 @@ export const LicenseService = {
 
     if (error) throw new Error(error.message);
 
-    return (data || []).map((license: any) => ({
+    return (data || []).map((license: EmployeeLicense) => ({
       ...license,
       days_until_expiry: Math.ceil(
         (new Date(license.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
       ),
-    })) as EmployeeLicense[];
+    }));
   },
 
   createLicense: async (
