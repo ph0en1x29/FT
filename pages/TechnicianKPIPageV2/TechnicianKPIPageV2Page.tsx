@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Job, UserRole, EnhancedTechnicianKPI, JobType } from '../types';
-import { SupabaseDb as MockDb } from '../services/supabaseService';
-import { showToast } from '../services/toastService';
+import { User, Job, UserRole, EnhancedTechnicianKPI, JobType } from '../../types';
+import { SupabaseDb as MockDb } from '../../services/supabaseService';
+import { showToast } from '../../services/toastService';
 import { 
   Users, Clock, CheckCircle, DollarSign, TrendingUp, 
   AlertTriangle, Award, Target, Activity, Calendar,
