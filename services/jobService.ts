@@ -1,44 +1,99 @@
 /**
  * Job Service
  * 
- * Handles all job-related operations including:
- * - Job CRUD
- * - Job assignments
- * - Job status transitions
- * - Job requests (helper, spare part, skillful tech)
- * - Escalation handling
- * - Deferred acknowledgement
- * - AutoCount export
- * - Job locking
+ * Core job CRUD operations and re-exports from specialized services.
+ * 
+ * This file maintains backward compatibility by re-exporting all functions
+ * from the split service files.
  */
 
-import { supabase, logDebug, logError, wait, isNetworkError, JOB_SELECT, uploadToStorage, getNextBusinessDay8AM, addBusinessDaysMalaysia } from './supabaseClient';
+import { supabase, logDebug, logError, wait, isNetworkError, JOB_SELECT } from './supabaseClient';
 import { 
   createNotification, 
   notifyJobAssignment, 
   notifyPendingFinalization,
-  notifyAdminsOfRequest,
-  notifyRequestApproved,
-  notifyRequestRejected,
-  notifyJobRejectedByTech,
-  notifyNoResponseFromTech,
   getAdminsAndSupervisors 
 } from './notificationService';
-import { updateForkliftHourmeter } from './forkliftService';
 import type { 
   Job, 
   JobStatus, 
-  JobPriority,
-  JobType,
-  JobMedia, 
   JobAssignment,
-  SignatureEntry,
   User,
-  AutoCountExport,
-  AutoCountExportStatus,
-  AutoCountLineItem
 } from '../types';
 import { JobStatus as JobStatusEnum, JobPriority as JobPriorityEnum, JobType as JobTypeEnum, ForkliftStatus, UserRole, NotificationType } from '../types';
+
+// =====================
+// RE-EXPORTS FOR BACKWARD COMPATIBILITY
+// =====================
+
+// Assignment Service
+export {
+  acceptJobAssignment,
+  rejectJobAssignment,
+  checkExpiredJobResponses,
+  getJobsPendingResponse,
+  reassignJob,
+  getJobAssignments,
+  getActiveHelper,
+  assignHelper,
+  removeHelper,
+  startHelperWork,
+  endHelperWork,
+  getHelperJobs,
+  isUserHelperOnJob,
+  getUserAssignmentType,
+} from './jobAssignmentService';
+
+// Request Service
+export {
+  createJobRequest,
+  updateJobRequest,
+  getJobRequests,
+  getPendingRequests,
+  approveSparePartRequest,
+  rejectRequest,
+  acknowledgeSkillfulTechRequest,
+  approveAssistanceRequest,
+  getRequestCounts,
+} from './jobRequestService';
+
+// Media Service
+export {
+  addMedia,
+  signJob,
+} from './jobMediaService';
+
+// Checklist Service
+export {
+  updateJobConditionChecklist,
+  updateJobCarriedOut,
+  updateConditionChecklist,
+  setNoPartsUsed,
+  getJobServiceRecord,
+  updateJobRepairTimes,
+  startJobWithCondition,
+} from './jobChecklistService';
+
+// Invoice Service
+export {
+  addPartToJob,
+  updatePartPrice,
+  removePartFromJob,
+  updateLaborCost,
+  addExtraCharge,
+  removeExtraCharge,
+  finalizeInvoice,
+  sendInvoice,
+  generateInvoiceText,
+} from './jobInvoiceService';
+
+// Locking Service
+export {
+  acquireJobLock,
+  releaseJobLock,
+  checkJobLock,
+  cleanupExpiredLocks,
+} from './jobLockingService';
 
 // =====================
 // JOB CRUD
@@ -130,6 +185,7 @@ export const getJobs = async (user: User, options?: { status?: JobStatus }): Pro
   
   let allJobs = data as Job[];
   
+  // Include helper assignments for technicians
   if (user.role === UserRole.TECHNICIAN) {
     const { data: helperAssignments, error: helperError } = await supabase
       .from('job_assignments')
@@ -198,7 +254,7 @@ export const getJobByIdFast = async (jobId: string): Promise<Job | null> => {
     .single();
 
   if (error) {
-    logError('Error fetching job:', error);
+    console.error('Error fetching job:', error);
     return null;
   }
 
@@ -211,7 +267,7 @@ export const getJobByIdFast = async (jobId: string): Promise<Job | null> => {
     .maybeSingle();
 
   if (helperError) {
-    logError('Failed to fetch helper assignment:', helperError.message);
+    console.warn('Failed to fetch helper assignment:', helperError.message);
   }
 
   const job = data as Job;
@@ -238,7 +294,7 @@ export const getJobById = async (jobId: string): Promise<Job | null> => {
     .single();
 
   if (error) {
-    logError('Error fetching job:', error);
+    console.error('Error fetching job:', error);
     return null;
   }
 
@@ -251,7 +307,7 @@ export const getJobById = async (jobId: string): Promise<Job | null> => {
     .maybeSingle();
 
   if (helperError) {
-    logError('Failed to fetch helper assignment:', helperError.message);
+    console.warn('Failed to fetch helper assignment:', helperError.message);
   }
 
   const job = data as Job;
@@ -371,6 +427,7 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
   
   const previousStatus = currentJob?.status;
   
+  // Validation for status transitions
   if (status === JobStatusEnum.IN_PROGRESS && previousStatus !== JobStatusEnum.IN_PROGRESS) {
     if (!currentJob?.assigned_technician_id) {
       throw new Error('Cannot start job: No technician assigned');
@@ -394,6 +451,7 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
   const updates: any = { status };
   const now = new Date().toISOString();
 
+  // Set timestamps based on status
   if (status === JobStatusEnum.IN_PROGRESS) {
     if (!currentJob?.arrival_time) updates.arrival_time = now;
     if (!currentJob?.started_at) updates.started_at = now;
@@ -409,6 +467,7 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
     }
   }
   
+  // Reset timestamps on status rollback
   if (status === JobStatusEnum.ASSIGNED && previousStatus === JobStatusEnum.IN_PROGRESS) {
     updates.arrival_time = null;
     updates.started_at = null;
@@ -441,6 +500,7 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
 
   const job = data as Job;
 
+  // Update forklift status
   if (currentJob?.forklift_id) {
     if (status === JobStatusEnum.IN_PROGRESS && previousStatus !== JobStatusEnum.IN_PROGRESS) {
       await supabase
@@ -475,148 +535,12 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
     }
   }
 
+  // Notify on awaiting finalization
   if (status === JobStatusEnum.AWAITING_FINALIZATION) {
     await notifyPendingFinalization(job);
   }
 
   return job;
-};
-
-// =====================
-// ON-CALL JOB ACCEPT/REJECT
-// =====================
-
-export const acceptJobAssignment = async (jobId: string, technicianId: string, technicianName: string): Promise<Job> => {
-  const now = new Date().toISOString();
-  
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({ technician_accepted_at: now })
-    .eq('job_id', jobId)
-    .eq('assigned_technician_id', technicianId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-  
-  const job = data as Job;
-  
-  const admins = await getAdminsAndSupervisors();
-  for (const admin of admins) {
-    await createNotification({
-      user_id: admin.user_id,
-      type: NotificationType.JOB_UPDATED,
-      title: 'Job Accepted',
-      message: `${technicianName} accepted job "${job.title}".`,
-      reference_type: 'job',
-      reference_id: jobId,
-      priority: 'normal',
-    });
-  }
-  
-  return job;
-};
-
-export const rejectJobAssignment = async (
-  jobId: string,
-  technicianId: string,
-  technicianName: string,
-  reason: string
-): Promise<Job> => {
-  const now = new Date().toISOString();
-  
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({
-      technician_rejected_at: now,
-      technician_rejection_reason: reason,
-      status: JobStatusEnum.NEW,
-      assigned_technician_id: null,
-      assigned_technician_name: null,
-      assigned_at: null,
-      technician_response_deadline: null,
-    })
-    .eq('job_id', jobId)
-    .eq('assigned_technician_id', technicianId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-  
-  const job = data as Job;
-  await notifyJobRejectedByTech(jobId, job.title, technicianName, reason);
-  
-  return job;
-};
-
-export const checkExpiredJobResponses = async (): Promise<{ alertedJobs: string[] }> => {
-  const alertedJobs: string[] = [];
-  const now = new Date();
-  
-  try {
-    const { data: expiredJobs, error } = await supabase
-      .from('jobs')
-      .select(`job_id, title, assigned_technician_id, assigned_technician_name, technician_response_deadline, customer:customers(name)`)
-      .eq('status', JobStatusEnum.ASSIGNED)
-      .is('technician_accepted_at', null)
-      .is('technician_rejected_at', null)
-      .is('no_response_alerted_at', null)
-      .not('technician_response_deadline', 'is', null)
-      .lt('technician_response_deadline', now.toISOString());
-
-    if (error) {
-      logError('Failed to check expired responses:', error.message);
-      return { alertedJobs };
-    }
-
-    for (const job of (expiredJobs || [])) {
-      await notifyNoResponseFromTech(job.job_id, job.title, job.assigned_technician_name || 'Unknown');
-      await supabase.from('jobs').update({ no_response_alerted_at: now.toISOString() }).eq('job_id', job.job_id);
-      alertedJobs.push(job.job_id);
-    }
-
-    return { alertedJobs };
-  } catch (e) {
-    logError('Error checking expired responses:', e);
-    return { alertedJobs };
-  }
-};
-
-export const getJobsPendingResponse = async (): Promise<Job[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select(`*, customer:customers(*), forklift:forklifts!forklift_id(*)`)
-      .eq('status', JobStatusEnum.ASSIGNED)
-      .is('technician_accepted_at', null)
-      .is('technician_rejected_at', null)
-      .not('technician_response_deadline', 'is', null)
-      .order('technician_response_deadline', { ascending: true });
-
-    if (error) {
-      logError('Failed to get pending response jobs:', error.message);
-      return [];
-    }
-
-    return (data || []) as Job[];
-  } catch (e) {
-    logError('Error getting pending response jobs:', e);
-    return [];
-  }
 };
 
 // =====================
@@ -684,330 +608,6 @@ export const addNote = async (jobId: string, note: string): Promise<Job> => {
   return data as Job;
 };
 
-export const addPartToJob = async (
-  jobId: string,
-  partId: string,
-  quantity: number,
-  customPrice?: number,
-  actorRole?: UserRole
-): Promise<Job> => {
-  const { data: part, error: partError } = await supabase
-    .from('parts')
-    .select('*')
-    .eq('part_id', partId)
-    .single();
-
-  if (partError) throw new Error(partError.message);
-  if (part.stock_quantity < quantity) throw new Error('Insufficient stock');
-
-  const { error: insertError } = await supabase
-    .from('job_parts')
-    .insert({
-      job_id: jobId,
-      part_id: partId,
-      part_name: part.part_name,
-      quantity,
-      sell_price_at_time: customPrice !== undefined ? customPrice : part.sell_price,
-    });
-
-  if (insertError) throw new Error(insertError.message);
-
-  if (actorRole === UserRole.ADMIN || actorRole === UserRole.TECHNICIAN) {
-    const { error: stockError } = await supabase
-      .from('parts')
-      .update({ stock_quantity: part.stock_quantity - quantity })
-      .eq('part_id', partId);
-    if (stockError) {
-      logError('Part added, but stock update failed (RLS?):', stockError.message);
-    }
-  }
-
-  return getJobById(jobId) as Promise<Job>;
-};
-
-export const addMedia = async (
-  jobId: string, 
-  media: Omit<JobMedia, 'media_id' | 'job_id'>,
-  uploadedById?: string,
-  uploadedByName?: string,
-  isHelperPhoto?: boolean
-): Promise<Job> => {
-  const { error } = await supabase
-    .from('job_media')
-    .insert({
-      job_id: jobId,
-      ...media,
-      uploaded_by_id: uploadedById || null,
-      uploaded_by_name: uploadedByName || null,
-      is_helper_photo: isHelperPhoto || false,
-    });
-
-  if (error) throw new Error(error.message);
-  return getJobById(jobId) as Promise<Job>;
-};
-
-export const signJob = async (
-  jobId: string,
-  type: 'technician' | 'customer',
-  signerName: string,
-  signatureDataUrl: string
-): Promise<Job> => {
-  const now = new Date().toISOString();
-  
-  const timestamp = Date.now();
-  const fileName = `${jobId}_${type}_${timestamp}.png`;
-  const signatureUrl = await uploadToStorage('signatures', fileName, signatureDataUrl);
-  
-  const signatureEntry: SignatureEntry = {
-    signed_by_name: signerName,
-    signed_at: now,
-    signature_url: signatureUrl,
-  };
-
-  const field = type === 'technician' ? 'technician_signature' : 'customer_signature';
-  const timestampField = type === 'technician' ? 'technician_signature_at' : 'customer_signature_at';
-
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({ [field]: signatureEntry })
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-
-  const { error: serviceRecordError } = await supabase
-    .from('job_service_records')
-    .update({ 
-      [field]: signatureEntry,
-      [timestampField]: now,
-      updated_at: now
-    })
-    .eq('job_id', jobId);
-
-  if (serviceRecordError) {
-    await supabase
-      .from('job_service_records')
-      .upsert({
-        job_id: jobId,
-        [field]: signatureEntry,
-        [timestampField]: now,
-        updated_at: now
-      }, { onConflict: 'job_id' });
-  }
-
-  return data as Job;
-};
-
-export const updatePartPrice = async (jobId: string, jobPartId: string, newPrice: number): Promise<Job> => {
-  const { error } = await supabase
-    .from('job_parts')
-    .update({ sell_price_at_time: newPrice })
-    .eq('job_part_id', jobPartId)
-    .eq('job_id', jobId);
-
-  if (error) throw new Error(error.message);
-  return getJobById(jobId) as Promise<Job>;
-};
-
-export const removePartFromJob = async (jobId: string, jobPartId: string, actorRole?: UserRole): Promise<Job> => {
-  const { data: jobPart } = await supabase
-    .from('job_parts')
-    .select('part_id, quantity')
-    .eq('job_part_id', jobPartId)
-    .single();
-
-  if (jobPart && (actorRole === UserRole.ADMIN || actorRole === UserRole.TECHNICIAN)) {
-    const { data: part } = await supabase
-      .from('parts')
-      .select('stock_quantity')
-      .eq('part_id', jobPart.part_id)
-      .single();
-
-    if (part) {
-      const { error: stockError } = await supabase
-        .from('parts')
-        .update({ stock_quantity: part.stock_quantity + jobPart.quantity })
-        .eq('part_id', jobPart.part_id);
-      if (stockError) {
-        logError('Removed part, but stock restore failed (RLS?):', stockError.message);
-      }
-    }
-  }
-
-  const { error } = await supabase
-    .from('job_parts')
-    .delete()
-    .eq('job_part_id', jobPartId)
-    .eq('job_id', jobId);
-
-  if (error) throw new Error(error.message);
-  return getJobById(jobId) as Promise<Job>;
-};
-
-export const updateLaborCost = async (jobId: string, laborCost: number): Promise<Job> => {
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({ labor_cost: laborCost })
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data as Job;
-};
-
-export const addExtraCharge = async (
-  jobId: string, 
-  charge: { name: string; description: string; amount: number }
-): Promise<Job> => {
-  const { error } = await supabase
-    .from('extra_charges')
-    .insert({
-      job_id: jobId,
-      name: charge.name,
-      description: charge.description,
-      amount: charge.amount,
-    });
-
-  if (error) throw new Error(error.message);
-  return getJobById(jobId) as Promise<Job>;
-};
-
-export const removeExtraCharge = async (jobId: string, chargeId: string): Promise<Job> => {
-  const { error } = await supabase
-    .from('extra_charges')
-    .delete()
-    .eq('charge_id', chargeId)
-    .eq('job_id', jobId);
-
-  if (error) throw new Error(error.message);
-  return getJobById(jobId) as Promise<Job>;
-};
-
-export const finalizeInvoice = async (jobId: string, accountantId: string, accountantName: string): Promise<Job> => {
-  const job = await getJobById(jobId);
-  
-  if (job && job.forklift_id && job.hourmeter_reading) {
-    await updateForkliftHourmeter(job.forklift_id, job.hourmeter_reading);
-  }
-
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({
-      status: JobStatusEnum.COMPLETED,
-      invoiced_by_id: accountantId,
-      invoiced_by_name: accountantName,
-      invoiced_at: new Date().toISOString(),
-    })
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data as Job;
-};
-
-export const sendInvoice = async (jobId: string, method: 'email' | 'whatsapp' | 'both'): Promise<Job> => {
-  const methods: string[] = [];
-  if (method === 'both') {
-    methods.push('email', 'whatsapp');
-  } else {
-    methods.push(method);
-  }
-
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({
-      invoice_sent_at: new Date().toISOString(),
-      invoice_sent_via: methods,
-    })
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data as Job;
-};
-
-export const generateInvoiceText = (job: Job): string => {
-  const totalParts = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
-  const laborCost = job.labor_cost || 150;
-  const extraCharges = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
-  const total = totalParts + laborCost + extraCharges;
-
-  let text = `*INVOICE - ${job.title}*\n\n`;
-  text += `Customer: ${job.customer.name}\n`;
-  text += `Address: ${job.customer.address}\n`;
-  text += `Date: ${new Date(job.created_at).toLocaleDateString()}\n`;
-  
-  if (job.forklift) {
-    text += `\n*Equipment Serviced:*\n`;
-    text += `${job.forklift.make} ${job.forklift.model}\n`;
-    text += `S/N: ${job.forklift.serial_number}\n`;
-    if (job.hourmeter_reading) {
-      text += `Hourmeter: ${job.hourmeter_reading} hrs\n`;
-    }
-  }
-  
-  text += `\n*Services Provided:*\n`;
-  text += `${job.description}\n\n`;
-  
-  if (job.parts_used.length > 0) {
-    text += `*Parts Used:*\n`;
-    job.parts_used.forEach(p => {
-      text += `• ${p.quantity}x ${p.part_name} - ${(p.sell_price_at_time * p.quantity).toFixed(2)}\n`;
-    });
-    text += `\n`;
-  }
-  
-  text += `*Cost Breakdown:*\n`;
-  text += `Labor: ${laborCost.toFixed(2)}\n`;
-  text += `Parts: ${totalParts.toFixed(2)}\n`;
-  
-  if (extraCharges > 0) {
-    text += `Extra Charges: ${extraCharges.toFixed(2)}\n`;
-    if (job.extra_charges) {
-      job.extra_charges.forEach(c => {
-        text += `  • ${c.name}: ${c.amount.toFixed(2)}\n`;
-      });
-    }
-  }
-  
-  text += `\n*TOTAL: ${total.toFixed(2)}*\n\n`;
-  text += `Thank you for your business!`;
-  
-  return text;
-};
-
 // =====================
 // JOB DELETE
 // =====================
@@ -1026,6 +626,7 @@ export const deleteJob = async (
     .eq('job_id', jobId)
     .single();
 
+  // Rollback forklift hourmeter if needed
   if (job?.forklift_id && job?.hourmeter_reading) {
     const { data: forklift } = await supabase
       .from('forklifts')
@@ -1087,7 +688,7 @@ export const getRecentlyDeletedJobs = async (): Promise<any[]> => {
     .order('deleted_at', { ascending: false });
 
   if (error) {
-    logError('Error fetching recently deleted jobs:', error);
+    console.error('Error fetching recently deleted jobs:', error);
     return [];
   }
 
@@ -1101,6 +702,7 @@ export const getRecentlyDeletedJobs = async (): Promise<any[]> => {
 };
 
 export const hardDeleteJob = async (jobId: string): Promise<void> => {
+  // Delete all related records first
   await supabase.from('job_inventory_usage').delete().eq('job_id', jobId);
   await supabase.from('job_invoice_extra_charges').delete().eq('job_id', jobId);
   await supabase.from('job_invoices').delete().eq('job_id', jobId);
@@ -1114,988 +716,3 @@ export const hardDeleteJob = async (jobId: string): Promise<void> => {
   const { error } = await supabase.from('jobs').delete().eq('job_id', jobId);
   if (error) throw new Error(error.message);
 };
-
-// =====================
-// JOB CONDITION & CHECKLIST
-// =====================
-
-export const updateJobConditionChecklist = async (jobId: string, checklist: any): Promise<Job> => {
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({ condition_checklist: checklist })
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data as Job;
-};
-
-export const updateJobCarriedOut = async (jobId: string, jobCarriedOut: string, recommendation?: string): Promise<Job> => {
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({ job_carried_out: jobCarriedOut, recommendation: recommendation })
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-  
-  await supabase
-    .from('job_service_records')
-    .update({
-      job_carried_out: jobCarriedOut,
-      recommendation: recommendation,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('job_id', jobId);
-  
-  return data as Job;
-};
-
-export const updateConditionChecklist = async (jobId: string, checklist: any, userId?: string): Promise<Job> => {
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({ condition_checklist: checklist })
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-  
-  await supabase
-    .from('job_service_records')
-    .update({
-      checklist_data: checklist,
-      updated_at: new Date().toISOString(),
-      updated_by: userId || null,
-    })
-    .eq('job_id', jobId);
-  
-  return data as Job;
-};
-
-export const setNoPartsUsed = async (jobId: string, noPartsUsed: boolean): Promise<void> => {
-  const { error } = await supabase
-    .from('job_service_records')
-    .update({ no_parts_used: noPartsUsed, updated_at: new Date().toISOString() })
-    .eq('job_id', jobId);
-
-  if (error) throw new Error(error.message);
-};
-
-export const getJobServiceRecord = async (jobId: string): Promise<any> => {
-  const { data, error } = await supabase
-    .from('job_service_records')
-    .select('*')
-    .eq('job_id', jobId)
-    .limit(1);
-
-  if (error) {
-    logError('Error fetching service record:', error.message);
-    return null;
-  }
-  return data?.[0] ?? null;
-};
-
-export const updateJobRepairTimes = async (jobId: string, startTime?: string, endTime?: string): Promise<Job> => {
-  const updates: any = {};
-  if (startTime) updates.repair_start_time = startTime;
-  if (endTime) updates.repair_end_time = endTime;
-
-  const { data, error } = await supabase
-    .from('jobs')
-    .update(updates)
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-  return data as Job;
-};
-
-export const startJobWithCondition = async (
-  jobId: string, 
-  hourmeterReading: number, 
-  checklist: any,
-  startedById?: string,
-  startedByName?: string
-): Promise<Job> => {
-  const now = new Date().toISOString();
-  
-  const { data: jobData, error: fetchError } = await supabase
-    .from('jobs')
-    .select('forklift_id, forklift:forklifts!forklift_id(hourmeter)')
-    .eq('job_id', jobId)
-    .single();
-  
-  if (fetchError) throw new Error(fetchError.message);
-  
-  const currentHourmeter = (jobData?.forklift as any)?.hourmeter || 0;
-  if (hourmeterReading < currentHourmeter) {
-    throw new Error(`Hourmeter reading (${hourmeterReading}) cannot be less than forklift's current reading (${currentHourmeter})`);
-  }
-  
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({
-      status: JobStatusEnum.IN_PROGRESS,
-      arrival_time: now,
-      repair_start_time: now,
-      hourmeter_reading: hourmeterReading,
-      condition_checklist: checklist,
-      started_at: now,
-      started_by_id: startedById || null,
-      started_by_name: startedByName || null,
-    })
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-  
-  await supabase
-    .from('job_service_records')
-    .update({
-      started_at: now,
-      repair_start_time: now,
-      hourmeter_reading: hourmeterReading,
-      checklist_data: checklist,
-      technician_id: startedById || null,
-      updated_at: now,
-      updated_by: startedById || null,
-    })
-    .eq('job_id', jobId);
-  
-  return data as Job;
-};
-
-// =====================
-// JOB REASSIGNMENT
-// =====================
-
-export const reassignJob = async (
-  jobId: string,
-  newTechnicianId: string,
-  newTechnicianName: string,
-  reassignedById: string,
-  reassignedByName: string
-): Promise<Job | null> => {
-  try {
-    const currentJob = await getJobById(jobId);
-    const oldTechnicianId = currentJob?.assigned_technician_id;
-
-    const now = new Date();
-    const responseDeadline = new Date(now.getTime() + 15 * 60 * 1000);
-
-    const { data, error } = await supabase
-      .from('jobs')
-      .update({
-        assigned_technician_id: newTechnicianId,
-        assigned_technician_name: newTechnicianName,
-        assigned_at: now.toISOString(),
-        assigned_by_id: reassignedById,
-        assigned_by_name: reassignedByName,
-        technician_response_deadline: responseDeadline.toISOString(),
-        technician_accepted_at: null,
-        technician_rejected_at: null,
-        technician_rejection_reason: null,
-        no_response_alerted_at: null,
-      })
-      .eq('job_id', jobId)
-      .select(`
-        *,
-        customer:customers(*),
-        forklift:forklifts!forklift_id(*),
-        parts_used:job_parts(*),
-        media:job_media(*),
-        extra_charges:extra_charges(*)
-      `)
-      .single();
-
-    if (error) {
-      logError('Failed to reassign job:', error.message);
-      return null;
-    }
-
-    const updatedJob = data as Job;
-
-    await notifyJobAssignment(newTechnicianId, updatedJob);
-
-    if (oldTechnicianId && oldTechnicianId !== newTechnicianId) {
-      await createNotification({
-        user_id: oldTechnicianId,
-        type: NotificationType.JOB_UPDATED,
-        title: 'Job Reassigned',
-        message: `Job "${updatedJob.title}" has been reassigned to another technician.`,
-        reference_type: 'job',
-        reference_id: jobId,
-        priority: 'normal',
-      });
-    }
-
-    return updatedJob;
-  } catch (e) {
-    logError('Job reassignment failed:', e);
-    return null;
-  }
-};
-
-// =====================
-// JOB ASSIGNMENTS (Helper Technician)
-// =====================
-
-export const getJobAssignments = async (jobId: string): Promise<JobAssignment[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('job_assignments')
-      .select(`*, technician:users!job_assignments_technician_id_fkey(user_id, name, email, phone, role)`)
-      .eq('job_id', jobId)
-      .order('assigned_at', { ascending: false });
-
-    if (error) {
-      logError('Failed to get job assignments:', error.message);
-      return [];
-    }
-    return data || [];
-  } catch (e) {
-    logError('Job assignments fetch error:', e);
-    return [];
-  }
-};
-
-export const getActiveHelper = async (jobId: string): Promise<JobAssignment | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('job_assignments')
-      .select(`*, technician:users!job_assignments_technician_id_fkey(user_id, name, email, phone, role)`)
-      .eq('job_id', jobId)
-      .eq('assignment_type', 'assistant')
-      .eq('is_active', true)
-      .maybeSingle();
-
-    if (error) {
-      logError('Failed to get active helper:', error.message);
-      return null;
-    }
-    return data || null;
-  } catch (e) {
-    logError('Active helper fetch error:', e);
-    return null;
-  }
-};
-
-export const assignHelper = async (
-  jobId: string,
-  technicianId: string,
-  assignedById: string,
-  notes?: string
-): Promise<JobAssignment | null> => {
-  try {
-    await supabase
-      .from('job_assignments')
-      .update({ is_active: false, ended_at: new Date().toISOString() })
-      .eq('job_id', jobId)
-      .eq('assignment_type', 'assistant')
-      .eq('is_active', true);
-
-    const { data, error } = await supabase
-      .from('job_assignments')
-      .insert({
-        job_id: jobId,
-        technician_id: technicianId,
-        assignment_type: 'assistant',
-        assigned_by: assignedById,
-        notes: notes || null,
-        is_active: true,
-      })
-      .select(`*, technician:users!job_assignments_technician_id_fkey(user_id, name, email, phone, role)`)
-      .single();
-
-    if (error) {
-      logError('Failed to assign helper:', error.message);
-      return null;
-    }
-    return data;
-  } catch (e) {
-    logError('Helper assignment error:', e);
-    return null;
-  }
-};
-
-export const removeHelper = async (jobId: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('job_assignments')
-      .update({ is_active: false, ended_at: new Date().toISOString() })
-      .eq('job_id', jobId)
-      .eq('assignment_type', 'assistant')
-      .eq('is_active', true);
-
-    if (error) {
-      logError('Failed to remove helper:', error.message);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    logError('Helper removal error:', e);
-    return false;
-  }
-};
-
-export const startHelperWork = async (assignmentId: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('job_assignments')
-      .update({ started_at: new Date().toISOString() })
-      .eq('assignment_id', assignmentId);
-
-    if (error) {
-      logError('Failed to start helper work:', error.message);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    logError('Helper start work error:', e);
-    return false;
-  }
-};
-
-export const endHelperWork = async (assignmentId: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('job_assignments')
-      .update({ ended_at: new Date().toISOString() })
-      .eq('assignment_id', assignmentId);
-
-    if (error) {
-      logError('Failed to end helper work:', error.message);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    logError('Helper end work error:', e);
-    return false;
-  }
-};
-
-export const getHelperJobs = async (technicianId: string): Promise<string[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('job_assignments')
-      .select('job_id')
-      .eq('technician_id', technicianId)
-      .eq('assignment_type', 'assistant')
-      .eq('is_active', true);
-
-    if (error) {
-      logError('Failed to get helper jobs:', error.message);
-      return [];
-    }
-    return data?.map(d => d.job_id) || [];
-  } catch (e) {
-    logError('Helper jobs fetch error:', e);
-    return [];
-  }
-};
-
-export const isUserHelperOnJob = async (jobId: string, userId: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase
-      .from('job_assignments')
-      .select('assignment_id')
-      .eq('job_id', jobId)
-      .eq('technician_id', userId)
-      .eq('assignment_type', 'assistant')
-      .eq('is_active', true)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      logError('Failed to check helper status:', error.message);
-      return false;
-    }
-    return !!data;
-  } catch (e) {
-    logError('Helper status check error:', e);
-    return false;
-  }
-};
-
-export const getUserAssignmentType = async (jobId: string, userId: string): Promise<'lead' | 'assistant' | null> => {
-  try {
-    const { data: job } = await supabase
-      .from('jobs')
-      .select('assigned_technician_id')
-      .eq('job_id', jobId)
-      .single();
-
-    if (job?.assigned_technician_id === userId) return 'lead';
-
-    const { data: assignment } = await supabase
-      .from('job_assignments')
-      .select('assignment_type')
-      .eq('job_id', jobId)
-      .eq('technician_id', userId)
-      .eq('is_active', true)
-      .single();
-
-    if (assignment?.assignment_type === 'assistant') return 'assistant';
-
-    return null;
-  } catch (e) {
-    logError('Assignment type check error:', e);
-    return null;
-  }
-};
-
-// =====================
-// JOB REQUESTS
-// =====================
-
-export const createJobRequest = async (
-  jobId: string,
-  requestType: 'assistance' | 'spare_part' | 'skillful_technician',
-  requestedBy: string,
-  description: string,
-  photoUrl?: string
-): Promise<{ request_id: string } | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('job_requests')
-      .insert({
-        job_id: jobId,
-        request_type: requestType,
-        requested_by: requestedBy,
-        description: description,
-        photo_url: photoUrl || null,
-        status: 'pending',
-      })
-      .select('request_id')
-      .single();
-
-    if (error) {
-      logError('Failed to create job request:', error.message);
-      return null;
-    }
-
-    const { data: technician } = await supabase
-      .from('users')
-      .select('name, full_name')
-      .eq('user_id', requestedBy)
-      .single();
-    
-    const techName = technician?.full_name || technician?.name || 'Technician';
-    await notifyAdminsOfRequest(requestType, techName, jobId, description);
-
-    return data;
-  } catch (e) {
-    logError('Job request create error:', e);
-    return null;
-  }
-};
-
-export const updateJobRequest = async (
-  requestId: string,
-  requestedBy: string,
-  updates: {
-    description?: string;
-    request_type?: 'assistance' | 'spare_part' | 'skillful_technician';
-    photo_url?: string | null;
-  }
-): Promise<boolean> => {
-  try {
-    const { data: existing, error: checkError } = await supabase
-      .from('job_requests')
-      .select('request_id, status, requested_by')
-      .eq('request_id', requestId)
-      .single();
-
-    if (checkError || !existing) {
-      logError('Request not found:', checkError?.message);
-      return false;
-    }
-
-    if (existing.status !== 'pending') {
-      logError('Cannot edit non-pending request');
-      return false;
-    }
-
-    if (existing.requested_by !== requestedBy) {
-      logError('Cannot edit request created by another user');
-      return false;
-    }
-
-    const { error } = await supabase
-      .from('job_requests')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('request_id', requestId);
-
-    if (error) {
-      logError('Failed to update job request:', error.message);
-      return false;
-    }
-
-    return true;
-  } catch (e) {
-    logError('Job request update error:', e);
-    return false;
-  }
-};
-
-export const getJobRequests = async (jobId: string): Promise<any[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('job_requests')
-      .select(`
-        *,
-        requested_by_user:users!job_requests_requested_by_fkey(user_id, name, full_name),
-        responded_by_user:users!job_requests_responded_by_fkey(user_id, name, full_name),
-        admin_response_part:parts!job_requests_admin_response_part_id_fkey(part_id, part_name, sell_price)
-      `)
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      logError('Failed to get job requests:', error.message);
-      return [];
-    }
-    return data || [];
-  } catch (e) {
-    logError('Job requests fetch error:', e);
-    return [];
-  }
-};
-
-export const getPendingRequests = async (): Promise<any[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('job_requests')
-      .select(`
-        *,
-        job:jobs(job_id, description, status, forklift:forklifts!forklift_id(serial_number, make, model)),
-        requested_by_user:users!job_requests_requested_by_fkey(user_id, name, full_name)
-      `)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      logError('Failed to get pending requests:', error.message);
-      return [];
-    }
-    return data || [];
-  } catch (e) {
-    logError('Pending requests fetch error:', e);
-    return [];
-  }
-};
-
-export const approveSparePartRequest = async (
-  requestId: string,
-  adminUserId: string,
-  partId: string,
-  quantity: number,
-  notes?: string
-): Promise<boolean> => {
-  try {
-    const { data: request, error: reqError } = await supabase
-      .from('job_requests')
-      .select('job_id, requested_by')
-      .eq('request_id', requestId)
-      .single();
-
-    if (reqError || !request) {
-      logError('Request not found:', reqError?.message);
-      return false;
-    }
-
-    const { data: part, error: partError } = await supabase
-      .from('parts')
-      .select('part_name, sell_price, stock_quantity')
-      .eq('part_id', partId)
-      .single();
-
-    if (partError || !part) {
-      logError('Part not found:', partError?.message);
-      return false;
-    }
-
-    if (part.stock_quantity < quantity) {
-      logError('Insufficient stock');
-      return false;
-    }
-
-    const { error: updateError } = await supabase
-      .from('job_requests')
-      .update({
-        status: 'approved',
-        admin_response_part_id: partId,
-        admin_response_quantity: quantity,
-        admin_response_notes: notes || null,
-        responded_by: adminUserId,
-        responded_at: new Date().toISOString(),
-      })
-      .eq('request_id', requestId);
-
-    if (updateError) {
-      logError('Failed to update request:', updateError.message);
-      return false;
-    }
-
-    const { error: insertError } = await supabase
-      .from('job_parts')
-      .insert({
-        job_id: request.job_id,
-        part_id: partId,
-        part_name: part.part_name,
-        quantity: quantity,
-        sell_price_at_time: part.sell_price,
-      });
-
-    if (insertError) {
-      logError('Failed to add part to job:', insertError.message);
-      return false;
-    }
-
-    const { error: stockError } = await supabase
-      .from('parts')
-      .update({ stock_quantity: part.stock_quantity - quantity })
-      .eq('part_id', partId);
-
-    if (stockError) {
-      logError('Failed to update stock:', stockError.message);
-    }
-
-    await notifyRequestApproved(
-      request.requested_by,
-      'spare_part',
-      request.job_id,
-      notes || `${quantity}x ${part.part_name} added to your job`
-    );
-
-    return true;
-  } catch (e) {
-    logError('Approve spare part request error:', e);
-    return false;
-  }
-};
-
-export const rejectRequest = async (
-  requestId: string,
-  adminUserId: string,
-  reason: string
-): Promise<boolean> => {
-  try {
-    const { data: request, error: reqError } = await supabase
-      .from('job_requests')
-      .select('job_id, requested_by, request_type')
-      .eq('request_id', requestId)
-      .single();
-
-    if (reqError || !request) {
-      logError('Request not found for rejection:', reqError?.message);
-      return false;
-    }
-
-    const { error } = await supabase
-      .from('job_requests')
-      .update({
-        status: 'rejected',
-        admin_response_notes: reason,
-        responded_by: adminUserId,
-        responded_at: new Date().toISOString(),
-      })
-      .eq('request_id', requestId);
-
-    if (error) {
-      logError('Failed to reject request:', error.message);
-      return false;
-    }
-
-    await notifyRequestRejected(
-      request.requested_by,
-      request.request_type,
-      request.job_id,
-      reason
-    );
-
-    return true;
-  } catch (e) {
-    logError('Reject request error:', e);
-    return false;
-  }
-};
-
-export const acknowledgeSkillfulTechRequest = async (
-  requestId: string,
-  adminUserId: string,
-  notes?: string
-): Promise<boolean> => {
-  try {
-    const { data: request, error: reqError } = await supabase
-      .from('job_requests')
-      .select('job_id, requested_by, request_type')
-      .eq('request_id', requestId)
-      .single();
-
-    if (reqError || !request) {
-      logError('Request not found:', reqError?.message);
-      return false;
-    }
-
-    const { error } = await supabase
-      .from('job_requests')
-      .update({
-        status: 'approved',
-        admin_response_notes: notes || 'Acknowledged - Job will be reassigned to skilled technician',
-        responded_by: adminUserId,
-        responded_at: new Date().toISOString(),
-      })
-      .eq('request_id', requestId);
-
-    if (error) {
-      logError('Failed to acknowledge skillful tech request:', error.message);
-      return false;
-    }
-
-    await notifyRequestApproved(
-      request.requested_by,
-      'skillful_technician',
-      request.job_id,
-      notes || 'Your request has been acknowledged. Job will be reassigned.'
-    );
-
-    return true;
-  } catch (e) {
-    logError('Acknowledge skillful tech request error:', e);
-    return false;
-  }
-};
-
-export const approveAssistanceRequest = async (
-  requestId: string,
-  adminUserId: string,
-  helperTechnicianId: string,
-  notes?: string
-): Promise<boolean> => {
-  try {
-    const { data: request, error: reqError } = await supabase
-      .from('job_requests')
-      .select('job_id, requested_by')
-      .eq('request_id', requestId)
-      .single();
-
-    if (reqError || !request) {
-      logError('Request not found:', reqError?.message);
-      return false;
-    }
-
-    const { data: job } = await supabase
-      .from('jobs')
-      .select('title, description')
-      .eq('job_id', request.job_id)
-      .single();
-
-    const { data: helper } = await supabase
-      .from('users')
-      .select('name, full_name')
-      .eq('user_id', helperTechnicianId)
-      .single();
-
-    const helperName = helper?.full_name || helper?.name || 'Helper';
-    const jobTitle = job?.title || 'Job';
-
-    const { error: updateError } = await supabase
-      .from('job_requests')
-      .update({
-        status: 'approved',
-        admin_response_notes: notes || null,
-        responded_by: adminUserId,
-        responded_at: new Date().toISOString(),
-      })
-      .eq('request_id', requestId);
-
-    if (updateError) {
-      logError('Failed to update request:', updateError.message);
-      return false;
-    }
-
-    const result = await assignHelper(
-      request.job_id,
-      helperTechnicianId,
-      adminUserId,
-      notes || 'Assigned via assistance request'
-    );
-
-    if (result) {
-      await notifyRequestApproved(
-        request.requested_by,
-        'assistance',
-        request.job_id,
-        `${helperName} has been assigned to help you.`
-      );
-
-      await createNotification({
-        user_id: helperTechnicianId,
-        type: NotificationType.JOB_ASSIGNED,
-        title: 'Helper Assignment',
-        message: `You have been assigned to help with: ${jobTitle}`,
-        reference_type: 'job',
-        reference_id: request.job_id,
-        priority: 'high',
-      });
-    }
-
-    return result !== null;
-  } catch (e) {
-    logError('Approve assistance request error:', e);
-    return false;
-  }
-};
-
-export const getRequestCounts = async (): Promise<{ pending: number; total: number }> => {
-  try {
-    const { count: pending, error: pendingError } = await supabase
-      .from('job_requests')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending');
-
-    const { count: total, error: totalError } = await supabase
-      .from('job_requests')
-      .select('*', { count: 'exact', head: true });
-
-    if (pendingError || totalError) return { pending: 0, total: 0 };
-
-    return { pending: pending || 0, total: total || 0 };
-  } catch (e) {
-    logError('Request counts error:', e);
-    return { pending: 0, total: 0 };
-  }
-};
-
-// =====================
-// JOB LOCKING
-// =====================
-
-const _jobLocks: Record<string, { userId: string; userName: string; acquiredAt: Date }> = {};
-const _lockTimeoutMs = 5 * 60 * 1000;
-
-export const acquireJobLock = async (
-  jobId: string,
-  userId: string,
-  userName: string
-): Promise<{ success: boolean; lockedBy?: string; lockedByName?: string; lockedAt?: Date }> => {
-  const now = new Date();
-  const existingLock = _jobLocks[jobId];
-
-  if (existingLock) {
-    const lockAge = now.getTime() - existingLock.acquiredAt.getTime();
-    if (lockAge < _lockTimeoutMs) {
-      if (existingLock.userId === userId) {
-        _jobLocks[jobId] = { userId, userName, acquiredAt: now };
-        return { success: true };
-      } else {
-        return {
-          success: false,
-          lockedBy: existingLock.userId,
-          lockedByName: existingLock.userName,
-          lockedAt: existingLock.acquiredAt
-        };
-      }
-    }
-  }
-
-  _jobLocks[jobId] = { userId, userName, acquiredAt: now };
-  return { success: true };
-};
-
-export const releaseJobLock = async (jobId: string, userId: string): Promise<boolean> => {
-  const existingLock = _jobLocks[jobId];
-  if (!existingLock) return true;
-
-  if (existingLock.userId === userId) {
-    delete _jobLocks[jobId];
-    return true;
-  }
-
-  return false;
-};
-
-export const checkJobLock = async (
-  jobId: string,
-  userId: string
-): Promise<{ isLocked: boolean; lockedBy?: string; lockedByName?: string; lockedAt?: Date }> => {
-  const now = new Date();
-  const existingLock = _jobLocks[jobId];
-
-  if (!existingLock) return { isLocked: false };
-
-  const lockAge = now.getTime() - existingLock.acquiredAt.getTime();
-  if (lockAge >= _lockTimeoutMs) {
-    delete _jobLocks[jobId];
-    return { isLocked: false };
-  }
-
-  if (existingLock.userId === userId) return { isLocked: false };
-
-  return {
-    isLocked: true,
-    lockedBy: existingLock.userId,
-    lockedByName: existingLock.userName,
-    lockedAt: existingLock.acquiredAt
-  };
-};
-
-export const cleanupExpiredLocks = async (): Promise<number> => {
-  const now = new Date();
-  let cleaned = 0;
-
-  for (const jobId of Object.keys(_jobLocks)) {
-    const lock = _jobLocks[jobId];
-    const lockAge = now.getTime() - lock.acquiredAt.getTime();
-    if (lockAge >= _lockTimeoutMs) {
-      delete _jobLocks[jobId];
-      cleaned++;
-    }
-  }
-
-  return cleaned;
-};
-
-// Note: Escalation, Deferred Acknowledgement, AutoCount Export, and Service Due
-// functions are extensive. For space, they can be added to this file or a separate
-// module. The core job operations are covered above.
