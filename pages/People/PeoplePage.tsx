@@ -4,7 +4,7 @@ import { User } from '../../types';
 import {
   Users, LayoutDashboard, Calendar, BarChart3, Briefcase, User as UserIcon
 } from 'lucide-react';
-import TechnicianKPIPage from '../TechnicianKPIPageV2';
+import TechnicianKPIPage from '../TechnicianKPIPageV2/index';
 import TeamStatusTab from '../../components/TeamStatusTab';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { TabType, LeaveFilterType } from './types';
