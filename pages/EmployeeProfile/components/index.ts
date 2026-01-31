@@ -1,12 +1,18 @@
-// EmployeeProfile components barrel export
-// Import these from './components' for cleaner imports
+// Info and display components
+export { InfoItem } from './InfoItem';
+export { InfoTab } from './InfoTab';
+export { ProfileHeader } from './ProfileHeader';
+export { ProfileCard } from './ProfileCard';
+export { ProfileTabs } from './ProfileTabs';
+export { LoadingState, ProfileNotSetUp, EmployeeNotFound } from './ProfileStates';
 
-export { default as InfoItem } from './InfoItem';
-export { default as InfoTab } from './InfoTab';
-export { default as LicensesTab } from './LicensesTab';
-export { default as PermitsTab } from './PermitsTab';
-export { default as LeavesTab } from './LeavesTab';
-export { default as AddLicenseModal } from './AddLicenseModal';
-export { default as AddPermitModal } from './AddPermitModal';
-export { default as AddLeaveModal } from './AddLeaveModal';
-export { default as LeaveCalendarModal } from './LeaveCalendarModal';
+// Tab components
+export { LicensesTab } from './LicensesTab';
+export { PermitsTab } from './PermitsTab';
+export { LeavesTab } from './LeavesTab';
+
+// Modal components
+export { AddLicenseModal } from './AddLicenseModal';
+export { AddPermitModal } from './AddPermitModal';
+export { AddLeaveModal } from './AddLeaveModal';
+export { LeaveCalendarModal } from './LeaveCalendarModal';

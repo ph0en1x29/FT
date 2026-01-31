@@ -4,6 +4,28 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-01] - MyVanStock Modular Split
+
+### 🏗️ MyVanStock.tsx Modular Split (2026-02-01)
+- **Status:** ✔️ Completed
+- Split 467 lines into `pages/MyVanStock/` folder structure:
+
+**Main file (176 lines):**
+- `MyVanStock.tsx` — Core component with tabs, modal handling
+
+**Hooks (82 lines):**
+- `hooks/useVanStock.ts` — State management, data loading, stats computation
+
+**Components:**
+- `components/StatsCards.tsx` (52 lines) — Overview stat cards
+- `components/StockItemCard.tsx` (74 lines) — Individual stock item display
+- `components/StockItemsList.tsx` (66 lines) — Searchable items list
+- `components/UsageHistoryTab.tsx` (123 lines) — Usage & replenishment history
+
+**Backward compatibility:** Original `pages/MyVanStock.tsx` re-exports from folder
+
+---
+
 ## [2026-01-31] - Code Quality & Performance Improvements
 
 ### 🧹 Console Log Cleanup (2026-01-31)
