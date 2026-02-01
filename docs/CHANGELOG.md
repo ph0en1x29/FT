@@ -4,7 +4,42 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
-## [2026-02-01] - Complete Button Fix & Part Request Feature & Photo Upload Optimization
+## [2026-02-01] - Restore Missing Features + Complete Button Fix + Part Request + Photo Optimization
+
+### 🐛 Critical Bug Fix: Missing Features After Refactor
+
+**Problem:** Two major sections were accidentally lost during the modular refactor (commit c56f5e2):
+1. **Condition Checklist Card** - Technicians couldn't view/edit checklist after starting job
+2. **Parts Section** - Admins couldn't add parts directly to jobs
+
+**Root Cause:** When splitting JobDetail.tsx (3262 lines) into modular components, these sections were not extracted.
+
+**Fix:** Created and integrated missing components:
+- `ConditionChecklistCard.tsx` - Full checklist view/edit with OK/Not OK buttons
+- `PartsSection.tsx` - View parts, add parts (admin), edit prices, remove parts
+
+**Files Created:**
+- `pages/JobDetail/components/ConditionChecklistCard.tsx`
+- `pages/JobDetail/components/PartsSection.tsx`
+
+**Files Changed:**
+- `pages/JobDetail/components/index.ts` — export new components
+- `pages/JobDetail/hooks/useJobActions.ts` — add checklist + parts handlers
+- `pages/JobDetail/JobDetailPage.tsx` — integrate components
+
+**Features Restored:**
+- ✅ Technicians can view condition checklist after job starts
+- ✅ Technicians can edit checklist with OK/Not OK buttons
+- ✅ Progress indicator shows mandatory items checked
+- ✅ "Check All" button for bulk marking
+- ✅ Admins can add parts with price
+- ✅ Admins can edit part prices
+- ✅ Admins can remove parts
+- ✅ "No parts used" checkbox for technicians
+
+**Build verified:** ✔️
+
+---
 
 ### ⚡ Performance Improvements
 

@@ -11,7 +11,7 @@ import {
   JobHeader, JobTimerCard, EquipmentCard, FinancialSummary, JobTimeline, SignaturesCard, AIAssistantCard,
   JobPhotosSection, CustomerAssignmentCard, NotesSection, SignatureModal, StartJobModal, FinalizeModal,
   ReassignModal, ContinueTomorrowModal, DeleteModal, RejectJobModal, ChecklistWarningModal, HourmeterAmendmentModal,
-  JobRequestsSection, CreateRequestModal, ApproveRequestModal,
+  JobRequestsSection, CreateRequestModal, ApproveRequestModal, ConditionChecklistCard, PartsSection,
 } from './components';
 
 // Extracted hooks
@@ -96,6 +96,19 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onAssignJob={actions.handleAssignJob} onOpenReassignModal={() => state.setShowReassignModal(true)} />
           <NotesSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} noteInput={state.noteInput}
             onNoteInputChange={state.setNoteInput} onAddNote={actions.handleAddNote} />
+          <ConditionChecklistCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
+            editingChecklist={state.editingChecklist} checklistEditData={state.checklistEditData}
+            onStartEdit={actions.handleStartEditChecklist} onSave={actions.handleSaveChecklist}
+            onCancel={actions.handleCancelChecklistEdit} onSetItemState={actions.handleSetChecklistItemState}
+            onCheckAll={actions.handleCheckAll} />
+          <PartsSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} partOptions={partOptions}
+            selectedPartId={state.selectedPartId} selectedPartPrice={state.selectedPartPrice}
+            editingPartId={state.editingPartId} editingPrice={state.editingPrice} noPartsUsed={state.noPartsUsed}
+            onSelectedPartIdChange={state.setSelectedPartId} onSelectedPartPriceChange={state.setSelectedPartPrice}
+            onAddPart={actions.handleAddPart} onStartEditPrice={actions.handleStartEditPartPrice}
+            onSavePartPrice={actions.handleSavePartPrice} onCancelEdit={actions.handleCancelPartEdit}
+            onRemovePart={actions.handleRemovePart} onEditingPriceChange={state.setEditingPrice}
+            onToggleNoPartsUsed={actions.handleToggleNoPartsUsed} />
           <JobRequestsSection job={job} roleFlags={roleFlags} statusFlags={statusFlags}
             onCreateRequest={() => state.setShowRequestModal(true)}
             onApproveRequest={(request) => { state.setApprovalRequest(request); state.setShowApprovalModal(true); }} />

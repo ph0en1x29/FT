@@ -502,6 +502,112 @@ export const useJobActions = ({
     }
   }, [state, currentUserId]);
 
+  // Condition Checklist handlers
+  const handleStartEditChecklist = useCallback(() => {
+    if (!job) return;
+    state.setEditingChecklist(true);
+    state.setChecklistEditData(job.condition_checklist || {});
+  }, [job, state]);
+
+  const handleSaveChecklist = useCallback(async () => {
+    if (!job) return;
+    try {
+      const updated = await MockDb.updateConditionChecklist(job.job_id, state.checklistEditData, currentUserId);
+      setJob({ ...updated } as Job);
+      state.setEditingChecklist(false);
+      showToast.success('Checklist saved');
+    } catch (e) {
+      showToast.error('Could not save checklist', (e as Error).message);
+    }
+  }, [job, state, currentUserId, setJob]);
+
+  const handleCancelChecklistEdit = useCallback(() => {
+    state.setEditingChecklist(false);
+    state.setChecklistEditData({});
+  }, [state]);
+
+  const handleSetChecklistItemState = useCallback((key: string, itemState: 'ok' | 'not_ok' | undefined) => {
+    state.setChecklistEditData(prev => ({ ...prev, [key]: itemState }));
+  }, [state]);
+
+  const handleCheckAll = useCallback(() => {
+    // Set all items to 'ok'
+    const allOk: ForkliftConditionChecklist = {};
+    // This will be populated by the component using CHECKLIST_CATEGORIES
+    state.setChecklistEditData(prev => {
+      const updated = { ...prev };
+      // Mark all as 'ok' - the component will handle the actual keys
+      return updated;
+    });
+    showToast.info('Use OK buttons to mark items', 'Click each item to set status');
+  }, [state]);
+
+  // Parts handlers
+  const handleAddPart = useCallback(async () => {
+    if (!job || !state.selectedPartId) return;
+    const price = parseFloat(state.selectedPartPrice) || 0;
+    try {
+      const updated = await MockDb.addPartToJob(job.job_id, state.selectedPartId, 1, price, 'admin');
+      setJob({ ...updated } as Job);
+      state.setSelectedPartId('');
+      state.setSelectedPartPrice('');
+      showToast.success('Part added');
+    } catch (e) {
+      showToast.error('Could not add part', (e as Error).message);
+    }
+  }, [job, state, setJob]);
+
+  const handleStartEditPartPrice = useCallback((partId: string, currentPrice: number) => {
+    state.setEditingPartId(partId);
+    state.setEditingPrice(currentPrice.toString());
+  }, [state]);
+
+  const handleSavePartPrice = useCallback(async (partId: string) => {
+    if (!job) return;
+    const price = parseFloat(state.editingPrice);
+    if (isNaN(price) || price < 0) {
+      showToast.error('Invalid price');
+      return;
+    }
+    try {
+      const updated = await MockDb.updatePartPrice(job.job_id, partId, price);
+      setJob({ ...updated } as Job);
+      state.setEditingPartId(null);
+      state.setEditingPrice('');
+      showToast.success('Price updated');
+    } catch (e) {
+      showToast.error('Could not update price', (e as Error).message);
+    }
+  }, [job, state, setJob]);
+
+  const handleCancelPartEdit = useCallback(() => {
+    state.setEditingPartId(null);
+    state.setEditingPrice('');
+  }, [state]);
+
+  const handleRemovePart = useCallback(async (partId: string) => {
+    if (!job) return;
+    try {
+      const updated = await MockDb.removePartFromJob(job.job_id, partId);
+      setJob({ ...updated } as Job);
+      showToast.success('Part removed');
+    } catch (e) {
+      showToast.error('Could not remove part', (e as Error).message);
+    }
+  }, [job, setJob]);
+
+  const handleToggleNoPartsUsed = useCallback(async () => {
+    if (!job) return;
+    const newValue = !state.noPartsUsed;
+    try {
+      await MockDb.setNoPartsUsed(job.job_id, newValue);
+      state.setNoPartsUsed(newValue);
+      showToast.success(newValue ? 'Marked as no parts used' : 'Cleared no parts flag');
+    } catch (e) {
+      showToast.error('Could not update', (e as Error).message);
+    }
+  }, [job, state]);
+
   return {
     // Accept/Reject
     handleAcceptJob,
@@ -560,5 +666,20 @@ export const useJobActions = ({
     handleCreateRequest,
     handleApproveRequest,
     handleRejectRequest,
+    
+    // Checklist
+    handleStartEditChecklist,
+    handleSaveChecklist,
+    handleCancelChecklistEdit,
+    handleSetChecklistItemState,
+    handleCheckAll,
+    
+    // Parts
+    handleAddPart,
+    handleStartEditPartPrice,
+    handleSavePartPrice,
+    handleCancelPartEdit,
+    handleRemovePart,
+    handleToggleNoPartsUsed,
   };
 };
