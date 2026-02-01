@@ -4,6 +4,23 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-01] - Checklist "Check All" + Auto-X on Untick
+
+### ✨ Feature: Checklist Improvements
+
+**"Check All" Button:**
+- Marks all 48 checklist items as OK with one click
+- Saves time for technicians when forklift is in good condition
+
+**Auto-X on Untick:**
+- If item is already OK and technician clicks OK again → changes to X (needs attention)
+- Makes it easy to mark exceptions after using "Check All"
+- Click X again to clear an item completely
+
+**Workflow:** Check All → Untick any items that need attention → Save
+
+---
+
 ## [2026-02-01] - Auto-Confirm Parts on Add (Unified Admin Workflow)
 
 ### 🔄 Workflow Change: Parts Auto-Confirmation

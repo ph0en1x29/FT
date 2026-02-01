@@ -527,20 +527,43 @@ export const useJobActions = ({
     state.setChecklistEditData({});
   }, [state]);
 
-  const handleSetChecklistItemState = useCallback((key: string, itemState: 'ok' | 'not_ok' | undefined) => {
-    state.setChecklistEditData(prev => ({ ...prev, [key]: itemState }));
+  const handleSetChecklistItemState = useCallback((key: string, newState: 'ok' | 'not_ok' | undefined) => {
+    state.setChecklistEditData(prev => {
+      const currentState = prev[key as keyof ForkliftConditionChecklist];
+      // Auto-X on untick: if clicking OK on an already-OK item, change to 'not_ok'
+      if (newState === 'ok' && currentState === 'ok') {
+        return { ...prev, [key]: 'not_ok' };
+      }
+      // If clicking X on an already-X item, clear it
+      if (newState === 'not_ok' && currentState === 'not_ok') {
+        return { ...prev, [key]: undefined };
+      }
+      return { ...prev, [key]: newState };
+    });
   }, [state]);
 
   const handleCheckAll = useCallback(() => {
-    // Set all items to 'ok'
-    const allOk: ForkliftConditionChecklist = {};
-    // This will be populated by the component using CHECKLIST_CATEGORIES
+    // Set all checklist items to 'ok'
+    const allKeys = [
+      'drive_front_axle', 'drive_rear_axle', 'drive_motor_engine', 'drive_controller_transmission',
+      'hydraulic_pump', 'hydraulic_control_valve', 'hydraulic_hose', 'hydraulic_oil_level',
+      'braking_brake_pedal', 'braking_parking_brake', 'braking_fluid_pipe', 'braking_master_pump',
+      'electrical_ignition', 'electrical_battery', 'electrical_wiring', 'electrical_instruments',
+      'steering_wheel_valve', 'steering_cylinder', 'steering_motor', 'steering_knuckle',
+      'load_fork', 'load_mast_roller', 'load_chain_wheel', 'load_cylinder',
+      'tyres_front', 'tyres_rear', 'tyres_rim', 'tyres_screw_nut',
+      'wheels_drive', 'wheels_load', 'wheels_support', 'wheels_hub_nut',
+      'safety_overhead_guard', 'safety_cabin_body', 'safety_backrest', 'safety_seat_belt',
+      'lighting_beacon_light', 'lighting_horn', 'lighting_buzzer', 'lighting_rear_view_mirror',
+      'fuel_engine_oil_level', 'fuel_line_leaks', 'fuel_radiator', 'fuel_exhaust_piping',
+      'transmission_fluid_level', 'transmission_inching_valve', 'transmission_air_cleaner', 'transmission_lpg_regulator',
+    ];
     state.setChecklistEditData(prev => {
       const updated = { ...prev };
-      // Mark all as 'ok' - the component will handle the actual keys
+      allKeys.forEach(key => { updated[key as keyof ForkliftConditionChecklist] = 'ok'; });
       return updated;
     });
-    showToast.info('Use OK buttons to mark items', 'Click each item to set status');
+    showToast.success('All items checked', 'Untick any item to mark as needs attention');
   }, [state]);
 
   // Parts handlers
