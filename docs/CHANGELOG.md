@@ -4,6 +4,23 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-01] - Fix RLS Policies for Core Tables
+
+### 🐛 Critical Bug Fix
+
+**Problem:** "new row violates row-level security policy" errors when creating jobs.
+
+**Root Cause:** The `20260131_security_fixes.sql` migration enabled RLS on tables but the core tables (`jobs`, `forklifts`, `customers`, etc.) never had policies created.
+
+**Fix Applied:** Created permissive `_authenticated_all` policies for 15 core tables via Supabase Management API.
+
+**Prevention:**
+- Added `scripts/check-rls-policies.sh` — detects tables with RLS but no policies
+- Added `scripts/fix-rls-policies.sh` — auto-creates default policies
+- **Rule:** NEVER enable RLS without immediately creating policies
+
+---
+
 ## [2026-01-31] - Checklist Labels Updated
 
 ### 🎨 UI/UX Improvement
