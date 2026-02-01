@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Job, MediaCategory, JobMedia } from '../../../types';
+import { Job, MediaCategory, JobMedia, JobStatus } from '../../../types';
 import { SupabaseDb as MockDb, supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { RoleFlags, StatusFlags } from '../types';
@@ -174,12 +174,13 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
         if (shouldAutoStart) {
           const now = new Date().toISOString();
           const startedJob = await MockDb.updateJob(job.job_id, {
+            status: JobStatus.IN_PROGRESS,
             started_at: now,
             repair_start_time: now,
             arrival_time: now,
           });
           onJobUpdate({ ...startedJob } as Job);
-          showToast.info('Timer started', 'Job timer started automatically with first photo');
+          showToast.info('Job started', 'Timer started automatically with first photo');
         } 
         // Auto-stop job timer on completion photo (lead tech only)
         else if (shouldAutoStop) {

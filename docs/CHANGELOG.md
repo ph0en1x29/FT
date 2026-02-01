@@ -32,6 +32,7 @@ const shouldAutoStop = isCompletionPhoto &&
 
 **Behavior Restored:**
 - ✅ First photo by lead technician → auto-starts job timer
+- ✅ Job status changes to `IN_PROGRESS` on first photo
 - ✅ "After" category photo by lead technician → auto-stops timer
 - ✅ Helper photos do NOT affect timer
 - ✅ `is_start_photo` / `is_end_photo` flags set for audit trail
