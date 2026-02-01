@@ -1,11 +1,12 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Job, JobStatus, User, ForkliftConditionChecklist, HourmeterFlagReason } from '../../../types';
+import { Job, JobStatus, User, ForkliftConditionChecklist, HourmeterFlagReason, JobRequestType } from '../../../types';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { generateJobSummary } from '../../../services/geminiService';
 import { showToast } from '../../../services/toastService';
 import { getMissingMandatoryItems } from '../utils';
 import { JobDetailState } from './useJobDetailState';
+import { createJobRequest, approveSparePartRequest, rejectRequest } from '../../../services/jobRequestService';
 
 interface UseJobActionsParams {
   state: JobDetailState;
@@ -425,6 +426,82 @@ export const useJobActions = ({
     setGeneratingAi(false);
   }, [job, setShowRejectJobModal, setRejectJobReason]);
 
+  // Job Request handlers
+  const handleCreateRequest = useCallback(async (
+    type: JobRequestType,
+    description: string,
+    photoUrl?: string
+  ) => {
+    if (!job) return;
+    state.setSubmittingRequest(true);
+    try {
+      const result = await createJobRequest(job.job_id, type, currentUserId, description, photoUrl);
+      if (result) {
+        showToast.success('Request submitted', 'Admin will review your request');
+        state.setShowRequestModal(false);
+      } else {
+        showToast.error('Failed to submit request');
+      }
+    } catch (e) {
+      showToast.error('Error submitting request', (e as Error).message);
+    } finally {
+      state.setSubmittingRequest(false);
+    }
+  }, [job, currentUserId, state]);
+
+  const handleApproveRequest = useCallback(async (
+    partId: string,
+    quantity: number,
+    notes?: string
+  ) => {
+    const request = state.approvalRequest;
+    if (!request) return;
+    
+    state.setSubmittingApproval(true);
+    try {
+      const success = await approveSparePartRequest(
+        request.request_id,
+        currentUserId,
+        partId,
+        quantity,
+        notes
+      );
+      if (success) {
+        showToast.success('Request approved', 'Part added to job');
+        state.setShowApprovalModal(false);
+        state.setApprovalRequest(null);
+        loadJob(); // Refresh job data to show new parts
+      } else {
+        showToast.error('Failed to approve request', 'Check part availability');
+      }
+    } catch (e) {
+      showToast.error('Error approving request', (e as Error).message);
+    } finally {
+      state.setSubmittingApproval(false);
+    }
+  }, [state, currentUserId, loadJob]);
+
+  const handleRejectRequest = useCallback(async (notes: string) => {
+    const request = state.approvalRequest;
+    if (!request) return;
+    
+    state.setSubmittingApproval(true);
+    try {
+      const success = await rejectRequest(request.request_id, currentUserId, notes);
+      if (success) {
+        showToast.success('Request rejected', 'Technician has been notified');
+        state.setShowApprovalModal(false);
+        state.setApprovalRequest(null);
+      } else {
+        showToast.error('Failed to reject request');
+      }
+    } catch (e) {
+      showToast.error('Error rejecting request', (e as Error).message);
+    } finally {
+      state.setSubmittingApproval(false);
+    }
+  }, [state, currentUserId]);
+
   return {
     // Accept/Reject
     handleAcceptJob,
@@ -478,5 +555,10 @@ export const useJobActions = ({
     
     // AI
     handleAiSummary,
+    
+    // Requests
+    handleCreateRequest,
+    handleApproveRequest,
+    handleRejectRequest,
   };
 };

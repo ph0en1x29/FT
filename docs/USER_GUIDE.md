@@ -353,11 +353,16 @@ During an "In Progress" job, you can request assistance:
 5. Helper can upload photos but cannot modify job details
 
 #### Request Spare Parts
-1. Click **"Request Spare Part"** button
-2. Describe the part needed
-3. Upload photo of faulty component (optional)
-4. Admin reviews and selects from inventory
-5. Approved parts appear in your Items Used list
+1. Open the job detail page (job must be In Progress)
+2. Scroll to the **"Part Requests"** section
+3. Click the **"Request Part"** button
+4. Select request type: Spare Part, Assistance, or Skillful Technician
+5. Describe the part/assistance needed in detail
+6. Optionally add a photo URL showing the issue
+7. Click **"Submit Request"**
+8. Admin receives notification and reviews your request
+9. Once approved, the part is automatically added to your job
+10. You can see the request status (Pending → Approved/Rejected) in the Part Requests section
 
 #### Request Skillful Technician
 1. Click **"Request Skillful Technician"** button

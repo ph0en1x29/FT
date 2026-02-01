@@ -6,7 +6,7 @@ import HourmeterAmendmentModal from '../../../components/HourmeterAmendmentModal
 import { CHECKLIST_CATEGORIES } from '../constants';
 import { calculateJobTotals } from '../utils';
 import { 
-  Play, Clock, Trash2, RefreshCw, Gauge, ClipboardList, XCircle 
+  Play, Clock, Trash2, RefreshCw, Gauge, ClipboardList, XCircle, AlertTriangle, CheckCircle 
 } from 'lucide-react';
 
 interface SignatureModalProps {
@@ -363,6 +363,74 @@ export const RejectJobModal: React.FC<RejectJobModalProps> = ({
           >
             <XCircle className="w-4 h-4" /> Reject Job
           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface ChecklistWarningModalProps {
+  show: boolean;
+  missingItems: string[];
+  onGoBack: () => void;
+  onProceedAnyway?: () => void; // Optional: allow proceeding without all items
+}
+
+export const ChecklistWarningModal: React.FC<ChecklistWarningModalProps> = ({
+  show,
+  missingItems,
+  onGoBack,
+  onProceedAnyway,
+}) => {
+  if (!show) return null;
+
+  // Convert checklist keys to readable labels
+  const formatItemName = (key: string): string => {
+    return key
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+        <h4 className="font-bold text-lg mb-4 text-[var(--warning)] flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5" /> Incomplete Checklist
+        </h4>
+        
+        <div className="bg-[var(--warning-bg)] rounded-xl p-4 mb-4">
+          <p className="text-sm text-[var(--text)] mb-3">
+            The following mandatory checklist items have not been marked:
+          </p>
+          <ul className="space-y-2">
+            {missingItems.map((item) => (
+              <li key={item} className="flex items-center gap-2 text-sm text-[var(--warning)]">
+                <XCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{formatItemName(item)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="text-sm text-[var(--text-muted)] mb-6">
+          Please go back and complete the condition checklist before marking the job as complete.
+        </p>
+
+        <div className="flex gap-3">
+          <button 
+            onClick={onGoBack} 
+            className="btn-premium btn-premium-primary flex-1"
+          >
+            <CheckCircle className="w-4 h-4" /> Go Back & Complete
+          </button>
+          {onProceedAnyway && (
+            <button 
+              onClick={onProceedAnyway} 
+              className="btn-premium btn-premium-secondary text-[var(--warning)] flex-1"
+            >
+              Proceed Anyway
+            </button>
+          )}
         </div>
       </div>
     </div>

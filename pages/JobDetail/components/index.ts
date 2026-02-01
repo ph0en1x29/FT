@@ -11,6 +11,9 @@ export { JobPhotosSection } from './JobPhotosSection';
 // New extracted components
 export { CustomerAssignmentCard } from './CustomerAssignmentCard';
 export { NotesSection } from './NotesSection';
+export { JobRequestsSection } from './JobRequestsSection';
+export { CreateRequestModal } from './CreateRequestModal';
+export { ApproveRequestModal } from './ApproveRequestModal';
 
 // Modal components
 export {
@@ -21,5 +24,6 @@ export {
   ContinueTomorrowModal,
   DeleteModal,
   RejectJobModal,
+  ChecklistWarningModal,
   HourmeterAmendmentModal,
 } from './JobDetailModals';

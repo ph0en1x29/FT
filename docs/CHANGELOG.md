@@ -4,6 +4,58 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-01] - Complete Button Fix & Part Request Feature
+
+### 🐛 Bug Fixes
+
+**Complete Button Not Working (Customer Feedback)**
+
+Problem: Clicking the "Complete" button on a job did nothing - no feedback, no action.
+
+Root Cause: When mandatory checklist items were missing, the code set `showChecklistWarningModal = true` but the modal component was never rendered.
+
+Fix:
+- Created `ChecklistWarningModal` component showing which items are missing
+- Added modal to JobDetailPage.tsx
+- Users now see clear feedback when checklist is incomplete
+
+**Files Changed:**
+- `pages/JobDetail/components/JobDetailModals.tsx` — added ChecklistWarningModal
+- `pages/JobDetail/components/index.ts` — exported ChecklistWarningModal
+- `pages/JobDetail/JobDetailPage.tsx` — rendered ChecklistWarningModal
+
+### ✨ New Feature: Part Request System UI
+
+**Part Request Column Missing (Customer Feedback)**
+
+Problem: Backend for job requests existed but no UI to create/view/manage them.
+
+Implementation:
+- **JobRequestsSection** — displays part requests on job detail, shows pending count
+- **CreateRequestModal** — technicians can request parts, assistance, or skillful technician
+- **ApproveRequestModal** — admins can approve (select part + quantity) or reject with reason
+
+Workflow:
+1. Technician clicks "Request Part" on job in progress
+2. Selects type (Spare Part/Assistance/Skillful Technician) and describes need
+3. Admin receives notification, reviews request
+4. Admin approves (part auto-added to job) or rejects with reason
+5. Technician sees status update
+
+**Files Created:**
+- `pages/JobDetail/components/JobRequestsSection.tsx`
+- `pages/JobDetail/components/CreateRequestModal.tsx`
+- `pages/JobDetail/components/ApproveRequestModal.tsx`
+
+**Files Changed:**
+- `pages/JobDetail/components/index.ts` — exported new components
+- `pages/JobDetail/hooks/useJobActions.ts` — added request handlers
+- `pages/JobDetail/JobDetailPage.tsx` — integrated components
+
+**Build verified:** ✔️
+
+---
+
 ## [2026-02-01] - Comprehensive RLS and Trigger Fixes
 
 ### 🐛 Critical Bug Fixes

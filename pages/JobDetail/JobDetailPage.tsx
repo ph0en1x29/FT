@@ -10,7 +10,8 @@ import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import {
   JobHeader, JobTimerCard, EquipmentCard, FinancialSummary, JobTimeline, SignaturesCard, AIAssistantCard,
   JobPhotosSection, CustomerAssignmentCard, NotesSection, SignatureModal, StartJobModal, FinalizeModal,
-  ReassignModal, ContinueTomorrowModal, DeleteModal, RejectJobModal, HourmeterAmendmentModal,
+  ReassignModal, ContinueTomorrowModal, DeleteModal, RejectJobModal, ChecklistWarningModal, HourmeterAmendmentModal,
+  JobRequestsSection, CreateRequestModal, ApproveRequestModal,
 } from './components';
 
 // Extracted hooks
@@ -95,6 +96,9 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onAssignJob={actions.handleAssignJob} onOpenReassignModal={() => state.setShowReassignModal(true)} />
           <NotesSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} noteInput={state.noteInput}
             onNoteInputChange={state.setNoteInput} onAddNote={actions.handleAddNote} />
+          <JobRequestsSection job={job} roleFlags={roleFlags} statusFlags={statusFlags}
+            onCreateRequest={() => state.setShowRequestModal(true)}
+            onApproveRequest={(request) => { state.setApprovalRequest(request); state.setShowApprovalModal(true); }} />
           <JobPhotosSection job={job} currentUserId={currentUserId} currentUserName={currentUserName}
             roleFlags={roleFlags} statusFlags={statusFlags} isCurrentUserHelper={state.isCurrentUserHelper} onJobUpdate={setJob} />
         </div>
@@ -134,6 +138,25 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
           flagReasons={job.hourmeter_flag_reasons || state.hourmeterFlagReasons}
           onClose={() => state.setShowHourmeterAmendmentModal(false)} onSubmit={actions.handleSubmitHourmeterAmendment} />
       )}
+      <ChecklistWarningModal
+        show={state.showChecklistWarningModal}
+        missingItems={state.missingChecklistItems}
+        onGoBack={() => state.setShowChecklistWarningModal(false)}
+      />
+      <CreateRequestModal
+        show={state.showRequestModal}
+        submitting={state.submittingRequest}
+        onSubmit={actions.handleCreateRequest}
+        onClose={() => state.setShowRequestModal(false)}
+      />
+      <ApproveRequestModal
+        show={state.showApprovalModal}
+        request={state.approvalRequest}
+        submitting={state.submittingApproval}
+        onApprove={actions.handleApproveRequest}
+        onReject={actions.handleRejectRequest}
+        onClose={() => { state.setShowApprovalModal(false); state.setApprovalRequest(null); }}
+      />
     </div>
   );
 };
