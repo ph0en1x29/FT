@@ -4,7 +4,30 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
-## [2026-02-01] - Complete Button Fix & Part Request Feature
+## [2026-02-01] - Complete Button Fix & Part Request Feature & Photo Upload Optimization
+
+### ⚡ Performance Improvements
+
+**Photo Upload Black Screen / Slowness Fix (Customer Feedback)**
+
+Problem: Pressing "Add Photo" sometimes showed black screen and was slow.
+
+Root Causes:
+1. No loading indicator - users got no feedback while photo processed
+2. Full-resolution base64 conversion - slow for 3-5MB phone photos
+3. GPS timeout - 10 second wait blocking upload
+4. No compression - uploading full-res images unnecessarily
+
+Fixes:
+- Added `isUploading` state with spinner animation on upload button
+- Added "Processing photo..." toast immediately on click
+- Added image compression (max 1920px, 85% quality) - much faster
+- Reduced GPS timeout from 10s → 5s, allow cached location
+- Made GPS fetch non-blocking - runs in parallel with upload
+- Added `finally` block to always clear loading state
+
+**Files Changed:**
+- `pages/JobDetail/components/JobPhotosSection.tsx`
 
 ### 🐛 Bug Fixes
 
