@@ -4,20 +4,44 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
-## [2026-02-01] - Fix RLS Policies for Core Tables
+## [2026-02-01] - Comprehensive RLS and Trigger Fixes
 
-### 🐛 Critical Bug Fix
+### 🐛 Critical Bug Fixes
 
-**Problem:** "new row violates row-level security policy" errors when creating jobs.
+**Problems Fixed:**
+1. "new row violates row-level security policy" errors when creating jobs
+2. "violates foreign key constraint hourmeter_history_recorded_by_id_fkey" errors
+3. Functions using `auth.uid()` directly instead of looking up `user_id` from `auth_id`
 
-**Root Cause:** The `20260131_security_fixes.sql` migration enabled RLS on tables but the core tables (`jobs`, `forklifts`, `customers`, etc.) never had policies created.
+**Root Causes:**
+1. Security migration enabled RLS without creating policies for core tables
+2. Functions with empty `search_path` couldn't find tables
+3. `hourmeter_history.recorded_by_id` was NOT NULL with FK constraint
+4. Some users have `user_id != auth_id`, breaking direct `auth.uid()` usage
 
-**Fix Applied:** Created permissive `_authenticated_all` policies for 15 core tables via Supabase Management API.
+**Fixes Applied:**
+1. Created permissive RLS policies for all core tables
+2. Fixed 26 functions with empty search_path → set to `public`
+3. Made `hourmeter_history.recorded_by_id` nullable and dropped FK constraint
+4. Fixed all trigger functions to lookup `user_id` by `auth_id` instead of using `auth.uid()` directly
+5. Created missing `public.users` entries for orphan `auth.users`
+
+**Functions Fixed:**
+- `audit_direct_hourmeter_update` - lookup user by auth_id
+- `lock_service_record_on_invoice` - lookup user by auth_id
+- `deduct_inventory_on_completion` - lookup user by auth_id
+- `prevent_locked_service_record_edit` - lookup user by auth_id
+- `enforce_soft_delete` - lookup user by auth_id
+- `log_invoice_changes` - lookup user by auth_id
+- `log_service_record_changes` - lookup user by auth_id
 
 **Prevention:**
 - Added `scripts/check-rls-policies.sh` — detects tables with RLS but no policies
 - Added `scripts/fix-rls-policies.sh` — auto-creates default policies
 - **Rule:** NEVER enable RLS without immediately creating policies
+- **Rule:** ALWAYS lookup user_id by auth_id, never assume auth.uid() = user_id
+
+**Build verified:** ✔️
 
 ---
 
