@@ -27,7 +27,31 @@ export const useJobActions = ({
   loadJob,
 }: UseJobActionsParams) => {
   const navigate = useNavigate();
-  const { job, setJob } = state;
+  
+  // Destructure stable setters to avoid 'state' object in dependency arrays
+  const { 
+    job, 
+    setJob,
+    rejectJobReason,
+    setShowRejectJobModal,
+    setRejectJobReason,
+    setStartJobHourmeter,
+    setConditionChecklist,
+    setShowStartJobModal,
+    startJobHourmeter,
+    conditionChecklist,
+    setMissingChecklistItems,
+    setEditingLabor,
+    setLaborCostInput,
+    laborCostInput,
+    setEditingHourmeter,
+    setHourmeterInput,
+    hourmeterInput,
+    setShowTechSigPad,
+    setShowCustSigPad,
+    setGeneratingAi,
+    setAiSummary,
+  } = state;
 
   // Accept/Reject job handlers
   const handleAcceptJob = useCallback(async () => {
@@ -42,15 +66,15 @@ export const useJobActions = ({
   }, [job, currentUserId, currentUserName, setJob]);
 
   const handleRejectJob = useCallback(async () => {
-    if (!job || !state.rejectJobReason.trim()) {
+    if (!job || !rejectJobReason.trim()) {
       showToast.error('Please provide a reason for rejecting this job');
       return;
     }
     try {
-      await MockDb.rejectJobAssignment(job.job_id, currentUserId, currentUserName, state.rejectJobReason.trim());
+      await MockDb.rejectJobAssignment(job.job_id, currentUserId, currentUserName, rejectJobReason.trim());
       showToast.success('Job rejected', 'Admin has been notified for reassignment.');
-      state.setShowRejectJobModal(false);
-      state.setRejectJobReason('');
+      setShowRejectJobModal(false);
+      setRejectJobReason('');
       navigate('/jobs');
     } catch (e) {
       showToast.error('Failed to reject job', (e as Error).message);
@@ -60,18 +84,18 @@ export const useJobActions = ({
   // Start job handlers
   const handleOpenStartJobModal = useCallback(() => {
     if (!job) return;
-    state.setStartJobHourmeter((job.forklift?.hourmeter || 0).toString());
-    state.setConditionChecklist({});
-    state.setShowStartJobModal(true);
-  }, [job, state]);
+    setStartJobHourmeter((job.forklift?.hourmeter || 0).toString());
+    setConditionChecklist({});
+    setShowStartJobModal(true);
+  }, [job, setShowRejectJobModal, setRejectJobReason]);
 
   const handleChecklistToggle = useCallback((key: string) => {
-    state.setConditionChecklist(prev => ({ ...prev, [key]: !prev[key as keyof ForkliftConditionChecklist] }));
-  }, [state]);
+    setConditionChecklist(prev => ({ ...prev, [key]: !prev[key as keyof ForkliftConditionChecklist] }));
+  }, [setConditionChecklist]);
 
   const handleStartJobWithCondition = useCallback(async () => {
     if (!job) return;
-    const hourmeter = parseInt(state.startJobHourmeter);
+    const hourmeter = parseInt(startJobHourmeter);
     if (isNaN(hourmeter) || hourmeter < 0) {
       showToast.error('Please enter a valid hourmeter reading');
       return;
@@ -82,9 +106,9 @@ export const useJobActions = ({
       return;
     }
     try {
-      const updated = await MockDb.startJobWithCondition(job.job_id, hourmeter, state.conditionChecklist, currentUserId, currentUserName);
+      const updated = await MockDb.startJobWithCondition(job.job_id, hourmeter, conditionChecklist, currentUserId, currentUserName);
       setJob({ ...updated } as Job);
-      state.setShowStartJobModal(false);
+      setShowStartJobModal(false);
       showToast.success('Job started', 'Status changed to In Progress');
     } catch (error) {
       showToast.error('Failed to start job', (error as Error).message);
@@ -97,7 +121,7 @@ export const useJobActions = ({
     if (newStatus === JobStatus.AWAITING_FINALIZATION) {
       const missing = getMissingMandatoryItems(job);
       if (missing.length > 0) {
-        state.setMissingChecklistItems(missing);
+        setMissingChecklistItems(missing);
         state.setShowChecklistWarningModal(true);
         return;
       }
@@ -171,13 +195,13 @@ export const useJobActions = ({
   // Labor cost handlers
   const handleStartEditLabor = useCallback(() => {
     if (!job) return;
-    state.setEditingLabor(true);
-    state.setLaborCostInput((job.labor_cost || 150).toString());
-  }, [job, state]);
+    setEditingLabor(true);
+    setLaborCostInput((job.labor_cost || 150).toString());
+  }, [job, setShowRejectJobModal, setRejectJobReason]);
 
   const handleSaveLabor = useCallback(async () => {
     if (!job) return;
-    const parsed = parseFloat(state.laborCostInput);
+    const parsed = parseFloat(laborCostInput);
     if (isNaN(parsed) || parsed < 0) {
       showToast.error('Please enter a valid labor cost');
       return;
@@ -185,8 +209,8 @@ export const useJobActions = ({
     try {
       const updated = await MockDb.updateLaborCost(job.job_id, parsed);
       setJob({ ...updated } as Job);
-      state.setEditingLabor(false);
-      state.setLaborCostInput('');
+      setEditingLabor(false);
+      setLaborCostInput('');
       showToast.success('Labor cost updated');
     } catch (e) {
       showToast.error('Could not update labor cost');
@@ -194,20 +218,20 @@ export const useJobActions = ({
   }, [job, state, setJob]);
 
   const handleCancelLaborEdit = useCallback(() => {
-    state.setEditingLabor(false);
-    state.setLaborCostInput('');
-  }, [state]);
+    setEditingLabor(false);
+    setLaborCostInput('');
+  }, [setConditionChecklist]);
 
   // Hourmeter handlers
   const handleStartEditHourmeter = useCallback(() => {
     if (!job) return;
-    state.setEditingHourmeter(true);
-    state.setHourmeterInput((job.hourmeter_reading || job.forklift?.hourmeter || 0).toString());
-  }, [job, state]);
+    setEditingHourmeter(true);
+    setHourmeterInput((job.hourmeter_reading || job.forklift?.hourmeter || 0).toString());
+  }, [job, setShowRejectJobModal, setRejectJobReason]);
 
   const handleSaveHourmeter = useCallback(async () => {
     if (!job || !job.forklift_id) return;
-    const parsed = parseInt(state.hourmeterInput);
+    const parsed = parseInt(hourmeterInput);
     if (isNaN(parsed) || parsed < 0) {
       showToast.error('Please enter a valid hourmeter reading');
       return;
@@ -230,8 +254,8 @@ export const useJobActions = ({
           await MockDb.updateJob(job.job_id, firstRecordingData);
         }
         setJob({ ...updated, hourmeter_flagged: true, hourmeter_flag_reasons: validation.flags, ...firstRecordingData } as Job);
-        state.setEditingHourmeter(false);
-        state.setHourmeterInput('');
+        setEditingHourmeter(false);
+        setHourmeterInput('');
         showToast.warning('Hourmeter saved with flags', 'This reading has been flagged for review.');
       } catch (e) {
         showToast.error(e instanceof Error ? e.message : 'Could not update hourmeter');
@@ -245,8 +269,8 @@ export const useJobActions = ({
         await MockDb.updateJob(job.job_id, firstRecordingData);
       }
       setJob({ ...updated, ...firstRecordingData } as Job);
-      state.setEditingHourmeter(false);
-      state.setHourmeterInput('');
+      setEditingHourmeter(false);
+      setHourmeterInput('');
       state.setHourmeterFlagReasons([]);
       showToast.success('Hourmeter updated');
     } catch (e) {
@@ -255,9 +279,9 @@ export const useJobActions = ({
   }, [job, state, currentUserId, currentUserName, setJob]);
 
   const handleCancelHourmeterEdit = useCallback(() => {
-    state.setEditingHourmeter(false);
-    state.setHourmeterInput('');
-  }, [state]);
+    setEditingHourmeter(false);
+    setHourmeterInput('');
+  }, [setConditionChecklist]);
 
   const handleSubmitHourmeterAmendment = useCallback(async (amendedReading: number, reason: string) => {
     if (!job || !job.forklift_id) throw new Error('Job or forklift not found');
@@ -381,25 +405,25 @@ export const useJobActions = ({
     if (!job) return;
     const updated = await MockDb.signJob(job.job_id, 'technician', currentUserName, dataUrl);
     setJob({ ...updated } as Job);
-    state.setShowTechSigPad(false);
-  }, [job, currentUserName, setJob, state]);
+    setShowTechSigPad(false);
+  }, [job, currentUserName, setJob, setShowRejectJobModal, setRejectJobReason]);
 
   const handleCustomerSignature = useCallback(async (dataUrl: string) => {
     if (!job) return;
     const customerName = job.customer?.name || 'Customer';
     const updated = await MockDb.signJob(job.job_id, 'customer', customerName, dataUrl);
     setJob({ ...updated } as Job);
-    state.setShowCustSigPad(false);
-  }, [job, setJob, state]);
+    setShowCustSigPad(false);
+  }, [job, setJob, setShowRejectJobModal, setRejectJobReason]);
 
   // AI Summary handler
   const handleAiSummary = useCallback(async () => {
     if (!job) return;
-    state.setGeneratingAi(true);
+    setGeneratingAi(true);
     const summary = await generateJobSummary(job);
-    state.setAiSummary(summary);
-    state.setGeneratingAi(false);
-  }, [job, state]);
+    setAiSummary(summary);
+    setGeneratingAi(false);
+  }, [job, setShowRejectJobModal, setRejectJobReason]);
 
   return {
     // Accept/Reject
