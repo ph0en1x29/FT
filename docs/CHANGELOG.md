@@ -4,6 +4,19 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-01] - Technicians See Parts Immediately
+
+### 🔧 Fix: Remove Parts Blocking for Technicians
+
+**Problem:** Technicians saw "Parts Pending Verification" message even with unified admin roles.
+
+**Fix:** Removed blocking behavior entirely:
+- Technicians now see parts immediately (names + quantities, no prices)
+- "Verified by" badge shows when confirmed (informational only, not blocking)
+- Works for both new and existing jobs
+
+---
+
 ## [2026-02-01] - Checklist "Check All" + Auto-X on Untick
 
 ### ✨ Feature: Checklist Improvements

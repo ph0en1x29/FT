@@ -3,7 +3,18 @@
 
 ---
 
-> 📢 **What's New in January 2026?** Major ACWER workflow implementation including:
+> 📢 **What's New in February 2026?**
+>
+> **🆕 Latest Update (2026-02-01):**
+> - **✅ Check All Button** - Mark all 48 checklist items as OK with one click
+> - **↩️ Auto-X on Untick** - Click OK on checked item to mark as needs attention
+> - **👁️ Parts Visible to Technicians** - Technicians see parts immediately (no prices)
+> - **⚡ Auto-Confirm Parts** - Parts auto-confirmed when admin adds them
+> - **🔧 Unified Admin Roles** - All admins can add parts AND confirm them
+> - **📸 Photo Upload Fix** - Faster uploads with image compression
+> - **📋 Part Request UI** - Technicians can request parts, admins approve
+>
+> **Previous (January 2026):**
 > - Helper Technician System (assign assistants to jobs)
 > - In-Job Request System (request assistance, spare parts, skillful tech)
 > - Multi-Day Job Support with escalation management
@@ -11,37 +22,13 @@
 > - Photo Categorization with ZIP download
 > - Real-time notifications with sound alerts
 > - Enhanced Dashboard with Action Required queue
-> - **Admin Role Split** - Admin Service vs Admin Store for dual confirmation workflow
-> - **AutoCount Integration** - Export invoices to AutoCount accounting software
-> - **Photo Validation** - GPS tracking and timestamp verification on photos
-> - **Fleet Dashboard** - Real-time forklift status updates
->
-> **🆕 Latest Update (2026-01-29) - Critical Features:**
-> - **📱 Push Notifications** - Real browser push notifications (not just in-app)
-> - **⏰ 15-Minute Accept/Reject** - Technicians must accept or reject jobs within 15 minutes
-> - **✅ Dual Approval Flow** - Admin 1 cannot finalize until Admin 2 verifies parts
->
-> **Update (2026-01-28) - Phase 3:**
-> - **Enhanced Real-Time Updates** - Live updates for job status, assignments, and request approvals
-> - **Connection Health Indicator** - Visual dot showing WebSocket connection status
-> - **Checklist Binary States** - OK/Not OK only, no neutral states, Check All button
-> - **Auto-Set Unchecked Items** - Unchecked checklist items auto-marked as Not OK on save
-> - **Expanded Dashboard Notifications** - Toggle unread/all, expandable full feed
-> - **Tech Parts Filter** - Technicians only see parts after Admin 2 verification
->
-> **Update (2026-01-28) - Phase 2:**
-> - **Real-Time Job Deletion Sync** - Deleted jobs automatically removed from technician's list
-> - **Job Redirect on Deletion** - Viewing a deleted job redirects to job list with warning
-> - **Pricing Hidden from Technicians** - Financial summary, extra charges, and part prices hidden
-> - **Parts Entry by Admin Only** - Technicians must use Spare Part Request workflow
->
-> **Previous Update (2026-01-19):**
-> - **Parts Confirmation Workflow** - Admin Service must wait for Admin Store to verify parts
-> - **Binary Checklist** - Checklist items are now OK ✓ or Not OK ✗
-> - **Photo Auto-Start** - First photo automatically starts job timer
-> - **Edit Pending Requests** - Technicians can edit their own pending requests
-> - **Hourmeter Persistence** - Hourmeter readings preserved across job reassignment
-> - **Dashboard Notifications** - See recent notifications on your dashboard
+> - AutoCount Integration - Export invoices to AutoCount accounting software
+> - Photo Validation - GPS tracking and timestamp verification
+> - Fleet Dashboard - Real-time forklift status updates
+> - Push Notifications - Real browser push notifications
+> - 15-Minute Accept/Reject - Technicians must respond within 15 minutes
+> - Pricing Hidden from Technicians - Financial data visible to admin/accountant only
+> - Parts Entry by Admin Only - Technicians use Spare Part Request workflow
 >
 > 📚 **All Documentation:** See [Documentation Index](./README.md) for complete docs navigation.
 
