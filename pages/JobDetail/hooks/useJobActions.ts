@@ -547,7 +547,7 @@ export const useJobActions = ({
     if (!job || !state.selectedPartId) return;
     const price = parseFloat(state.selectedPartPrice) || 0;
     try {
-      const updated = await MockDb.addPartToJob(job.job_id, state.selectedPartId, 1, price, 'admin');
+      const updated = await MockDb.addPartToJob(job.job_id, state.selectedPartId, 1, price, 'admin', currentUserId, currentUserName);
       setJob({ ...updated } as Job);
       state.setSelectedPartId('');
       state.setSelectedPartPrice('');
@@ -555,7 +555,7 @@ export const useJobActions = ({
     } catch (e) {
       showToast.error('Could not add part', (e as Error).message);
     }
-  }, [job, state, setJob]);
+  }, [job, state, setJob, currentUserId, currentUserName]);
 
   const handleStartEditPartPrice = useCallback((partId: string, currentPrice: number) => {
     state.setEditingPartId(partId);

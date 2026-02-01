@@ -4,6 +4,25 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-02-01] - Auto-Confirm Parts on Add (Unified Admin Workflow)
+
+### 🔄 Workflow Change: Parts Auto-Confirmation
+
+**Background:** With unified admin roles (no separate Admin Service vs Admin Store), the parts confirmation step was unnecessary overhead. Technicians were seeing "Pending Verification" even though any admin could confirm.
+
+**Change:** When an admin adds parts to a job, they are automatically confirmed:
+- `parts_confirmed_at` set to current timestamp
+- `parts_confirmed_by_id` set to the admin's user ID
+- `parts_confirmed_by_name` set to the admin's name
+
+**Result:** Technicians see parts immediately (without prices) instead of "Pending Verification" message.
+
+**Files Changed:**
+- `services/jobInvoiceService.ts` — auto-confirm on addPartToJob
+- `pages/JobDetail/hooks/useJobActions.ts` — pass userId/userName to service
+
+---
+
 ## [2026-02-01] - Restore Missing Features + Complete Button Fix + Part Request + Photo Optimization
 
 ### 🐛 Critical Bug Fix: Missing Features After Refactor

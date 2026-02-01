@@ -42,7 +42,9 @@ export const addPartToJob = async (
   partId: string,
   quantity: number,
   customPrice?: number,
-  actorRole?: UserRole
+  actorRole?: UserRole,
+  actorId?: string,
+  actorName?: string
 ): Promise<Job> => {
   const { data: part, error: partError } = await supabase
     .from('parts')
@@ -72,6 +74,21 @@ export const addPartToJob = async (
       .eq('part_id', partId);
     if (stockError) {
       console.warn('Part added, but stock update failed (RLS?):', stockError.message);
+    }
+  }
+
+  // Auto-confirm parts when admin adds them (unified admin workflow)
+  if (actorRole === UserRole.ADMIN && actorId && actorName) {
+    const { error: confirmError } = await supabase
+      .from('jobs')
+      .update({
+        parts_confirmed_at: new Date().toISOString(),
+        parts_confirmed_by_id: actorId,
+        parts_confirmed_by_name: actorName,
+      })
+      .eq('job_id', jobId);
+    if (confirmError) {
+      console.warn('Part added, but auto-confirm failed:', confirmError.message);
     }
   }
 
