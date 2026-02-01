@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserRole } from '../../../types';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
@@ -18,7 +18,18 @@ interface UseJobDataParams {
  */
 export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: UseJobDataParams) => {
   const navigate = useNavigate();
-  const { setJob, setLoading } = state;
+  
+  // Destructure stable setters to avoid dependency on entire state object
+  const { 
+    setJob, 
+    setLoading, 
+    setNoPartsUsed, 
+    setActiveRental, 
+    setIsCurrentUserHelper, 
+    setHelperAssignmentId,
+    setJobRequests,
+    setVanStock 
+  } = state;
 
   const loadJob = useCallback(async () => {
     if (!jobId) return;
@@ -28,18 +39,18 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
       setJob(data ? { ...data } : null);
       if (data) {
         const serviceRecord = await MockDb.getJobServiceRecord(jobId);
-        if (serviceRecord) state.setNoPartsUsed(serviceRecord.no_parts_used || false);
+        if (serviceRecord) setNoPartsUsed(serviceRecord.no_parts_used || false);
         if (data.forklift_id) {
           const rental = await MockDb.getActiveRentalForForklift(data.forklift_id);
-          state.setActiveRental(rental);
+          setActiveRental(rental);
         }
         if (data.helper_assignment) {
           const isHelper = data.helper_assignment.technician_id === currentUserId;
-          state.setIsCurrentUserHelper(isHelper);
-          if (isHelper) state.setHelperAssignmentId(data.helper_assignment.assignment_id);
+          setIsCurrentUserHelper(isHelper);
+          if (isHelper) setHelperAssignmentId(data.helper_assignment.assignment_id);
         } else {
-          state.setIsCurrentUserHelper(false);
-          state.setHelperAssignmentId(null);
+          setIsCurrentUserHelper(false);
+          setHelperAssignmentId(null);
         }
       }
     } catch {
@@ -48,41 +59,48 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
     } finally {
       setLoading(false);
     }
-  }, [jobId, currentUserId, setJob, setLoading, state]);
+  }, [jobId, currentUserId, setJob, setLoading, setNoPartsUsed, setActiveRental, setIsCurrentUserHelper, setHelperAssignmentId]);
 
   const loadRequests = useCallback(async () => {
     if (!jobId) return;
     try {
       const requests = await MockDb.getJobRequests(jobId);
-      state.setJobRequests(requests);
+      setJobRequests(requests);
     } catch {
       showToast.error('Failed to load requests');
     }
-  }, [jobId, state]);
+  }, [jobId, setJobRequests]);
 
   const loadVanStock = useCallback(async () => {
     if (currentUserRole !== UserRole.TECHNICIAN) return;
     try {
       const data = await MockDb.getVanStockByTechnician(currentUserId);
-      state.setVanStock(data);
+      setVanStock(data);
     } catch { /* ignore */ }
-  }, [currentUserId, currentUserRole, state]);
+  }, [currentUserId, currentUserRole, setVanStock]);
 
-  // Real-time subscription
+  // Use refs to avoid re-subscribing on every callback change
+  const loadJobRef = useRef(loadJob);
+  const loadRequestsRef = useRef(loadRequests);
+  loadJobRef.current = loadJob;
+  loadRequestsRef.current = loadRequests;
+
+  // Real-time subscription - use stable callbacks via refs
   useJobRealtime({
     jobId,
     currentUserId,
     onJobDeleted: () => navigate('/jobs'),
-    onJobUpdated: loadJob,
-    onRequestsUpdated: loadRequests,
+    onJobUpdated: useCallback(() => loadJobRef.current(), []),
+    onRequestsUpdated: useCallback(() => loadRequestsRef.current(), []),
   });
 
-  // Initial data load
+  // Initial data load - only run once when jobId changes
   useEffect(() => {
     loadJob();
     loadRequests();
     loadVanStock();
-  }, [loadJob, loadRequests, loadVanStock]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobId]); // Only depend on jobId, not the callbacks
 
   return { loadJob, loadRequests, loadVanStock };
 };

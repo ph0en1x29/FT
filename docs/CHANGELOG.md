@@ -4,6 +4,39 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-01-31] - Fix Infinite Refetch Loop (ERR_INSUFFICIENT_RESOURCES)
+
+### 🐛 Critical Bug Fix: Browser Resource Exhaustion
+
+**Problem:** Job Detail page caused infinite API refetch loop, exhausting browser network connections with `ERR_INSUFFICIENT_RESOURCES` error.
+
+**Root Cause:** In `useJobData.ts`, the `loadJob` callback had `state` object in its dependency array. Since `state` is a new object reference on every render, this caused:
+1. `loadJob` recreated every render
+2. `useEffect` re-runs and calls `loadJob()`
+3. State updates trigger re-render
+4. Cycle repeats infinitely → 6 parallel requests × infinite loops
+
+**Fix Applied:**
+1. Destructured stable setters from `state` object instead of using whole `state`
+2. Used `useRef` for realtime subscription callbacks to prevent re-subscription
+3. Changed initial load `useEffect` to only depend on `jobId`
+
+```javascript
+// Before (BROKEN):
+const loadJob = useCallback(..., [jobId, currentUserId, setJob, setLoading, state]);
+
+// After (FIXED):
+const { setJob, setLoading, setNoPartsUsed, ... } = state;
+const loadJob = useCallback(..., [jobId, currentUserId, setJob, setLoading, setNoPartsUsed, ...]);
+```
+
+**Files Modified:**
+- `pages/JobDetail/hooks/useJobData.ts`
+
+**Build verified:** ✔️ `npm run build` passes
+
+---
+
 ## [2026-01-31] - Photo-Based Timer Logic Restored
 
 ### 🐛 Bug Fix: Auto-Start/Stop Timer on Photo Capture
