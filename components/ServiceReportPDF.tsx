@@ -152,7 +152,7 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
       <div className="mb-4">
         <div className="bg-slate-200 p-2 text-xs font-bold flex justify-between">
           <span>Items checking</span>
-          <span>✓ - Ok &nbsp;&nbsp;&nbsp; ✗ - Need attention or Repair</span>
+          <span>✓ - Good &nbsp;&nbsp;&nbsp; ✗ - Needs Attention</span>
         </div>
         <div className="grid grid-cols-4 gap-1 border border-slate-300 p-2">
           <ChecklistSection title="Drive System" items={[
@@ -512,7 +512,7 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
 
       <div class="checklist-header">
         <span>Items checking</span>
-        <span>✓ - Ok &nbsp;&nbsp;&nbsp; ✗ - Need attention or Repair</span>
+        <span>✓ - Good &nbsp;&nbsp;&nbsp; ✗ - Needs Attention</span>
       </div>
       ${checklistHTML}
 

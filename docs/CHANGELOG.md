@@ -4,6 +4,19 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-01-31] - Checklist Labels Updated
+
+### 🎨 UI/UX Improvement
+
+**Change:** Updated condition checklist labels from "Ok / Not OK" to "Good / Needs Attention"
+
+**Files Modified:**
+- `components/ServiceReportPDF.tsx` - Updated legend in both React component and HTML template
+
+**Build verified:** ✔️
+
+---
+
 ## [2026-01-31] - Fix Infinite Refetch Loop (ERR_INSUFFICIENT_RESOURCES)
 
 ### 🐛 Critical Bug Fix: Browser Resource Exhaustion
