@@ -63,22 +63,10 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
         {canEditPrices && <span className="badge badge-info text-[10px]">Editable</span>}
       </div>
 
-      {/* Technician parts filter: Only show confirmed parts */}
-      {isTechnician && job.parts_used.length > 0 && !job.parts_confirmed_at ? (
-        <div className="mb-4">
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">
-            <div className="flex items-center gap-2 text-amber-700 font-medium mb-1">
-              <Clock className="w-4 h-4" />
-              Parts Pending Verification
-            </div>
-            <p className="text-amber-600 text-xs">
-              {job.parts_used.length} part(s) added. Waiting for Admin 2 (Store) verification before displaying.
-            </p>
-          </div>
-        </div>
-      ) : job.parts_used.length > 0 ? (
+      {/* Parts list - always visible to technicians (without prices) */}
+      {job.parts_used.length > 0 ? (
         <div className="space-y-2 mb-4">
-          {/* Show confirmation status for technicians */}
+          {/* Show verification status badge for technicians */}
           {isTechnician && job.parts_confirmed_at && (
             <div className="flex items-center gap-2 mb-2 text-xs text-[var(--success)]">
               <CheckCircle className="w-3.5 h-3.5" />
