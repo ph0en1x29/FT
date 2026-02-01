@@ -118,6 +118,28 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
         const base64Data = reader.result as string;
         const photoUrl = await uploadPhotoToStorage(base64Data, job.job_id);
 
+        // === PHOTO-BASED TIME TRACKING ===
+        // Only lead technician (not helper) can start/stop timer
+        const isLeadTechnician = job.assigned_technician_id === currentUserId;
+        
+        // Check if this is the first photo and job hasn't started - auto-start timer
+        // Only lead technician's photo can start the timer
+        const isFirstPhoto = job.media.length === 0;
+        const shouldAutoStart = isFirstPhoto && 
+                                !job.repair_start_time && 
+                                !job.started_at &&
+                                isLeadTechnician &&
+                                !isCurrentUserHelper;
+
+        // Check if this is a completion photo (After category) - auto-stop timer
+        // Only lead technician's "After" photo can stop the timer
+        const isCompletionPhoto = uploadPhotoCategory === 'after';
+        const shouldAutoStop = isCompletionPhoto && 
+                               job.repair_start_time && 
+                               !job.repair_end_time &&
+                               isLeadTechnician &&
+                               !isCurrentUserHelper;
+
         const mediaData: NewMediaData = {
           type: 'photo',
           url: photoUrl,
@@ -129,6 +151,9 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
           server_timestamp: serverTimestamp,
           timestamp_mismatch: timestampMismatch,
           timestamp_mismatch_minutes: timestampMismatch ? timeDiffMinutes : undefined,
+          // Mark photos for audit trail
+          ...(shouldAutoStart && { is_start_photo: true }),
+          ...(shouldAutoStop && { is_end_photo: true }),
           ...(gps && {
             gps_latitude: gps.latitude,
             gps_longitude: gps.longitude,
@@ -145,7 +170,29 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
           isCurrentUserHelper
         );
 
-        onJobUpdate({ ...updated } as Job);
+        // Auto-start job timer on first photo (lead tech only)
+        if (shouldAutoStart) {
+          const now = new Date().toISOString();
+          const startedJob = await MockDb.updateJob(job.job_id, {
+            started_at: now,
+            repair_start_time: now,
+            arrival_time: now,
+          });
+          onJobUpdate({ ...startedJob } as Job);
+          showToast.info('Timer started', 'Job timer started automatically with first photo');
+        } 
+        // Auto-stop job timer on completion photo (lead tech only)
+        else if (shouldAutoStop) {
+          const now = new Date().toISOString();
+          const stoppedJob = await MockDb.updateJob(job.job_id, {
+            repair_end_time: now,
+          });
+          onJobUpdate({ ...stoppedJob } as Job);
+          showToast.info('Timer stopped', 'Job timer stopped with "After" photo');
+        }
+        else {
+          onJobUpdate({ ...updated } as Job);
+        }
 
         const categoryLabel = PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other';
 
@@ -155,7 +202,8 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
           showToast.warning('Photo uploaded', `GPS location not captured • ${categoryLabel}`);
         } else if (timestampMismatch) {
           showToast.warning('Photo uploaded', `Timestamp mismatch: ${timeDiffMinutes}min • ${categoryLabel}`);
-        } else {
+        } else if (!shouldAutoStart && !shouldAutoStop) {
+          // Only show regular upload toast if we didn't show timer toast
           showToast.success('Photo uploaded', `Category: ${categoryLabel}${isCurrentUserHelper ? ' (Helper)' : ''}`);
         }
       } catch (e) {

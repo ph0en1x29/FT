@@ -4,6 +4,46 @@ All notable changes, decisions, and client requirements for this project.
 
 ---
 
+## [2026-01-31] - Photo-Based Timer Logic Restored
+
+### 🐛 Bug Fix: Auto-Start/Stop Timer on Photo Capture
+
+**Problem:** Photo-based time tracking logic was lost during the modular split (commit c56f5e2). The timer no longer auto-started on first photo or auto-stopped on "After" photo.
+
+**Root Cause:** When `JobDetail.tsx` was split into modular components, the timer control logic in `uploadPhotoFile` wasn't transferred to `JobPhotosSection.tsx`.
+
+**Fix Applied:** Re-implemented the photo-based timer logic in `JobPhotosSection.tsx`:
+
+```javascript
+// Auto-start on first photo (lead technician only)
+const shouldAutoStart = isFirstPhoto && 
+                        !job.repair_start_time && 
+                        !job.started_at &&
+                        isLeadTechnician &&
+                        !isCurrentUserHelper;
+
+// Auto-stop on "After" category photo (lead technician only)
+const shouldAutoStop = isCompletionPhoto && 
+                       job.repair_start_time && 
+                       !job.repair_end_time &&
+                       isLeadTechnician &&
+                       !isCurrentUserHelper;
+```
+
+**Behavior Restored:**
+- ✅ First photo by lead technician → auto-starts job timer
+- ✅ "After" category photo by lead technician → auto-stops timer
+- ✅ Helper photos do NOT affect timer
+- ✅ `is_start_photo` / `is_end_photo` flags set for audit trail
+- ✅ Toast notifications for timer events
+
+**Files Modified:**
+- `pages/JobDetail/components/JobPhotosSection.tsx`
+
+**Build verified:** ✔️ `npm run build` passes
+
+---
+
 ## [2026-01-31] - Database Performance Optimization
 
 ### 🚀 Query Performance Fix
