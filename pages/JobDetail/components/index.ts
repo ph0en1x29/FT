@@ -16,6 +16,9 @@ export { CreateRequestModal } from './CreateRequestModal';
 export { ApproveRequestModal } from './ApproveRequestModal';
 export { ConditionChecklistCard } from './ConditionChecklistCard';
 export { PartsSection } from './PartsSection';
+export { JobDetailsCard } from './JobDetailsCard';
+export { ConfirmationStatusCard } from './ConfirmationStatusCard';
+export { ExtraChargesSection } from './ExtraChargesSection';
 
 // Modal components
 export {
@@ -27,5 +30,7 @@ export {
   DeleteModal,
   RejectJobModal,
   ChecklistWarningModal,
+  HelperModal,
+  DeferredCompletionModal,
   HourmeterAmendmentModal,
 } from './JobDetailModals';

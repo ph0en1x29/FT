@@ -608,6 +608,142 @@ export const useJobActions = ({
     }
   }, [job, state]);
 
+  // Job Details handlers
+  const handleStartEditJobCarriedOut = useCallback(() => {
+    if (!job) return;
+    state.setEditingJobCarriedOut(true);
+    state.setJobCarriedOutInput(job.job_carried_out || '');
+    state.setRecommendationInput(job.recommendation || '');
+  }, [job, state]);
+
+  const handleSaveJobCarriedOut = useCallback(async () => {
+    if (!job) return;
+    try {
+      const updated = await MockDb.updateJob(job.job_id, {
+        job_carried_out: state.jobCarriedOutInput,
+        recommendation: state.recommendationInput,
+      });
+      setJob({ ...updated } as Job);
+      state.setEditingJobCarriedOut(false);
+      showToast.success('Job details saved');
+    } catch (e) {
+      showToast.error('Could not save', (e as Error).message);
+    }
+  }, [job, state, setJob]);
+
+  const handleCancelJobCarriedOutEdit = useCallback(() => {
+    state.setEditingJobCarriedOut(false);
+    state.setJobCarriedOutInput('');
+    state.setRecommendationInput('');
+  }, [state]);
+
+  // Confirmation handlers
+  const handleConfirmParts = useCallback(async () => {
+    if (!job) return;
+    try {
+      const updated = await MockDb.confirmParts(job.job_id, currentUserId, currentUserName);
+      setJob({ ...updated } as Job);
+      showToast.success('Parts confirmed');
+    } catch (e) {
+      showToast.error('Could not confirm parts', (e as Error).message);
+    }
+  }, [job, currentUserId, currentUserName, setJob]);
+
+  // Extra Charges handlers
+  const handleAddExtraCharge = useCallback(async () => {
+    if (!job) return;
+    const amount = parseFloat(state.chargeAmount);
+    if (!state.chargeName.trim() || isNaN(amount) || amount <= 0) {
+      showToast.error('Please fill in all required fields');
+      return;
+    }
+    try {
+      const updated = await MockDb.addExtraCharge(job.job_id, state.chargeName, state.chargeDescription, amount);
+      setJob({ ...updated } as Job);
+      state.setShowAddCharge(false);
+      state.setChargeName('');
+      state.setChargeDescription('');
+      state.setChargeAmount('');
+      showToast.success('Extra charge added');
+    } catch (e) {
+      showToast.error('Could not add charge', (e as Error).message);
+    }
+  }, [job, state, setJob]);
+
+  const handleRemoveExtraCharge = useCallback(async (chargeId: string) => {
+    if (!job) return;
+    try {
+      const updated = await MockDb.removeExtraCharge(job.job_id, chargeId);
+      setJob({ ...updated } as Job);
+      showToast.success('Charge removed');
+    } catch (e) {
+      showToast.error('Could not remove charge', (e as Error).message);
+    }
+  }, [job, setJob]);
+
+  // Helper handlers
+  const handleAssignHelper = useCallback(async () => {
+    if (!job || !state.selectedHelperId) return;
+    const helper = technicians.find(t => t.user_id === state.selectedHelperId);
+    if (!helper) return;
+    try {
+      const updated = await MockDb.assignHelper(job.job_id, helper.user_id, helper.name, state.helperNotes, currentUserId, currentUserName);
+      setJob({ ...updated } as Job);
+      state.setShowAssignHelperModal(false);
+      state.setSelectedHelperId('');
+      state.setHelperNotes('');
+      showToast.success('Helper assigned', `${helper.name} can now upload photos`);
+    } catch (e) {
+      showToast.error('Could not assign helper', (e as Error).message);
+    }
+  }, [job, state, technicians, currentUserId, currentUserName, setJob]);
+
+  const handleRemoveHelper = useCallback(async () => {
+    if (!job || !job.helper_assignment) return;
+    try {
+      const updated = await MockDb.removeHelper(job.job_id, job.helper_assignment.assignment_id);
+      setJob({ ...updated } as Job);
+      showToast.success('Helper removed');
+    } catch (e) {
+      showToast.error('Could not remove helper', (e as Error).message);
+    }
+  }, [job, setJob]);
+
+  // Deferred Completion handler
+  const handleDeferredCompletion = useCallback(async () => {
+    if (!job) return;
+    if (!state.deferredReason.trim() || state.selectedEvidenceIds.length === 0) {
+      showToast.error('Please provide reason and select evidence photos');
+      return;
+    }
+    state.setSubmittingDeferred(true);
+    try {
+      const hourmeter = parseInt(state.deferredHourmeter) || undefined;
+      const result = await MockDb.completeDeferredAcknowledgement(
+        job.job_id,
+        state.deferredReason,
+        state.selectedEvidenceIds,
+        hourmeter,
+        currentUserId,
+        currentUserName
+      );
+      if (result.success) {
+        showToast.success('Job marked as completed', 'Pending customer acknowledgement');
+        state.setShowDeferredModal(false);
+        state.setDeferredReason('');
+        state.setDeferredHourmeter('');
+        state.setSelectedEvidenceIds([]);
+        loadJob();
+      } else {
+        showToast.error('Failed to complete job');
+      }
+    } catch (e) {
+      showToast.error('Error completing job', (e as Error).message);
+    } finally {
+      state.setSubmittingDeferred(false);
+    }
+  }, [job, state, currentUserId, currentUserName, loadJob]);
+
   return {
     // Accept/Reject
     handleAcceptJob,
@@ -681,5 +817,24 @@ export const useJobActions = ({
     handleCancelPartEdit,
     handleRemovePart,
     handleToggleNoPartsUsed,
+    
+    // Job Details
+    handleStartEditJobCarriedOut,
+    handleSaveJobCarriedOut,
+    handleCancelJobCarriedOutEdit,
+    
+    // Confirmation
+    handleConfirmParts,
+    
+    // Extra Charges
+    handleAddExtraCharge,
+    handleRemoveExtraCharge,
+    
+    // Helper
+    handleAssignHelper,
+    handleRemoveHelper,
+    
+    // Deferred Completion
+    handleDeferredCompletion,
   };
 };

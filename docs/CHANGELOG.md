@@ -27,15 +27,30 @@ All notable changes, decisions, and client requirements for this project.
 - `pages/JobDetail/hooks/useJobActions.ts` — add checklist + parts handlers
 - `pages/JobDetail/JobDetailPage.tsx` — integrate components
 
-**Features Restored:**
-- ✅ Technicians can view condition checklist after job starts
-- ✅ Technicians can edit checklist with OK/Not OK buttons
-- ✅ Progress indicator shows mandatory items checked
-- ✅ "Check All" button for bulk marking
-- ✅ Admins can add parts with price
-- ✅ Admins can edit part prices
-- ✅ Admins can remove parts
-- ✅ "No parts used" checkbox for technicians
+**Features Restored (Complete Audit):**
+
+*UI Sections:*
+- ✅ Condition Checklist Card — view/edit, OK/Not OK buttons, progress
+- ✅ Parts Section — view/add/edit/remove parts
+- ✅ Job Details Card — Job Carried Out + Recommendation fields
+- ✅ Confirmation Status Card — Parts (Admin 2) + Job (Admin 1) confirmation
+- ✅ Extra Charges Section — add/view/remove extra charges
+- ✅ Helper Section — assign/remove helper technician (in CustomerAssignmentCard)
+
+*Modals:*
+- ✅ Helper Modal — assign helper technician with notes
+- ✅ Deferred Completion Modal — complete without customer signature
+
+*Handlers:*
+- ✅ handleStartEditJobCarriedOut, handleSaveJobCarriedOut, handleCancelJobCarriedOutEdit
+- ✅ handleConfirmParts
+- ✅ handleAddExtraCharge, handleRemoveExtraCharge
+- ✅ handleAssignHelper, handleRemoveHelper
+- ✅ handleDeferredCompletion
+
+**Deep Audit Method:**
+Compared original JobDetail.tsx (3262 lines) with modular components.
+Cross-referenced all card-premium sections and modal states.
 
 **Build verified:** ✔️
 

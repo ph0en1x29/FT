@@ -1,7 +1,7 @@
 import React from 'react';
 import { Job, User } from '../../../types';
 import { Combobox, ComboboxOption } from '../../../components/Combobox';
-import { UserIcon, MapPin, Phone, UserPlus, RefreshCw } from 'lucide-react';
+import { UserIcon, MapPin, Phone, UserPlus, RefreshCw, X } from 'lucide-react';
 import { RoleFlags, StatusFlags } from '../types';
 
 interface CustomerAssignmentCardProps {
@@ -10,9 +10,12 @@ interface CustomerAssignmentCardProps {
   statusFlags: StatusFlags;
   techOptions: ComboboxOption[];
   selectedTechId: string;
+  isCurrentUserHelper?: boolean;
   onSelectedTechIdChange: (id: string) => void;
   onAssignJob: () => void;
   onOpenReassignModal: () => void;
+  onOpenHelperModal?: () => void;
+  onRemoveHelper?: () => void;
 }
 
 export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
@@ -21,9 +24,12 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
   statusFlags,
   techOptions,
   selectedTechId,
+  isCurrentUserHelper = false,
   onSelectedTechIdChange,
   onAssignJob,
   onOpenReassignModal,
+  onOpenHelperModal,
+  onRemoveHelper,
 }) => {
   return (
     <div className="card-premium p-5">
@@ -91,6 +97,42 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
               <RefreshCw className="w-3.5 h-3.5" /> Reassign
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Helper Section */}
+      {(statusFlags.isInProgress || statusFlags.isAwaitingFinalization) && (
+        <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+          <div className={`rounded-xl border border-[var(--border-subtle)] p-3 flex justify-between items-center ${
+            job.helper_assignment ? 'bg-[var(--bg-subtle)]' : 'bg-[var(--warning-bg)]'
+          }`}>
+            <div>
+              <p className="label-premium mb-1">Helper Technician</p>
+              {job.helper_assignment ? (
+                <p className="value-premium">{job.helper_assignment.technician?.name || 'Unknown'}</p>
+              ) : (
+                <p className="text-[var(--text-muted)] text-sm">No helper assigned</p>
+              )}
+            </div>
+            {roleFlags.canReassign && (
+              <>
+                {job.helper_assignment ? (
+                  <button onClick={onRemoveHelper} className="chip-premium chip-premium-danger">
+                    <X className="w-3.5 h-3.5" /> Remove
+                  </button>
+                ) : (
+                  <button onClick={onOpenHelperModal} className="chip-premium chip-premium-warning">
+                    <UserPlus className="w-3.5 h-3.5" /> Add Helper
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+          {isCurrentUserHelper && (
+            <div className="mt-2 p-2 bg-[var(--warning-bg)] rounded-lg text-xs text-[var(--warning)]">
+              <strong>You are the helper.</strong> You can upload photos only.
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -12,6 +12,7 @@ import {
   JobPhotosSection, CustomerAssignmentCard, NotesSection, SignatureModal, StartJobModal, FinalizeModal,
   ReassignModal, ContinueTomorrowModal, DeleteModal, RejectJobModal, ChecklistWarningModal, HourmeterAmendmentModal,
   JobRequestsSection, CreateRequestModal, ApproveRequestModal, ConditionChecklistCard, PartsSection,
+  JobDetailsCard, ConfirmationStatusCard, ExtraChargesSection, HelperModal, DeferredCompletionModal,
 } from './components';
 
 // Extracted hooks
@@ -92,8 +93,17 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onCancelHourmeterEdit={actions.handleCancelHourmeterEdit} onRequestAmendment={() => state.setShowHourmeterAmendmentModal(true)} />}
           {(statusFlags.isInProgress || statusFlags.isAwaitingFinalization || statusFlags.isCompleted) && <JobTimerCard job={job} />}
           <CustomerAssignmentCard job={job} roleFlags={roleFlags} statusFlags={statusFlags} techOptions={techOptions}
-            selectedTechId={state.selectedTechId} onSelectedTechIdChange={state.setSelectedTechId}
-            onAssignJob={actions.handleAssignJob} onOpenReassignModal={() => state.setShowReassignModal(true)} />
+            selectedTechId={state.selectedTechId} isCurrentUserHelper={state.isCurrentUserHelper}
+            onSelectedTechIdChange={state.setSelectedTechId} onAssignJob={actions.handleAssignJob}
+            onOpenReassignModal={() => state.setShowReassignModal(true)}
+            onOpenHelperModal={() => state.setShowAssignHelperModal(true)} onRemoveHelper={actions.handleRemoveHelper} />
+          <JobDetailsCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
+            editingJobCarriedOut={state.editingJobCarriedOut} jobCarriedOutInput={state.jobCarriedOutInput}
+            recommendationInput={state.recommendationInput} onJobCarriedOutInputChange={state.setJobCarriedOutInput}
+            onRecommendationInputChange={state.setRecommendationInput} onStartEdit={actions.handleStartEditJobCarriedOut}
+            onSave={actions.handleSaveJobCarriedOut} onCancel={actions.handleCancelJobCarriedOutEdit} />
+          <ConfirmationStatusCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
+            onConfirmParts={actions.handleConfirmParts} />
           <NotesSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} noteInput={state.noteInput}
             onNoteInputChange={state.setNoteInput} onAddNote={actions.handleAddNote} />
           <ConditionChecklistCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
@@ -109,6 +119,11 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onSavePartPrice={actions.handleSavePartPrice} onCancelEdit={actions.handleCancelPartEdit}
             onRemovePart={actions.handleRemovePart} onEditingPriceChange={state.setEditingPrice}
             onToggleNoPartsUsed={actions.handleToggleNoPartsUsed} />
+          <ExtraChargesSection job={job} roleFlags={roleFlags} showAddCharge={state.showAddCharge}
+            chargeName={state.chargeName} chargeDescription={state.chargeDescription} chargeAmount={state.chargeAmount}
+            onShowAddChargeChange={state.setShowAddCharge} onChargeNameChange={state.setChargeName}
+            onChargeDescriptionChange={state.setChargeDescription} onChargeAmountChange={state.setChargeAmount}
+            onAddCharge={actions.handleAddExtraCharge} onRemoveCharge={actions.handleRemoveExtraCharge} />
           <JobRequestsSection job={job} roleFlags={roleFlags} statusFlags={statusFlags}
             onCreateRequest={() => state.setShowRequestModal(true)}
             onApproveRequest={(request) => { state.setApprovalRequest(request); state.setShowApprovalModal(true); }} />
@@ -169,6 +184,33 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         onApprove={actions.handleApproveRequest}
         onReject={actions.handleRejectRequest}
         onClose={() => { state.setShowApprovalModal(false); state.setApprovalRequest(null); }}
+      />
+      <HelperModal
+        show={state.showAssignHelperModal}
+        techOptions={techOptions}
+        selectedHelperId={state.selectedHelperId}
+        helperNotes={state.helperNotes}
+        assignedTechnicianId={job.assigned_technician_id}
+        onSelectedHelperIdChange={state.setSelectedHelperId}
+        onHelperNotesChange={state.setHelperNotes}
+        onAssign={actions.handleAssignHelper}
+        onClose={() => state.setShowAssignHelperModal(false)}
+      />
+      <DeferredCompletionModal
+        show={state.showDeferredModal}
+        jobTitle={job.title}
+        jobMedia={job.media || []}
+        deferredReason={state.deferredReason}
+        deferredHourmeter={state.deferredHourmeter}
+        selectedEvidenceIds={state.selectedEvidenceIds}
+        submitting={state.submittingDeferred}
+        onDeferredReasonChange={state.setDeferredReason}
+        onDeferredHourmeterChange={state.setDeferredHourmeter}
+        onToggleEvidence={(id) => state.setSelectedEvidenceIds(prev => 
+          prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        )}
+        onConfirm={actions.handleDeferredCompletion}
+        onClose={() => state.setShowDeferredModal(false)}
       />
     </div>
   );
