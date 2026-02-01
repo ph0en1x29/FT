@@ -73,24 +73,15 @@
 ## User Roles Overview
 
 ### Admin 👑
-- Full system access (acts as both Admin Service and Admin Store)
+- Full system access
 - Manage all users and settings
+- Create, assign, and manage jobs
+- Add parts directly to jobs (auto-confirmed)
+- Approve part requests from technicians
+- Confirm job completion
+- Hourmeter amendment approval
 - Override any restrictions
 - Access all reports and data
-- Can unlock locked records
-
-### Admin Service 🔧👑
-- Job operations and confirmations
-- Hourmeter amendment approval/rejection
-- Job completion confirmation
-- Escalation management
-- Cannot manage inventory or van stock replenishments
-
-### Admin Store 📦👑
-- Parts and inventory management
-- Van stock replenishment approvals
-- Parts confirmation on completed jobs
-- Cannot approve hourmeter amendments
 
 ### Supervisor 👔
 - View and manage all jobs
@@ -102,10 +93,13 @@
 
 ### Technician 🔧
 - View only assigned jobs
+- Accept or reject job assignments (within 15 minutes)
 - Start and complete jobs
-- Record service details
-- Add parts used
-- Capture signatures
+- Fill condition checklist (Check All + mark exceptions)
+- Request parts (admin must approve)
+- View parts used (names only, no prices)
+- Capture before/after photos
+- Capture customer signatures
 - Submit for finalization
 
 ### Accountant 💼
@@ -622,31 +616,29 @@ View and respond to requests from technicians in the Dashboard or Job Detail:
 2. Click **"Acknowledge"** (no automatic assignment)
 3. Use the Reassign function to assign appropriate technician
 
-### ✅ Dual Approval Workflow (Updated - 2026-01-29)
+### ✅ Job Finalization Workflow (Updated - 2026-02-01)
 
-For jobs to be finalized, **both Admin roles must confirm**:
+**Simplified workflow with unified admin roles:**
 
-#### Admin 2 (Store) - Parts Verification
+#### Adding Parts
+1. Admin opens job (any status except Completed)
+2. Go to "Parts Used" section
+3. Click **"Add Part"** and select from dropdown
+4. Parts are **auto-confirmed** when added by admin
+
+#### Approving Part Requests
+1. Technician requests part via "Request Part" button
+2. Admin receives notification
+3. Open job → "Part Requests" section
+4. Review request and click **"Approve"** or **"Reject"**
+5. Approved parts auto-added and auto-confirmed
+
+#### Finalizing Jobs
 1. Open job in "Awaiting Finalization" status
-2. Review the "Parts Used" section
-3. Verify parts match what was actually used
-4. Click **"Verify Parts"** button
-5. Your name and timestamp are recorded
+2. Verify all information is correct
+3. Click **"Finalize Invoice"**
 
-**Note:** If no parts were used, this step is automatically skipped.
-
-#### Admin 1 (Service) - Job Finalization
-1. Open job in "Awaiting Finalization" status
-2. Check "Confirmation Status" card shows:
-   - ✅ Parts Confirmation (Admin 2) - Verified
-   - ⏳ Job Confirmation (Admin 1) - Pending
-3. If parts not verified, you'll see "Store Verification Pending" error
-4. Once parts verified, click **"Finalize Invoice"**
-
-**Why Dual Approval?**
-- Ensures inventory accuracy (Admin Store verifies parts)
-- Separates service operations from inventory management
-- Creates audit trail for both functions
+> **Note:** Parts are now auto-confirmed when admin adds them. No separate verification step needed.
 
 ### Monitoring Job Responses (NEW - 2026-01-29)
 
@@ -694,27 +686,9 @@ Jobs awaiting customer acknowledgement appear in Dashboard:
    - **Accept & Complete** - Finalize despite dispute
    - **Reopen Job** - Send back to technician for rework
 
-### Parts Confirmation Workflow (NEW - 2026-01-19)
+### Pre-Job Parts Allocation
 
-For jobs with parts used, a **two-admin confirmation** is required:
-
-#### Admin Store (Parts Verification)
-1. Go to **Pending Confirmations** page
-2. View jobs in "Parts Confirmation Queue" tab
-3. Review parts used against inventory
-4. Click **"Confirm Parts"** if correct
-5. Or **"Reject"** with reason if issues found
-
-#### Admin Service (Job Finalization)
-1. Cannot finalize until Admin Store confirms parts
-2. If parts not confirmed, you'll see: "Store Verification Pending"
-3. Wait for Admin Store to confirm, then finalize
-
-> **Note:** This ensures both operational and inventory verification before job completion.
-
-### Pre-Job Parts Allocation (NEW - 2026-01-19)
-
-Admin Store can add parts to jobs **before** technician starts:
+Admins can add parts to jobs **before** technician starts:
 
 1. Open a job with status "New" or "Assigned"
 2. Go to "Parts Used" section
