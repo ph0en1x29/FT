@@ -464,7 +464,8 @@ export const useJobActions = ({
         currentUserId,
         partId,
         quantity,
-        notes
+        notes,
+        currentUserName
       );
       if (success) {
         showToast.success('Request approved', 'Part added to job');

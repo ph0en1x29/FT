@@ -150,7 +150,8 @@ export const approveSparePartRequest = async (
   adminUserId: string,
   partId: string,
   quantity: number,
-  notes?: string
+  notes?: string,
+  adminUserName?: string
 ): Promise<boolean> => {
   try {
     const { data: request, error: reqError } = await supabase
@@ -213,6 +214,22 @@ export const approveSparePartRequest = async (
       .eq('part_id', partId);
 
     if (stockError) {
+      console.warn('Part added, but stock update failed:', stockError.message);
+    }
+
+    // Auto-confirm parts when admin approves request (unified admin workflow)
+    if (adminUserName) {
+      const { error: confirmError } = await supabase
+        .from('jobs')
+        .update({
+          parts_confirmed_at: new Date().toISOString(),
+          parts_confirmed_by_id: adminUserId,
+          parts_confirmed_by_name: adminUserName,
+        })
+        .eq('job_id', request.job_id);
+      if (confirmError) {
+        console.warn('Part added, but auto-confirm failed:', confirmError.message);
+      }
     }
 
     await notifyRequestApproved(
