@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { colors, EscalationBanner, KPICard, QueueItem, TeamRow, QuickChip, QueueItemType } from './DashboardWidgets';
 import AdminDashboardV5 from './AdminDashboardV5';
+import AdminDashboardV6 from './AdminDashboardV6';
 
 interface AdminDashboardProps {
   currentUser: User;
@@ -26,7 +27,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, user
   
   // Prototype toggle - only for dev@test.com (and not hidden by parent)
   const isDevUser = currentUser.email === 'dev@test.com' && !hideV5Toggle;
-  const [useV5, setUseV5] = useState(false);
+  const [protoVersion, setProtoVersion] = useState<'v4' | 'v5' | 'v6'>('v4');
 
   // Click outside handler for notification dropdown (MUST be before any early return)
   useEffect(() => {
@@ -105,20 +106,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, user
     return 'Good evening';
   };
 
-  // V5 Prototype - render if enabled (after all hooks)
-  if (isDevUser && useV5) {
+  // Prototype versions - render if enabled (after all hooks)
+  if (isDevUser && protoVersion !== 'v4') {
     return (
       <div>
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Prototype:</span>
+            <button
+              onClick={() => setProtoVersion('v5')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${protoVersion === 'v5' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`}
+            >
+              V5
+            </button>
+            <button
+              onClick={() => setProtoVersion('v6')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${protoVersion === 'v6' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}`}
+            >
+              🚀 V6
+            </button>
+          </div>
           <button
-            onClick={() => setUseV5(false)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-colors shadow-lg"
+            onClick={() => setProtoVersion('v4')}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
           >
-            <FlaskConical className="w-4 h-4" />
-            ← Back to V4 (Current)
+            ← Back to V4
           </button>
         </div>
-        <AdminDashboardV5 currentUser={currentUser} jobs={jobs} users={users} onRefresh={onRefresh} navigate={navigate} />
+        {protoVersion === 'v5' && (
+          <AdminDashboardV5 currentUser={currentUser} jobs={jobs} users={users} onRefresh={onRefresh} navigate={navigate} />
+        )}
+        {protoVersion === 'v6' && (
+          <AdminDashboardV6 currentUser={currentUser} jobs={jobs} users={users} onRefresh={onRefresh} navigate={navigate} />
+        )}
       </div>
     );
   }
@@ -311,14 +331,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, user
           </div>
           {/* Prototype Toggle - only for dev user */}
           {isDevUser && (
-            <button
-              onClick={() => setUseV5(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 bg-purple-600 text-white hover:bg-purple-700 border-2 border-purple-600"
-              title="Try Dashboard V5 with Notifications"
-            >
-              <FlaskConical className="w-4 h-4" />
-              🧪 Try V5
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setProtoVersion('v5')}
+                className="px-3 py-2 rounded-l-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 bg-purple-600 text-white hover:bg-purple-700"
+                title="Try Dashboard V5"
+              >
+                🧪 V5
+              </button>
+              <button
+                onClick={() => setProtoVersion('v6')}
+                className="px-3 py-2 rounded-r-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:opacity-90"
+                title="Try Dashboard V6 (Full Featured)"
+              >
+                🚀 V6
+              </button>
+            </div>
           )}
           <button onClick={onRefresh} className="p-2 rounded-xl transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <RefreshCw className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
