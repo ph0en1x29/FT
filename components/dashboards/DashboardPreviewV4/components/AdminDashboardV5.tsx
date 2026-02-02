@@ -1,22 +1,23 @@
 /**
- * AdminDashboardV5 - Prototype with integrated notifications
+ * AdminDashboardV5 - Option C Style Layout
  * 
  * Changes from V4:
- * - Added DashboardNotificationCard to main view
- * - Reorganized layout: 3-column bottom row instead of 2
- * - Notifications visible alongside Job Status and Quick Stats
+ * - Full-width sections with top 5 items
+ * - "View all" links for each section
+ * - Cleaner vertical flow
  * 
  * Toggle: Only visible to dev@test.com for testing
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Job, User, UserRole } from '../../../../types';
 import {
   AlertTriangle, Clock, CheckCircle, Users,
   Plus, Bell, UserX, Timer, FileText,
-  RefreshCw, Play, DollarSign, ChevronRight, X
+  RefreshCw, Play, DollarSign, ChevronRight,
+  Wrench, MessageSquare, Package
 } from 'lucide-react';
-import { colors, EscalationBanner, KPICard, QueueItem, TeamRow, QuickChip, QueueItemType } from './DashboardWidgets';
+import { colors, EscalationBanner, KPICard, TeamRow } from './DashboardWidgets';
 import DashboardNotificationCard from '../../../DashboardNotificationCard';
 
 interface AdminDashboardV5Props {
@@ -27,10 +28,67 @@ interface AdminDashboardV5Props {
   navigate: (path: string) => void;
 }
 
+// Action item card component
+const ActionCard: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  detail: string;
+  accent: 'red' | 'orange' | 'blue' | 'purple' | 'green';
+  onClick: () => void;
+}> = ({ icon, label, detail, accent, onClick }) => (
+  <button
+    onClick={onClick}
+    className="flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] text-left flex-1 min-w-[180px]"
+    style={{ 
+      background: colors[accent].bg, 
+      border: `1px solid ${colors[accent].text}20`
+    }}
+  >
+    <div className="p-2 rounded-lg" style={{ background: `${colors[accent].text}20` }}>
+      <div style={{ color: colors[accent].text }}>{icon}</div>
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>{label}</p>
+      <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{detail}</p>
+    </div>
+  </button>
+);
+
+// Team chip component
+const TeamChip: React.FC<{
+  name: string;
+  count: number;
+  status: 'available' | 'busy' | 'overloaded';
+  onClick?: () => void;
+}> = ({ name, count, status, onClick }) => {
+  const statusColors = {
+    available: colors.green,
+    busy: colors.blue,
+    overloaded: colors.red,
+  };
+  const c = statusColors[status];
+  
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all hover:scale-[1.02]"
+      style={{ background: c.bg, border: `1px solid ${c.text}30` }}
+    >
+      <span className="font-medium text-sm" style={{ color: 'var(--text)' }}>
+        {name.split(' ')[0]}
+      </span>
+      {count > 0 && (
+        <span className="px-1.5 py-0.5 rounded text-xs font-bold" style={{ background: c.text, color: 'white' }}>
+          {count}
+        </span>
+      )}
+    </button>
+  );
+};
+
 const AdminDashboardV5: React.FC<AdminDashboardV5Props> = ({ currentUser, jobs, users, onRefresh, navigate }) => {
   const today = new Date();
   const todayStr = today.toDateString();
-  const [activeTab, setActiveTab] = useState<'action' | 'today' | 'unassigned'>('action');
 
   const technicians = users.filter(u => u.role === UserRole.TECHNICIAN && u.is_active);
   const overdueJobs = jobs.filter(j => {
@@ -48,7 +106,6 @@ const AdminDashboardV5: React.FC<AdminDashboardV5Props> = ({ currentUser, jobs, 
     const scheduled = j.scheduled_date ? new Date(j.scheduled_date) : null;
     return scheduled && scheduled.toDateString() === todayStr;
   });
-  const awaitingFinalization = jobs.filter(j => j.status === 'Awaiting Finalization');
 
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
@@ -69,33 +126,39 @@ const AdminDashboardV5: React.FC<AdminDashboardV5Props> = ({ currentUser, jobs, 
   };
 
   const availableTechs = technicians.filter(t => getTeamStatus(t).status === 'available').length;
-  const actionRequiredCount = escalatedJobs.length + disputedJobs.length + awaitingAckJobs.length + overdueJobs.length;
+  
+  // Build action items list
+  const actionItems = [
+    ...escalatedJobs.map(j => ({ job: j, type: 'escalated' as const, icon: <AlertTriangle className="w-4 h-4" />, accent: 'red' as const })),
+    ...overdueJobs.map(j => ({ job: j, type: 'overdue' as const, icon: <Clock className="w-4 h-4" />, accent: 'orange' as const })),
+    ...disputedJobs.map(j => ({ job: j, type: 'disputed' as const, icon: <MessageSquare className="w-4 h-4" />, accent: 'purple' as const })),
+    ...awaitingAckJobs.map(j => ({ job: j, type: 'awaiting' as const, icon: <CheckCircle className="w-4 h-4" />, accent: 'blue' as const })),
+  ];
+  
+  const totalActionItems = actionItems.length;
 
-  const getQueueItems = (): { job: Job; type: QueueItemType; urgent: boolean }[] => {
-    switch (activeTab) {
-      case 'action':
-        return [
-          ...escalatedJobs.map(j => ({ job: j, type: 'escalated' as const, urgent: true })),
-          ...overdueJobs.map(j => ({ job: j, type: 'overdue' as const, urgent: false })),
-          ...disputedJobs.map(j => ({ job: j, type: 'disputed' as const, urgent: false })),
-          ...awaitingAckJobs.map(j => ({ job: j, type: 'awaiting' as const, urgent: false })),
-        ];
-      case 'today':
-        return dueTodayJobs.map(j => ({ job: j, type: 'due-today' as const, urgent: false }));
-      case 'unassigned':
-        return unassignedJobs.map(j => ({ job: j, type: 'unassigned' as const, urgent: false }));
-      default:
-        return [];
-    }
+  // Group technicians by status
+  const techsByStatus = {
+    overloaded: technicians.filter(t => getTeamStatus(t).status === 'overloaded'),
+    busy: technicians.filter(t => getTeamStatus(t).status === 'busy'),
+    available: technicians.filter(t => getTeamStatus(t).status === 'available'),
   };
-
-  const queueItems = getQueueItems();
 
   const getGreeting = () => {
     const hour = today.getHours();
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'escalated': return '🔥 Escalated';
+      case 'overdue': return '⏰ Overdue';
+      case 'disputed': return '⚠️ Disputed';
+      case 'awaiting': return '✓ Awaiting Ack';
+      default: return type;
+    }
   };
 
   return (
@@ -111,9 +174,8 @@ const AdminDashboardV5: React.FC<AdminDashboardV5Props> = ({ currentUser, jobs, 
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Prototype Badge */}
           <span className="px-3 py-1 text-xs font-bold rounded-full bg-purple-600 text-white">
-            🧪 V5 Prototype
+            🧪 V5
           </span>
           <button onClick={onRefresh} className="p-2 rounded-xl transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <RefreshCw className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
@@ -135,86 +197,161 @@ const AdminDashboardV5: React.FC<AdminDashboardV5Props> = ({ currentUser, jobs, 
         <KPICard label="Revenue (7d)" value={`RM ${(weeklyRevenue / 1000).toFixed(1)}k`} icon={<DollarSign className="w-4 h-4" />} accent="green" onClick={() => navigate('/invoices')} />
       </div>
 
-      {/* Row 1: Work Queue + Notifications (Action Items) */}
-      <div className="grid grid-cols-2 gap-5">
-        {/* Work Queue */}
-        <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setActiveTab('action')} className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" style={{ background: activeTab === 'action' ? colors.red.bg : 'transparent', color: activeTab === 'action' ? colors.red.text : 'var(--text-muted)' }}>Action ({actionRequiredCount})</button>
-              <button onClick={() => setActiveTab('today')} className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" style={{ background: activeTab === 'today' ? colors.blue.bg : 'transparent', color: activeTab === 'today' ? colors.blue.text : 'var(--text-muted)' }}>Today ({dueTodayJobs.length})</button>
-              <button onClick={() => setActiveTab('unassigned')} className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" style={{ background: activeTab === 'unassigned' ? colors.orange.bg : 'transparent', color: activeTab === 'unassigned' ? colors.orange.text : 'var(--text-muted)' }}>New ({unassignedJobs.length})</button>
-            </div>
-            <button onClick={() => navigate('/jobs')} className="text-xs font-medium hover:opacity-70 transition-opacity" style={{ color: 'var(--accent)' }}>All →</button>
-          </div>
-          <div className="p-2 space-y-1 max-h-72 overflow-y-auto">
-            {queueItems.length === 0 ? (
-              <div className="p-6 text-center" style={{ color: 'var(--text-muted)' }}>
-                <CheckCircle className="w-8 h-8 mx-auto mb-2 opacity-30" style={{ color: colors.green.text }} />
-                <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>All clear!</p>
-              </div>
-            ) : (
-              queueItems.slice(0, 6).map(({ job, type, urgent }) => (
-                <QueueItem key={job.job_id} type={type} jobNumber={job.job_number || job.title} customer={job.customer?.name || 'Unknown'} detail={job.job_type || ''} urgent={urgent} onClick={() => navigate(`/jobs/${job.job_id}`)} />
-              ))
+      {/* Action Required - Full Width, Top 5 */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4" style={{ color: colors.red.text }} />
+            <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Action Required</h3>
+            {totalActionItems > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: colors.red.bg, color: colors.red.text }}>
+                {totalActionItems}
+              </span>
             )}
           </div>
+          {totalActionItems > 5 && (
+            <button onClick={() => navigate('/jobs?filter=action-required')} className="text-xs font-medium hover:opacity-70 transition-opacity flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+              View all {totalActionItems} jobs <ChevronRight className="w-3 h-3" />
+            </button>
+          )}
         </div>
-
-        {/* Notifications */}
-        <DashboardNotificationCard maxItems={6} expandable={true} />
+        <div className="p-3">
+          {actionItems.length === 0 ? (
+            <div className="py-6 text-center" style={{ color: 'var(--text-muted)' }}>
+              <CheckCircle className="w-10 h-10 mx-auto mb-2" style={{ color: colors.green.text, opacity: 0.5 }} />
+              <p className="font-medium" style={{ color: 'var(--text)' }}>All clear!</p>
+              <p className="text-xs">No urgent items need attention</p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {actionItems.slice(0, 5).map(({ job, type, icon, accent }) => (
+                <ActionCard
+                  key={job.job_id}
+                  icon={icon}
+                  label={job.job_number || job.title}
+                  detail={`${getTypeLabel(type)} • ${job.customer?.name || 'Unknown'}`}
+                  accent={accent}
+                  onClick={() => navigate(`/jobs/${job.job_id}`)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Row 2: Job Status + Team Status (Current State) */}
-      <div className="grid grid-cols-2 gap-5">
-        {/* Job Status */}
-        <div className="rounded-2xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Job Status</h3>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Current</span>
-          </div>
-          <div className="space-y-3">
-            {[
-              { label: 'Completed', color: colors.green.text, value: jobs.filter(j => j.status === 'Completed').length },
-              { label: 'In Progress', color: colors.blue.text, value: inProgressJobs.length },
-              { label: 'Assigned', color: colors.purple.text, value: jobs.filter(j => j.status === 'Assigned').length },
-              { label: 'New', color: colors.orange.text, value: jobs.filter(j => j.status === 'New').length },
-            ].map(item => {
-              const total = jobs.length || 1;
-              const percent = (item.value / total) * 100;
-              return (
-                <div key={item.label}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span style={{ color: 'var(--text-muted)' }}>{item.label}</span>
-                    <span className="font-medium" style={{ color: 'var(--text)' }}>{item.value}</span>
-                  </div>
-                  <div className="h-2 rounded-full" style={{ background: 'var(--surface-2)' }}>
-                    <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, background: item.color }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {/* Notifications - Full Width, Top 5 */}
+      <DashboardNotificationCard maxItems={5} expandable={true} />
 
-        {/* Team Status */}
-        <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div>
-              <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Team Status</h3>
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{availableTechs} of {technicians.length} available</p>
+      {/* Team Status - Full Width, Grouped Chips */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4" style={{ color: colors.blue.text }} />
+            <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Team Status</h3>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {availableTechs} of {technicians.length} available
+            </span>
+          </div>
+          <button onClick={() => navigate('/people?tab=employees')} className="text-xs font-medium hover:opacity-70 transition-opacity flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+            View all {technicians.length} technicians <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          {technicians.length === 0 ? (
+            <div className="py-4 text-center" style={{ color: 'var(--text-muted)' }}>
+              <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No technicians configured</p>
             </div>
+          ) : (
+            <>
+              {/* Overloaded */}
+              {techsByStatus.overloaded.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-medium w-20" style={{ color: colors.red.text }}>
+                    🔴 Overloaded
+                  </span>
+                  {techsByStatus.overloaded.map(tech => (
+                    <TeamChip
+                      key={tech.user_id}
+                      name={tech.name}
+                      count={getTeamStatus(tech).count}
+                      status="overloaded"
+                    />
+                  ))}
+                </div>
+              )}
+              
+              {/* Busy */}
+              {techsByStatus.busy.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-medium w-20" style={{ color: colors.blue.text }}>
+                    🔵 Busy
+                  </span>
+                  {techsByStatus.busy.map(tech => (
+                    <TeamChip
+                      key={tech.user_id}
+                      name={tech.name}
+                      count={getTeamStatus(tech).count}
+                      status="busy"
+                    />
+                  ))}
+                </div>
+              )}
+              
+              {/* Available */}
+              {techsByStatus.available.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-medium w-20" style={{ color: colors.green.text }}>
+                    🟢 Available
+                  </span>
+                  {techsByStatus.available.map(tech => (
+                    <TeamChip
+                      key={tech.user_id}
+                      name={tech.name}
+                      count={0}
+                      status="available"
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Quick Stats Row */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Due Today</span>
+            <Clock className="w-4 h-4" style={{ color: colors.blue.text }} />
           </div>
-          <div className="p-2 space-y-1 max-h-48 overflow-y-auto">
-            {technicians.length === 0 ? (
-              <div className="py-4 text-center" style={{ color: 'var(--text-muted)' }}><Users className="w-8 h-8 mx-auto mb-2 opacity-30" /><p className="text-xs">No technicians</p></div>
-            ) : (
-              technicians.map(tech => {
-                const status = getTeamStatus(tech);
-                return <TeamRow key={tech.user_id} name={tech.name} status={status.status} jobCount={status.count} />;
-              })
-            )}
+          <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{dueTodayJobs.length}</p>
+          <button onClick={() => navigate('/jobs?filter=today')} className="text-xs mt-1 hover:opacity-70" style={{ color: 'var(--accent)' }}>
+            View schedule →
+          </button>
+        </div>
+        
+        <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Completed (7d)</span>
+            <CheckCircle className="w-4 h-4" style={{ color: colors.green.text }} />
           </div>
+          <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{completedLastWeek.length}</p>
+          <button onClick={() => navigate('/jobs?filter=completed')} className="text-xs mt-1 hover:opacity-70" style={{ color: 'var(--accent)' }}>
+            View history →
+          </button>
+        </div>
+        
+        <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Active Jobs</span>
+            <Wrench className="w-4 h-4" style={{ color: colors.purple.text }} />
+          </div>
+          <p className="text-2xl font-bold" style={{ color: 'var(--text)' }}>{inProgressJobs.length + jobs.filter(j => j.status === 'Assigned').length}</p>
+          <button onClick={() => navigate('/jobs')} className="text-xs mt-1 hover:opacity-70" style={{ color: 'var(--accent)' }}>
+            View all jobs →
+          </button>
         </div>
       </div>
     </div>
