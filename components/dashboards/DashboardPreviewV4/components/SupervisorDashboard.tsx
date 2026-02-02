@@ -1,15 +1,17 @@
 /**
  * SupervisorDashboard - With V5 prototype toggle
  * 
- * Default: Uses AdminDashboard (V4)
+ * Default: Uses AdminDashboard (V4) - but hides Admin's own V5 toggle
  * Prototype: SupervisorDashboardV5 (team-focused)
  */
 
 import React, { useState } from 'react';
 import { Job, User } from '../../../../types';
 import { FlaskConical } from 'lucide-react';
-import AdminDashboard from './AdminDashboard';
 import SupervisorDashboardV5 from './SupervisorDashboardV5';
+
+// Import the base Admin V4 layout components directly to avoid double-toggle
+import AdminDashboard from './AdminDashboard';
 
 interface SupervisorDashboardProps {
   currentUser: User;
@@ -42,7 +44,8 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = (props) => {
     );
   }
 
-  // Default: Admin dashboard with prototype toggle
+  // Default: Admin dashboard layout
+  // Pass hideV5Toggle to prevent Admin's own V5 toggle from showing
   return (
     <div>
       {isDevUser && (
@@ -56,7 +59,7 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = (props) => {
           </button>
         </div>
       )}
-      <AdminDashboard {...props} />
+      <AdminDashboard {...props} hideV5Toggle />
     </div>
   );
 };

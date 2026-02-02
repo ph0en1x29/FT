@@ -14,17 +14,18 @@ interface AdminDashboardProps {
   users: User[];
   onRefresh: () => void;
   navigate: (path: string) => void;
+  hideV5Toggle?: boolean; // Hide V5 toggle when used inside SupervisorDashboard
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, users, onRefresh, navigate }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, users, onRefresh, navigate, hideV5Toggle = false }) => {
   const today = new Date();
   const todayStr = today.toDateString();
   const [activeTab, setActiveTab] = useState<'action' | 'today' | 'unassigned'>('action');
   const [notificationOpen, setNotificationOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   
-  // Prototype toggle - only for dev@test.com
-  const isDevUser = currentUser.email === 'dev@test.com';
+  // Prototype toggle - only for dev@test.com (and not hidden by parent)
+  const isDevUser = currentUser.email === 'dev@test.com' && !hideV5Toggle;
   const [useV5, setUseV5] = useState(false);
 
   // Click outside handler for notification dropdown (MUST be before any early return)
