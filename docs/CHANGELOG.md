@@ -4,6 +4,32 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-02] - Customer Feedback Bug Fixes
+
+### Bug Fixes
+- **Checklist validation** — Fixed "invalid input syntax for type boolean: 'ok'" error
+  - Root cause: Trigger tried to cast string 'ok' to boolean
+  - Fix: Now handles both old (true/false) and new ('ok'/'not_ok') formats
+  
+- **Job completion validation** — Fixed "Job was never started (started_at is null)" error
+  - Root cause: Status dropdown path didn't sync `started_at` to service record
+  - Fix: Now checks `jobs.started_at`, `repair_start_time`, and `arrival_time` as fallbacks
+  - Added trigger to auto-sync job timestamps to service records
+
+### Database Changes
+- `validate_job_checklist()` — Handles string checklist states
+- `validate_job_completion_requirements()` — Checks multiple timestamp sources
+- `sync_job_started_to_service_record()` — New trigger for timestamp sync
+- Backfill migration for existing service records
+
+### Code Changes
+- `jobService.ts` — `updateJobStatus` now syncs `started_at` to service records
+
+### Tests Added
+- `tests/customer-feedback-fixes.spec.ts` — Validates both fixes
+
+---
+
 ## [2026-02-01] - Workflow Simplification & Bug Fixes
 
 ### Unified Admin Workflow

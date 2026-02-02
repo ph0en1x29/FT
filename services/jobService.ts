@@ -557,6 +557,20 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
 
   const job = data as Job;
 
+  // Sync started_at to job_service_records when moving to IN_PROGRESS
+  if (status === JobStatusEnum.IN_PROGRESS && previousStatus !== JobStatusEnum.IN_PROGRESS) {
+    const now = new Date().toISOString();
+    await supabase
+      .from('job_service_records')
+      .update({
+        started_at: now,
+        repair_start_time: job.repair_start_time || now,
+        updated_at: now,
+      })
+      .eq('job_id', jobId)
+      .is('started_at', null); // Only update if not already set
+  }
+
   // Update forklift status
   if (currentJob?.forklift_id) {
     if (status === JobStatusEnum.IN_PROGRESS && previousStatus !== JobStatusEnum.IN_PROGRESS) {
