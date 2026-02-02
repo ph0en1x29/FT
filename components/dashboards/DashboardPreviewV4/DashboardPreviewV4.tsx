@@ -2,6 +2,7 @@ import React from 'react';
 import { Job, User, UserRole } from '../../../types';
 import { useNavigate } from 'react-router-dom';
 import AdminDashboard from './components/AdminDashboard';
+import SupervisorDashboard from './components/SupervisorDashboard';
 import TechnicianDashboard from './components/TechnicianDashboard';
 import AccountantDashboard from './components/AccountantDashboard';
 
@@ -9,7 +10,8 @@ import AccountantDashboard from './components/AccountantDashboard';
  * Dashboard Preview V4 - "Calm Focus"
  *
  * Role-aware dashboard with calm design principles:
- * - Admin/Supervisor: Full operational view
+ * - Admin: Full operational view (V5 prototype available)
+ * - Supervisor: Team-focused view (V5 prototype available)
  * - Technician: Personal "My Jobs" focus
  * - Accountant: Financial/invoice focus
  */
@@ -51,8 +53,18 @@ const DashboardPreviewV4: React.FC<DashboardPreviewV4Props> = ({
         />
       );
 
-    case UserRole.ADMIN:
     case UserRole.SUPERVISOR:
+      return (
+        <SupervisorDashboard
+          currentUser={currentUser}
+          jobs={jobs}
+          users={users}
+          onRefresh={onRefresh}
+          navigate={navigate}
+        />
+      );
+
+    case UserRole.ADMIN:
     default:
       return (
         <AdminDashboard

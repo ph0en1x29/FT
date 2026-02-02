@@ -55,15 +55,21 @@ All notable changes to the FieldPro Field Service Management System.
 - Modal reused from create flow with edit mode support
 - Service validates ownership + pending status before allowing update
 
-### Dashboard V5 Prototype (Admin)
-- **New prototype dashboard** with integrated notifications
+### Dashboard V5 Prototypes (All Roles)
+- **Admin V5** — Integrated notifications, cleaner 2-row layout
+- **Supervisor V5** — Team-focused dashboard (NEW)
+  - Removed Revenue KPI (not supervisor focus)
+  - Large Team Workload section showing technician status
+  - Color-coded cards: green (available), blue (busy), red (overloaded)
+  - Quick view of who's working what
 - Only visible to `dev@test.com` via "Try V5" toggle button
-- Layout changes:
-  - Work Queue (5 cols) + Team Status (3 cols) + Notifications (4 cols)
-  - Notifications panel shows real-time alerts from notification system
-  - Removed bell dropdown in favor of inline notification card
-- Purple "V5 Prototype" badge indicates experimental version
-- Toggle back to V4 anytime
+- Toggle back to V4 anytime via impersonation
+
+### Performance: Egress Optimization
+- Added `getUsersLightweight` (7 cols vs 30+)
+- Dashboard now uses lightweight queries
+- `getEmployees` no longer fetches nested data by default
+- Estimated 70-80% reduction in egress for list views
 
 ---
 
