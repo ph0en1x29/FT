@@ -135,10 +135,10 @@ const AdminDashboardV5: React.FC<AdminDashboardV5Props> = ({ currentUser, jobs, 
         <KPICard label="Revenue (7d)" value={`RM ${(weeklyRevenue / 1000).toFixed(1)}k`} icon={<DollarSign className="w-4 h-4" />} accent="green" onClick={() => navigate('/invoices')} />
       </div>
 
-      {/* Work Queue + Team Status + Notifications (NEW: 3-column layout) */}
-      <div className="grid grid-cols-12 gap-5">
-        {/* Work Queue - 5 cols */}
-        <div className="col-span-5 rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+      {/* Row 1: Work Queue + Notifications (Action Items) */}
+      <div className="grid grid-cols-2 gap-5">
+        {/* Work Queue */}
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
           <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
             <div className="flex items-center gap-1">
               <button onClick={() => setActiveTab('action')} className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" style={{ background: activeTab === 'action' ? colors.red.bg : 'transparent', color: activeTab === 'action' ? colors.red.text : 'var(--text-muted)' }}>Action ({actionRequiredCount})</button>
@@ -161,34 +161,13 @@ const AdminDashboardV5: React.FC<AdminDashboardV5Props> = ({ currentUser, jobs, 
           </div>
         </div>
 
-        {/* Team Status - 3 cols */}
-        <div className="col-span-3 rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div>
-              <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Team</h3>
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{availableTechs}/{technicians.length} available</p>
-            </div>
-          </div>
-          <div className="p-2 space-y-1 max-h-56 overflow-y-auto">
-            {technicians.length === 0 ? (
-              <div className="py-4 text-center" style={{ color: 'var(--text-muted)' }}><Users className="w-8 h-8 mx-auto mb-2 opacity-30" /><p className="text-xs">No technicians</p></div>
-            ) : (
-              technicians.map(tech => {
-                const status = getTeamStatus(tech);
-                return <TeamRow key={tech.user_id} name={tech.name} status={status.status} jobCount={status.count} />;
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Notifications - 4 cols (NEW) */}
-        <div className="col-span-4">
-          <DashboardNotificationCard maxItems={5} expandable={true} />
-        </div>
+        {/* Notifications */}
+        <DashboardNotificationCard maxItems={6} expandable={true} />
       </div>
 
-      {/* Job Status + Quick Stats (2 columns) */}
+      {/* Row 2: Job Status + Team Status (Current State) */}
       <div className="grid grid-cols-2 gap-5">
+        {/* Job Status */}
         <div className="rounded-2xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Job Status</h3>
@@ -217,28 +196,24 @@ const AdminDashboardV5: React.FC<AdminDashboardV5Props> = ({ currentUser, jobs, 
             })}
           </div>
         </div>
-        <div className="rounded-2xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Quick Stats</h3>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Today</span>
+
+        {/* Team Status */}
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div>
+              <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Team Status</h3>
+              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{availableTechs} of {technicians.length} available</p>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-xl" style={{ background: colors.green.bg }}>
-              <p className="text-2xl font-semibold" style={{ color: colors.green.text }}>{jobs.filter(j => ['Completed', 'Completed Awaiting Ack'].includes(j.status) && j.completed_at && new Date(j.completed_at).toDateString() === todayStr).length}</p>
-              <p className="text-xs" style={{ color: colors.green.text }}>Completed</p>
-            </div>
-            <div className="p-3 rounded-xl" style={{ background: colors.purple.bg }}>
-              <p className="text-2xl font-semibold" style={{ color: colors.purple.text }}>{awaitingFinalization.length}</p>
-              <p className="text-xs" style={{ color: colors.purple.text }}>To Finalize</p>
-            </div>
-            <div className="p-3 rounded-xl" style={{ background: colors.blue.bg }}>
-              <p className="text-2xl font-semibold" style={{ color: colors.blue.text }}>{jobs.filter(j => new Date(j.created_at).toDateString() === todayStr).length}</p>
-              <p className="text-xs" style={{ color: colors.blue.text }}>Created</p>
-            </div>
-            <div className="p-3 rounded-xl" style={{ background: colors.orange.bg }}>
-              <p className="text-2xl font-semibold" style={{ color: colors.orange.text }}>{escalatedJobs.length}</p>
-              <p className="text-xs" style={{ color: colors.orange.text }}>Escalated</p>
-            </div>
+          <div className="p-2 space-y-1 max-h-48 overflow-y-auto">
+            {technicians.length === 0 ? (
+              <div className="py-4 text-center" style={{ color: 'var(--text-muted)' }}><Users className="w-8 h-8 mx-auto mb-2 opacity-30" /><p className="text-xs">No technicians</p></div>
+            ) : (
+              technicians.map(tech => {
+                const status = getTeamStatus(tech);
+                return <TeamRow key={tech.user_id} name={tech.name} status={status.status} jobCount={status.count} />;
+              })
+            )}
           </div>
         </div>
       </div>
