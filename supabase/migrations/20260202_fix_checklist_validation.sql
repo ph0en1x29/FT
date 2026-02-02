@@ -58,17 +58,13 @@ BEGIN
   FOREACH v_item IN ARRAY v_mandatory_items LOOP
     v_item_value := v_checklist->>v_item;
     
-    -- Handle both formats:
-    -- Old: true/false (JSONB extracts as 'true'/'false' strings)
-    -- New: 'ok'/'not_ok'
-    -- Item is INCOMPLETE if: null, empty, 'not_ok', or 'false'
-    IF v_item_value IS NULL 
-       OR v_item_value = '' 
-       OR v_item_value = 'not_ok' 
-       OR v_item_value = 'false' THEN
+    -- Strict validation: only 'ok' or 'true' count as complete
+    -- Old format: true (stored as 'true' in JSONB text extraction)
+    -- New format: 'ok'
+    -- Anything else (null, 'not_ok', 'false', empty, typos) = incomplete
+    IF v_item_value NOT IN ('ok', 'true') THEN
       v_missing_items := array_append(v_missing_items, v_item);
     END IF;
-    -- 'ok' or 'true' = complete
   END LOOP;
 
   -- Update checklist status
