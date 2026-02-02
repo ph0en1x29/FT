@@ -20,7 +20,16 @@ export { LicenseService } from './licenseService';
 export { PermitService } from './permitService';
 export { HRAlertService } from './hrAlertService';
 
+// Import for proxy functions
+import { LicenseService } from './licenseService';
+import { PermitService } from './permitService';
+import { LeaveService } from './leaveService';
+
 export const HRService = {
+  // Proxy functions for backwards compatibility
+  getExpiringLicenses: LicenseService.getExpiringLicenses,
+  getExpiringPermits: PermitService.getExpiringPermits,
+  getPendingLeaves: LeaveService.getPendingLeaves,
   // =============================================
   // EMPLOYEE OPERATIONS (Now queries users table directly)
   // =============================================
