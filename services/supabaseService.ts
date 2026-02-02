@@ -57,6 +57,7 @@ export {
 
 export {
   getUsers,
+  getUsersLightweight,
   getTechnicians,
   getAccountants,
   getAdminsAndSupervisors,
@@ -286,6 +287,7 @@ export const SupabaseDb = {
 
   // Users
   getUsers: users.getUsers,
+  getUsersLightweight: users.getUsersLightweight,
   getTechnicians: users.getTechnicians,
   getAccountants: users.getAccountants,
   getAdminsAndSupervisors: users.getAdminsAndSupervisors,

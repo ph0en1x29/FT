@@ -29,7 +29,7 @@ const DashboardV4: React.FC<DashboardV4Props> = ({ currentUser }) => {
         setLoading(true);
         const [jobsData, usersData] = await Promise.all([
           SupabaseDb.getJobs(currentUser),
-          SupabaseDb.getUsers(),
+          SupabaseDb.getUsersLightweight(),
         ]);
         setJobs(jobsData);
         setUsers(usersData);
@@ -46,7 +46,7 @@ const DashboardV4: React.FC<DashboardV4Props> = ({ currentUser }) => {
     try {
       const [jobsData, usersData] = await Promise.all([
         SupabaseDb.getJobs(currentUser),
-        SupabaseDb.getUsers(),
+        SupabaseDb.getUsersLightweight(),
       ]);
       setJobs(jobsData);
       setUsers(usersData);

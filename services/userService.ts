@@ -8,7 +8,12 @@ import { supabase } from './supabaseClient';
 import { User, UserRole } from '../types';
 
 /**
- * Get all users
+ * Lightweight user fields for lists/dropdowns (reduces egress ~80%)
+ */
+const USER_SELECT_LIGHTWEIGHT = 'user_id, name, full_name, email, role, is_active, phone';
+
+/**
+ * Get all users (full data - use sparingly)
  */
 export const getUsers = async (): Promise<User[]> => {
   const { data, error } = await supabase
@@ -21,12 +26,25 @@ export const getUsers = async (): Promise<User[]> => {
 };
 
 /**
- * Get active technicians
+ * Get all users (lightweight - for lists, dropdowns, dashboards)
+ */
+export const getUsersLightweight = async (): Promise<User[]> => {
+  const { data, error } = await supabase
+    .from('users')
+    .select(USER_SELECT_LIGHTWEIGHT)
+    .order('name');
+
+  if (error) throw new Error(error.message);
+  return data as User[];
+};
+
+/**
+ * Get active technicians (lightweight)
  */
 export const getTechnicians = async (): Promise<User[]> => {
   const { data, error } = await supabase
     .from('users')
-    .select('*')
+    .select(USER_SELECT_LIGHTWEIGHT)
     .eq('role', UserRole.TECHNICIAN)
     .eq('is_active', true)
     .order('name');
@@ -36,12 +54,12 @@ export const getTechnicians = async (): Promise<User[]> => {
 };
 
 /**
- * Get all accountants
+ * Get all accountants (lightweight)
  */
 export const getAccountants = async (): Promise<User[]> => {
   const { data, error } = await supabase
     .from('users')
-    .select('*')
+    .select(USER_SELECT_LIGHTWEIGHT)
     .eq('role', UserRole.ACCOUNTANT)
     .eq('is_active', true);
 
@@ -52,13 +70,13 @@ export const getAccountants = async (): Promise<User[]> => {
 };
 
 /**
- * Get all admins and supervisors
+ * Get all admins and supervisors (lightweight)
  */
 export const getAdminsAndSupervisors = async (): Promise<User[]> => {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select(USER_SELECT_LIGHTWEIGHT)
       .in('role', [UserRole.ADMIN, UserRole.SUPERVISOR])
       .eq('is_active', true);
 

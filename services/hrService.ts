@@ -25,6 +25,12 @@ import { LicenseService } from './licenseService';
 import { PermitService } from './permitService';
 import { LeaveService } from './leaveService';
 
+// Lightweight employee fields for lists (reduces egress ~70%)
+const EMPLOYEE_SELECT_LIGHTWEIGHT = `
+  user_id, name, full_name, email, role, is_active, phone,
+  employee_code, department, position, employment_status, joined_date
+`;
+
 export const HRService = {
   // Proxy functions for backwards compatibility
   getExpiringLicenses: LicenseService.getExpiringLicenses,
@@ -36,7 +42,24 @@ export const HRService = {
   // EMPLOYEE OPERATIONS (Now queries users table directly)
   // =============================================
 
+  /**
+   * Get employees - lightweight for lists (no nested data)
+   * Use getEmployeeByUserId for full profile with licenses/permits/leaves
+   */
   getEmployees: async (): Promise<Employee[]> => {
+    const { data, error } = await supabase
+      .from('users')
+      .select(EMPLOYEE_SELECT_LIGHTWEIGHT)
+      .order('full_name');
+
+    if (error) throw new Error(error.message);
+    return data as Employee[];
+  },
+
+  /**
+   * Get employees with ALL nested data (heavy - use for exports/reports only)
+   */
+  getEmployeesFull: async (): Promise<Employee[]> => {
     const { data, error } = await supabase
       .from('users')
       .select(`

@@ -58,7 +58,7 @@ const TeamStatusTab: React.FC<TeamStatusTabProps> = ({ currentUser }) => {
     try {
       setLoading(true);
       const [usersData, jobsData] = await Promise.all([
-        MockDb.getUsers(),
+        MockDb.getUsersLightweight(),
         MockDb.getJobs(currentUser),
       ]);
 
