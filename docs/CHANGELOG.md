@@ -55,15 +55,19 @@ All notable changes to the FieldPro Field Service Management System.
 - Modal reused from create flow with edit mode support
 - Service validates ownership + pending status before allowing update
 
-### Dashboard V5 Prototypes (All Roles)
-- **Admin V5** — Integrated notifications, cleaner 2-row layout
-- **Supervisor V5** — Team-focused dashboard (NEW)
-  - Removed Revenue KPI (not supervisor focus)
-  - Large Team Workload section showing technician status
-  - Color-coded cards: green (available), blue (busy), red (overloaded)
-  - Quick view of who's working what
-- Only visible to `dev@test.com` via "Try V5" toggle button
-- Toggle back to V4 anytime via impersonation
+### Dashboard Prototypes (All Roles)
+- **Admin V5** — Option C style: full-width sections, top 5 items, "View all" links
+- **Admin V6** — Full-featured prototype with:
+  - Smart context-aware greeting ("5 jobs today, 2 techs available • ⚠️ 1 escalation")
+  - Quick Actions row (Assign Jobs, Generate Invoices, Send Reminders)
+  - 6 KPI cards including SLA metrics (On-Time %, Avg Response Time)
+  - Today's Schedule timeline with visual job status
+  - Notification filters (All/Jobs/Requests/System)
+  - Outstanding Invoices card
+  - Today's Progress bar
+  - Team Status with grouped chips
+- **Supervisor V5** — Team-focused with layout options (C: Top 5, D: Grouped)
+- Toggle V4/V5/V6 via buttons in header (`dev@test.com` only)
 
 ### Performance: Egress Optimization
 - Added `getUsersLightweight` (7 cols vs 30+)
