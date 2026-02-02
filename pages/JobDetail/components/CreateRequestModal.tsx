@@ -1,29 +1,48 @@
-import React, { useState } from 'react';
-import { Package, Camera, X, Send } from 'lucide-react';
-import { JobRequestType } from '../../../types';
+import React, { useState, useEffect } from 'react';
+import { Package, Camera, X, Send, Edit3 } from 'lucide-react';
+import { JobRequest, JobRequestType } from '../../../types';
 
 interface CreateRequestModalProps {
   show: boolean;
   submitting: boolean;
+  editingRequest?: JobRequest | null;
   onSubmit: (type: JobRequestType, description: string, photoUrl?: string) => void;
+  onUpdate?: (requestId: string, type: JobRequestType, description: string, photoUrl?: string) => void;
   onClose: () => void;
 }
 
 export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
   show,
   submitting,
+  editingRequest,
   onSubmit,
+  onUpdate,
   onClose,
 }) => {
   const [requestType, setRequestType] = useState<JobRequestType>('spare_part');
   const [description, setDescription] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
 
+  const isEditMode = !!editingRequest;
+
+  // Initialize form with existing request data when editing
+  useEffect(() => {
+    if (editingRequest) {
+      setRequestType(editingRequest.request_type);
+      setDescription(editingRequest.description || '');
+      setPhotoUrl(editingRequest.photo_url || '');
+    }
+  }, [editingRequest]);
+
   if (!show) return null;
 
   const handleSubmit = () => {
     if (!description.trim()) return;
-    onSubmit(requestType, description.trim(), photoUrl || undefined);
+    if (isEditMode && onUpdate && editingRequest) {
+      onUpdate(editingRequest.request_id, requestType, description.trim(), photoUrl || undefined);
+    } else {
+      onSubmit(requestType, description.trim(), photoUrl || undefined);
+    }
   };
 
   const handleClose = () => {
@@ -38,8 +57,12 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
       <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-bold text-lg text-[var(--text)] flex items-center gap-2">
-            <Package className="w-5 h-5 text-[var(--accent)]" />
-            Request Part
+            {isEditMode ? (
+              <Edit3 className="w-5 h-5 text-[var(--accent)]" />
+            ) : (
+              <Package className="w-5 h-5 text-[var(--accent)]" />
+            )}
+            {isEditMode ? 'Edit Request' : 'Request Part'}
           </h4>
           <button onClick={handleClose} className="p-1 hover:bg-[var(--bg-subtle)] rounded-lg">
             <X className="w-5 h-5 text-[var(--text-muted)]" />
@@ -117,7 +140,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
             className="btn-premium btn-premium-primary flex-1 disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
-            {submitting ? 'Submitting...' : 'Submit Request'}
+            {submitting ? (isEditMode ? 'Saving...' : 'Submitting...') : (isEditMode ? 'Save Changes' : 'Submit Request')}
           </button>
         </div>
       </div>

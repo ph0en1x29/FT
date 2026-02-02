@@ -6,7 +6,7 @@ import { generateJobSummary } from '../../../services/geminiService';
 import { showToast } from '../../../services/toastService';
 import { getMissingMandatoryItems } from '../utils';
 import { JobDetailState } from './useJobDetailState';
-import { createJobRequest, approveSparePartRequest, rejectRequest } from '../../../services/jobRequestService';
+import { createJobRequest, updateJobRequest, approveSparePartRequest, rejectRequest } from '../../../services/jobRequestService';
 
 interface UseJobActionsParams {
   state: JobDetailState;
@@ -503,6 +503,38 @@ export const useJobActions = ({
     }
   }, [state, currentUserId]);
 
+  const handleEditRequest = useCallback((request: any) => {
+    state.setEditingRequest(request);
+    state.setShowRequestModal(true);
+  }, [state]);
+
+  const handleUpdateRequest = useCallback(async (
+    requestId: string,
+    type: JobRequestType,
+    description: string,
+    photoUrl?: string
+  ) => {
+    state.setSubmittingRequest(true);
+    try {
+      const success = await updateJobRequest(requestId, currentUserId, {
+        request_type: type,
+        description,
+        photo_url: photoUrl || null,
+      });
+      if (success) {
+        showToast.success('Request updated');
+        state.setShowRequestModal(false);
+        state.setEditingRequest(null);
+      } else {
+        showToast.error('Failed to update request', 'You can only edit your own pending requests');
+      }
+    } catch (e) {
+      showToast.error('Error updating request', (e as Error).message);
+    } finally {
+      state.setSubmittingRequest(false);
+    }
+  }, [currentUserId, state]);
+
   // Condition Checklist handlers
   const handleStartEditChecklist = useCallback(() => {
     if (!job) return;
@@ -826,6 +858,8 @@ export const useJobActions = ({
     handleCreateRequest,
     handleApproveRequest,
     handleRejectRequest,
+    handleEditRequest,
+    handleUpdateRequest,
     
     // Checklist
     handleStartEditChecklist,

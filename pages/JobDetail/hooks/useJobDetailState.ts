@@ -113,6 +113,7 @@ export const useJobDetailState = () => {
   const [requestPhotoUrl, setRequestPhotoUrl] = useState('');
   const [submittingRequest, setSubmittingRequest] = useState(false);
   const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
+  const [editingRequest, setEditingRequest] = useState<JobRequest | null>(null);
 
   // Approval states
   const [approvalRequest, setApprovalRequest] = useState<JobRequest | null>(null);
@@ -226,6 +227,7 @@ export const useJobDetailState = () => {
     requestPhotoUrl, setRequestPhotoUrl,
     submittingRequest, setSubmittingRequest,
     editingRequestId, setEditingRequestId,
+    editingRequest, setEditingRequest,
 
     // Approval
     approvalRequest, setApprovalRequest,

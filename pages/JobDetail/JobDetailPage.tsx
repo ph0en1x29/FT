@@ -125,8 +125,10 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onChargeDescriptionChange={state.setChargeDescription} onChargeAmountChange={state.setChargeAmount}
             onAddCharge={actions.handleAddExtraCharge} onRemoveCharge={actions.handleRemoveExtraCharge} />
           <JobRequestsSection job={job} roleFlags={roleFlags} statusFlags={statusFlags}
-            onCreateRequest={() => state.setShowRequestModal(true)}
-            onApproveRequest={(request) => { state.setApprovalRequest(request); state.setShowApprovalModal(true); }} />
+            currentUserId={currentUserId}
+            onCreateRequest={() => { state.setEditingRequest(null); state.setShowRequestModal(true); }}
+            onApproveRequest={(request) => { state.setApprovalRequest(request); state.setShowApprovalModal(true); }}
+            onEditRequest={actions.handleEditRequest} />
           <JobPhotosSection job={job} currentUserId={currentUserId} currentUserName={currentUserName}
             roleFlags={roleFlags} statusFlags={statusFlags} isCurrentUserHelper={state.isCurrentUserHelper} onJobUpdate={setJob} />
         </div>
@@ -174,8 +176,10 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       <CreateRequestModal
         show={state.showRequestModal}
         submitting={state.submittingRequest}
+        editingRequest={state.editingRequest}
         onSubmit={actions.handleCreateRequest}
-        onClose={() => state.setShowRequestModal(false)}
+        onUpdate={actions.handleUpdateRequest}
+        onClose={() => { state.setShowRequestModal(false); state.setEditingRequest(null); }}
       />
       <ApproveRequestModal
         show={state.showApprovalModal}

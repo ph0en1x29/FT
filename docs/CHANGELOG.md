@@ -47,6 +47,14 @@ All notable changes to the FieldPro Field Service Management System.
 - UI shows "(Pre-allocation)" label when adding parts to New/Assigned jobs
 - Simplified and clarified `canAddParts` logic
 
+### Request Edit Capability
+- **Technicians** can now edit their own pending requests
+- Edit button appears next to "Pending" requests they created
+- Only works while request status is 'pending' (before admin review)
+- Can modify: request type, description, photo URL
+- Modal reused from create flow with edit mode support
+- Service validates ownership + pending status before allowing update
+
 ---
 
 ## [2026-02-01] - Workflow Simplification & Bug Fixes

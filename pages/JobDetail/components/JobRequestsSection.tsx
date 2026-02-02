@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Package, Plus, Clock, CheckCircle, XCircle, AlertTriangle, Edit3 } from 'lucide-react';
 import { Job, JobRequest, JobRequestType, JobRequestStatus } from '../../../types';
 import { getJobRequests } from '../../../services/jobRequestService';
 import { RoleFlags, StatusFlags } from '../types';
@@ -8,16 +8,20 @@ interface JobRequestsSectionProps {
   job: Job;
   roleFlags: RoleFlags;
   statusFlags: StatusFlags;
+  currentUserId: string;
   onCreateRequest: () => void;
   onApproveRequest: (request: JobRequest) => void;
+  onEditRequest?: (request: JobRequest) => void;
 }
 
 export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
   job,
   roleFlags,
   statusFlags,
+  currentUserId,
   onCreateRequest,
   onApproveRequest,
+  onEditRequest,
 }) => {
   const [requests, setRequests] = useState<JobRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,14 +135,30 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
                   {new Date(request.created_at).toLocaleString()}
                 </span>
                 
-                {request.status === 'pending' && canApproveRequest && (
-                  <button
-                    onClick={() => onApproveRequest(request)}
-                    className="text-[var(--accent)] hover:underline font-medium"
-                  >
-                    Review
-                  </button>
-                )}
+                <div className="flex items-center gap-3">
+                  {/* Edit button - only for technician's own pending requests */}
+                  {request.status === 'pending' && 
+                   request.requested_by === currentUserId && 
+                   roleFlags.isTechnician && 
+                   onEditRequest && (
+                    <button
+                      onClick={() => onEditRequest(request)}
+                      className="text-blue-600 hover:underline font-medium flex items-center gap-1"
+                    >
+                      <Edit3 className="w-3 h-3" /> Edit
+                    </button>
+                  )}
+                  
+                  {/* Review button - for admins/supervisors */}
+                  {request.status === 'pending' && canApproveRequest && (
+                    <button
+                      onClick={() => onApproveRequest(request)}
+                      className="text-[var(--accent)] hover:underline font-medium"
+                    >
+                      Review
+                    </button>
+                  )}
+                </div>
               </div>
 
               {request.status === 'approved' && request.admin_response_part && (
