@@ -7,6 +7,7 @@ interface PartsTableProps {
   groupedParts: Record<string, Part[]>;
   loading: boolean;
   isAdmin: boolean;
+  canViewPricing?: boolean;
   onEdit: (part: Part) => void;
   onDelete: (part: Part) => void;
 }
@@ -15,6 +16,7 @@ const PartsTable: React.FC<PartsTableProps> = ({
   groupedParts,
   loading,
   isAdmin,
+  canViewPricing = true,
   onEdit,
   onDelete,
 }) => {
@@ -30,14 +32,14 @@ const PartsTable: React.FC<PartsTableProps> = ({
           <table className="w-full">
             <thead className="bg-theme-surface-2">
               <tr>
-                {['Code', 'Name', 'Cost', 'Sell', 'Warranty', 'Stock', 'Actions'].map((h) => (
+                {['Code', 'Name', ...(canViewPricing ? ['Cost', 'Sell'] : []), 'Warranty', 'Stock', 'Actions'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs text-theme-muted">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {Array.from({ length: 5 }).map((_, i) => (
-                <SkeletonTableRow key={i} columns={7} />
+                <SkeletonTableRow key={i} columns={canViewPricing ? 7 : 5} />
               ))}
             </tbody>
           </table>
@@ -73,8 +75,8 @@ const PartsTable: React.FC<PartsTableProps> = ({
                   <th className="p-4">Part Name</th>
                   <th className="p-4">SKU</th>
                   <th className="p-4">Stock</th>
-                  <th className="p-4">Cost (RM)</th>
-                  <th className="p-4">Price (RM)</th>
+                  {canViewPricing && <th className="p-4">Cost (RM)</th>}
+                  {canViewPricing && <th className="p-4">Price (RM)</th>}
                   <th className="p-4">Warranty</th>
                   <th className="p-4">Last Updated By</th>
                   {isAdmin && <th className="p-4 text-center">Actions</th>}
@@ -109,8 +111,8 @@ const PartsTable: React.FC<PartsTableProps> = ({
                       </div>
                       <div className="text-xs text-theme-muted">Min: {p.min_stock_level || 10}</div>
                     </td>
-                    <td className="p-4 text-slate-600">{p.cost_price.toFixed(2)}</td>
-                    <td className="p-4 font-medium">{p.sell_price.toFixed(2)}</td>
+                    {canViewPricing && <td className="p-4 text-slate-600">{p.cost_price.toFixed(2)}</td>}
+                    {canViewPricing && <td className="p-4 font-medium">{p.sell_price.toFixed(2)}</td>}
                     <td className="p-4 text-slate-500 text-sm">{p.warranty_months} mo</td>
                     <td className="p-4">
                       {p.last_updated_by_name ? (

@@ -34,6 +34,12 @@ All notable changes to the FieldPro Field Service Management System.
 - Auto-tracking integrated into `toastService.ts`
 - Helps identify what users try to do that fails → build those features
 
+### Security: Hide Pricing from Technicians
+- **Inventory Page** — Cost and Price columns hidden for technicians
+- **Inventory Stats** — Inventory Value card hidden for technicians
+- Uses existing `canViewPricing` permission from `ROLE_PERMISSIONS`
+- Admins, Supervisors, Accountants still see all pricing
+
 ---
 
 ## [2026-02-01] - Workflow Simplification & Bug Fixes

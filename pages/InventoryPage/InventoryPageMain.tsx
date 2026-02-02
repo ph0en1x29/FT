@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { User, UserRole } from '../../types';
+import { User, UserRole, ROLE_PERMISSIONS } from '../../types';
 import { Package, Truck, CheckSquare } from 'lucide-react';
 import VanStockPage from '../VanStockPage';
 import PendingConfirmations from '../PendingConfirmations';
@@ -34,6 +34,9 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   ].includes(displayRole);
   const canViewVanStock = isAdminOrSupervisor;
   const canViewConfirmations = isAdminOrSupervisor;
+  
+  // Get pricing visibility from role permissions (hidden from technicians)
+  const canViewPricing = ROLE_PERMISSIONS[displayRole]?.canViewPricing ?? false;
 
   // Inventory data hook
   const {
@@ -119,7 +122,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             onAddNew={handleAddNew}
           />
 
-          <InventoryStats stats={stats} />
+          <InventoryStats stats={stats} canViewPricing={canViewPricing} />
 
           <InventoryFilters
             searchQuery={searchQuery}
@@ -135,6 +138,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             groupedParts={groupedParts}
             loading={loading}
             isAdmin={isAdmin}
+            canViewPricing={canViewPricing}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
