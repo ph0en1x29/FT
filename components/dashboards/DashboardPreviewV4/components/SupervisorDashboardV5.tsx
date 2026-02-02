@@ -32,6 +32,7 @@ const SupervisorDashboardV5: React.FC<SupervisorDashboardV5Props> = ({
   const today = new Date();
   const todayStr = today.toDateString();
   const [activeTab, setActiveTab] = useState<'action' | 'today' | 'unassigned'>('action');
+  const [teamLayout, setTeamLayout] = useState<'compact' | 'grouped'>('grouped');
 
   // Data calculations
   const technicians = users.filter(u => u.role === UserRole.TECHNICIAN && u.is_active);
@@ -178,6 +179,7 @@ const SupervisorDashboardV5: React.FC<SupervisorDashboardV5Props> = ({
       </div>
 
       {/* Team Workload - PRIMARY SECTION FOR SUPERVISOR */}
+      {/* Layout toggle for comparison */}
       <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
         <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
           <div>
@@ -186,9 +188,26 @@ const SupervisorDashboardV5: React.FC<SupervisorDashboardV5Props> = ({
               {availableTechs} available · {techsWithStatus.filter(t => t.workload.status === 'busy').length} busy · {overloadedTechs} overloaded
             </p>
           </div>
-          <button onClick={() => navigate('/team')} className="text-xs font-medium" style={{ color: 'var(--accent)' }}>
-            Manage Team →
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Layout Toggle */}
+            <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: 'var(--bg-subtle)' }}>
+              <button
+                onClick={() => setTeamLayout('compact')}
+                className={`px-2 py-1 text-[10px] font-medium rounded ${teamLayout === 'compact' ? 'bg-purple-600 text-white' : 'text-[var(--text-muted)]'}`}
+              >
+                C: Top 5
+              </button>
+              <button
+                onClick={() => setTeamLayout('grouped')}
+                className={`px-2 py-1 text-[10px] font-medium rounded ${teamLayout === 'grouped' ? 'bg-purple-600 text-white' : 'text-[var(--text-muted)]'}`}
+              >
+                D: Grouped
+              </button>
+            </div>
+            <button onClick={() => navigate('/team')} className="text-xs font-medium" style={{ color: 'var(--accent)' }}>
+              Manage →
+            </button>
+          </div>
         </div>
         <div className="p-3">
           {technicians.length === 0 ? (
@@ -196,32 +215,128 @@ const SupervisorDashboardV5: React.FC<SupervisorDashboardV5Props> = ({
               <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No technicians in team</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-              {techsWithStatus.map(tech => {
-                const statusColor = getStatusColor(tech.workload.status);
-                return (
-                  <div
-                    key={tech.user_id}
-                    className="p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-transform"
-                    style={{ background: statusColor.bg, border: `1px solid ${statusColor.text}20` }}
-                    onClick={() => navigate(`/team?user=${tech.user_id}`)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>
-                        {tech.name || tech.full_name}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: statusColor.text, color: 'white' }}>
-                        {tech.workload.count} jobs
-                      </span>
+          ) : teamLayout === 'compact' ? (
+            /* OPTION C: Top 5 + Show More */
+            <div>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                {techsWithStatus.slice(0, 5).map(tech => {
+                  const statusColor = getStatusColor(tech.workload.status);
+                  return (
+                    <div
+                      key={tech.user_id}
+                      className="p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-transform"
+                      style={{ background: statusColor.bg, border: `1px solid ${statusColor.text}20` }}
+                      onClick={() => navigate(`/team?user=${tech.user_id}`)}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>
+                          {tech.name || tech.full_name}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: statusColor.text, color: 'white' }}>
+                          {tech.workload.count}
+                        </span>
+                      </div>
+                      <p className="text-[10px]" style={{ color: statusColor.text }}>
+                        {tech.workload.status === 'available' ? '✓ Available' : 
+                         tech.workload.status === 'overloaded' ? '⚠ Overloaded' : 'Working'}
+                      </p>
                     </div>
-                    <p className="text-[10px] capitalize" style={{ color: statusColor.text }}>
-                      {tech.workload.status === 'available' ? '✓ Available for assignment' : 
-                       tech.workload.status === 'overloaded' ? '⚠ Overloaded' : 'Working'}
-                    </p>
+                  );
+                })}
+              </div>
+              {techsWithStatus.length > 5 && (
+                <button
+                  onClick={() => navigate('/team')}
+                  className="w-full mt-3 py-2 text-xs font-medium rounded-lg hover:bg-[var(--bg-subtle)] transition-colors"
+                  style={{ color: 'var(--accent)', border: '1px dashed var(--border)' }}
+                >
+                  View all {techsWithStatus.length} technicians →
+                </button>
+              )}
+            </div>
+          ) : (
+            /* OPTION D: Grouped by Status */
+            <div className="space-y-3">
+              {/* Overloaded */}
+              {overloadedTechs > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 rounded-full" style={{ background: colors.red.text }} />
+                    <span className="text-xs font-semibold" style={{ color: colors.red.text }}>
+                      Overloaded ({overloadedTechs})
+                    </span>
                   </div>
-                );
-              })}
+                  <div className="flex flex-wrap gap-2">
+                    {techsWithStatus.filter(t => t.workload.status === 'overloaded').map(tech => (
+                      <button
+                        key={tech.user_id}
+                        onClick={() => navigate(`/team?user=${tech.user_id}`)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium hover:scale-105 transition-transform"
+                        style={{ background: colors.red.bg, color: colors.red.text }}
+                      >
+                        {tech.name || tech.full_name}
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ background: colors.red.text, color: 'white' }}>
+                          {tech.workload.count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Busy */}
+              {techsWithStatus.filter(t => t.workload.status === 'busy').length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 rounded-full" style={{ background: colors.blue.text }} />
+                    <span className="text-xs font-semibold" style={{ color: colors.blue.text }}>
+                      Busy ({techsWithStatus.filter(t => t.workload.status === 'busy').length})
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {techsWithStatus.filter(t => t.workload.status === 'busy').map(tech => (
+                      <button
+                        key={tech.user_id}
+                        onClick={() => navigate(`/team?user=${tech.user_id}`)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium hover:scale-105 transition-transform"
+                        style={{ background: colors.blue.bg, color: colors.blue.text }}
+                      >
+                        {tech.name || tech.full_name}
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ background: colors.blue.text, color: 'white' }}>
+                          {tech.workload.count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Available */}
+              {availableTechs > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 rounded-full" style={{ background: colors.green.text }} />
+                    <span className="text-xs font-semibold" style={{ color: colors.green.text }}>
+                      Available ({availableTechs})
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {techsWithStatus.filter(t => t.workload.status === 'available').map(tech => (
+                      <button
+                        key={tech.user_id}
+                        onClick={() => navigate(`/team?user=${tech.user_id}`)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium hover:scale-105 transition-transform"
+                        style={{ background: colors.green.bg, color: colors.green.text }}
+                      >
+                        {tech.name || tech.full_name}
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ background: colors.green.text, color: 'white' }}>
+                          0
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
