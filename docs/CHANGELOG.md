@@ -28,6 +28,12 @@ All notable changes to the FieldPro Field Service Management System.
 ### Tests Added
 - `tests/customer-feedback-fixes.spec.ts` — Validates both fixes
 
+### New: Error Tracking ("Desire Paths")
+- `user_action_errors` table — Tracks failed user actions
+- `errorTrackingService.ts` — Service to log and analyze errors
+- Auto-tracking integrated into `toastService.ts`
+- Helps identify what users try to do that fails → build those features
+
 ---
 
 ## [2026-02-01] - Workflow Simplification & Bug Fixes

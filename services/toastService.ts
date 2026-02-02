@@ -1,7 +1,10 @@
 import { toast } from 'sonner';
+import { trackActionError } from './errorTrackingService';
 
 /**
  * Toast Service - Centralized toast notifications for FieldPro
+ * 
+ * Now with automatic error tracking for "Desire Paths" analysis.
  * 
  * Usage:
  *   import { showToast, asyncToast } from './services/toastService';
@@ -27,6 +30,11 @@ export const showToast = {
   
   error: (message: string, description?: string) => {
     toast.error(message, { description });
+    // Track error for Desire Paths analysis
+    trackActionError({
+      action_type: message.toLowerCase().replace(/\s+/g, '_'),
+      error_message: description || message,
+    }).catch(() => {}); // Don't let tracking errors break the app
   },
   
   warning: (message: string, description?: string) => {
