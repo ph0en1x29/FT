@@ -30,6 +30,8 @@ export const HRService = {
   getExpiringLicenses: LicenseService.getExpiringLicenses,
   getExpiringPermits: PermitService.getExpiringPermits,
   getPendingLeaves: LeaveService.getPendingLeaves,
+  getLeaves: LeaveService.getLeaves,
+  getLeaveTypes: LeaveService.getLeaveTypes,
   // =============================================
   // EMPLOYEE OPERATIONS (Now queries users table directly)
   // =============================================
