@@ -26,27 +26,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, user
   // Prototype toggle - only for dev@test.com
   const isDevUser = currentUser.email === 'dev@test.com';
   const [useV5, setUseV5] = useState(false);
-  
-  // If V5 prototype is enabled, render it instead
-  if (isDevUser && useV5) {
-    return (
-      <div>
-        {/* V5 Toggle Button */}
-        <div className="mb-4 flex justify-end">
-          <button
-            onClick={() => setUseV5(false)}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-          >
-            <FlaskConical className="w-3.5 h-3.5" />
-            Switch to V4 (Current)
-          </button>
-        </div>
-        <AdminDashboardV5 currentUser={currentUser} jobs={jobs} users={users} onRefresh={onRefresh} navigate={navigate} />
-      </div>
-    );
-  }
 
-  // Click outside handler for notification dropdown
+  // Click outside handler for notification dropdown (MUST be before any early return)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
@@ -122,6 +103,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, user
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
   };
+
+  // V5 Prototype - render if enabled (after all hooks)
+  if (isDevUser && useV5) {
+    return (
+      <div>
+        <div className="mb-4 flex justify-end">
+          <button
+            onClick={() => setUseV5(false)}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border-2 border-purple-500 bg-purple-500 text-white hover:bg-purple-600 transition-colors"
+          >
+            <FlaskConical className="w-3.5 h-3.5" />
+            ← Back to V4
+          </button>
+        </div>
+        <AdminDashboardV5 currentUser={currentUser} jobs={jobs} users={users} onRefresh={onRefresh} navigate={navigate} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -313,11 +312,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, user
           {isDevUser && (
             <button
               onClick={() => setUseV5(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all hover:scale-105 active:scale-95 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 bg-purple-600 text-white hover:bg-purple-700 border-2 border-purple-600"
               title="Try Dashboard V5 with Notifications"
             >
               <FlaskConical className="w-4 h-4" />
-              Try V5
+              🧪 Try V5
             </button>
           )}
           <button onClick={onRefresh} className="p-2 rounded-xl transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
