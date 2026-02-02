@@ -46,7 +46,7 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   onToggleNoPartsUsed,
 }) => {
   const { isTechnician, isAdmin, isSupervisor, isAccountant, canViewPricing, canEditPrices, canAddParts, isHelperOnly } = roleFlags;
-  const { isInProgress, isAwaitingFinalization } = statusFlags;
+  const { isNew, isAssigned, isInProgress, isAwaitingFinalization } = statusFlags;
 
   return (
     <div className="card-premium p-5">
@@ -145,10 +145,12 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
         </div>
       )}
 
-      {/* Admin/Supervisor: Add Part */}
+      {/* Admin/Supervisor: Add Part (including pre-job allocation) */}
       {canAddParts && (
         <div className="border-t border-[var(--border-subtle)] pt-4">
-          <p className="text-xs font-medium text-[var(--text-muted)] mb-2">Add Part</p>
+          <p className="text-xs font-medium text-[var(--text-muted)] mb-2">
+            Add Part {(isNew || isAssigned) && <span className="text-[var(--info)]">(Pre-allocation)</span>}
+          </p>
           <div className="flex gap-2 items-start">
             <div className="flex-1">
               <Combobox

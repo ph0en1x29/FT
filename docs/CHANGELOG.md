@@ -40,6 +40,13 @@ All notable changes to the FieldPro Field Service Management System.
 - Uses existing `canViewPricing` permission from `ROLE_PERMISSIONS`
 - Admins, Supervisors, Accountants still see all pricing
 
+### Pre-Job Parts Allocation
+- **Admins** can now add parts to jobs at ANY stage (New, Assigned, In Progress, Awaiting)
+- **Supervisors** can add parts from Assigned onwards
+- **Accountants** can only add at Awaiting Finalization (invoice adjustments)
+- UI shows "(Pre-allocation)" label when adding parts to New/Assigned jobs
+- Simplified and clarified `canAddParts` logic
+
 ---
 
 ## [2026-02-01] - Workflow Simplification & Bug Fixes

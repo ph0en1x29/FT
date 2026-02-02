@@ -90,12 +90,19 @@ export function getRoleFlags(
     ((isTechnician && !statusFlags.isAwaitingFinalization) || isAdmin || isAccountant);
   
   // Parts entry: Technicians can only request parts via Spare Part Requests
+  // Admins can add parts at any stage (including pre-job for New/Assigned)
+  // Supervisors can add parts from Assigned onwards
+  // Accountants can only add parts at Awaiting Finalization (for invoice adjustments)
+  const jobNotCompleted = !statusFlags.isCompleted;
   const canAddParts =
     !isHelperOnly &&
     !isTechnician &&
-    (((statusFlags.isAssigned || statusFlags.isInProgress) && (isAdmin || isSupervisor)) ||
-      (statusFlags.isAwaitingFinalization && (isAdmin || isAccountant || isSupervisor)) ||
-      ((statusFlags.isNew || statusFlags.isAssigned) && isAdminStore));
+    jobNotCompleted &&
+    (
+      isAdmin || // Admins can add parts at any stage
+      (isSupervisor && !statusFlags.isNew) || // Supervisors from Assigned onwards
+      (isAccountant && statusFlags.isAwaitingFinalization) // Accountants only at finalization
+    );
   
   return {
     isAdmin,
