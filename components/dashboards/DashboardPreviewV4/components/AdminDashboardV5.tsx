@@ -112,8 +112,8 @@ const AdminDashboardV5: React.FC<AdminDashboardV5Props> = ({ currentUser, jobs, 
         </div>
         <div className="flex items-center gap-2">
           {/* Prototype Badge */}
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-            V5 Prototype
+          <span className="px-3 py-1 text-xs font-bold rounded-full bg-purple-600 text-white">
+            🧪 V5 Prototype
           </span>
           <button onClick={onRefresh} className="p-2 rounded-xl transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <RefreshCw className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />

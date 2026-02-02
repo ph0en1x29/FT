@@ -111,10 +111,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, user
         <div className="mb-4 flex justify-end">
           <button
             onClick={() => setUseV5(false)}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border-2 border-purple-500 bg-purple-500 text-white hover:bg-purple-600 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-colors shadow-lg"
           >
-            <FlaskConical className="w-3.5 h-3.5" />
-            ← Back to V4
+            <FlaskConical className="w-4 h-4" />
+            ← Back to V4 (Current)
           </button>
         </div>
         <AdminDashboardV5 currentUser={currentUser} jobs={jobs} users={users} onRefresh={onRefresh} navigate={navigate} />
