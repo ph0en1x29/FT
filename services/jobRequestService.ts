@@ -178,19 +178,14 @@ export const approveSparePartRequest = async (
       return false;
     }
 
-    // ATOMIC stock update with WHERE clause to prevent race condition
-    // Only succeeds if stock is still sufficient at update time
-    const { data: stockUpdate, error: stockError } = await supabase
-      .from('parts')
-      .update({ stock_quantity: part.stock_quantity - quantity })
-      .eq('part_id', partId)
-      .gte('stock_quantity', quantity) // Only update if stock >= quantity
-      .select('stock_quantity')
-      .single();
+    // ATOMIC stock reservation using database function
+    // Prevents race conditions with row-level locking
+    const { data: stockReserved, error: stockError } = await supabase
+      .rpc('reserve_part_stock', { p_part_id: partId, p_quantity: quantity });
 
-    if (stockError || !stockUpdate) {
-      // Stock was modified by another request - insufficient now
-      console.warn('Race condition prevented: stock no longer sufficient');
+    if (stockError || !stockReserved) {
+      // Stock was modified by another request or insufficient
+      console.warn('Stock reservation failed:', stockError?.message || 'insufficient stock');
       return false;
     }
 
@@ -208,11 +203,8 @@ export const approveSparePartRequest = async (
       .eq('request_id', requestId);
 
     if (updateError) {
-      // Rollback stock - request update failed
-      await supabase
-        .from('parts')
-        .update({ stock_quantity: stockUpdate.stock_quantity + quantity })
-        .eq('part_id', partId);
+      // Rollback stock reservation
+      await supabase.rpc('rollback_part_stock', { p_part_id: partId, p_quantity: quantity });
       return false;
     }
 
@@ -227,11 +219,8 @@ export const approveSparePartRequest = async (
       });
 
     if (insertError) {
-      // Rollback both stock and request status
-      await supabase
-        .from('parts')
-        .update({ stock_quantity: stockUpdate.stock_quantity + quantity })
-        .eq('part_id', partId);
+      // Rollback stock and request status
+      await supabase.rpc('rollback_part_stock', { p_part_id: partId, p_quantity: quantity });
       await supabase
         .from('job_requests')
         .update({ status: 'pending', responded_by: null, responded_at: null })

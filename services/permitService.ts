@@ -137,10 +137,24 @@ export const PermitService = {
 
     if (error) throw new Error(error.message);
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from('hr-documents').getPublicUrl(fileName);
+    // Return the file path - signed URL will be generated on access
+    return fileName;
+  },
 
-    return publicUrl;
+  /**
+   * Get a signed URL for a permit document (valid for 1 hour)
+   * Use this instead of storing public URLs
+   */
+  getPermitDocumentUrl: async (filePath: string): Promise<string | null> => {
+    const { data, error } = await supabase.storage
+      .from('hr-documents')
+      .createSignedUrl(filePath, 3600); // 1 hour expiry
+
+    if (error) {
+      console.error('Failed to create signed URL:', error.message);
+      return null;
+    }
+
+    return data.signedUrl;
   },
 };

@@ -8,11 +8,12 @@ All notable changes to the FieldPro Field Service Management System.
 
 ### Critical Fixes
 
-#### 1. Race Condition in Spare Parts Approval
+#### 1. Race Condition in Spare Parts Approval — FULLY FIXED
 - **Issue:** Separate stock check and update allowed overselling
-- **Fix:** Atomic update with WHERE clause (`stock_quantity >= quantity`)
-- **File:** `services/jobRequestService.ts`
-- **Rollback:** Added rollback logic if subsequent operations fail
+- **Fix (v1):** Atomic update with WHERE clause
+- **Fix (v2):** New SQL function `reserve_part_stock()` with row-level locking
+- **Files:** `services/jobRequestService.ts`, `supabase/migrations/20260203_atomic_stock_reserve.sql`
+- **Rollback:** `rollback_part_stock()` function for failure recovery
 
 #### 2. Assistance Approval Bug  
 - **Issue:** Request marked approved before helper assignment, causing false positives
@@ -21,7 +22,7 @@ All notable changes to the FieldPro Field Service Management System.
 
 #### 3. Telegram Token Security
 - **Issue:** Base64 JSON token allowed potential forgery
-- **Fix:** Added expiry timestamp, nonce for replay protection
+- **Fix:** Added expiry timestamp (5 min), nonce for replay protection
 - **File:** `components/TelegramConnect.tsx`
 - **Note:** Server-side validation required in webhook
 
@@ -32,14 +33,20 @@ All notable changes to the FieldPro Field Service Management System.
 - **Fix:** Removed hardcoded email, dev mode only works in dev environment
 - **File:** `hooks/useDevMode.ts`
 
-#### Storage Security Documentation
-- Added security notes to `permitService.ts`, `licenseService.ts`
-- TODO: Switch hr-documents bucket to private + signed URLs
+#### Signed URLs for HR Documents
+- **Issue:** HR documents (permits, licenses, profile photos) used public URLs
+- **Fix:** Implemented signed URLs with 1-hour expiry
+- **Files:** `permitService.ts`, `licenseService.ts`, `hrService.ts`, `leaveService.ts`
+- **New methods:** `getPermitDocumentUrl()`, `getLicenseImageUrl()`, `getProfilePhotoUrl()`, `getLeaveDocumentUrl()`
 
 #### Gemini API Key Documentation
 - Added security notes about client-side key exposure
 - Documented mitigations and production recommendations
 - **File:** `services/geminiService.ts`
+
+### Database Changes
+- `reserve_part_stock(UUID, INTEGER)` — Atomic stock reservation with row lock
+- `rollback_part_stock(UUID, INTEGER)` — Undo stock reservation
 
 ---
 
