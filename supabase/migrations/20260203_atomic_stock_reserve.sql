@@ -18,7 +18,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_updated BOOLEAN;
+  v_row_count INTEGER;
 BEGIN
   -- Atomic update: only succeeds if stock >= quantity
   -- Uses row-level lock to prevent concurrent modifications
@@ -29,9 +29,9 @@ BEGIN
     AND stock_quantity >= p_quantity;
   
   -- Check if update affected any rows
-  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  GET DIAGNOSTICS v_row_count = ROW_COUNT;
   
-  RETURN v_updated > 0;
+  RETURN v_row_count > 0;
 END;
 $$;
 
