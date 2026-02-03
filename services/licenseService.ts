@@ -1,3 +1,13 @@
+/**
+ * License Service
+ * 
+ * SECURITY TODO: Currently uses public URLs for license documents.
+ * These should be changed to signed URLs with expiration for production:
+ * 1. Change hr-documents bucket to private
+ * 2. Use createSignedUrl() instead of getPublicUrl()
+ * 3. Set appropriate expiration (e.g., 1 hour)
+ */
+
 import { supabase } from './supabaseService';
 import { EmployeeLicense, LicenseStatus } from '../types';
 

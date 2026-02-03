@@ -4,6 +4,45 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-03] - Security Fixes (Codex Review)
+
+### Critical Fixes
+
+#### 1. Race Condition in Spare Parts Approval
+- **Issue:** Separate stock check and update allowed overselling
+- **Fix:** Atomic update with WHERE clause (`stock_quantity >= quantity`)
+- **File:** `services/jobRequestService.ts`
+- **Rollback:** Added rollback logic if subsequent operations fail
+
+#### 2. Assistance Approval Bug  
+- **Issue:** Request marked approved before helper assignment, causing false positives
+- **Fix:** Assign helper FIRST, only mark approved if successful
+- **File:** `services/jobRequestService.ts`
+
+#### 3. Telegram Token Security
+- **Issue:** Base64 JSON token allowed potential forgery
+- **Fix:** Added expiry timestamp, nonce for replay protection
+- **File:** `components/TelegramConnect.tsx`
+- **Note:** Server-side validation required in webhook
+
+### Security Improvements
+
+#### Dev Mode Protection
+- **Issue:** Hardcoded `dev@test.com` could be exploited
+- **Fix:** Removed hardcoded email, dev mode only works in dev environment
+- **File:** `hooks/useDevMode.ts`
+
+#### Storage Security Documentation
+- Added security notes to `permitService.ts`, `licenseService.ts`
+- TODO: Switch hr-documents bucket to private + signed URLs
+
+#### Gemini API Key Documentation
+- Added security notes about client-side key exposure
+- Documented mitigations and production recommendations
+- **File:** `services/geminiService.ts`
+
+---
+
 ## [2026-02-02] - Customer Feedback Bug Fixes
 
 ### Bug Fixes

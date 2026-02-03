@@ -1,10 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { UserRole, RolePermissions } from '../types';
 
-// Hardcoded dev emails (always allowed) + env variable for additional emails
-const HARDCODED_DEV_EMAILS = ['dev@test.com'];
+// Dev emails - ONLY from environment variable for security
+// In production, VITE_DEV_EMAILS should be empty or not set
+// SECURITY: Never hardcode dev emails - prevents unauthorized dev mode access
 const ENV_DEV_EMAILS = (import.meta.env.VITE_DEV_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
-const DEV_EMAILS = [...new Set([...HARDCODED_DEV_EMAILS, ...ENV_DEV_EMAILS])];
+const DEV_EMAILS = ENV_DEV_EMAILS;
+
+// Additional security: Only allow dev mode in development environment
+const IS_DEV_ENVIRONMENT = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_MODE === 'true';
 
 export type DevModeRole = UserRole | null;
 export type DevModeType = 'ui_only' | 'strict';
@@ -116,7 +120,8 @@ export function useDevMode(userEmail: string | undefined, userRole: UserRole): D
   const [hasValidated, setHasValidated] = useState(false);
 
   // Check if user is a developer (may be undefined initially while loading)
-  const isDev = userEmail ? DEV_EMAILS.includes(userEmail.toLowerCase()) : false;
+  // SECURITY: Requires both dev environment AND email in whitelist
+  const isDev = IS_DEV_ENVIRONMENT && userEmail ? DEV_EMAILS.includes(userEmail.toLowerCase()) : false;
 
   // Once we have the email, validate and clear if not dev
   useEffect(() => {

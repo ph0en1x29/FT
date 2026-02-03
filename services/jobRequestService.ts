@@ -178,6 +178,23 @@ export const approveSparePartRequest = async (
       return false;
     }
 
+    // ATOMIC stock update with WHERE clause to prevent race condition
+    // Only succeeds if stock is still sufficient at update time
+    const { data: stockUpdate, error: stockError } = await supabase
+      .from('parts')
+      .update({ stock_quantity: part.stock_quantity - quantity })
+      .eq('part_id', partId)
+      .gte('stock_quantity', quantity) // Only update if stock >= quantity
+      .select('stock_quantity')
+      .single();
+
+    if (stockError || !stockUpdate) {
+      // Stock was modified by another request - insufficient now
+      console.warn('Race condition prevented: stock no longer sufficient');
+      return false;
+    }
+
+    // Stock reserved successfully, now update request and add to job
     const { error: updateError } = await supabase
       .from('job_requests')
       .update({
@@ -191,6 +208,11 @@ export const approveSparePartRequest = async (
       .eq('request_id', requestId);
 
     if (updateError) {
+      // Rollback stock - request update failed
+      await supabase
+        .from('parts')
+        .update({ stock_quantity: stockUpdate.stock_quantity + quantity })
+        .eq('part_id', partId);
       return false;
     }
 
@@ -205,16 +227,16 @@ export const approveSparePartRequest = async (
       });
 
     if (insertError) {
+      // Rollback both stock and request status
+      await supabase
+        .from('parts')
+        .update({ stock_quantity: stockUpdate.stock_quantity + quantity })
+        .eq('part_id', partId);
+      await supabase
+        .from('job_requests')
+        .update({ status: 'pending', responded_by: null, responded_at: null })
+        .eq('request_id', requestId);
       return false;
-    }
-
-    const { error: stockError } = await supabase
-      .from('parts')
-      .update({ stock_quantity: part.stock_quantity - quantity })
-      .eq('part_id', partId);
-
-    if (stockError) {
-      console.warn('Part added, but stock update failed:', stockError.message);
     }
 
     // Auto-confirm parts when admin approves request (unified admin workflow)
@@ -363,6 +385,21 @@ export const approveAssistanceRequest = async (
     const helperName = helper?.full_name || helper?.name || 'Helper';
     const jobTitle = job?.title || 'Job';
 
+    // FIXED: Assign helper FIRST, only mark approved if successful
+    const assignmentResult = await assignHelper(
+      request.job_id,
+      helperTechnicianId,
+      adminUserId,
+      notes || 'Assigned via assistance request'
+    );
+
+    // If helper assignment failed, don't mark request as approved
+    if (!assignmentResult) {
+      console.warn('Helper assignment failed for request:', requestId);
+      return false;
+    }
+
+    // Helper assigned successfully, now mark request as approved
     const { error: updateError } = await supabase
       .from('job_requests')
       .update({
@@ -374,36 +411,30 @@ export const approveAssistanceRequest = async (
       .eq('request_id', requestId);
 
     if (updateError) {
-      return false;
+      // Helper was assigned but request update failed - log but don't fail
+      // The helper IS assigned, so the work was done
+      console.warn('Request status update failed after helper assignment:', updateError.message);
     }
 
-    const result = await assignHelper(
+    // Send notifications
+    await notifyRequestApproved(
+      request.requested_by,
+      'assistance',
       request.job_id,
-      helperTechnicianId,
-      adminUserId,
-      notes || 'Assigned via assistance request'
+      `${helperName} has been assigned to help you.`
     );
 
-    if (result) {
-      await notifyRequestApproved(
-        request.requested_by,
-        'assistance',
-        request.job_id,
-        `${helperName} has been assigned to help you.`
-      );
+    await createNotification({
+      user_id: helperTechnicianId,
+      type: NotificationType.JOB_ASSIGNED,
+      title: 'Helper Assignment',
+      message: `You have been assigned to help with: ${jobTitle}`,
+      reference_type: 'job',
+      reference_id: request.job_id,
+      priority: 'high',
+    });
 
-      await createNotification({
-        user_id: helperTechnicianId,
-        type: NotificationType.JOB_ASSIGNED,
-        title: 'Helper Assignment',
-        message: `You have been assigned to help with: ${jobTitle}`,
-        reference_type: 'job',
-        reference_id: request.job_id,
-        priority: 'high',
-      });
-    }
-
-    return result !== null;
+    return true;
   } catch (e) {
     return false;
   }

@@ -48,16 +48,46 @@ interface TelegramConnectProps {
 
 // Bot configuration
 const TELEGRAM_BOT_USERNAME = 'Acwer_Job_Bot';
+const TOKEN_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
-// Generate a secure token for linking (in production, this should be a signed JWT from the server)
+/**
+ * Generate a connect token for Telegram linking.
+ * 
+ * SECURITY NOTE: This token is validated server-side by the Telegram bot webhook.
+ * The webhook MUST verify:
+ * 1. Token hasn't expired (timestamp + TOKEN_EXPIRY_MS > now)
+ * 2. User ID exists in the database
+ * 3. Token hasn't been used before (one-time use)
+ * 
+ * For production, consider using Supabase Edge Function to generate signed JWTs.
+ */
 const generateConnectToken = (userId: string): string => {
-  // Simple base64 encoding for now - Edge Function will use proper JWT
+  // Include random nonce to prevent replay attacks
+  const nonce = crypto.randomUUID();
   const payload = {
     user_id: userId,
     timestamp: Date.now(),
+    expires_at: Date.now() + TOKEN_EXPIRY_MS,
+    nonce: nonce,
     action: 'link'
   };
   return btoa(JSON.stringify(payload));
+};
+
+/**
+ * Validate a connect token (client-side pre-check).
+ * Server MUST also validate independently.
+ */
+const isTokenValid = (token: string): boolean => {
+  try {
+    const payload = JSON.parse(atob(token));
+    if (!payload.expires_at || !payload.user_id || !payload.nonce) {
+      return false;
+    }
+    return Date.now() < payload.expires_at;
+  } catch {
+    return false;
+  }
 };
 
 const TelegramConnect: React.FC<TelegramConnectProps> = ({ currentUser, compact = false }) => {

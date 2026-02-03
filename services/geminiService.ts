@@ -1,3 +1,20 @@
+/**
+ * Gemini AI Service
+ * 
+ * SECURITY NOTE: The Gemini API key is exposed in the client bundle.
+ * This is intentional for the current prototype phase.
+ * 
+ * For production, consider:
+ * 1. Using a Supabase Edge Function as a proxy
+ * 2. Implementing rate limiting per user
+ * 3. Restricting the API key to specific domains in Google Cloud Console
+ * 4. Setting usage quotas on the API key
+ * 
+ * Current mitigations:
+ * - Only authenticated users can trigger AI features (protected by Supabase RLS)
+ * - Limited to summary generation (read-only operation)
+ */
+
 import { GoogleGenAI } from "@google/genai";
 import { Job, Customer } from '../types';
 
