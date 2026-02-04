@@ -541,6 +541,35 @@ For jobs in "Assigned" or "In Progress":
 4. Update hourmeter readings
 5. Manage rental assignments
 
+### Service Prediction (Hourmeter-Based)
+
+For Diesel, LPG, and Petrol forklifts, the system predicts when service is due based on actual usage.
+
+#### How It Works
+1. **Enter hourmeter readings** during jobs or inspections
+2. System calculates **average daily usage** from readings
+3. Predicts **next service date** based on usage patterns
+4. Dashboard shows forklifts by urgency: Overdue, Due Soon, Upcoming
+
+#### Recording Hourmeter Readings
+- During job completion, technicians enter the current hourmeter
+- Readings are tracked over time to improve prediction accuracy
+- More readings = higher confidence predictions
+
+#### Viewing Service Predictions
+- **Dashboard Widget** shows forklifts needing service soon
+- **Forklift Profile** shows detailed prediction with confidence level
+- Urgency colors: 🔴 Overdue, 🟠 Due This Week, 🟡 Next 2 Weeks, 🟢 On Track
+
+#### After Service Completion
+When a PM service job is completed, the hourmeter resets automatically and the prediction cycle restarts.
+
+#### Configuring Service Intervals
+Default interval is 500 hours. To change for a specific forklift:
+1. Open Forklift Profile
+2. Go to Service Settings
+3. Update the service interval (e.g., 250, 500, 1000 hours)
+
 ### Viewing KPIs
 
 1. Go to **Dashboard** or **Reports**

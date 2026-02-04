@@ -4,6 +4,59 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-04] - Hourmeter Service Prediction System
+
+### New Feature: Engine Hour-Based Service Prediction
+
+Predicts next service date for Diesel, LPG, and Petrol forklifts based on hourmeter usage patterns.
+
+#### How It Works
+1. **Collects Data:** Last service hourmeter, current hourmeter, service interval
+2. **Calculates Average Usage:** Hours used ÷ days since last reading = avg hrs/day
+3. **Predicts Service Date:** Hours until service ÷ avg hrs/day = days remaining
+4. **Auto-Resets:** After service completion, cycle restarts automatically
+5. **Updates Dynamically:** Every new reading recalculates the prediction
+
+#### Database Changes
+- `forklifts` table: Added `last_service_hourmeter`, `service_interval_hours` columns
+- New `hourmeter_readings` table: Tracks all hourmeter readings with timestamps
+- `calculate_predicted_service_date()` function: Server-side prediction calculation
+- `complete_forklift_service()` function: Resets tracking after service
+- `v_forklift_service_predictions` view: Dashboard-ready predictions with urgency
+
+#### New Files
+- `services/hourmeterService.ts` — Extended with service prediction functions
+- `components/hourmeter/HourmeterReadingForm.tsx` — Record hourmeter readings
+- `components/hourmeter/ServicePredictionCard.tsx` — Display prediction info
+- `components/hourmeter/ServicePredictionDashboard.tsx` — Dashboard widget
+- `database/migrations/20260204_hourmeter_service_prediction.sql` — Full migration
+
+#### Types Added
+- `HourmeterReading` — Individual reading record
+- `ServicePrediction` — Calculation result
+- `ForkliftWithPrediction` — Forklift with prediction data
+- `ServicePredictionDashboard` — Dashboard widget data
+- `ServiceUrgency` — Urgency levels (overdue, due_soon, upcoming, ok)
+
+#### Service Functions
+- `recordHourmeterReading()` — Log a new reading
+- `getHourmeterReadings()` — Fetch reading history
+- `getServicePrediction()` — Get prediction for one forklift
+- `getForkliftServicePredictions()` — Get all predictions
+- `getServicePredictionDashboard()` — Dashboard data grouped by urgency
+- `completeForkliftService()` — Reset after service
+- `updateServiceInterval()` — Change service interval
+
+#### Helpers
+- `requiresHourmeterTracking()` — Check if forklift type needs tracking
+- `formatDaysRemaining()` — Human-readable countdown
+- `getUrgencyColor()` — CSS classes for urgency display
+
+### Migration Required
+Run `20260204_hourmeter_service_prediction.sql` on Supabase to enable the feature.
+
+---
+
 ## [2026-02-03] - Security Fixes (Codex Review)
 
 ### Critical Fixes

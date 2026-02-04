@@ -135,6 +135,9 @@ export interface Forklift {
   // Current rental assignment (denormalized for quick lookup)
   current_customer_id?: string;
   current_customer?: Customer; // Populated when fetched with joins
+  // Hourmeter-based service prediction (for Diesel/LPG/Petrol)
+  last_service_hourmeter?: number; // Hourmeter reading after last service
+  service_interval_hours?: number; // Hours between services (default 500)
 }
 
 // Rental Status
@@ -247,4 +250,67 @@ export interface FleetDashboardMetrics {
     serial_number: string;
     job_count: number;
   }[];
+}
+
+// =============================================
+// HOURMETER SERVICE PREDICTION TYPES
+// =============================================
+
+/**
+ * Individual hourmeter reading record
+ */
+export interface HourmeterReading {
+  reading_id: string;
+  forklift_id: string;
+  hourmeter_value: number;
+  reading_date: string;
+  recorded_by_id?: string;
+  recorded_by_name?: string;
+  job_id?: string;
+  is_service_reading: boolean;
+  notes?: string;
+  created_at: string;
+}
+
+/**
+ * Service prediction calculation result
+ */
+export interface ServicePrediction {
+  forklift_id: string;
+  predicted_date: string;
+  days_remaining: number;
+  hours_until_service: number;
+  avg_daily_hours: number;
+  next_service_hourmeter: number;
+  confidence: 'low' | 'medium' | 'high';
+}
+
+/**
+ * Service urgency levels for UI display
+ */
+export type ServiceUrgency = 'overdue' | 'due_soon' | 'upcoming' | 'ok';
+
+/**
+ * Forklift with service prediction data (from view)
+ */
+export interface ForkliftWithPrediction extends Forklift {
+  last_service_hourmeter: number;
+  service_interval_hours: number;
+  predicted_date?: string;
+  days_remaining?: number;
+  hours_until_service?: number;
+  avg_daily_hours?: number;
+  next_service_hourmeter?: number;
+  confidence?: 'low' | 'medium' | 'high';
+  service_urgency?: ServiceUrgency;
+}
+
+/**
+ * Dashboard widget data for service predictions
+ */
+export interface ServicePredictionDashboard {
+  overdue: ForkliftWithPrediction[];
+  due_this_week: ForkliftWithPrediction[];
+  upcoming_two_weeks: ForkliftWithPrediction[];
+  total_engine_forklifts: number;
 }

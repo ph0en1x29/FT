@@ -36,6 +36,7 @@
     "dotenv": "^17.2.3",
     "eslint": "^9.39.2",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "pg": "^8.18.0",
     "playwright": "^1.57.0",
     "typescript": "~5.8.2",
     "typescript-eslint": "^8.54.0",
