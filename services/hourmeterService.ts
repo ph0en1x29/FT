@@ -561,3 +561,113 @@ export function getUrgencyColor(urgency: string): string {
       return 'text-green-600 bg-green-100';
   }
 }
+
+// =============================================
+// SERVICE AUTOMATION FUNCTIONS
+// =============================================
+
+/**
+ * Get forklifts due for service within specified days
+ */
+export async function getForkliftsDueForService(withinDays: number = 7): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('v_forklift_service_predictions')
+      .select('*')
+      .or(`service_urgency.eq.overdue,service_urgency.eq.due_soon,days_remaining.lte.${withinDays}`)
+      .order('days_remaining', { ascending: true });
+    
+    if (error) throw error;
+    
+    // Add computed fields for widget compatibility
+    return (data || []).map(f => ({
+      ...f,
+      is_overdue: f.service_urgency === 'overdue' || (f.days_remaining !== null && f.days_remaining <= 0),
+      has_open_job: false, // TODO: Check if forklift has open service job
+    }));
+  } catch (err) {
+    logError('[HourmeterService] Error getting forklifts due for service:', err);
+    return [];
+  }
+}
+
+/**
+ * Run daily service check - creates jobs and notifications for due forklifts
+ */
+export async function runDailyServiceCheck(): Promise<{ jobs_created: number; notifications_created: number }> {
+  try {
+    logDebug('[HourmeterService] Running daily service check...');
+    
+    // Get forklifts that are overdue or due within 7 days
+    const dueForklifts = await getForkliftsDueForService(7);
+    
+    let jobsCreated = 0;
+    let notificationsCreated = 0;
+    
+    for (const forklift of dueForklifts) {
+      // Skip if already has an open service job
+      const { data: existingJobs } = await supabase
+        .from('jobs')
+        .select('job_id')
+        .eq('forklift_id', forklift.forklift_id)
+        .in('job_type', ['Service', 'Full Service'])
+        .not('status', 'in', '("Completed","Cancelled")')
+        .limit(1);
+      
+      if (existingJobs && existingJobs.length > 0) {
+        continue; // Skip - already has open service job
+      }
+      
+      // Create service job for overdue forklifts
+      if (forklift.is_overdue) {
+        const { error: jobError } = await supabase
+          .from('jobs')
+          .insert({
+            title: `PM Service - ${forklift.serial_number}`,
+            description: `Scheduled preventive maintenance. Current hourmeter: ${forklift.current_hourmeter} hrs. Service was due at ${forklift.next_service_hourmeter} hrs.`,
+            job_type: 'Full Service',
+            priority: 'High',
+            status: 'Pending',
+            forklift_id: forklift.forklift_id,
+            customer_id: forklift.current_customer_id || forklift.customer_id,
+          });
+        
+        if (!jobError) {
+          jobsCreated++;
+        }
+      }
+      
+      // Create notification for admins
+      const { error: notifError } = await supabase
+        .from('notifications')
+        .insert({
+          type: 'service_due',
+          title: forklift.is_overdue 
+            ? `Service OVERDUE: ${forklift.serial_number}` 
+            : `Service Due Soon: ${forklift.serial_number}`,
+          message: forklift.is_overdue
+            ? `Forklift ${forklift.serial_number} is overdue for service. Current: ${forklift.current_hourmeter} hrs, Target: ${forklift.next_service_hourmeter} hrs.`
+            : `Forklift ${forklift.serial_number} service due in ${forklift.days_remaining} days. Predicted date: ${forklift.predicted_date}.`,
+          priority: forklift.is_overdue ? 'high' : 'medium',
+          target_roles: ['admin', 'supervisor'],
+          metadata: {
+            forklift_id: forklift.forklift_id,
+            serial_number: forklift.serial_number,
+            days_remaining: forklift.days_remaining,
+            current_hourmeter: forklift.current_hourmeter,
+            next_service_hourmeter: forklift.next_service_hourmeter,
+          },
+        });
+      
+      if (!notifError) {
+        notificationsCreated++;
+      }
+    }
+    
+    logDebug(`[HourmeterService] Daily check complete: ${jobsCreated} jobs, ${notificationsCreated} notifications`);
+    return { jobs_created: jobsCreated, notifications_created: notificationsCreated };
+  } catch (err) {
+    logError('[HourmeterService] Error running daily service check:', err);
+    throw err;
+  }
+}

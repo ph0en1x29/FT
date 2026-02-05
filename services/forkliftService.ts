@@ -38,6 +38,11 @@ export {
   getJobHourmeterAmendment,
   flagJobHourmeter,
   validateHourmeterReading,
+  // Service prediction
+  getForkliftsDueForService,
+  runDailyServiceCheck,
+  getServicePredictionDashboard,
+  getForkliftServicePredictions,
 } from './hourmeterService';
 
 // Service schedule operations

@@ -344,6 +344,11 @@ export const SupabaseDb = {
   updateServiceInterval: forklifts.updateServiceInterval,
   deleteServiceInterval: forklifts.deleteServiceInterval,
   hardDeleteServiceInterval: forklifts.hardDeleteServiceInterval,
+  // Service prediction automation
+  getForkliftsDueForService: forklifts.getForkliftsDueForService,
+  runDailyServiceCheck: forklifts.runDailyServiceCheck,
+  getServicePredictionDashboard: forklifts.getServicePredictionDashboard,
+  getForkliftServicePredictions: forklifts.getForkliftServicePredictions,
 
   // Inventory
   getParts: inventory.getParts,
