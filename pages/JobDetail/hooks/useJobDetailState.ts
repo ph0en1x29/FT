@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Job, ForkliftConditionChecklist, JobRequest, VanStock, HourmeterFlagReason, JobRequestType } from '../../../types';
+import { Job, ForkliftConditionChecklist, JobRequest, VanStock, HourmeterFlagReason, JobRequestType, ServiceUpgradePrompt } from '../../../types';
 
 /**
  * Custom hook that manages all state for JobDetailPage
@@ -53,6 +53,17 @@ export const useJobDetailState = () => {
   const [showDeferredModal, setShowDeferredModal] = useState(false);
   const [showHourmeterAmendmentModal, setShowHourmeterAmendmentModal] = useState(false);
   const [showRejectJobModal, setShowRejectJobModal] = useState(false);
+
+  // Service upgrade prompt state (for Minor Service on overdue unit)
+  const [serviceUpgradePrompt, setServiceUpgradePrompt] = useState<ServiceUpgradePrompt>({
+    show: false,
+    forklift_id: '',
+    current_hourmeter: 0,
+    target_hourmeter: 0,
+    hours_overdue: 0,
+    job_id: '',
+    original_job_type: ''
+  });
 
   // AI states
   const [aiSummary, setAiSummary] = useState('');
@@ -167,6 +178,9 @@ export const useJobDetailState = () => {
     showDeferredModal, setShowDeferredModal,
     showHourmeterAmendmentModal, setShowHourmeterAmendmentModal,
     showRejectJobModal, setShowRejectJobModal,
+
+    // Service upgrade
+    serviceUpgradePrompt, setServiceUpgradePrompt,
 
     // AI
     aiSummary, setAiSummary,

@@ -7,6 +7,7 @@ import { showToast } from '../../../services/toastService';
 import { getMissingMandatoryItems } from '../utils';
 import { JobDetailState } from './useJobDetailState';
 import { createJobRequest, updateJobRequest, approveSparePartRequest, rejectRequest } from '../../../services/jobRequestService';
+import { checkServiceUpgradeNeeded, upgradeToFullService, declineServiceUpgrade } from '../../../services/serviceTrackingService';
 
 interface UseJobActionsParams {
   state: JobDetailState;
@@ -83,12 +84,33 @@ export const useJobActions = ({
   }, [job, currentUserId, currentUserName, state, navigate]);
 
   // Start job handlers
-  const handleOpenStartJobModal = useCallback(() => {
+  const handleOpenStartJobModal = useCallback(async () => {
     if (!job) return;
+    
+    // Check if this is a Minor Service on an overdue unit
+    if (job.job_type === 'Minor Service' && job.forklift_id) {
+      try {
+        const upgradePrompt = await checkServiceUpgradeNeeded(
+          job.forklift_id,
+          job.job_id,
+          job.job_type
+        );
+        
+        if (upgradePrompt) {
+          // Show upgrade prompt instead of start job modal
+          state.setServiceUpgradePrompt(upgradePrompt);
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to check service upgrade:', error);
+        // Continue with normal flow if check fails
+      }
+    }
+    
     setStartJobHourmeter((job.forklift?.hourmeter || 0).toString());
     setConditionChecklist({});
     setShowStartJobModal(true);
-  }, [job, setShowRejectJobModal, setRejectJobReason]);
+  }, [job, state, setStartJobHourmeter, setConditionChecklist, setShowStartJobModal]);
 
   const handleChecklistToggle = useCallback((key: string) => {
     setConditionChecklist(prev => ({ ...prev, [key]: !prev[key as keyof ForkliftConditionChecklist] }));
@@ -115,6 +137,47 @@ export const useJobActions = ({
       showToast.error('Failed to start job', (error as Error).message);
     }
   }, [job, state, currentUserId, currentUserName, setJob]);
+
+  // Service upgrade handlers (Minor Service → Full Service)
+  const handleServiceUpgrade = useCallback(async () => {
+    if (!job) return;
+    try {
+      await upgradeToFullService(job.job_id, currentUserId, currentUserName);
+      await loadJob(); // Reload to get updated job type
+      state.setServiceUpgradePrompt(prev => ({ ...prev, show: false }));
+      showToast.success('Job upgraded to Full Service', 'The service checklist has been updated.');
+      // Now open the start job modal
+      setStartJobHourmeter((job.forklift?.hourmeter || 0).toString());
+      setConditionChecklist({});
+      setShowStartJobModal(true);
+    } catch (error) {
+      showToast.error('Failed to upgrade job', (error as Error).message);
+    }
+  }, [job, currentUserId, currentUserName, loadJob, state, setStartJobHourmeter, setConditionChecklist, setShowStartJobModal]);
+
+  const handleDeclineServiceUpgrade = useCallback(async () => {
+    if (!job) return;
+    const prompt = state.serviceUpgradePrompt;
+    try {
+      await declineServiceUpgrade(
+        job.job_id,
+        prompt.forklift_id,
+        currentUserId,
+        currentUserName,
+        prompt.current_hourmeter,
+        prompt.target_hourmeter,
+        prompt.original_job_type
+      );
+      state.setServiceUpgradePrompt(prev => ({ ...prev, show: false }));
+      showToast.info('Continuing as Minor Service', 'Unit will remain flagged as Service Due.');
+      // Open the start job modal
+      setStartJobHourmeter((job.forklift?.hourmeter || 0).toString());
+      setConditionChecklist({});
+      setShowStartJobModal(true);
+    } catch (error) {
+      showToast.error('Failed to log decision', (error as Error).message);
+    }
+  }, [job, currentUserId, currentUserName, state, setStartJobHourmeter, setConditionChecklist, setShowStartJobModal]);
 
   // Status change handler
   const handleStatusChange = useCallback(async (newStatus: JobStatus) => {
@@ -809,6 +872,10 @@ export const useJobActions = ({
     handleOpenStartJobModal,
     handleChecklistToggle,
     handleStartJobWithCondition,
+    
+    // Service upgrade
+    handleServiceUpgrade,
+    handleDeclineServiceUpgrade,
     
     // Status
     handleStatusChange,

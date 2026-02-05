@@ -5,7 +5,7 @@
  * Created: 2026-02-05 for customer feedback implementation
  */
 
-import { supabase } from '../lib/supabase';
+import { supabase } from './supabaseClient';
 import { 
   FleetServiceOverview, 
   DailyUsageResult, 

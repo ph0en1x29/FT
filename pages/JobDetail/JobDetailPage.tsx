@@ -5,6 +5,7 @@ import { useTechnicians, usePartsForList } from '../../hooks/useQueryHooks';
 import { ComboboxOption } from '../../components/Combobox';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import ServiceUpgradeModal from '../../components/ServiceUpgradeModal';
 
 // Extracted components
 import {
@@ -215,6 +216,12 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         )}
         onConfirm={actions.handleDeferredCompletion}
         onClose={() => state.setShowDeferredModal(false)}
+      />
+      <ServiceUpgradeModal
+        prompt={state.serviceUpgradePrompt}
+        onUpgrade={actions.handleServiceUpgrade}
+        onDecline={actions.handleDeclineServiceUpgrade}
+        onClose={() => state.setServiceUpgradePrompt(prev => ({ ...prev, show: false }))}
       />
     </div>
   );
