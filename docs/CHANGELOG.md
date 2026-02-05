@@ -55,6 +55,22 @@ Predicts next service date for Diesel, LPG, and Petrol forklifts based on hourme
 ### Migration Required
 Run `20260204_hourmeter_service_prediction.sql` on Supabase to enable the feature.
 
+### Update (Same Day) - Client Feedback
+
+#### Split Service Job Types
+- `Full Service` — PM with oil change, resets hourmeter cycle
+- `Minor Service` — PM without oil change, tracks work but no reset
+- Legacy `Service` type still works (treated as Full Service)
+
+#### Auto Service Intervals by Forklift Type
+- Diesel → 500 hours
+- LPG/Petrol → 350 hours
+- Trigger `trg_set_service_interval` auto-applies on forklift create/update
+
+#### Automation Triggers
+- `on_service_job_completed()` — Auto-resets hourmeter when Full Service job completed
+- `set_service_interval_by_type()` — Auto-sets interval based on forklift type
+
 ---
 
 ## [2026-02-03] - Security Fixes (Codex Review)
