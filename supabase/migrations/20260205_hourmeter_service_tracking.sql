@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS service_intervals (
   service_type TEXT NOT NULL,
   hourmeter_interval INTEGER,
   calendar_interval_days INTEGER,
-  priority TEXT DEFAULT 'medium',
+  priority TEXT DEFAULT 'Medium',
   checklist_items JSONB DEFAULT '[]',
   estimated_duration_hours NUMERIC,
   name TEXT,
@@ -98,14 +98,14 @@ CREATE TABLE IF NOT EXISTS service_intervals (
 -- Insert default service intervals by type
 INSERT INTO service_intervals (forklift_type, service_type, hourmeter_interval, calendar_interval_days, name, priority)
 VALUES 
-  ('Diesel', 'Full Service', 500, NULL, 'Diesel Full Service', 'high'),
-  ('LPG', 'Full Service', 350, NULL, 'LPG Full Service', 'high'),
-  ('Electric', 'Full Service', NULL, 90, 'Electric Full Service', 'high'),
-  ('Petrol', 'Full Service', 500, NULL, 'Petrol Full Service', 'high'),
-  ('Diesel', 'Minor Service', 250, NULL, 'Diesel Minor Service', 'medium'),
-  ('LPG', 'Minor Service', 175, NULL, 'LPG Minor Service', 'medium'),
-  ('Electric', 'Minor Service', NULL, 45, 'Electric Minor Service', 'medium'),
-  ('Petrol', 'Minor Service', 250, NULL, 'Petrol Minor Service', 'medium')
+  ('Diesel', 'Full Service', 500, NULL, 'Diesel Full Service', 'High'),
+  ('LPG', 'Full Service', 350, NULL, 'LPG Full Service', 'High'),
+  ('Electric', 'Full Service', NULL, 90, 'Electric Full Service', 'High'),
+  ('Petrol', 'Full Service', 500, NULL, 'Petrol Full Service', 'High'),
+  ('Diesel', 'Minor Service', 250, NULL, 'Diesel Minor Service', 'Medium'),
+  ('LPG', 'Minor Service', 175, NULL, 'LPG Minor Service', 'Medium'),
+  ('Electric', 'Minor Service', NULL, 45, 'Electric Minor Service', 'Medium'),
+  ('Petrol', 'Minor Service', 250, NULL, 'Petrol Minor Service', 'Medium')
 ON CONFLICT (forklift_type, service_type) DO UPDATE
 SET hourmeter_interval = EXCLUDED.hourmeter_interval,
     calendar_interval_days = EXCLUDED.calendar_interval_days,
