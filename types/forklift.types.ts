@@ -138,6 +138,10 @@ export interface Forklift {
   // Hourmeter-based service prediction (for Diesel/LPG/Petrol)
   last_service_hourmeter?: number; // Hourmeter reading after last service
   service_interval_hours?: number; // Hours between services (default 500)
+  // Service tracking fields (2026-02-05 enhancement)
+  last_serviced_hourmeter?: number; // Hourmeter when last Full Service completed
+  next_target_service_hour?: number; // Auto-calculated: last_serviced + interval
+  last_hourmeter_update?: string; // Timestamp of last hourmeter reading (for stale detection)
 }
 
 // Rental Status
@@ -313,4 +317,71 @@ export interface ServicePredictionDashboard {
   due_this_week: ForkliftWithPrediction[];
   upcoming_two_weeks: ForkliftWithPrediction[];
   total_engine_forklifts: number;
+}
+
+// =============================================
+// SERVICE UPGRADE & FLEET OVERVIEW TYPES (2026-02-05)
+// =============================================
+
+/**
+ * Log entry for service upgrade decisions (Minor → Full)
+ */
+export interface ServiceUpgradeLog {
+  log_id: string;
+  job_id: string;
+  forklift_id: string;
+  technician_id?: string;
+  technician_name?: string;
+  decision: 'upgraded' | 'declined';
+  current_hourmeter: number;
+  target_hourmeter: number;
+  hours_overdue: number;
+  original_job_type: string;
+  created_at: string;
+}
+
+/**
+ * Fleet service overview row (from view)
+ */
+export interface FleetServiceOverview {
+  forklift_id: string;
+  serial_number: string;
+  make: string;
+  model: string;
+  type: ForkliftType;
+  status: ForkliftStatus;
+  current_hourmeter: number;
+  last_serviced_hourmeter?: number;
+  next_target_service_hour?: number;
+  service_interval_hours?: number;
+  last_hourmeter_update?: string;
+  ownership: ForkliftOwnership;
+  current_customer_id?: string;
+  // Computed fields from view
+  is_service_overdue: boolean;
+  hours_overdue?: number;
+  is_stale_data: boolean;
+  days_since_update?: number;
+}
+
+/**
+ * Daily usage calculation result
+ */
+export interface DailyUsageResult {
+  avg_daily_hours: number | null;
+  usage_trend: 'increasing' | 'decreasing' | 'stable' | 'insufficient_data';
+  reading_count: number;
+}
+
+/**
+ * Service upgrade prompt data
+ */
+export interface ServiceUpgradePrompt {
+  show: boolean;
+  forklift_id: string;
+  current_hourmeter: number;
+  target_hourmeter: number;
+  hours_overdue: number;
+  job_id: string;
+  original_job_type: string;
 }

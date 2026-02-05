@@ -4,6 +4,41 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-05] - Hourmeter Service Tracking Enhancement (In Progress)
+
+### Customer Feedback Implementation
+
+Enhanced hourmeter service tracking with service upgrade prompts, stale data detection, and improved fleet overview.
+
+#### New Features
+1. **Two Hourmeter Fields** — `last_serviced_hourmeter` and `next_target_service_hour`
+2. **Service Intervals by Type** — Diesel (500 hrs), LPG (350 hrs), Electric (90 days)
+3. **Service Upgrade Prompt** — When starting Minor Service on overdue unit, prompts to upgrade to Full Service
+4. **Stale Data Detection** — Flags units with no hourmeter update in 60+ days
+5. **Daily Usage Tracking** — Calculates avg daily hours and trend (increasing/decreasing/stable)
+
+#### Database Changes
+- `forklifts` table: Added `last_serviced_hourmeter`, `next_target_service_hour`, `last_hourmeter_update`
+- New `service_intervals` table with defaults per forklift type
+- New `service_upgrade_logs` table for audit trail
+- New `fleet_service_overview` view with computed fields
+- `get_forklift_daily_usage()` function for usage calculation
+- `complete_full_service()` function for baseline reset
+- Auto-calculate trigger on forklift INSERT/UPDATE
+
+#### New Files
+- `services/serviceTrackingService.ts` — Fleet overview, upgrade logic, stale detection
+- `components/ServiceUpgradeModal.tsx` — Upgrade prompt UI component
+- `docs/features/HOURMETER_SERVICE_TRACKING.md` — Feature specification
+
+#### Remaining Work
+- [ ] Integrate upgrade modal into JobDetail page
+- [ ] Update Fleet Overview dashboard with new columns
+- [ ] Add stale data notifications
+- [ ] End-to-end testing
+
+---
+
 ## [2026-02-04] - Hourmeter Service Prediction System
 
 ### New Feature: Engine Hour-Based Service Prediction
