@@ -32,12 +32,20 @@ export enum JobPriority {
 
 // Job Type Classification
 export enum JobType {
-  SERVICE = 'Service',
+  SERVICE = 'Service',           // Legacy - kept for backward compatibility
+  FULL_SERVICE = 'Full Service', // PM with oil change - resets hourmeter cycle
+  MINOR_SERVICE = 'Minor Service', // PM without oil change - no reset
   REPAIR = 'Repair',
   CHECKING = 'Checking',
   SLOT_IN = 'Slot-In',    // Emergency/same-day response (15-min SLA)
   COURIER = 'Courier',     // Delivery/Collection with POD
 }
+
+// Job types that reset the hourmeter service cycle
+export const SERVICE_RESET_JOB_TYPES: JobType[] = [
+  JobType.SERVICE,      // Legacy
+  JobType.FULL_SERVICE, // New
+];
 
 // Photo validation requirements
 export interface PhotoRequirements {
