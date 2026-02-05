@@ -31,11 +31,18 @@ Enhanced hourmeter service tracking with service upgrade prompts, stale data det
 - `components/ServiceUpgradeModal.tsx` — Upgrade prompt UI component
 - `docs/features/HOURMETER_SERVICE_TRACKING.md` — Feature specification
 
-#### Remaining Work
-- [ ] Integrate upgrade modal into JobDetail page
-- [ ] Update Fleet Overview dashboard with new columns
-- [ ] Add stale data notifications
-- [ ] End-to-end testing
+#### Implementation Complete ✅
+- [x] Database migration with triggers, views, functions
+- [x] Service tracking service with fleet overview, upgrade logic, stale detection
+- [x] ServiceUpgradeModal component for Minor→Full upgrade prompt
+- [x] JobDetail integration (check on job start, handle upgrade/decline)
+- [x] Fleet Dashboard new columns (Last Serviced, Next Target, Daily Usage)
+- [x] Stale data filter and banner for admin/supervisor
+- [x] Notification system for stale data alerts
+
+#### Testing Needed
+- [ ] End-to-end testing with real data
+- [ ] Migration deployment to production
 
 ---
 

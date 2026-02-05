@@ -8,6 +8,7 @@ import HourmeterReview from '../HourmeterReview';
 import FleetTab from './components/FleetTab';
 import ServiceIntervalsTab from './components/ServiceIntervalsTab';
 import ServiceDueTab from './components/ServiceDueTab';
+import StaleDataBanner from '../../components/StaleDataBanner';
 import { ForkliftsTabsProps, TabType } from './types';
 
 /**
@@ -94,6 +95,9 @@ const ForkliftsTabsPage: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
           </nav>
         </div>
       </div>
+
+      {/* Stale Data Banner (admin/supervisor only) */}
+      {isAdminOrSupervisor && <StaleDataBanner />}
 
       {/* Tab Content */}
       {activeTab === 'dashboard' && isAdminOrSupervisor && (
