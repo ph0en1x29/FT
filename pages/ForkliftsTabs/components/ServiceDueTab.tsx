@@ -309,9 +309,24 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser }) => {
                             
                             if (hoursRemaining != null && usage?.avg_daily_hours != null && usage.avg_daily_hours > 0) {
                               const daysUntilService = hoursRemaining / usage.avg_daily_hours;
+                              
+                              // Already overdue - show "Overdue" badge instead of past date
+                              if (daysUntilService < 0) {
+                                return (
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                    Overdue
+                                  </span>
+                                );
+                              }
+                              
+                              // Cap extreme estimates (more than 2 years out)
+                              if (daysUntilService > 730) {
+                                return <span className="text-slate-500">2+ years</span>;
+                              }
+                              
                               const estDate = new Date(Date.now() + daysUntilService * 24 * 60 * 60 * 1000);
                               return (
-                                <span className={daysUntilService < 0 ? 'text-red-600 font-medium' : ''}>
+                                <span>
                                   {estDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </span>
                               );
