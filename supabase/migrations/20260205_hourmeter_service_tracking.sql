@@ -191,7 +191,7 @@ DECLARE
 BEGIN
   -- Get readings from the period
   SELECT 
-    MIN(hourmeter), MAX(hourmeter),
+    MIN(reading), MAX(reading),
     MIN(recorded_at), MAX(recorded_at),
     COUNT(*)::INTEGER
   INTO first_reading, last_reading, first_date, last_date, reading_count
@@ -209,13 +209,13 @@ BEGIN
   
   -- Determine trend (compare first half vs second half averages)
   -- Simplified: if recent readings are higher rate, trending up
-  SELECT AVG(hourmeter) INTO mid_point_avg
+  SELECT AVG(reading) INTO mid_point_avg
   FROM hourmeter_history
   WHERE forklift_id = p_forklift_id
     AND recorded_at >= NOW() - (p_days || ' days')::INTERVAL
     AND recorded_at < NOW() - (p_days / 2 || ' days')::INTERVAL;
     
-  SELECT AVG(hourmeter) INTO recent_avg
+  SELECT AVG(reading) INTO recent_avg
   FROM hourmeter_history
   WHERE forklift_id = p_forklift_id
     AND recorded_at >= NOW() - (p_days / 2 || ' days')::INTERVAL;
