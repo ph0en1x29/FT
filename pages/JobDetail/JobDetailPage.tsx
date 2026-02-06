@@ -151,6 +151,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         onSave={actions.handleCustomerSignature} onClose={() => state.setShowCustSigPad(false)} />
       <StartJobModal show={state.showStartJobModal} startJobHourmeter={state.startJobHourmeter} conditionChecklist={state.conditionChecklist}
         onHourmeterChange={state.setStartJobHourmeter} onChecklistToggle={actions.handleChecklistToggle}
+        onCheckAll={actions.handleConditionCheckAll} onUncheckAll={actions.handleConditionUncheckAll}
         onStartJob={actions.handleStartJobWithCondition} onClose={() => state.setShowStartJobModal(false)} />
       <FinalizeModal show={state.showFinalizeModal} job={job} currentUserName={currentUserName}
         onFinalize={actions.handleFinalizeInvoice} onClose={() => state.setShowFinalizeModal(false)} />

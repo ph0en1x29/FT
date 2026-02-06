@@ -116,6 +116,28 @@ export const useJobActions = ({
     setConditionChecklist(prev => ({ ...prev, [key]: !prev[key as keyof ForkliftConditionChecklist] }));
   }, [setConditionChecklist]);
 
+  const handleConditionCheckAll = useCallback(() => {
+    const allChecked: Partial<ForkliftConditionChecklist> = {};
+    // Get all checklist keys from the categories constant
+    const allKeys = [
+      'drive_front_axle', 'drive_rear_axle', 'drive_motor_engine', 'drive_controller_transmission',
+      'hydraulic_pump', 'hydraulic_control_valve', 'hydraulic_hose', 'hydraulic_oil_level',
+      'braking_brake_pedal', 'braking_parking_brake', 'braking_fluid_pipe', 'braking_master_pump',
+      'electrical_ignition', 'electrical_battery', 'electrical_wiring', 'electrical_instruments',
+      'steering_wheel_valve', 'steering_cylinder', 'steering_motor', 'steering_knuckle',
+      'load_fork', 'load_mast_roller', 'load_chain_wheel', 'load_cylinder',
+      'tyres_front', 'tyres_rear', 'tyres_rim', 'tyres_screw_nut',
+      'wheels_drive', 'wheels_load', 'wheels_support', 'wheels_hub_nut',
+      'safety_overhead_guard', 'safety_backrest', 'safety_lights', 'safety_horn_alarm'
+    ];
+    allKeys.forEach(key => { allChecked[key as keyof ForkliftConditionChecklist] = true; });
+    setConditionChecklist(allChecked as ForkliftConditionChecklist);
+  }, [setConditionChecklist]);
+
+  const handleConditionUncheckAll = useCallback(() => {
+    setConditionChecklist({} as ForkliftConditionChecklist);
+  }, [setConditionChecklist]);
+
   const handleStartJobWithCondition = useCallback(async () => {
     if (!job) return;
     const hourmeter = parseInt(startJobHourmeter);
@@ -875,6 +897,8 @@ export const useJobActions = ({
     // Start job
     handleOpenStartJobModal,
     handleChecklistToggle,
+    handleConditionCheckAll,
+    handleConditionUncheckAll,
     handleStartJobWithCondition,
     
     // Service upgrade

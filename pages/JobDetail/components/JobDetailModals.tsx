@@ -44,6 +44,8 @@ interface StartJobModalProps {
   conditionChecklist: ForkliftConditionChecklist;
   onHourmeterChange: (value: string) => void;
   onChecklistToggle: (key: string) => void;
+  onCheckAll: () => void;
+  onUncheckAll: () => void;
   onStartJob: () => void;
   onClose: () => void;
 }
@@ -54,10 +56,17 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
   conditionChecklist,
   onHourmeterChange,
   onChecklistToggle,
+  onCheckAll,
+  onUncheckAll,
   onStartJob,
   onClose,
 }) => {
   if (!show) return null;
+
+  // Count checked items
+  const totalItems = CHECKLIST_CATEGORIES.reduce((sum, cat) => sum + cat.items.length, 0);
+  const checkedItems = Object.values(conditionChecklist).filter(Boolean).length;
+  const allChecked = checkedItems === totalItems;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -81,10 +90,29 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
           </div>
         </div>
         <div className="mb-6">
-          <h5 className="font-bold text-[var(--text)] mb-3 flex items-center gap-2">
-            <ClipboardList className="w-5 h-5" /> Condition Checklist
-          </h5>
-          <p className="text-sm text-[var(--text-muted)] mb-4">Check items in good condition:</p>
+          <div className="flex items-center justify-between mb-3">
+            <h5 className="font-bold text-[var(--text)] flex items-center gap-2">
+              <ClipboardList className="w-5 h-5" /> Condition Checklist
+              <span className="text-sm font-normal text-[var(--text-muted)]">({checkedItems}/{totalItems})</span>
+            </h5>
+            <div className="flex gap-2">
+              <button 
+                onClick={onCheckAll}
+                disabled={allChecked}
+                className="text-xs px-3 py-1.5 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+              >
+                <CheckCircle className="w-3.5 h-3.5" /> Check All
+              </button>
+              <button 
+                onClick={onUncheckAll}
+                disabled={checkedItems === 0}
+                className="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+              >
+                <XCircle className="w-3.5 h-3.5" /> Uncheck All
+              </button>
+            </div>
+          </div>
+          <p className="text-sm text-[var(--text-muted)] mb-4">Check items in good condition (uncheck any issues found):</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {CHECKLIST_CATEGORIES.map(category => (
               <div key={category.name} className="bg-[var(--bg-subtle)] p-3 rounded-xl border border-[var(--border)]">
