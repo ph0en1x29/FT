@@ -1,0 +1,13 @@
+#!/bin/sh
+
+echo "🔍 Running pre-commit checks..."
+
+# TypeScript check
+echo "→ TypeScript check..."
+npm run typecheck || exit 1
+
+# Build check  
+echo "→ Build check..."
+npm run build || exit 1
+
+echo "✅ Pre-commit checks passed!"
