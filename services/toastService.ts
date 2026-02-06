@@ -77,6 +77,79 @@ export async function asyncToast<T>(
   return promise;
 }
 
+// Toast with Undo action
+interface UndoToastOptions {
+  message: string;
+  description?: string;
+  undoLabel?: string;
+  duration?: number;
+  onUndo: () => void | Promise<void>;
+}
+
+export function showUndoToast({ message, description, undoLabel = 'Undo', duration = 5000, onUndo }: UndoToastOptions) {
+  let undoClicked = false;
+  
+  return toast(message, {
+    description,
+    duration,
+    action: {
+      label: undoLabel,
+      onClick: async () => {
+        undoClicked = true;
+        try {
+          await onUndo();
+          showToast.success('Action undone');
+        } catch (error) {
+          showToast.error('Failed to undo', (error as Error).message);
+        }
+      },
+    },
+    onDismiss: () => {
+      // Optional: Could track if action was not undone
+    },
+  });
+}
+
+// Destructive action with undo (e.g., delete)
+interface DestructiveToastOptions {
+  message: string;
+  description?: string;
+  duration?: number;
+  onConfirm: () => void | Promise<void>;
+  onUndo?: () => void | Promise<void>;
+}
+
+export function showDestructiveToast({ 
+  message, 
+  description, 
+  duration = 5000, 
+  onConfirm, 
+  onUndo 
+}: DestructiveToastOptions) {
+  // Immediately execute the action
+  const executeAction = async () => {
+    try {
+      await onConfirm();
+    } catch (error) {
+      showToast.error('Action failed', (error as Error).message);
+    }
+  };
+  
+  executeAction();
+  
+  // Show toast with undo option if provided
+  if (onUndo) {
+    return showUndoToast({
+      message,
+      description,
+      duration,
+      onUndo,
+    });
+  } else {
+    return toast.success(message, { description, duration });
+  }
+}
+
 // Common operation toasts for consistency
 export const toastMessages = {
   // Job operations
