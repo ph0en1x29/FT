@@ -241,6 +241,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser }) => {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Next Target</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Current</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Daily Usage</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Est. Service Date</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-theme-muted uppercase">Action</th>
                 </tr>
@@ -296,6 +297,27 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser }) => {
                           ) : (
                             <span className="text-slate-400">—</span>
                           )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm">
+                          {(() => {
+                            // Calculate hours remaining: next target - current hourmeter
+                            const hoursRemaining = overview?.next_target_service_hour != null && forklift.hourmeter != null
+                              ? overview.next_target_service_hour - forklift.hourmeter
+                              : null;
+                            
+                            if (hoursRemaining != null && usage?.avg_daily_hours != null && usage.avg_daily_hours > 0) {
+                              const daysUntilService = hoursRemaining / usage.avg_daily_hours;
+                              const estDate = new Date(Date.now() + daysUntilService * 24 * 60 * 60 * 1000);
+                              return (
+                                <span className={daysUntilService < 0 ? 'text-red-600 font-medium' : ''}>
+                                  {estDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                              );
+                            }
+                            return <span className="text-slate-400">—</span>;
+                          })()}
                         </div>
                       </td>
                       <td className="px-4 py-3">
