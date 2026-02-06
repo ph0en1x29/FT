@@ -4,11 +4,16 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
-## [2026-02-05] - Hourmeter Service Tracking Enhancement (In Progress)
+## [2026-02-05] - Hourmeter Service Tracking Enhancement ✅
 
 ### Customer Feedback Implementation
 
 Enhanced hourmeter service tracking with service upgrade prompts, stale data detection, and improved fleet overview.
+
+#### Bug Fixes (Same Day)
+- Fixed `vercel.json` missing for SPA client-side routing (404 on direct navigation)
+- Fixed `toLocaleString` null check in ServiceDueTab causing crash
+- Fixed `get_forklift_daily_usage` RPC using wrong column name (`reading` not `hourmeter`)
 
 #### New Features
 1. **Two Hourmeter Fields** — `last_serviced_hourmeter` and `next_target_service_hour`

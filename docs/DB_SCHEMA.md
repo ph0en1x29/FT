@@ -2,7 +2,7 @@
 
 > Purpose: Reference for engineers and AI assistants when modifying or extending the database.
 > Database: Supabase (PostgreSQL)
-> Last Updated: 2026-01-19 (Added hourmeter persistence tracking, parts confirmation enforcement trigger, RLS policy for request edits)
+> Last Updated: 2026-02-05 (Added service tracking: fleet_service_overview view, service_upgrade_logs table, get_forklift_daily_usage/complete_full_service functions, new forklift columns)
 
 ---
 
@@ -727,6 +727,9 @@ Equipment records.
 | `last_service_job_id` | UUID | YES | |
 | `service_interval_hours` | INTEGER | YES | |
 | `avg_daily_usage` | NUMERIC | YES | `8.0` |
+| `last_serviced_hourmeter` | INTEGER | YES | | Hourmeter when last Full Service completed |
+| `next_target_service_hour` | INTEGER | YES | | Calculated: last_serviced + interval |
+| `last_hourmeter_update` | TIMESTAMPTZ | YES | | For stale data detection (60+ days) |
 
 Constraints:
 - PK: `forklift_id`
@@ -833,14 +836,14 @@ Foreign keys:
 ---
 
 ### `service_intervals`
-Service interval rules.
+Service interval rules per forklift type. Electric uses calendar-based, Diesel/LPG use hourmeter-based.
 
 | Column | Type | Nullable | Default |
 |--------|------|----------|---------|
 | `interval_id` | UUID | NO | `gen_random_uuid()` |
 | `forklift_type` | VARCHAR | NO | |
 | `service_type` | VARCHAR | NO | |
-| `hourmeter_interval` | INTEGER | NO | |
+| `hourmeter_interval` | INTEGER | YES | | NULL for calendar-based (electric) |
 | `calendar_interval_days` | INTEGER | YES | |
 | `priority` | VARCHAR | YES | `'Medium'::character varying` |
 | `checklist_items` | JSONB | YES | `'[]'::jsonb` |
@@ -851,6 +854,34 @@ Service interval rules.
 
 Constraints:
 - PK: `interval_id`
+- UNIQUE: `(forklift_type, service_type)`
+
+Default intervals:
+- Diesel Full Service: 500 hours
+- LPG Full Service: 350 hours  
+- Electric Full Service: 90 days (calendar-based)
+
+---
+
+### `service_upgrade_logs` (NEW 2026-02-05)
+Audit trail for service upgrade decisions when technicians start minor service on overdue units.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `log_id` | UUID | NO | `gen_random_uuid()` |
+| `forklift_id` | UUID | NO | |
+| `job_id` | UUID | YES | |
+| `original_service_type` | VARCHAR | NO | | e.g., 'Minor Service' |
+| `suggested_service_type` | VARCHAR | NO | | e.g., 'Full Service' |
+| `user_decision` | VARCHAR | NO | | 'upgraded', 'declined', 'deferred' |
+| `hours_overdue` | INTEGER | YES | |
+| `days_overdue` | INTEGER | YES | |
+| `technician_id` | UUID | YES | |
+| `created_at` | TIMESTAMPTZ | YES | `now()` |
+| `notes` | TEXT | YES | |
+
+Constraints:
+- PK: `log_id`
 
 ---
 
@@ -2208,6 +2239,48 @@ Columns:
 
 ---
 
+### `fleet_service_overview` (NEW 2026-02-05)
+Comprehensive view for the Fleet > Service Due tab with computed service metrics.
+
+Columns:
+- `forklift_id` UUID
+- `serial_number` VARCHAR
+- `make` VARCHAR
+- `model` VARCHAR
+- `type` VARCHAR
+- `current_hourmeter` INTEGER — Current reading from forklifts.hourmeter
+- `last_serviced_hourmeter` INTEGER — Reading when last Full Service completed
+- `next_target_service_hour` INTEGER — Calculated target
+- `hours_remaining` INTEGER — Computed: next_target - current
+- `hours_overdue` INTEGER — If negative hours_remaining, shows positive overdue amount
+- `last_service_date` TIMESTAMPTZ
+- `days_since_service` INTEGER
+- `last_hourmeter_update` TIMESTAMPTZ
+- `is_stale_data` BOOLEAN — TRUE if no hourmeter update in 60+ days
+- `service_urgency` VARCHAR — 'overdue', 'due_soon', 'ok'
+- `current_customer_id` UUID
+- `customer_name` TEXT
+
+---
+
+### `v_forklift_service_predictions` (NEW 2026-02-05)
+Alternative service prediction view with urgency classification.
+
+Columns:
+- `forklift_id` UUID
+- `serial_number` VARCHAR
+- `make` VARCHAR
+- `model` VARCHAR
+- `type` VARCHAR
+- `hourmeter` INTEGER
+- `next_target_service_hour` INTEGER
+- `hours_remaining` INTEGER
+- `days_remaining` INTEGER — Estimated based on avg daily usage
+- `service_urgency` VARCHAR — 'overdue', 'due_soon', 'ok'
+- `has_open_job` BOOLEAN
+
+---
+
 ## Enums
 
 ### `audit_event_type`
@@ -2532,6 +2605,38 @@ Apply or reject a hourmeter amendment request.
 | BOOLEAN | True if successful |
 
 Permissions: Admin (Service), Supervisor
+
+---
+
+#### `get_forklift_daily_usage(p_forklift_id UUID, p_days INTEGER DEFAULT 14)` (NEW 2026-02-05)
+Calculate average daily hourmeter usage and trend for a forklift.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `p_forklift_id` | UUID | Forklift to analyze |
+| `p_days` | INTEGER | Days of history to analyze (default 14) |
+
+| Returns | Type | Description |
+|---------|------|-------------|
+| `avg_daily_hours` | NUMERIC | Average hours per day |
+| `usage_trend` | TEXT | 'increasing', 'decreasing', 'stable', or 'insufficient_data' |
+| `reading_count` | INTEGER | Number of readings in period |
+
+---
+
+#### `complete_full_service(p_forklift_id UUID, p_hourmeter INTEGER, p_job_id UUID DEFAULT NULL)` (NEW 2026-02-05)
+Record completion of a Full Service job, resetting the service baseline.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `p_forklift_id` | UUID | Forklift serviced |
+| `p_hourmeter` | INTEGER | Current hourmeter reading |
+| `p_job_id` | UUID | Optional job ID for audit |
+
+Updates:
+- Sets `last_serviced_hourmeter` to current reading
+- Recalculates `next_target_service_hour` based on service interval
+- Updates `last_service_date` to NOW()
 
 ---
 

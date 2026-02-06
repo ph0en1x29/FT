@@ -755,6 +755,71 @@ This prevents conflicting changes when multiple admins are active.
 
 ---
 
+## Fleet Management (NEW - 2026-02-05)
+
+### Overview
+The Fleet page provides comprehensive visibility into your forklift fleet status, service schedules, and maintenance needs.
+
+### Tabs
+
+#### Overview Tab
+Shows high-level fleet statistics:
+- **Rented Out** — Units currently with customers
+- **In Service** — Units undergoing maintenance
+- **Service Due** — Units needing attention (within 7 days or 50 hours)
+- **Available** — Ready for deployment
+- **Out of Service** — Non-operational units
+
+#### Fleet Tab
+List of all forklifts with search and filtering.
+
+#### Service Intervals Tab
+Configure service intervals per forklift type:
+| Type | Hourmeter Interval | Calendar Interval |
+|------|-------------------|-------------------|
+| Diesel | 500 hours | — |
+| LPG | 350 hours | — |
+| Electric | — | 90 days |
+
+#### Service Due Tab ⭐
+**Key Feature:** Proactive service tracking with intelligent predictions.
+
+**What it shows:**
+- Forklifts overdue for service (highlighted in red)
+- Forklifts due soon (within threshold)
+- Current hourmeter vs next target service hour
+- Daily usage trend (increasing/decreasing/stable)
+- Stale data warnings (no hourmeter update in 60+ days)
+
+**How it works:**
+1. When a Full Service job is completed, `last_serviced_hourmeter` is recorded
+2. System calculates `next_target_service_hour` = last_serviced + interval
+3. Service Due tab shows all units approaching or past their target
+4. **Service Upgrade Prompt**: When starting a Minor Service on an overdue unit, system prompts to upgrade to Full Service
+
+**Run Service Check button:**
+- Creates jobs for overdue forklifts
+- Sends notifications to supervisors
+- Runs automatically at 8:00 AM daily
+
+#### Hourmeter Review Tab
+Audit trail for all hourmeter readings with anomaly detection.
+
+### Hourmeter Tracking
+
+**Recording hourmeters:**
+- Technicians enter current hourmeter when starting/completing jobs
+- Readings are validated (must be ≥ previous reading)
+- History is preserved for trend analysis
+
+**Stale Data Detection:**
+Units with no hourmeter update in 60+ days are flagged. This helps identify:
+- Inactive equipment
+- Missing job completions
+- Data entry gaps
+
+---
+
 ## Job Completion Requirements
 
 ### Mandatory Requirements Checklist
