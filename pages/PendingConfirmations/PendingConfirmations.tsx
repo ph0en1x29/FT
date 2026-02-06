@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw } from 'lucide-react';
 import { JobStatus } from '../../types';
 import { usePendingConfirmations } from './hooks/usePendingConfirmations';
 import {
@@ -13,6 +12,7 @@ import {
   getHoursPending,
 } from './components';
 import { PendingConfirmationsProps } from './types';
+import { SkeletonJobList, SkeletonStats } from '../../components/Skeleton';
 
 export default function PendingConfirmations({ currentUser, hideHeader = false }: PendingConfirmationsProps) {
   const navigate = useNavigate();
@@ -50,8 +50,9 @@ export default function PendingConfirmations({ currentUser, hideHeader = false }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-8 h-8 animate-spin text-[var(--accent)]" />
+      <div className="space-y-6 fade-in">
+        <SkeletonStats count={3} />
+        <SkeletonJobList count={4} />
       </div>
     );
   }

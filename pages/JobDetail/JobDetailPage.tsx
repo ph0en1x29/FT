@@ -6,6 +6,7 @@ import { ComboboxOption } from '../../components/Combobox';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import ServiceUpgradeModal from '../../components/ServiceUpgradeModal';
+import { SkeletonJobDetail } from '../../components/Skeleton';
 
 // Extracted components
 import {
@@ -56,12 +57,9 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const techOptions: ComboboxOption[] = technicians.map(t => ({ id: t.user_id, label: t.name, subLabel: t.email }));
 
   if (loading) return (
-    <div className="max-w-5xl mx-auto p-6 fade-in"><div className="flex items-center justify-center py-20">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-        <p className="text-[var(--text-muted)] text-sm">Loading job details...</p>
-      </div>
-    </div></div>
+    <div className="max-w-5xl mx-auto p-6 fade-in">
+      <SkeletonJobDetail />
+    </div>
   );
 
   if (!job) return (
