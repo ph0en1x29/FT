@@ -280,7 +280,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser }) => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-sm">
-                          <p className="font-medium">{forklift.hourmeter.toLocaleString()} hrs</p>
+                          <p className="font-medium">{forklift.hourmeter?.toLocaleString() ?? '—'} hrs</p>
                           {overview?.hours_overdue != null && overview.hours_overdue > 0 && (
                             <p className="text-xs text-red-600">+{overview.hours_overdue} overdue</p>
                           )}
