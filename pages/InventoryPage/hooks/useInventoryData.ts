@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Part, User } from '../../../types';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';

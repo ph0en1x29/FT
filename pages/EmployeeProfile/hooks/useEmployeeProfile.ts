@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Employee, LeaveType } from '../../../types';
 import { HRService } from '../../../services/hrService';
 import { showToast } from '../../../services/toastService';

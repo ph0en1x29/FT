@@ -452,4 +452,19 @@ export const SupabaseDb = {
   releaseJobLock: jobs.releaseJobLock,
   checkJobLock: jobs.checkJobLock,
   cleanupExpiredLocks: jobs.cleanupExpiredLocks,
+
+  // Multi-day job support
+  markJobContinueTomorrow: jobs.markJobContinueTomorrow,
+  resumeMultiDayJob: jobs.resumeMultiDayJob,
+
+  // AutoCount integration (TODO)
+  createAutoCountExport: jobs.createAutoCountExport,
+  getAutoCountExports: jobs.getAutoCountExports,
+  getJobsPendingExport: jobs.getJobsPendingExport,
+  retryAutoCountExport: jobs.retryAutoCountExport,
+  cancelAutoCountExport: jobs.cancelAutoCountExport,
+
+  // Stub implementations (TODO)
+  confirmParts: jobs.confirmParts,
+  completeDeferredAcknowledgement: jobs.completeDeferredAcknowledgement,
 };

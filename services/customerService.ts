@@ -15,7 +15,7 @@ interface RentalRow {
   status?: string;
 }
 
-interface JobWithRelations extends Job {
+interface JobWithRelations extends Omit<Job, 'parts_used' | 'extra_charges'> {
   parts_used?: JobPartUsed[];
   extra_charges?: ExtraCharge[];
   deleted_at?: string | null;

@@ -407,10 +407,11 @@ export async function getServicePrediction(
     
     if (!data) return { data: null, error: null };
     
+    const predictionData = typeof data === 'object' && data !== null ? data : {};
     return { 
       data: { 
         forklift_id,
-        ...data 
+        ...predictionData 
       } as ServicePrediction, 
       error: null 
     };

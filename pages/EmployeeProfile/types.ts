@@ -1,6 +1,7 @@
 // EmployeeProfile folder types
 // TypeScript types used across EmployeeProfile components
 
+import React from 'react';
 import { User, Employee, LeaveType, EmployeeLeave, EmployeeLicense, EmployeePermit } from '../../types';
 
 /**

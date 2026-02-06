@@ -826,3 +826,182 @@ export const hardDeleteJob = async (jobId: string): Promise<void> => {
   const { error } = await supabase.from('jobs').delete().eq('job_id', jobId);
   if (error) throw new Error(error.message);
 };
+
+// =====================
+// MULTI-DAY JOB SUPPORT
+// =====================
+
+/**
+ * Mark job to continue tomorrow (multi-day job support)
+ */
+export const markJobContinueTomorrow = async (
+  jobId: string,
+  hourmeter: number | undefined,
+  _userId: string,
+  _userName: string
+): Promise<Job> => {
+  logDebug('[JobService] markJobContinueTomorrow called for job:', jobId);
+  
+  const updateData: Record<string, unknown> = {
+    status: 'continue_tomorrow',
+    updated_at: new Date().toISOString()
+  };
+  
+  if (hourmeter !== undefined) {
+    updateData.hourmeter_reading = hourmeter;
+  }
+  
+  const { data, error } = await supabase
+    .from('jobs')
+    .update(updateData)
+    .eq('job_id', jobId)
+    .select()
+    .single();
+  
+  if (error) throw new Error(error.message);
+  return data as Job;
+};
+
+/**
+ * Resume a multi-day job
+ */
+export const resumeMultiDayJob = async (
+  jobId: string,
+  _userId: string,
+  _userName: string
+): Promise<Job> => {
+  logDebug('[JobService] resumeMultiDayJob called for job:', jobId);
+  
+  const { data, error } = await supabase
+    .from('jobs')
+    .update({
+      status: 'in_progress',
+      updated_at: new Date().toISOString()
+    })
+    .eq('job_id', jobId)
+    .select()
+    .single();
+  
+  if (error) throw new Error(error.message);
+  return data as Job;
+};
+
+// =====================
+// STUB IMPLEMENTATIONS (TODO: Implement properly)
+// =====================
+
+// =====================
+// AUTOCOUNT INTEGRATION (TODO: Implement properly)
+// =====================
+
+interface AutoCountExport {
+  export_id: string;
+  job_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  created_at: string;
+  error_message?: string;
+}
+
+/**
+ * Create an AutoCount export for a job
+ * @stub Not yet implemented
+ */
+export const createAutoCountExport = async (
+  jobId: string,
+  _userId: string,
+  _userName: string
+): Promise<void> => {
+  logDebug('[JobService] createAutoCountExport called for job:', jobId);
+  // TODO: Implement AutoCount integration
+  throw new Error('AutoCount export not yet implemented');
+};
+
+/**
+ * Get all AutoCount exports
+ * @stub Returns empty array
+ */
+export const getAutoCountExports = async (): Promise<AutoCountExport[]> => {
+  logDebug('[JobService] getAutoCountExports called');
+  // TODO: Implement - query autocount_exports table
+  return [];
+};
+
+/**
+ * Get jobs pending AutoCount export
+ * @stub Returns empty array
+ */
+export const getJobsPendingExport = async (): Promise<Job[]> => {
+  logDebug('[JobService] getJobsPendingExport called');
+  // TODO: Implement - query jobs where invoice is finalized but not exported
+  return [];
+};
+
+/**
+ * Retry a failed AutoCount export
+ * @stub Not yet implemented
+ */
+export const retryAutoCountExport = async (exportId: string): Promise<void> => {
+  logDebug('[JobService] retryAutoCountExport called for:', exportId);
+  // TODO: Implement retry logic
+  throw new Error('AutoCount retry not yet implemented');
+};
+
+/**
+ * Cancel an AutoCount export
+ * @stub Not yet implemented
+ */
+export const cancelAutoCountExport = async (exportId: string): Promise<void> => {
+  logDebug('[JobService] cancelAutoCountExport called for:', exportId);
+  // TODO: Implement cancel logic
+  throw new Error('AutoCount cancel not yet implemented');
+};
+
+/**
+ * Confirm parts used on a job
+ * @stub Returns job unchanged for now
+ */
+export const confirmParts = async (
+  jobId: string,
+  _userId: string,
+  _userName: string
+): Promise<Job> => {
+  logDebug('[JobService] confirmParts called for job:', jobId);
+  // For now, just return the job unchanged
+  const job = await getJobById(jobId);
+  if (!job) throw new Error('Job not found');
+  return job;
+};
+
+/**
+ * Complete deferred acknowledgement for a job
+ * @stub Basic implementation
+ */
+export const completeDeferredAcknowledgement = async (
+  jobId: string,
+  reason: string,
+  _evidenceIds: string[],
+  _hourmeter?: number,
+  _userId?: string,
+  _userName?: string
+): Promise<{ success: boolean; job?: Job }> => {
+  logDebug('[JobService] completeDeferredAcknowledgement called for job:', jobId, 'reason:', reason);
+  
+  try {
+    // Update job status to reflect deferred acknowledgement
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ 
+        notes: `Deferred acknowledgement: ${reason}`,
+        updated_at: new Date().toISOString()
+      })
+      .eq('job_id', jobId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return { success: true, job: data as Job };
+  } catch (err) {
+    logError('[JobService] Error in completeDeferredAcknowledgement:', err);
+    return { success: false };
+  }
+};

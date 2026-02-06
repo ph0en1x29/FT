@@ -12,7 +12,8 @@
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
-    "test:smoke": "playwright test smoke"
+    "test:smoke": "playwright test smoke",
+    "prepare": "husky"
   },
   "dependencies": {
     "@google/genai": "^1.32.0",
@@ -36,6 +37,7 @@
     "dotenv": "^17.2.3",
     "eslint": "^9.39.2",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "husky": "^9.1.7",
     "pg": "^8.18.0",
     "playwright": "^1.57.0",
     "typescript": "~5.8.2",

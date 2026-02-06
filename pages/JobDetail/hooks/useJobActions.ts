@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Job, JobStatus, User, ForkliftConditionChecklist, HourmeterFlagReason, JobRequestType } from '../../../types';
+import { Job, JobStatus, User, ForkliftConditionChecklist, HourmeterFlagReason, JobRequestType, UserRole } from '../../../types';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { generateJobSummary } from '../../../services/geminiService';
 import { showToast } from '../../../services/toastService';
@@ -666,7 +666,7 @@ export const useJobActions = ({
     if (!job || !state.selectedPartId) return;
     const price = parseFloat(state.selectedPartPrice) || 0;
     try {
-      const updated = await MockDb.addPartToJob(job.job_id, state.selectedPartId, 1, price, 'admin', currentUserId, currentUserName);
+      const updated = await MockDb.addPartToJob(job.job_id, state.selectedPartId, 1, price, UserRole.ADMIN, currentUserId, currentUserName);
       setJob({ ...updated } as Job);
       state.setSelectedPartId('');
       state.setSelectedPartPrice('');
@@ -777,7 +777,7 @@ export const useJobActions = ({
       return;
     }
     try {
-      const updated = await MockDb.addExtraCharge(job.job_id, state.chargeName, state.chargeDescription, amount);
+      const updated = await MockDb.addExtraCharge(job.job_id, { name: state.chargeName, description: state.chargeDescription, amount });
       setJob({ ...updated } as Job);
       state.setShowAddCharge(false);
       state.setChargeName('');
@@ -806,8 +806,10 @@ export const useJobActions = ({
     const helper = technicians.find(t => t.user_id === state.selectedHelperId);
     if (!helper) return;
     try {
-      const updated = await MockDb.assignHelper(job.job_id, helper.user_id, helper.name, state.helperNotes, currentUserId, currentUserName);
-      setJob({ ...updated } as Job);
+      const assignment = await MockDb.assignHelper(job.job_id, helper.user_id, currentUserId, state.helperNotes);
+      // Refresh job to get updated state
+      const refreshedJob = await MockDb.getJobById(job.job_id);
+      if (refreshedJob) setJob(refreshedJob);
       state.setShowAssignHelperModal(false);
       state.setSelectedHelperId('');
       state.setHelperNotes('');
@@ -820,8 +822,10 @@ export const useJobActions = ({
   const handleRemoveHelper = useCallback(async () => {
     if (!job || !job.helper_assignment) return;
     try {
-      const updated = await MockDb.removeHelper(job.job_id, job.helper_assignment.assignment_id);
-      setJob({ ...updated } as Job);
+      await MockDb.removeHelper(job.job_id);
+      // Refresh job to get updated state
+      const refreshedJob = await MockDb.getJobById(job.job_id);
+      if (refreshedJob) setJob(refreshedJob);
       showToast.success('Helper removed');
     } catch (e) {
       showToast.error('Could not remove helper', (e as Error).message);

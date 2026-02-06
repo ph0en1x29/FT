@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { User, Job, JobStatus } from '../../../types';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';

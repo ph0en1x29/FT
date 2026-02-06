@@ -37,7 +37,8 @@ export const getActiveRentalForForklift = async (forkliftId: string): Promise<{
 
     if (error || !data) return null;
 
-    const customer = data.customers as { name: string; address: string } | null;
+    const customersData = data.customers;
+    const customer = (Array.isArray(customersData) ? customersData[0] : customersData) as { name: string; address: string } | null;
     return {
       rental_id: data.rental_id,
       customer_id: data.customer_id,
