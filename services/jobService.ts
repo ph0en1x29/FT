@@ -14,13 +14,46 @@ import {
   notifyPendingFinalization,
   getAdminsAndSupervisors 
 } from './notificationService';
-import type { 
-  Job, 
-  JobStatus, 
+import type {
+  Job,
+  JobStatus,
   JobAssignment,
+  JobPartUsed,
+  JobMedia,
+  ExtraCharge,
   User,
 } from '../types';
 import { JobStatus as JobStatusEnum, JobPriority as JobPriorityEnum, JobType as JobTypeEnum, ForkliftStatus, UserRole, NotificationType } from '../types';
+
+// =====================
+// LOCAL TYPE DEFINITIONS
+// =====================
+
+/** Row type for forklift hourmeter query */
+interface ForkliftHourmeterRow {
+  hourmeter: number | null;
+}
+
+/** Row type for deleted jobs query with relations (Supabase returns arrays for relations) */
+interface DeletedJobRow {
+  job_id: string;
+  title: string;
+  description?: string;
+  status: string;
+  job_type: string;
+  priority: string;
+  deleted_at: string;
+  deleted_by?: string;
+  deleted_by_name?: string;
+  deletion_reason?: string;
+  hourmeter_before_delete?: number;
+  forklift_id?: string;
+  customer_id?: string;
+  assigned_technician_name?: string;
+  created_at: string;
+  customer?: { name: string }[] | null;
+  forklift?: { serial_number: string; make: string; model: string }[] | null;
+}
 
 // =====================
 // RE-EXPORTS FOR BACKWARD COMPATIBILITY
@@ -162,7 +195,7 @@ export const getJobs = async (user: User, options?: { status?: JobStatus }): Pro
   const executeQuery = async () => {
     const { data, error } = await buildQuery();
     if (error) throw error;
-    return data as Job[];
+    return data as unknown as Job[];
   };
 
   let data: Job[];
@@ -225,7 +258,7 @@ export const getJobs = async (user: User, options?: { status?: JobStatus }): Pro
           const markedHelperJobs = helperJobs.map(j => ({
             ...j,
             _isHelperAssignment: true
-          }));
+          })) as unknown as Job[];
           allJobs = [...allJobs, ...markedHelperJobs];
         }
       }
@@ -295,10 +328,10 @@ export const getJobByIdFast = async (jobId: string): Promise<Job | null> => {
 
   // Combine results
   const job = jobResult.data as Job;
-  job.parts_used = partsResult.data || [];
-  job.media = mediaResult.data || [];
-  job.extra_charges = chargesResult.data || [];
-  
+  job.parts_used = (partsResult.data || []) as unknown as JobPartUsed[];
+  job.media = (mediaResult.data || []) as unknown as JobMedia[];
+  job.extra_charges = (chargesResult.data || []) as unknown as ExtraCharge[];
+
   if (helperResult.data) {
     job.helper_assignment = helperResult.data as JobAssignment;
   }
@@ -627,7 +660,8 @@ export const updateJobHourmeter = async (jobId: string, hourmeterReading: number
   
   if (jobError) throw new Error(jobError.message);
   
-  const currentHourmeter = (jobData?.forklift as ForkliftHourmeterRow | null)?.hourmeter || 0;
+  const forkliftData = Array.isArray(jobData?.forklift) ? jobData.forklift[0] : jobData?.forklift;
+  const currentHourmeter = (forkliftData as ForkliftHourmeterRow | null)?.hourmeter || 0;
   if (hourmeterReading < currentHourmeter) {
     throw new Error(`Hourmeter reading (${hourmeterReading}) cannot be less than forklift's current reading (${currentHourmeter})`);
   }
@@ -763,13 +797,18 @@ export const getRecentlyDeletedJobs = async (): Promise<any[]> => {
     return [];
   }
 
-  return (data || []).map((job: DeletedJobRow) => ({
-    ...job,
-    customer_name: job.customer?.name || 'Unknown',
-    forklift_serial: job.forklift?.serial_number,
-    forklift_make: job.forklift?.make,
-    forklift_model: job.forklift?.model,
-  }));
+  return (data || []).map((job) => {
+    const row = job as DeletedJobRow;
+    const customer = Array.isArray(row.customer) ? row.customer[0] : row.customer;
+    const forklift = Array.isArray(row.forklift) ? row.forklift[0] : row.forklift;
+    return {
+      ...row,
+      customer_name: customer?.name || 'Unknown',
+      forklift_serial: forklift?.serial_number,
+      forklift_make: forklift?.make,
+      forklift_model: forklift?.model,
+    };
+  });
 };
 
 export const hardDeleteJob = async (jobId: string): Promise<void> => {
