@@ -41,6 +41,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
 interface StartJobModalProps {
   show: boolean;
   startJobHourmeter: string;
+  lastRecordedHourmeter: number;
   conditionChecklist: ForkliftConditionChecklist;
   onHourmeterChange: (value: string) => void;
   onChecklistToggle: (key: string) => void;
@@ -53,6 +54,7 @@ interface StartJobModalProps {
 export const StartJobModal: React.FC<StartJobModalProps> = ({
   show,
   startJobHourmeter,
+  lastRecordedHourmeter,
   conditionChecklist,
   onHourmeterChange,
   onChecklistToggle,
@@ -88,6 +90,9 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
             />
             <span className="text-[var(--text-muted)]">hours</span>
           </div>
+          <p className="text-xs text-[var(--text-muted)] mt-2 flex items-center gap-1">
+            <Clock className="w-3 h-3" /> Last recorded: <span className="font-semibold text-[var(--text-secondary)]">{lastRecordedHourmeter.toLocaleString()} hrs</span>
+          </p>
         </div>
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">

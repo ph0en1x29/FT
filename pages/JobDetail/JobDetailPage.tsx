@@ -149,7 +149,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         onSave={actions.handleTechnicianSignature} onClose={() => state.setShowTechSigPad(false)} />
       <SignatureModal show={state.showCustSigPad} title="Customer Acceptance" subtitle="I acknowledge the service performed and agree to the charges."
         onSave={actions.handleCustomerSignature} onClose={() => state.setShowCustSigPad(false)} />
-      <StartJobModal show={state.showStartJobModal} startJobHourmeter={state.startJobHourmeter} conditionChecklist={state.conditionChecklist}
+      <StartJobModal show={state.showStartJobModal} startJobHourmeter={state.startJobHourmeter} 
+        lastRecordedHourmeter={job?.forklift?.hourmeter || 0} conditionChecklist={state.conditionChecklist}
         onHourmeterChange={state.setStartJobHourmeter} onChecklistToggle={actions.handleChecklistToggle}
         onCheckAll={actions.handleConditionCheckAll} onUncheckAll={actions.handleConditionUncheckAll}
         onStartJob={actions.handleStartJobWithCondition} onClose={() => state.setShowStartJobModal(false)} />
