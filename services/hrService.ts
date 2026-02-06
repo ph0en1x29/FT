@@ -48,6 +48,8 @@ export const HRService = {
   approveLeave: LeaveService.approveLeave,
   rejectLeave: LeaveService.rejectLeave,
   cancelLeave: LeaveService.cancelLeave,
+  getTodaysLeaves: LeaveService.getTodaysLeaves,
+  uploadLeaveDocument: LeaveService.uploadLeaveDocument,
   // =============================================
   // EMPLOYEE OPERATIONS (Now queries users table directly)
   // =============================================

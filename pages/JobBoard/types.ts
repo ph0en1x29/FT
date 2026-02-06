@@ -5,6 +5,8 @@ import { Job, User } from '../../types';
  */
 export interface JobWithHelperFlag extends Job {
   _isHelperAssignment?: boolean;
+  is_escalated?: boolean;
+  escalation_acknowledged_at?: string | null;
 }
 
 /**
