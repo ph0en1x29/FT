@@ -449,22 +449,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, user
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Today</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-xl" style={{ background: colors.green.bg }}>
-              <p className="text-2xl font-semibold" style={{ color: colors.green.text }}>{jobs.filter(j => ['Completed', 'Completed Awaiting Ack'].includes(j.status) && j.completed_at && new Date(j.completed_at).toDateString() === todayStr).length}</p>
-              <p className="text-xs" style={{ color: colors.green.text }}>Completed Today</p>
-            </div>
-            <div className="p-3 rounded-xl" style={{ background: colors.purple.bg }}>
-              <p className="text-2xl font-semibold" style={{ color: colors.purple.text }}>{awaitingFinalization.length}</p>
-              <p className="text-xs" style={{ color: colors.purple.text }}>To Finalize</p>
-            </div>
-            <div className="p-3 rounded-xl" style={{ background: colors.blue.bg }}>
-              <p className="text-2xl font-semibold" style={{ color: colors.blue.text }}>{jobs.filter(j => new Date(j.created_at).toDateString() === todayStr).length}</p>
-              <p className="text-xs" style={{ color: colors.blue.text }}>Created Today</p>
-            </div>
-            <div className="p-3 rounded-xl" style={{ background: colors.orange.bg }}>
-              <p className="text-2xl font-semibold" style={{ color: colors.orange.text }}>{escalatedJobs.length}</p>
-              <p className="text-xs" style={{ color: colors.orange.text }}>Escalated</p>
-            </div>
+            {(() => {
+              const completedToday = jobs.filter(j => ['Completed', 'Completed Awaiting Ack'].includes(j.status) && j.completed_at && new Date(j.completed_at).toDateString() === todayStr).length;
+              const toFinalize = awaitingFinalization.length;
+              const createdToday = jobs.filter(j => new Date(j.created_at).toDateString() === todayStr).length;
+              const escalated = escalatedJobs.length;
+              
+              // Dynamic colors based on values
+              const toFinalizeColor = toFinalize === 0 ? colors.green : colors.purple;
+              const escalatedColor = escalated === 0 ? colors.green : colors.red;
+              
+              return (
+                <>
+                  <div className="p-3 rounded-xl" style={{ background: colors.green.bg }}>
+                    <p className="text-2xl font-semibold" style={{ color: colors.green.text }}>{completedToday}</p>
+                    <p className="text-xs" style={{ color: colors.green.text }}>Completed Today</p>
+                  </div>
+                  <div className="p-3 rounded-xl" style={{ background: toFinalizeColor.bg }}>
+                    <p className="text-2xl font-semibold" style={{ color: toFinalizeColor.text }}>{toFinalize}</p>
+                    <p className="text-xs" style={{ color: toFinalizeColor.text }}>To Finalize</p>
+                  </div>
+                  <div className="p-3 rounded-xl" style={{ background: colors.blue.bg }}>
+                    <p className="text-2xl font-semibold" style={{ color: colors.blue.text }}>{createdToday}</p>
+                    <p className="text-xs" style={{ color: colors.blue.text }}>Created Today</p>
+                  </div>
+                  <div className="p-3 rounded-xl" style={{ background: escalatedColor.bg }}>
+                    <p className="text-2xl font-semibold" style={{ color: escalatedColor.text }}>{escalated}</p>
+                    <p className="text-xs" style={{ color: escalatedColor.text }}>Escalated</p>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
