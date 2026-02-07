@@ -1,15 +1,4 @@
-/**
- * Permit Service
- * 
- * SECURITY TODO: Currently uses public URLs for permit documents.
- * These should be changed to signed URLs with expiration for production:
- * 1. Change hr-documents bucket to private
- * 2. Use createSignedUrl() instead of getPublicUrl()
- * 3. Set appropriate expiration (e.g., 1 hour)
- * 
- * Current mitigation: Files are stored with user-specific paths (permits/{userId}/)
- * and bucket has RLS policies requiring authentication.
- */
+/** Permit Service — CRUD and signed-URL document storage for employee permits. */
 
 import { supabase } from './supabaseService';
 import { getSignedStorageUrl } from './supabaseClient';
