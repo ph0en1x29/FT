@@ -182,6 +182,7 @@ export const assignForkliftToCustomer = async (
     .update({
       current_customer_id: customerId,
       location: customer?.address || null,
+      status: 'Rented Out',  // Update status when rental starts
       updated_at: new Date().toISOString(),
     })
     .eq('forklift_id', forkliftId);
@@ -222,6 +223,7 @@ export const endRental = async (
       .from('forklifts')
       .update({
         current_customer_id: null,
+        status: 'Available',  // Reset status when rental ends
         updated_at: new Date().toISOString(),
       })
       .eq('forklift_id', rental.forklift_id);
@@ -331,6 +333,7 @@ export const bulkAssignForkliftsToCustomer = async (
         .update({
           current_customer_id: customerId,
           location: customer?.address || null,
+          status: 'Rented Out',  // Update status when rental starts
           updated_at: new Date().toISOString(),
         })
         .eq('forklift_id', forkliftId);
@@ -390,7 +393,11 @@ export const bulkEndRentals = async (
 
       await supabase
         .from('forklifts')
-        .update({ current_customer_id: null, updated_at: new Date().toISOString() })
+        .update({ 
+          current_customer_id: null, 
+          status: 'Available',  // Reset status when rental ends
+          updated_at: new Date().toISOString() 
+        })
         .eq('forklift_id', forkliftId);
 
       results.success.push(data as ForkliftRental);
