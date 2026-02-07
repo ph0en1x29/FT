@@ -4,14 +4,26 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
-## [2026-02-07] - Security Fix: Storage URL Hardening
+## [2026-02-07] - Security Fixes: XSS & Storage Hardening
 
 ### Security Fixes
+- **XSS protection in PDF generators** — All user-controlled content now sanitized before injection
 - **Signed URLs for signatures** — `uploadToStorage()` now returns file path instead of public URL
 - **Time-limited access** — Signature URLs now expire after 24 hours (vs permanent public URLs)
 - **New helper** — `getSignedStorageUrl()` for generating signed URLs on demand
 
 ### Technical Details
+
+**XSS Prevention:**
+- New `services/sanitizeService.ts` — HTML entity encoder for user content
+- Fixed all 5 PDF generators using `document.write()`:
+  - `components/InvoicePDF.tsx`
+  - `components/QuotationPDF.tsx`
+  - `components/ServiceReportPDF.tsx`
+  - `pages/Invoices/components/generateInvoicePDF.ts`
+  - `pages/ServiceRecords/ServiceReportPDF.ts`
+
+**Storage Hardening:**
 - `services/storageService.ts` — Returns `data.path` instead of `getPublicUrl()`
 - `services/supabaseClient.ts` — Same change + added `getSignedStorageUrl()` helper
 - `services/jobMediaService.ts` — Updated `signJob()` to generate signed URL after upload
