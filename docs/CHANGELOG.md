@@ -4,6 +4,30 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-06] - UX Improvements & Workflow Enhancements
+
+### UI/UX Improvements
+- **Dynamic Quick Stats colors** — Colors now respond to data (green=0, red/purple=needs attention)
+- **Check All/Uncheck All** — Buttons in Start Job modal for condition checklist
+- **Last recorded hourmeter** — Displayed in Start Job modal for reference
+- **Loading skeletons** — New Skeleton component library for better perceived performance
+- **Toast with undo** — `showUndoToast` and `showDestructiveToast` in toastService
+- **Mobile components** — PullToRefresh, SwipeableCard, OfflineIndicator
+
+### Developer Experience
+- **AGENTS.md enhanced** — Self-improvement rules, quality prompts, lessons learned table
+- **Pre-commit hooks** — TypeScript + build verification before every commit
+- **Query audit** — Documented N+1 patterns, missing indexes, optimization opportunities
+
+### Testing
+- **Service Due E2E tests** — 5 tests covering table, columns, priority badges
+
+### Bug Fixes
+- Fixed dev mode for dev@test.com account
+- Fixed 71→15 TypeScript errors (build now passes)
+
+---
+
 ## [2026-02-05] - Hourmeter Service Tracking Enhancement ✅
 
 ### Customer Feedback Implementation
