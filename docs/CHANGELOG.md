@@ -4,6 +4,23 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-07] - Security Fix: Storage URL Hardening
+
+### Security Fixes
+- **Signed URLs for signatures** — `uploadToStorage()` now returns file path instead of public URL
+- **Time-limited access** — Signature URLs now expire after 24 hours (vs permanent public URLs)
+- **New helper** — `getSignedStorageUrl()` for generating signed URLs on demand
+
+### Technical Details
+- `services/storageService.ts` — Returns `data.path` instead of `getPublicUrl()`
+- `services/supabaseClient.ts` — Same change + added `getSignedStorageUrl()` helper
+- `services/jobMediaService.ts` — Updated `signJob()` to generate signed URL after upload
+
+### Why This Matters
+Public URLs are permanent and shareable — if leaked via browser history, email, or logs, anyone can access the document forever. Signed URLs expire, limiting exposure window.
+
+---
+
 ## [2026-02-06] - UX Improvements & Workflow Enhancements
 
 ### UI/UX Improvements

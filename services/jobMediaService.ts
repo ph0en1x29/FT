@@ -4,7 +4,7 @@
  * Handles photos, signatures, and media attachments for jobs.
  */
 
-import { supabase, uploadToStorage } from './supabaseClient';
+import { supabase, uploadToStorage, getSignedStorageUrl } from './supabaseClient';
 import type { Job, JobMedia, SignatureEntry } from '../types';
 
 // Forward declaration to avoid circular dependency
@@ -69,7 +69,15 @@ export const signJob = async (
   
   const timestamp = Date.now();
   const fileName = `${jobId}_${type}_${timestamp}.png`;
-  const signatureUrl = await uploadToStorage('signatures', fileName, signatureDataUrl);
+  const filePath = await uploadToStorage('signatures', fileName, signatureDataUrl);
+  
+  // Get signed URL for the uploaded signature (24h expiry, regenerate on read if needed)
+  // If upload failed (returned base64), use that directly
+  let signatureUrl = filePath;
+  if (!filePath.startsWith('data:')) {
+    const signedUrl = await getSignedStorageUrl('signatures', filePath, 86400);
+    signatureUrl = signedUrl || filePath; // Fallback to path if signing fails
+  }
   
   const signatureEntry: SignatureEntry = {
     signed_by_name: signerName,

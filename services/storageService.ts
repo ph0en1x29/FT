@@ -20,11 +20,15 @@ export const dataURLtoBlob = (dataURL: string): Blob => {
 };
 
 /**
- * Upload file to Supabase Storage and return public URL
+ * Upload file to Supabase Storage and return file path
+ * 
+ * SECURITY: Returns path only, NOT public URL. Callers should use
+ * getSignedUrl() to generate time-limited access URLs.
+ * 
  * @param bucket - Storage bucket name ('signatures' or 'job-photos')
- * @param fileName - Unique file name
+ * @param fileName - Unique file name / path within bucket
  * @param dataURL - Base64 data URL
- * @returns Public URL of uploaded file
+ * @returns File path of uploaded file (use getSignedUrl for URL)
  */
 export const uploadToStorage = async (
   bucket: string,
@@ -46,13 +50,9 @@ export const uploadToStorage = async (
       return dataURL;
     }
     
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(fileName);
-    
     logDebug(`[Storage] Uploaded to ${bucket}:`, fileName);
-    return publicUrl;
+    // Return path, not public URL - caller uses getSignedUrl when needed
+    return data.path;
   } catch (e) {
     // Fallback to base64 if storage fails
     return dataURL;

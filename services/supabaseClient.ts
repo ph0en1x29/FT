@@ -68,11 +68,15 @@ export const dataURLtoBlob = (dataURL: string): Blob => {
 };
 
 /**
- * Upload file to Supabase Storage and return public URL
+ * Upload file to Supabase Storage and return file path
+ * 
+ * SECURITY: Returns path only, NOT public URL. Callers should use
+ * getSignedStorageUrl() to generate time-limited access URLs.
+ * 
  * @param bucket - Storage bucket name ('signatures' or 'job-photos')
- * @param fileName - Unique file name
+ * @param fileName - Unique file name / path within bucket
  * @param dataURL - Base64 data URL
- * @returns Public URL of uploaded file
+ * @returns File path of uploaded file (use getSignedStorageUrl for URL)
  */
 export const uploadToStorage = async (
   bucket: string,
@@ -94,15 +98,42 @@ export const uploadToStorage = async (
       return dataURL; // Fallback to base64
     }
     
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(fileName);
-    
     logDebug(`[Storage] Uploaded to ${bucket}:`, fileName);
-    return publicUrl;
+    // Return path, not public URL - caller uses getSignedStorageUrl when needed
+    return data.path;
   } catch (e) {
     logError('[Storage] Upload error:', e);
     return dataURL; // Fallback to base64
+  }
+};
+
+/**
+ * Get signed URL for storage file with expiration
+ * 
+ * @param bucket - Storage bucket name
+ * @param filePath - Path to file within bucket
+ * @param expiresIn - Seconds until URL expires (default 24 hours)
+ * @returns Signed URL or null if failed
+ */
+export const getSignedStorageUrl = async (
+  bucket: string,
+  filePath: string,
+  expiresIn: number = 86400 // 24 hours
+): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(filePath, expiresIn);
+    
+    if (error) {
+      logError(`[Storage] Failed to get signed URL:`, error.message);
+      return null;
+    }
+    
+    return data.signedUrl;
+  } catch (e) {
+    logError('[Storage] Signed URL error:', e);
+    return null;
   }
 };
 
