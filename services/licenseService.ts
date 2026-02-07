@@ -9,6 +9,7 @@
  */
 
 import { supabase } from './supabaseService';
+import { getSignedStorageUrl } from './supabaseClient';
 import { EmployeeLicense, LicenseStatus } from '../types';
 
 export const LicenseService = {
@@ -137,8 +138,8 @@ export const LicenseService = {
 
     if (error) throw new Error(error.message);
 
-    // Return the file path - signed URL will be generated on access
-    return fileName;
+    const signedUrl = await getSignedStorageUrl('hr-documents', fileName, 86400);
+    return signedUrl || fileName;
   },
 
   /**

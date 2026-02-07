@@ -107,6 +107,7 @@ Claude is good at writing rules for itself. Keep this file evolving.
 | Date | Mistake | Prevention |
 |------|---------|------------|
 | 2026-02-06 | Initial setup | Follow pre-commit hooks |
+| 2026-02-07 | Applied a security/storage return-path fix in one service but missed the parallel permit service implementation | When changing shared service patterns, grep sibling `*Service.ts` files for matching upload/read flows and patch all applicable paths in one pass |
 
 ## Quality Prompts (Use These)
 
