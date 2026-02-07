@@ -87,3 +87,45 @@ npx playwright show-report                        # View last results
 2. Read the TypeScript types in `/src/lib/types.ts`
 3. Look at test files for expected behavior
 4. Check `docs/` for business logic documentation
+
+---
+
+## Self-Improvement Rule (Boris Cherny Pattern)
+
+**After ANY correction from Jay or a failed build:**
+
+1. Fix the issue
+2. End with: "Updating AGENTS.md so I don't make this mistake again."
+3. Add a new entry to "Common Mistakes to Avoid" or "Lessons Learned"
+
+Claude is good at writing rules for itself. Keep this file evolving.
+
+## Lessons Learned
+
+*(Add entries here after mistakes - date + what went wrong + prevention)*
+
+| Date | Mistake | Prevention |
+|------|---------|------------|
+| 2026-02-06 | Initial setup | Follow pre-commit hooks |
+
+## Quality Prompts (Use These)
+
+Before committing:
+- "Grill me on these changes. Don't commit until I pass your review."
+- "Prove to me this works. Show me test output or diff main vs this branch."
+
+When output is mediocre:
+- "This is not good enough. Give me a better solution."
+- "What would a staff engineer change about this?"
+
+For complex tasks:
+- Start with: "Let's plan this first before writing code."
+- Use subagents: Append "use subagents" to throw more compute at the problem.
+
+## End-of-Session Checklist
+
+Run before ending any session:
+1. `/techdebt` - Check for duplicated code, dead code, TODOs
+2. `npm run build` - Verify everything compiles
+3. `git status` - No uncommitted changes
+4. Update CHANGELOG.md if changes made
