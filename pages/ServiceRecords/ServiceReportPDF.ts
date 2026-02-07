@@ -1,4 +1,5 @@
 import { Job } from '../../types';
+import { sanitizeHtml } from '../../services/sanitizeService';
 
 /**
  * Opens a printable service report PDF in a new window
@@ -19,7 +20,7 @@ export const openServiceReportPDF = (job: Job): void => {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Service Report - ${job.job_id.slice(0, 8).toUpperCase()}</title>
+      <title>Service Report - ${sanitizeHtml(job.job_id.slice(0, 8).toUpperCase())}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; padding: 20px; color: #333; font-size: 11px; }
@@ -86,7 +87,7 @@ export const openServiceReportPDF = (job: Job): void => {
           </div>
         </div>
         <div style="text-align: right;">
-          <div class="report-no">No.: ${job.job_id.slice(0, 8).toUpperCase()}</div>
+          <div class="report-no">No.: ${sanitizeHtml(job.job_id.slice(0, 8).toUpperCase())}</div>
           <div class="report-date">Date: ${new Date(job.completion_time || job.created_at).toLocaleDateString()}</div>
         </div>
       </div>
@@ -95,15 +96,15 @@ export const openServiceReportPDF = (job: Job): void => {
         <div>
           <div class="field-row">
             <span class="field-label">Name:</span>
-            <span class="field-value">${job.customer?.name || ''}</span>
+            <span class="field-value">${sanitizeHtml(job.customer?.name || '')}</span>
           </div>
           <div class="field-row">
             <span class="field-label">Address:</span>
-            <span class="field-value">${job.customer?.address || ''}</span>
+            <span class="field-value">${sanitizeHtml(job.customer?.address || '')}</span>
           </div>
           <div class="field-row">
             <span class="field-label">Attn:</span>
-            <span class="field-value">${job.customer?.phone || ''}</span>
+            <span class="field-value">${sanitizeHtml(job.customer?.phone || '')}</span>
           </div>
         </div>
         <div>
@@ -119,19 +120,19 @@ export const openServiceReportPDF = (job: Job): void => {
         <div class="equipment-grid">
           <div class="field-row">
             <span class="field-label">Brand:</span>
-            <span class="field-value">${job.forklift?.make || ''}</span>
+            <span class="field-value">${sanitizeHtml(job.forklift?.make || '')}</span>
           </div>
           <div class="field-row">
             <span class="field-label">Serial No:</span>
-            <span class="field-value">${job.forklift?.serial_number || ''}</span>
+            <span class="field-value">${sanitizeHtml(job.forklift?.serial_number || '')}</span>
           </div>
           <div class="field-row">
             <span class="field-label">Model:</span>
-            <span class="field-value">${job.forklift?.model || ''}</span>
+            <span class="field-value">${sanitizeHtml(job.forklift?.model || '')}</span>
           </div>
           <div class="field-row">
             <span class="field-label">Hourmeter:</span>
-            <span class="field-value">${job.hourmeter_reading || job.forklift?.hourmeter || ''}</span>
+            <span class="field-value">${sanitizeHtml(job.hourmeter_reading || job.forklift?.hourmeter || '')}</span>
           </div>
         </div>
       </div>
@@ -206,9 +207,9 @@ export const openServiceReportPDF = (job: Job): void => {
       <div class="job-section">
         <h3>Job Carried Out:</h3>
         <div class="job-description">
-          <strong>${job.title}</strong><br/>
-          ${job.description}
-          ${job.notes && job.notes.length > 0 ? '<br/><br/><strong>Notes:</strong><br/>' + job.notes.join('<br/>') : ''}
+          <strong>${sanitizeHtml(job.title)}</strong><br/>
+          ${sanitizeHtml(job.description)}
+          ${job.notes && job.notes.length > 0 ? '<br/><br/><strong>Notes:</strong><br/>' + job.notes.map((note) => sanitizeHtml(note)).join('<br/>') : ''}
         </div>
       </div>
 
@@ -228,8 +229,8 @@ export const openServiceReportPDF = (job: Job): void => {
             ${job.parts_used.map((p, idx) => `
               <tr>
                 <td>${idx + 1}</td>
-                <td>${p.part_id?.slice(0, 8) || ''}</td>
-                <td>${p.part_name}</td>
+                <td>${sanitizeHtml(p.part_id?.slice(0, 8) || '')}</td>
+                <td>${sanitizeHtml(p.part_name)}</td>
                 <td>${p.quantity}</td>
                 <td class="amount">${p.sell_price_at_time.toFixed(2)}</td>
                 <td class="amount">${(p.sell_price_at_time * p.quantity).toFixed(2)}</td>
@@ -263,20 +264,20 @@ export const openServiceReportPDF = (job: Job): void => {
         <div class="signature-box">
           <h4>Technician Name & Signature</h4>
           ${job.technician_signature ? `
-            <img src="${job.technician_signature.signature_url}" class="signature-img" />
+            <img src="${sanitizeHtml(job.technician_signature.signature_url)}" class="signature-img" />
             <div class="signature-info">
-              ${job.technician_signature.signed_by_name}<br/>
+              ${sanitizeHtml(job.technician_signature.signed_by_name)}<br/>
               ${new Date(job.technician_signature.signed_at).toLocaleString()}
             </div>
           ` : '<div style="height: 50px;"></div>'}
-          <div style="margin-top: 5px; font-weight: bold;">${job.assigned_technician_name || ''}</div>
+          <div style="margin-top: 5px; font-weight: bold;">${sanitizeHtml(job.assigned_technician_name || '')}</div>
         </div>
         <div class="signature-box">
           <h4>Service Completed & Checked - Customer</h4>
           ${job.customer_signature ? `
-            <img src="${job.customer_signature.signature_url}" class="signature-img" />
+            <img src="${sanitizeHtml(job.customer_signature.signature_url)}" class="signature-img" />
             <div class="signature-info">
-              ${job.customer_signature.signed_by_name}<br/>
+              ${sanitizeHtml(job.customer_signature.signed_by_name)}<br/>
               ${new Date(job.customer_signature.signed_at).toLocaleString()}
             </div>
           ` : '<div style="height: 50px;"></div>'}

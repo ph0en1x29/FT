@@ -1,5 +1,6 @@
 import React from 'react';
 import { Job, Quotation, QuotationItem } from '../types';
+import { sanitizeHtml } from '../services/sanitizeService';
 
 interface QuotationPDFProps {
   quotation?: Quotation;
@@ -104,7 +105,7 @@ export const printQuotation = (
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Quotation - ${quotationNumber}</title>
+      <title>Quotation - ${sanitizeHtml(quotationNumber)}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; font-size: 11px; padding: 20px; max-width: 210mm; margin: 0 auto; }
@@ -152,17 +153,17 @@ export const printQuotation = (
     <body>
       <div class="header">
         <div class="company-info">
-          <div class="company-name">${companyInfo.name}</div>
+          <div class="company-name">${sanitizeHtml(companyInfo.name)}</div>
           <div class="company-address">
-            ${companyInfo.address}<br>
-            Tel: ${companyInfo.phone}${companyInfo.fax ? `, Fax: ${companyInfo.fax}` : ''}<br>
-            ${companyInfo.branch ? `Branch: ${companyInfo.branch}<br>` : ''}
-            ${companyInfo.sstNo ? `SST NO: ${companyInfo.sstNo}` : ''}
+            ${sanitizeHtml(companyInfo.address)}<br>
+            Tel: ${sanitizeHtml(companyInfo.phone)}${companyInfo.fax ? `, Fax: ${sanitizeHtml(companyInfo.fax)}` : ''}<br>
+            ${companyInfo.branch ? `Branch: ${sanitizeHtml(companyInfo.branch)}<br>` : ''}
+            ${companyInfo.sstNo ? `SST NO: ${sanitizeHtml(companyInfo.sstNo)}` : ''}
           </div>
         </div>
         <div class="doc-title">
           <h1>QUOTATION</h1>
-          <div class="quotation-number">No.: ${quotationNumber}</div>
+          <div class="quotation-number">No.: ${sanitizeHtml(quotationNumber)}</div>
           <div>Date: ${new Date(data.date || new Date()).toLocaleDateString('en-GB')}</div>
           <div>Page: 1 of 1</div>
         </div>
@@ -170,19 +171,19 @@ export const printQuotation = (
 
       <div class="customer-section">
         <div class="customer-address">
-          <div class="name">${data.customer?.name || ''}</div>
-          <div>${data.customer?.address || ''}</div>
-          <div>TEL: ${data.customer?.phone || ''}</div>
-          ${data.customer?.email ? `<div>Email: ${data.customer.email}</div>` : ''}
-          ${data.customer?.account_number ? `<div>A/C No.: ${data.customer.account_number}</div>` : ''}
+          <div class="name">${sanitizeHtml(data.customer?.name || '')}</div>
+          <div>${sanitizeHtml(data.customer?.address || '')}</div>
+          <div>TEL: ${sanitizeHtml(data.customer?.phone || '')}</div>
+          ${data.customer?.email ? `<div>Email: ${sanitizeHtml(data.customer.email)}</div>` : ''}
+          ${data.customer?.account_number ? `<div>A/C No.: ${sanitizeHtml(data.customer.account_number)}</div>` : ''}
         </div>
         <div class="quotation-meta">
           <div class="meta-row">
             <span class="meta-label">ATTN.</span>
           </div>
-          <div style="font-weight: bold;">${data.attention || data.customer?.contact_person || '-'}</div>
+          <div style="font-weight: bold;">${sanitizeHtml(data.attention || data.customer?.contact_person || '-')}</div>
           <div style="margin-top: 15px; font-size: 10px; color: #0ea5e9;">
-            Email: ${companyInfo.email}
+            Email: ${sanitizeHtml(companyInfo.email)}
           </div>
           <div style="margin-top: 10px; padding: 8px; background: #fef3c7; text-align: center; font-size: 10px;">
             Please chop & sign
@@ -192,7 +193,7 @@ export const printQuotation = (
 
       ${data.reference ? `
         <div class="reference">
-          <strong>RE:</strong> ${data.reference}
+          <strong>RE:</strong> ${sanitizeHtml(data.reference)}
         </div>
       ` : ''}
 
@@ -213,13 +214,13 @@ export const printQuotation = (
             <tr>
               <td>${idx + 1}</td>
               <td>
-                <div><strong>${item.description}</strong></div>
-                ${item.brand ? `<div class="description-details">Brand: ${item.brand}</div>` : ''}
-                ${item.model ? `<div class="description-details">Model: ${item.model}</div>` : ''}
-                ${item.capacity ? `<div class="description-details">Capacity: ${item.capacity}</div>` : ''}
-                ${item.voltage ? `<div class="description-details">Voltage: ${item.voltage}</div>` : ''}
-                ${item.accessory ? `<div class="description-details">Accessory: ${item.accessory}</div>` : ''}
-                ${item.warranty ? `<div class="description-details">Warranty: ${item.warranty}</div>` : ''}
+                <div><strong>${sanitizeHtml(item.description)}</strong></div>
+                ${item.brand ? `<div class="description-details">Brand: ${sanitizeHtml(item.brand)}</div>` : ''}
+                ${item.model ? `<div class="description-details">Model: ${sanitizeHtml(item.model)}</div>` : ''}
+                ${item.capacity ? `<div class="description-details">Capacity: ${sanitizeHtml(item.capacity)}</div>` : ''}
+                ${item.voltage ? `<div class="description-details">Voltage: ${sanitizeHtml(item.voltage)}</div>` : ''}
+                ${item.accessory ? `<div class="description-details">Accessory: ${sanitizeHtml(item.accessory)}</div>` : ''}
+                ${item.warranty ? `<div class="description-details">Warranty: ${sanitizeHtml(item.warranty)}</div>` : ''}
               </td>
               <td class="qty">${item.quantity} UNIT</td>
               <td class="amount">${item.unit_price.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -254,25 +255,25 @@ export const printQuotation = (
       <div class="terms">
         <div class="term-box">
           <div class="term-label">Validity:</div>
-          <div>${data.validity || '1 WEEK FROM OFFER DATE'}</div>
+          <div>${sanitizeHtml(data.validity || '1 WEEK FROM OFFER DATE')}</div>
         </div>
         <div class="term-box">
           <div class="term-label">Delivery Site:</div>
-          <div>${data.delivery_site || '-'}</div>
+          <div>${sanitizeHtml(data.delivery_site || '-')}</div>
         </div>
         <div class="term-box">
           <div class="term-label">Delivery Term:</div>
-          <div>${data.delivery_term || '1 WEEK UPON CONFIRM ORDER'}</div>
+          <div>${sanitizeHtml(data.delivery_term || '1 WEEK UPON CONFIRM ORDER')}</div>
         </div>
         <div class="term-box">
           <div class="term-label">Payment Term:</div>
-          <div>${data.payment_term || 'C.O.D'}</div>
+          <div>${sanitizeHtml(data.payment_term || 'C.O.D')}</div>
         </div>
       </div>
 
       ${data.remark ? `
         <div style="margin: 15px 0;">
-          <strong>Remark:</strong> ${data.remark}
+          <strong>Remark:</strong> ${sanitizeHtml(data.remark)}
         </div>
       ` : ''}
 
@@ -291,13 +292,13 @@ export const printQuotation = (
           </div>
           <div style="margin-top: 20px;">
             <strong>PARTS & SERVICES DEPT</strong><br>
-            <span style="font-size: 10px;">TEL: ${companyInfo.phone}</span><br>
-            <span style="font-size: 10px;">EMAIL: ${companyInfo.email}</span>
+            <span style="font-size: 10px;">TEL: ${sanitizeHtml(companyInfo.phone)}</span><br>
+            <span style="font-size: 10px;">EMAIL: ${sanitizeHtml(companyInfo.email)}</span>
           </div>
         </div>
         <div class="accept-box">
           <div class="accept-title">Accept and agreed by:</div>
-          <div style="font-weight: bold;">${data.customer?.name || ''}</div>
+          <div style="font-weight: bold;">${sanitizeHtml(data.customer?.name || '')}</div>
           <div class="signature-line"></div>
           <div class="signature-name">(Please chop & sign)</div>
         </div>

@@ -1,4 +1,5 @@
 import { Job } from '../types';
+import { sanitizeHtml } from '../services/sanitizeService';
 
 // Company info interface for customization
 interface CompanyInfo {
@@ -68,8 +69,8 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
   const invoiceDate = formatDate(job.invoiced_at || job.created_at);
 
   // Build equipment reference line
-  const equipmentRef = job.forklift 
-    ? `[MODEL: ${job.forklift.model} SN: ${job.forklift.serial_number}${job.forklift.forklift_no ? ` [${job.forklift.forklift_no}]` : ''}]`
+  const equipmentRef = job.forklift
+    ? `[MODEL: ${sanitizeHtml(job.forklift.model)} SN: ${sanitizeHtml(job.forklift.serial_number)}${job.forklift.forklift_no ? ` [${sanitizeHtml(job.forklift.forklift_no)}]` : ''}]`
     : '';
 
   // Build items HTML with detailed descriptions
@@ -80,7 +81,7 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
       <tr>
         <td class="border-cell center">${itemCounter}</td>
         <td class="border-cell description">
-          <div class="item-title">${part.part_name}</div>
+          <div class="item-title">${sanitizeHtml(part.part_name)}</div>
         </td>
         <td class="border-cell center">${part.quantity} UNIT</td>
         <td class="border-cell right">${formatNumber(part.sell_price_at_time)}</td>
@@ -97,8 +98,8 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
         <td class="border-cell center">${itemCounter}</td>
         <td class="border-cell description">
           <div class="item-title">LABOUR / SERVICE CHARGES</div>
-          <div class="item-detail">Service: ${job.title}</div>
-          ${job.job_carried_out ? `<div class="item-detail">Work Done: ${job.job_carried_out}</div>` : ''}
+          <div class="item-detail">Service: ${sanitizeHtml(job.title)}</div>
+          ${job.job_carried_out ? `<div class="item-detail">Work Done: ${sanitizeHtml(job.job_carried_out)}</div>` : ''}
         </td>
         <td class="border-cell center">1 LOT</td>
         <td class="border-cell right">${formatNumber(laborCost)}</td>
@@ -121,8 +122,8 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
         <tr>
           <td class="border-cell center">${itemCounter}</td>
           <td class="border-cell description">
-            <div class="item-title">${charge.name.toUpperCase()}</div>
-            ${charge.description ? `<div class="item-detail">${charge.description}</div>` : ''}
+            <div class="item-title">${sanitizeHtml(charge.name.toUpperCase())}</div>
+            ${charge.description ? `<div class="item-detail">${sanitizeHtml(charge.description)}</div>` : ''}
           </td>
           <td class="border-cell center">1 LOT</td>
           <td class="border-cell right">${formatNumber(charge.amount)}</td>
@@ -151,7 +152,7 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Invoice - ${invoiceNumber}</title>
+  <title>Invoice - ${sanitizeHtml(invoiceNumber)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -408,17 +409,17 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
   <!-- Customer and Invoice Info -->
   <div class="info-section">
     <div class="customer-box">
-      <div class="customer-name">${job.customer?.name || 'N/A'}</div>
-      <div>${job.customer?.address || 'N/A'}</div>
-      ${job.customer?.phone ? `<div>TEL: ${job.customer.phone}</div>` : ''}
-      ${job.customer?.email ? `<div>EMAIL: ${job.customer.email}</div>` : ''}
+      <div class="customer-name">${sanitizeHtml(job.customer?.name || 'N/A')}</div>
+      <div>${sanitizeHtml(job.customer?.address || 'N/A')}</div>
+      ${job.customer?.phone ? `<div>TEL: ${sanitizeHtml(job.customer.phone)}</div>` : ''}
+      ${job.customer?.email ? `<div>EMAIL: ${sanitizeHtml(job.customer.email)}</div>` : ''}
     </div>
     <div class="invoice-box">
       <div class="invoice-title">INVOICE</div>
       <div class="invoice-details">
         <div class="invoice-row">
           <div class="invoice-label">No.</div>
-          <div class="invoice-value">: ${invoiceNumber}</div>
+          <div class="invoice-value">: ${sanitizeHtml(invoiceNumber)}</div>
         </div>
         <div class="invoice-row">
           <div class="invoice-label">Date</div>
@@ -430,11 +431,11 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
         </div>
         <div class="invoice-row">
           <div class="invoice-label">A/C No.</div>
-          <div class="invoice-value">: ${job.customer.account_number || '-'}</div>
+          <div class="invoice-value">: ${sanitizeHtml(job.customer.account_number || '-')}</div>
         </div>
         <div class="invoice-row">
           <div class="invoice-label">ATTN.</div>
-          <div class="invoice-value">: ${job.customer.contact_person || '-'}</div>
+          <div class="invoice-value">: ${sanitizeHtml(job.customer.contact_person || '-')}</div>
         </div>
       </div>
     </div>
@@ -443,8 +444,8 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
   <!-- Reference Line -->
   <div class="ref-section">
     <div class="ref-left">
-      <div><strong>Technician:</strong> ${job.assigned_technician_name || '-'}</div>
-      <div class="ref-line">RE: ${job.title.toUpperCase()}</div>
+      <div><strong>Technician:</strong> ${sanitizeHtml(job.assigned_technician_name || '-')}</div>
+      <div class="ref-line">RE: ${sanitizeHtml(job.title.toUpperCase())}</div>
       ${equipmentRef ? `<div class="equipment-ref">${equipmentRef}</div>` : ''}
     </div>
     <div class="ref-right">
@@ -473,16 +474,16 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
     <div class="totals-left">
       <div class="terms-row">
         <span class="terms-label">Service Report:</span>
-        <span>${job.service_report_number || job.job_id.slice(0, 8).toUpperCase()}</span>
+        <span>${sanitizeHtml(job.service_report_number || job.job_id.slice(0, 8).toUpperCase())}</span>
       </div>
       <div class="terms-row">
         <span class="terms-label">Job Type:</span>
-        <span>${job.job_type || 'Service'}</span>
+        <span>${sanitizeHtml(job.job_type || 'Service')}</span>
       </div>
       ${job.recommendation ? `
       <div class="terms-row">
         <span class="terms-label">Remark:</span>
-        <span>${job.recommendation}</span>
+        <span>${sanitizeHtml(job.recommendation)}</span>
       </div>
       ` : ''}
     </div>
@@ -513,7 +514,7 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
       </div>
       <div class="terms-row">
         <span class="terms-label">Payment Term:</span>
-        <span>${job.payment_term || 'C.O.D'}</span>
+        <span>${sanitizeHtml(job.payment_term || 'C.O.D')}</span>
       </div>
     </div>
   </div>
@@ -530,8 +531,8 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
       <div class="signature-box">
         <div class="signature-label">Prepared by:</div>
         ${job.technician_signature ? `
-          <img src="${job.technician_signature.signature_url}" class="sig-image" alt="Technician Signature">
-          <div>${job.technician_signature.signed_by_name}</div>
+          <img src="${sanitizeHtml(job.technician_signature.signature_url)}" class="sig-image" alt="Technician Signature">
+          <div>${sanitizeHtml(job.technician_signature.signed_by_name)}</div>
         ` : `
           <div class="signature-line"></div>
         `}
@@ -541,8 +542,8 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
       <div class="signature-box">
         <div class="signature-label">Received by:</div>
         ${job.customer_signature ? `
-          <img src="${job.customer_signature.signature_url}" class="sig-image" alt="Customer Signature">
-          <div>${job.customer_signature.signed_by_name}</div>
+          <img src="${sanitizeHtml(job.customer_signature.signature_url)}" class="sig-image" alt="Customer Signature">
+          <div>${sanitizeHtml(job.customer_signature.signed_by_name)}</div>
         ` : `
           <div class="signature-line"></div>
         `}

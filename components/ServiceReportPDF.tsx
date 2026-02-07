@@ -1,5 +1,6 @@
 import React from 'react';
 import { Job, ForkliftConditionChecklist, JobType } from '../types';
+import { sanitizeHtml } from '../services/sanitizeService';
 
 interface ServiceReportProps {
   job: Job;
@@ -434,7 +435,7 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Service Report - ${reportNumber || job.job_id.slice(0, 8)}</title>
+      <title>Service Report - ${sanitizeHtml(reportNumber || job.job_id.slice(0, 8))}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; font-size: 11px; padding: 15px; }
@@ -475,7 +476,7 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
         <div style="text-align: right;">
           <div class="report-title">SERVICE / REPAIR REPORT</div>
           <div class="report-number">
-            <div><strong>No.: ${reportNumber || job.service_report_number || job.job_id.slice(0, 8).toUpperCase()}</strong></div>
+            <div><strong>No.: ${sanitizeHtml(reportNumber || job.service_report_number || job.job_id.slice(0, 8).toUpperCase())}</strong></div>
             <div>Date: ${new Date(job.created_at).toLocaleDateString('en-GB')}</div>
           </div>
         </div>
@@ -483,12 +484,12 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
 
       <div class="customer-section">
         <div class="customer-box">
-          <div><strong>Name:</strong> ${job.customer.name}</div>
-          <div><strong>Address:</strong> ${job.customer.address}</div>
-          <div><strong>Attn:</strong> ${job.customer.contact_person || '-'}</div>
+          <div><strong>Name:</strong> ${sanitizeHtml(job.customer.name)}</div>
+          <div><strong>Address:</strong> ${sanitizeHtml(job.customer.address)}</div>
+          <div><strong>Attn:</strong> ${sanitizeHtml(job.customer.contact_person || '-')}</div>
         </div>
         <div class="customer-box">
-          <div>Your ref no.: ${job.customer.account_number || '-'}</div>
+          <div>Your ref no.: ${sanitizeHtml(job.customer.account_number || '-')}</div>
           <div style="margin-top: 10px;">
             <label><input type="checkbox" ${job.job_type === 'Service' ? 'checked' : ''} disabled> SERVICE</label>
             <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Repair' ? 'checked' : ''} disabled> REPAIR</label>
@@ -501,11 +502,11 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
 
       ${job.forklift ? `
         <div class="forklift-details">
-          <div><strong>Brand:</strong> ${job.forklift.make}</div>
-          <div><strong>Serial Number:</strong> ${job.forklift.serial_number}</div>
-          <div><strong>Forklift No:</strong> ${job.forklift.forklift_no || '-'}</div>
-          <div><strong>Equipment:</strong> ${job.title}</div>
-          <div><strong>Model:</strong> ${job.forklift.model}</div>
+          <div><strong>Brand:</strong> ${sanitizeHtml(job.forklift.make)}</div>
+          <div><strong>Serial Number:</strong> ${sanitizeHtml(job.forklift.serial_number)}</div>
+          <div><strong>Forklift No:</strong> ${sanitizeHtml(job.forklift.forklift_no || '-')}</div>
+          <div><strong>Equipment:</strong> ${sanitizeHtml(job.title)}</div>
+          <div><strong>Model:</strong> ${sanitizeHtml(job.forklift.model)}</div>
           <div><strong>Hourmeter:</strong> ${(job.hourmeter_reading || job.forklift.hourmeter)?.toLocaleString()} hrs</div>
         </div>
       ` : ''}
@@ -518,12 +519,12 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
 
       <div class="job-section">
         <div class="job-section-title">Recommendation:</div>
-        <div style="min-height: 30px; border-bottom: 1px solid #cbd5e1;">${job.recommendation || '-'}</div>
+        <div style="min-height: 30px; border-bottom: 1px solid #cbd5e1;">${sanitizeHtml(job.recommendation || '-')}</div>
       </div>
 
       <div class="job-section">
         <div class="job-section-title">Job Carried Out:</div>
-        <div style="min-height: 40px;">${job.job_carried_out || job.description}</div>
+        <div style="min-height: 40px;">${sanitizeHtml(job.job_carried_out || job.description)}</div>
       </div>
 
       <table>
@@ -541,8 +542,8 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
           ${job.parts_used.map((part, idx) => `
             <tr>
               <td>${idx + 1}</td>
-              <td style="font-family: monospace;">${part.part_id.slice(0, 6)}</td>
-              <td>${part.part_name}</td>
+              <td style="font-family: monospace;">${sanitizeHtml(part.part_id.slice(0, 6))}</td>
+              <td>${sanitizeHtml(part.part_name)}</td>
               <td class="text-center">${part.quantity}</td>
               <td class="text-right">${part.sell_price_at_time.toFixed(2)}</td>
               <td class="text-right">${(part.quantity * part.sell_price_at_time).toFixed(2)}</td>
@@ -581,8 +582,8 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
           <div style="margin-top: 20px;">
             <strong>Technician Name:</strong>
             ${job.technician_signature ? `
-              <div><img src="${job.technician_signature.signature_url}" class="signature-img" /></div>
-              <div>${job.technician_signature.signed_by_name}</div>
+              <div><img src="${sanitizeHtml(job.technician_signature.signature_url)}" class="signature-img" /></div>
+              <div>${sanitizeHtml(job.technician_signature.signed_by_name)}</div>
             ` : '<div style="border-bottom: 1px solid #000; height: 50px; margin-top: 10px;"></div>'}
           </div>
         </div>
@@ -595,12 +596,12 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
             </div>
             <div>
               <div style="font-size: 9px; color: #64748b;">for Customer</div>
-              <div><strong>Name:</strong> ${job.customer_signature?.signed_by_name || ''}</div>
+              <div><strong>Name:</strong> ${sanitizeHtml(job.customer_signature?.signed_by_name || '')}</div>
             </div>
           </div>
           ${job.customer_signature ? `
             <div style="margin-top: 10px;">
-              <img src="${job.customer_signature.signature_url}" class="signature-img" />
+              <img src="${sanitizeHtml(job.customer_signature.signature_url)}" class="signature-img" />
               <div style="font-size: 9px; color: #64748b;">Chop & Sign</div>
             </div>
           ` : ''}

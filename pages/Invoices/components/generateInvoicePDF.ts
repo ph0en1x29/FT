@@ -1,4 +1,5 @@
 import { Job } from '../../../types';
+import { sanitizeHtml } from '../../../services/sanitizeService';
 
 /**
  * Generates and opens a printable invoice PDF in a new window
@@ -21,7 +22,7 @@ export const generateInvoicePDF = (job: Job): void => {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Invoice - INV-${job.job_id.slice(0, 8).toUpperCase()}</title>
+      <title>Invoice - INV-${sanitizeHtml(job.job_id.slice(0, 8).toUpperCase())}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; padding: 30px; color: #333; font-size: 11px; }
@@ -101,7 +102,7 @@ export const generateInvoicePDF = (job: Job): void => {
         </div>
         <div class="invoice-title">
           <h2>INVOICE</h2>
-          <div class="inv-no">No.: INV-${job.job_id.slice(0, 8).toUpperCase()}</div>
+          <div class="inv-no">No.: INV-${sanitizeHtml(job.job_id.slice(0, 8).toUpperCase())}</div>
           <div class="inv-date">Date: ${new Date(job.invoiced_at || job.created_at).toLocaleDateString()}</div>
           <div class="inv-date">Page: 1 of 1</div>
         </div>
@@ -110,11 +111,11 @@ export const generateInvoicePDF = (job: Job): void => {
       <div class="billing-section">
         <div class="bill-to">
           <h3>Bill To</h3>
-          <div class="company-name">${job.customer?.name || ''}</div>
+          <div class="company-name">${sanitizeHtml(job.customer?.name || '')}</div>
           <p>
-            ${job.customer?.address || ''}<br/>
-            Tel: ${job.customer?.phone || ''}<br/>
-            Email: ${job.customer?.email || ''}
+            ${sanitizeHtml(job.customer?.address || '')}<br/>
+            Tel: ${sanitizeHtml(job.customer?.phone || '')}<br/>
+            Email: ${sanitizeHtml(job.customer?.email || '')}
           </p>
         </div>
 
@@ -122,9 +123,9 @@ export const generateInvoicePDF = (job: Job): void => {
           <div class="reference-box">
             <h3>Equipment Reference</h3>
             <p>
-              <strong>Model:</strong> ${job.forklift.make} ${job.forklift.model}<br/>
-              <strong>Serial No:</strong> ${job.forklift.serial_number}<br/>
-              <strong>Type:</strong> ${job.forklift.type}<br/>
+              <strong>Model:</strong> ${sanitizeHtml(job.forklift.make)} ${sanitizeHtml(job.forklift.model)}<br/>
+              <strong>Serial No:</strong> ${sanitizeHtml(job.forklift.serial_number)}<br/>
+              <strong>Type:</strong> ${sanitizeHtml(job.forklift.type)}<br/>
               ${job.hourmeter_reading ? `<strong>Hourmeter:</strong> ${job.hourmeter_reading.toLocaleString()} hrs` : ''}
             </p>
           </div>
@@ -132,7 +133,7 @@ export const generateInvoicePDF = (job: Job): void => {
       </div>
 
       <div class="attn-line">
-        <strong>RE:</strong> ${job.title} - ${job.description.substring(0, 100)}${job.description.length > 100 ? '...' : ''}
+        <strong>RE:</strong> ${sanitizeHtml(job.title)} - ${sanitizeHtml(job.description.substring(0, 100))}${job.description.length > 100 ? '...' : ''}
       </div>
 
       <table class="items-table">
@@ -161,7 +162,7 @@ export const generateInvoicePDF = (job: Job): void => {
             <tr>
               <td>${idx + 2}</td>
               <td class="item-desc">
-                <strong>${p.part_name}</strong>
+                <strong>${sanitizeHtml(p.part_name)}</strong>
               </td>
               <td>${p.quantity}</td>
               <td>${p.sell_price_at_time.toFixed(2)}</td>
@@ -173,8 +174,8 @@ export const generateInvoicePDF = (job: Job): void => {
             <tr>
               <td>${job.parts_used.length + idx + 2}</td>
               <td class="item-desc">
-                <strong>${c.name}</strong>
-                ${c.description ? `<small>${c.description}</small>` : ''}
+                <strong>${sanitizeHtml(c.name)}</strong>
+                ${c.description ? `<small>${sanitizeHtml(c.description)}</small>` : ''}
               </td>
               <td>1</td>
               <td>${c.amount.toFixed(2)}</td>
@@ -221,7 +222,7 @@ export const generateInvoicePDF = (job: Job): void => {
         <div class="sig-box">
           <h4>Issued By</h4>
           <div class="sig-line"></div>
-          <div class="sig-name">${job.invoiced_by_name || 'Accounts Department'}</div>
+          <div class="sig-name">${sanitizeHtml(job.invoiced_by_name || 'Accounts Department')}</div>
           <div class="sig-title">FieldPro Service Management</div>
           <div class="sig-title">Date: ${job.invoiced_at ? new Date(job.invoiced_at).toLocaleDateString() : ''}</div>
         </div>
@@ -229,7 +230,7 @@ export const generateInvoicePDF = (job: Job): void => {
         <div class="accept-box">
           <h4>Accepted and Agreed By:</h4>
           <div class="chop-area">(Please chop & sign)</div>
-          <div class="sig-name">${job.customer?.name || ''}</div>
+          <div class="sig-name">${sanitizeHtml(job.customer?.name || '')}</div>
         </div>
       </div>
 
