@@ -300,6 +300,7 @@ export type ServiceUrgency = 'overdue' | 'due_soon' | 'upcoming' | 'ok';
 export interface ForkliftWithPrediction extends Forklift {
   last_service_hourmeter: number;
   service_interval_hours: number;
+  current_hourmeter?: number;
   predicted_date?: string;
   days_remaining?: number;
   hours_until_service?: number;

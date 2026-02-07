@@ -156,7 +156,7 @@ const AdminDashboardV6: React.FC<AdminDashboardV6Props> = ({ currentUser, jobs, 
   const [notifFilter, setNotifFilter] = useState<NotificationFilter>('all');
   
   // Fetch notifications
-  const { data: notifications = [] } = useNotifications(currentUser.user_id, 20);
+  const { data: notifications = [] } = useNotifications(currentUser.user_id, false);
 
   const technicians = users.filter(u => u.role === UserRole.TECHNICIAN && u.is_active);
   

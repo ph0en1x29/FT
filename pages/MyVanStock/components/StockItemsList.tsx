@@ -57,7 +57,9 @@ export function StockItemsList({ items }: StockItemsListProps) {
       ) : (
         <div className="space-y-3">
           {filteredItems.map((item) => (
-            <StockItemCard key={item.item_id} item={item} />
+            <div key={item.item_id}>
+              <StockItemCard item={item} />
+            </div>
           ))}
         </div>
       )}

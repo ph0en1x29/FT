@@ -86,18 +86,19 @@ export default function PendingConfirmations({ currentUser, hideHeader = false }
       ) : (
         <div className="space-y-4">
           {currentJobs.map(job => (
-            <JobCard
-              key={job.job_id}
-              job={job}
-              activeTab={activeTab}
-              processing={processing}
-              canConfirm={canConfirm}
-              onConfirmParts={handleConfirmParts}
-              onConfirmJob={handleConfirmJob}
-              onSkipParts={handleSkipPartsConfirmation}
-              onReject={openRejectModal}
-              onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
-            />
+            <div key={job.job_id}>
+              <JobCard
+                job={job}
+                activeTab={activeTab}
+                processing={processing}
+                canConfirm={canConfirm}
+                onConfirmParts={handleConfirmParts}
+                onConfirmJob={handleConfirmJob}
+                onSkipParts={handleSkipPartsConfirmation}
+                onReject={openRejectModal}
+                onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
+              />
+            </div>
           ))}
         </div>
       )}

@@ -41,13 +41,14 @@ export function VanStockGrid({
       {vanStocks.map((vs) => {
         const pendingRequest = replenishments.find(r => r.technician_id === vs.technician_id);
         return (
-          <VanStockCard
-            key={vs.van_stock_id}
-            vanStock={vs}
-            pendingRequest={pendingRequest}
-            onViewDetails={onViewDetails}
-            onScheduleAudit={onScheduleAudit}
-          />
+          <div key={vs.van_stock_id}>
+            <VanStockCard
+              vanStock={vs}
+              pendingRequest={pendingRequest}
+              onViewDetails={onViewDetails}
+              onScheduleAudit={onScheduleAudit}
+            />
+          </div>
         );
       })}
     </div>

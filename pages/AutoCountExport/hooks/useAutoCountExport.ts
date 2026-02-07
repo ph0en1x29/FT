@@ -115,7 +115,7 @@ export function useAutoCountExport(currentUser: User): UseAutoCountExportReturn 
     if (!canExport) return;
     setProcessing(true);
     try {
-      await SupabaseDb.retryAutoCountExport(exportId, currentUser.user_id, currentUser.name);
+      await SupabaseDb.retryAutoCountExport(exportId);
       showToast.success('Retry initiated');
       loadData();
       setShowDetailModal(false);

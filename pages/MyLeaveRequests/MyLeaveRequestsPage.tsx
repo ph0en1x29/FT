@@ -105,11 +105,12 @@ export default function MyLeaveRequestsPage({ currentUser }: MyLeaveRequestsPage
           ) : (
             <div className="space-y-3">
               {filteredLeaves.map((leave) => (
-                <LeaveRequestCard
-                  key={leave.leave_id}
-                  leave={leave}
-                  onCancel={handleCancelLeave}
-                />
+                <div key={leave.leave_id}>
+                  <LeaveRequestCard
+                    leave={leave}
+                    onCancel={handleCancelLeave}
+                  />
+                </div>
               ))}
             </div>
           )}

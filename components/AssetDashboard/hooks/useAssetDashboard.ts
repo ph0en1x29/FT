@@ -52,7 +52,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
 
       // Build lookups
       const rentalLookup = new Map<string, { customer_id: string; customer_name: string }>();
-      ((rentalsData || []) as RentalQueryResult[]).forEach((r) => {
+      ((rentalsData || []) as unknown as RentalQueryResult[]).forEach((r) => {
         rentalLookup.set(r.forklift_id, {
           customer_id: r.customer_id,
           customer_name: r.customers?.name || 'Unknown'

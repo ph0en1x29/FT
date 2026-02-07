@@ -144,12 +144,13 @@ export function ServicePredictionDashboard({
                 </h3>
                 <div className="space-y-2">
                   {overdue.map(forklift => (
-                    <ServicePredictionCard
-                      key={forklift.forklift_id}
-                      forklift={forklift}
-                      onClick={() => onForkliftClick?.(forklift.forklift_id)}
-                      compact
-                    />
+                    <div key={forklift.forklift_id}>
+                      <ServicePredictionCard
+                        forklift={forklift}
+                        onClick={() => onForkliftClick?.(forklift.forklift_id)}
+                        compact
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -164,12 +165,13 @@ export function ServicePredictionDashboard({
                 </h3>
                 <div className="space-y-2">
                   {due_this_week.map(forklift => (
-                    <ServicePredictionCard
-                      key={forklift.forklift_id}
-                      forklift={forklift}
-                      onClick={() => onForkliftClick?.(forklift.forklift_id)}
-                      compact
-                    />
+                    <div key={forklift.forklift_id}>
+                      <ServicePredictionCard
+                        forklift={forklift}
+                        onClick={() => onForkliftClick?.(forklift.forklift_id)}
+                        compact
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -184,12 +186,13 @@ export function ServicePredictionDashboard({
                 </h3>
                 <div className="space-y-2">
                   {upcoming_two_weeks.map(forklift => (
-                    <ServicePredictionCard
-                      key={forklift.forklift_id}
-                      forklift={forklift}
-                      onClick={() => onForkliftClick?.(forklift.forklift_id)}
-                      compact
-                    />
+                    <div key={forklift.forklift_id}>
+                      <ServicePredictionCard
+                        forklift={forklift}
+                        onClick={() => onForkliftClick?.(forklift.forklift_id)}
+                        compact
+                      />
+                    </div>
                   ))}
                 </div>
               </div>

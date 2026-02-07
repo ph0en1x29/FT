@@ -50,8 +50,6 @@ export const useJobActions = ({
     hourmeterInput,
     setShowTechSigPad,
     setShowCustSigPad,
-    setGeneratingAi,
-    setAiSummary,
   } = state;
 
   // Accept/Reject job handlers

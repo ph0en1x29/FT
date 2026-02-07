@@ -193,11 +193,12 @@ export default function HourmeterReview({ currentUser, hideHeader = false }: Hou
       ) : (
         <div className="space-y-3">
           {filteredAmendments.map((amendment) => (
-            <AmendmentCard
-              key={amendment.amendment_id}
-              amendment={amendment}
-              onClick={() => handleViewDetail(amendment)}
-            />
+            <div key={amendment.amendment_id}>
+              <AmendmentCard
+                amendment={amendment}
+                onClick={() => handleViewDetail(amendment)}
+              />
+            </div>
           ))}
         </div>
       )}

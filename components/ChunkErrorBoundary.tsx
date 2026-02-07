@@ -16,6 +16,7 @@ interface State {
  */
 class ChunkErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, isChunkError: false };
+  declare readonly props: Props;
   
   constructor(props: Props) {
     super(props);
