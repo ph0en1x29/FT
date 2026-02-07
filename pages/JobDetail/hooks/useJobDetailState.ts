@@ -66,8 +66,6 @@ export const useJobDetailState = () => {
   });
 
   // AI states
-  const [aiSummary, setAiSummary] = useState('');
-  const [generatingAi, setGeneratingAi] = useState(false);
 
   // Editing states
   const [editingPartId, setEditingPartId] = useState<string | null>(null);
@@ -183,8 +181,6 @@ export const useJobDetailState = () => {
     serviceUpgradePrompt, setServiceUpgradePrompt,
 
     // AI
-    aiSummary, setAiSummary,
-    generatingAi, setGeneratingAi,
 
     // Editing
     editingPartId, setEditingPartId,

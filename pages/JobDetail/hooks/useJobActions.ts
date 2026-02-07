@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Job, JobStatus, User, ForkliftConditionChecklist, HourmeterFlagReason, JobRequestType, UserRole } from '../../../types';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
-import { generateJobSummary } from '../../../services/geminiService';
 import { showToast } from '../../../services/toastService';
 import { getMissingMandatoryItems } from '../utils';
 import { JobDetailState } from './useJobDetailState';
@@ -502,15 +501,6 @@ export const useJobActions = ({
     setShowCustSigPad(false);
   }, [job, setJob, setShowRejectJobModal, setRejectJobReason]);
 
-  // AI Summary handler
-  const handleAiSummary = useCallback(async () => {
-    if (!job) return;
-    setGeneratingAi(true);
-    const summary = await generateJobSummary(job);
-    setAiSummary(summary);
-    setGeneratingAi(false);
-  }, [job, setShowRejectJobModal, setRejectJobReason]);
-
   // Job Request handlers
   const handleCreateRequest = useCallback(async (
     type: JobRequestType,
@@ -947,7 +937,6 @@ export const useJobActions = ({
     handleCustomerSignature,
     
     // AI
-    handleAiSummary,
     
     // Requests
     handleCreateRequest,

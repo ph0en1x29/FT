@@ -1,17 +1,18 @@
 import React from 'react';
-import { Wrench, TrendingUp, BrainCircuit } from 'lucide-react';
-import { InsightsSidebarProps } from '../types';
+import { Wrench, TrendingUp } from 'lucide-react';
+
+interface InsightsSidebarProps {
+  completedJobsCount: number;
+  avgResponseTime: number;
+  avgJobValue: number;
+  topIssues: [string, number][];
+}
 
 const InsightsSidebar: React.FC<InsightsSidebarProps> = ({
   completedJobsCount,
   avgResponseTime,
   avgJobValue,
   topIssues,
-  aiAnalysis,
-  generatingAI,
-  hasJobs,
-  onGenerateAnalysis,
-  onClearAnalysis,
 }) => {
   return (
     <div className="space-y-4">
@@ -54,37 +55,6 @@ const InsightsSidebar: React.FC<InsightsSidebarProps> = ({
           </div>
         ) : (
           <p className="text-xs text-slate-400 italic">No service history yet</p>
-        )}
-      </div>
-
-      {/* AI Insights */}
-      <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-sm border border-purple-100 p-4">
-        <h3 className="font-semibold text-slate-800 text-sm mb-2 flex items-center gap-2">
-          <BrainCircuit className="w-4 h-4 text-purple-600" /> AI Insights
-        </h3>
-        
-        {aiAnalysis ? (
-          <div className="bg-white rounded-lg p-3 text-xs text-slate-700 space-y-2 max-h-48 overflow-y-auto">
-            {aiAnalysis.split('\n').filter(Boolean).map((line, idx) => (
-              <p key={idx}>{line}</p>
-            ))}
-            <button
-              onClick={onClearAnalysis}
-              className="text-purple-600 hover:underline text-xs mt-2"
-            >
-              Regenerate
-            </button>
-          </div>
-        ) : !hasJobs ? (
-          <p className="text-xs text-slate-400">No service history to analyze</p>
-        ) : (
-          <button
-            onClick={onGenerateAnalysis}
-            disabled={generatingAI}
-            className="w-full mt-2 bg-purple-600 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-purple-700 disabled:opacity-50"
-          >
-            {generatingAI ? 'Analyzing...' : 'Generate Analysis'}
-          </button>
         )}
       </div>
     </div>

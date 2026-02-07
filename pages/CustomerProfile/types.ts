@@ -84,11 +84,6 @@ export interface InsightsSidebarProps {
   avgResponseTime: number;
   avgJobValue: number;
   topIssues: [string, number][];
-  aiAnalysis: string;
-  generatingAI: boolean;
-  hasJobs: boolean;
-  onGenerateAnalysis: () => void;
-  onClearAnalysis: () => void;
 }
 
 export interface EditRentalModalProps {

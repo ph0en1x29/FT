@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { CustomerProfileProps, RentalTab, ServiceTab } from './types';
 import {
-  useCustomerData, useAIAnalysis, useRentalSelection,
+  useCustomerData, useRentalSelection,
   useBulkEndRentals, useRentForklifts, useResultModal, useRentalActions,
 } from './hooks';
 import {
@@ -32,7 +32,6 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
 
   // Hooks
   const { resultModal, setResultModal, closeResultModal } = useResultModal();
-  const aiAnalysis = useAIAnalysis(customer, jobs);
   const rentalSelection = useRentalSelection(activeRentals);
   const bulkEnd = useBulkEndRentals(
     rentalSelection.selectedRentals, currentUser, loadCustomerData, 
@@ -126,11 +125,6 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
             avgResponseTime={stats.avgResponseTime}
             avgJobValue={stats.avgJobValue}
             topIssues={stats.topIssues}
-            aiAnalysis={aiAnalysis.aiAnalysis}
-            generatingAI={aiAnalysis.generatingAI}
-            hasJobs={jobs.length > 0}
-            onGenerateAnalysis={aiAnalysis.handleGenerateAnalysis}
-            onClearAnalysis={aiAnalysis.clearAnalysis}
           />
         </div>
       </div>

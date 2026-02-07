@@ -14,7 +14,6 @@ export interface FeatureFlags {
   experimentalUI: boolean;         // Enable experimental UI components
   dashboardV5: boolean;            // Future dashboard version toggle (placeholder)
   debugMode: boolean;              // Show extra debug info in console
-  aiSummary: boolean;              // AI summary generation for jobs
   darkModeBeta: boolean;           // Dark mode beta features
 }
 
@@ -24,7 +23,6 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   experimentalUI: false,
   dashboardV5: false,
   debugMode: false,
-  aiSummary: true,
   darkModeBeta: false,
 };
 
@@ -45,10 +43,6 @@ export const FEATURE_FLAG_INFO: Record<keyof FeatureFlags, { label: string; desc
   debugMode: {
     label: 'Debug Mode',
     description: 'Show extra debug info in browser console',
-  },
-  aiSummary: {
-    label: 'AI Summary Generation',
-    description: 'Generate AI summaries for job descriptions',
   },
   darkModeBeta: {
     label: 'Dark Mode Beta',

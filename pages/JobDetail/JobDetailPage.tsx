@@ -10,7 +10,7 @@ import { SkeletonJobDetail } from '../../components/Skeleton';
 
 // Extracted components
 import {
-  JobHeader, JobTimerCard, EquipmentCard, FinancialSummary, JobTimeline, SignaturesCard, AIAssistantCard,
+  JobHeader, JobTimerCard, EquipmentCard, FinancialSummary, JobTimeline, SignaturesCard,
   JobPhotosSection, CustomerAssignmentCard, NotesSection, SignatureModal, StartJobModal, FinalizeModal,
   ReassignModal, ContinueTomorrowModal, DeleteModal, RejectJobModal, ChecklistWarningModal, HourmeterAmendmentModal,
   JobRequestsSection, CreateRequestModal, ApproveRequestModal, ConditionChecklistCard, PartsSection,
@@ -138,7 +138,6 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
           <JobTimeline job={job} />
           <SignaturesCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
             onOpenTechSignature={() => state.setShowTechSigPad(true)} onOpenCustomerSignature={() => state.setShowCustSigPad(true)} />
-          <AIAssistantCard aiSummary={state.aiSummary} generatingAi={state.generatingAi} onGenerateSummary={actions.handleAiSummary} />
         </div>
       </div>
 
