@@ -21,6 +21,7 @@ export { PartsSection } from './PartsSection';
 
 // Modal components
 export {
-ChecklistWarningModal,ContinueTomorrowModal,DeferredCompletionModal,DeleteModal,FinalizeModal,HelperModal,HourmeterAmendmentModal,ReassignModal,RejectJobModal,SignatureModal,
+ChecklistWarningModal,ContinueTomorrowModal,DeferredCompletionModal,DeleteModal,FinalizeModal,HelperModal,ReassignModal,RejectJobModal,SignatureModal,
 StartJobModal
 } from './JobDetailModals';
+export { default as HourmeterAmendmentModal } from '../../../components/HourmeterAmendmentModal';
