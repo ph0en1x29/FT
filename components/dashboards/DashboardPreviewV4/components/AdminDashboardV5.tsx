@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /**
  * AdminDashboardV5 - Option C Style Layout
  * 

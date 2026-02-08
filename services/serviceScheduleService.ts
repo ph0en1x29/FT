@@ -127,8 +127,9 @@ export const getServiceIntervals = async (): Promise<any[]> => {
   }
 };
 
-export const getServiceIntervalsByType = async (forkliftType: string): Promise<any[]> => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const getServiceIntervalsByType = async (forkliftType: string): Promise<any[]> => {
+ 
   try {
     const { data, error } = await supabase
       .from('service_intervals')
@@ -155,8 +156,9 @@ export const createServiceInterval = async (interval: {
   checklist_items?: string[];
   estimated_duration_hours?: number;
   name?: string;
-}): Promise<any | null> => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+}): Promise<any | null> => {
+ 
   try {
     const { data, error } = await supabase
       .from('service_intervals')
@@ -196,9 +198,10 @@ export const updateServiceInterval = async (
     name?: string;
     is_active?: boolean;
   }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any | null> => {
   try {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
     const { data, error } = await supabase
       .from('service_intervals')
       .update(updates)

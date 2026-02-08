@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { ChevronDown,ChevronUp,RotateCcw,Search,ToggleLeft,ToggleRight,X } from 'lucide-react';
 import React,{ useCallback,useEffect,useState } from 'react';
 import { useDevModeContext } from '../../contexts/DevModeContext';

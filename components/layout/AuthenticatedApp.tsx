@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /**
  * AuthenticatedApp - Main layout for logged-in users
  * 

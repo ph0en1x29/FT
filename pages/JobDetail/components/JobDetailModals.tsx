@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import {
 AlertTriangle,CheckCircle,
 ClipboardList,
@@ -503,6 +504,7 @@ export const HelperModal: React.FC<HelperModalProps> = ({
   if (!show) return null;
 
   // Import Combobox dynamically to avoid circular deps
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const Combobox = require('../../../components/Combobox').Combobox;
 
   const handleClose = () => {

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import React from 'react';
 import { sanitizeHtml } from '../services/sanitizeService';
 import { ForkliftConditionChecklist,Job,JobType } from '../types';

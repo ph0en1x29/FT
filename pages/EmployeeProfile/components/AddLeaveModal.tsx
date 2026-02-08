@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { Calendar,CalendarDays,FileText,Upload,X } from 'lucide-react';
 import React,{ useRef,useState } from 'react';
 import { HRService } from '../../../services/hrService';

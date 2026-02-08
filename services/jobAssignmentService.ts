@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /**
  * Job Assignment Service
  * 

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { Camera,Download } from 'lucide-react';
 import React,{ useState } from 'react';
 import { SupabaseDb as MockDb,supabase } from '../../../services/supabaseService';

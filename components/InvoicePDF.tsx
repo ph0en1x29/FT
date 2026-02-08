@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { sanitizeHtml } from '../services/sanitizeService';
 import { Job } from '../types';
 

@@ -191,7 +191,7 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
             job.status !== JobStatus.COMPLETED_AWAITING_ACK
           );
           break;
-        case 'week':
+        case 'week': {
           const weekAgo = new Date(today);
           weekAgo.setDate(weekAgo.getDate() - 7);
           result = result.filter(job => {
@@ -199,7 +199,8 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
             return jobDate >= weekAgo;
           });
           break;
-        case 'month':
+        }
+        case 'month': {
           const monthAgo = new Date(today);
           monthAgo.setMonth(monthAgo.getMonth() - 1);
           result = result.filter(job => {
@@ -207,6 +208,7 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
             return jobDate >= monthAgo;
           });
           break;
+        }
         case 'custom':
           if (customDateFrom) {
             const fromDate = new Date(customDateFrom);

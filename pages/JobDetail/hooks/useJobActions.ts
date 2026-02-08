@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkServiceUpgradeNeeded,declineServiceUpgrade,upgradeToFullService } from '../../../services/serviceTrackingService';

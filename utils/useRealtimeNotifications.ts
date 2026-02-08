@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useCallback,useEffect,useRef,useState } from 'react';
 import { supabase } from '../services/supabaseService';

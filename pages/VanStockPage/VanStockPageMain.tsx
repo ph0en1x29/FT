@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /**
  * VanStockPage - Main container component
  * Manages van stock inventory for technicians

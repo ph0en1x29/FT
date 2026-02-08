@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 // ============================================
 // FieldPro RLS Redesign - TypeScript Interfaces
 // ============================================

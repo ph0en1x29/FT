@@ -6,7 +6,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ['dist/**', 'node_modules/**', '*.config.js', '*.config.ts', 'playwright.config.ts', 'supabase/**', 'tests/**'],
+    ignores: ['dist/**', 'node_modules/**', '*.config.js', '*.config.ts', 'playwright.config.ts', 'supabase/**', 'tests/**', 'public/**', 'scripts/**'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

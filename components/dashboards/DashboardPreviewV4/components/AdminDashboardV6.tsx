@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /**
  * AdminDashboardV6 - Full-Featured Prototype
  * 

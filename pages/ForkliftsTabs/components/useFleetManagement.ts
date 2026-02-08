@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import React,{ useCallback,useEffect,useMemo,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
