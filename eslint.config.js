@@ -15,7 +15,12 @@ export default tseslint.config(
     },
     rules: {
       'max-lines': ['warn', { max: 300, skipBlankLines: true, skipComments: true }],
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['warn', { 
+        argsIgnorePattern: '^_', 
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_'
+      }],
       '@typescript-eslint/no-explicit-any': 'warn',
       // React hooks rules to catch dependency issues
       'react-hooks/rules-of-hooks': 'error',
