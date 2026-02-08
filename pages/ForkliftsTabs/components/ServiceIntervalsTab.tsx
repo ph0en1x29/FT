@@ -46,7 +46,7 @@ const ServiceIntervalsTab: React.FC<TabProps> = ({ currentUser }) => {
     try {
       const data = await MockDb.getServiceIntervals();
       setIntervals(data);
-    } catch (e) {
+    } catch (_e) {
       showToast.error('Failed to load service intervals');
     } finally {
       setLoading(false);
@@ -109,7 +109,7 @@ const ServiceIntervalsTab: React.FC<TabProps> = ({ currentUser }) => {
       setShowAddModal(false);
       resetForm();
       await loadIntervals();
-    } catch (e) {
+    } catch (_e) {
       showToast.error('Failed to create service interval');
     }
   };
@@ -131,7 +131,7 @@ const ServiceIntervalsTab: React.FC<TabProps> = ({ currentUser }) => {
       setEditingInterval(null);
       resetForm();
       await loadIntervals();
-    } catch (e) {
+    } catch (_e) {
       showToast.error('Failed to update service interval');
     }
   };
@@ -143,7 +143,7 @@ const ServiceIntervalsTab: React.FC<TabProps> = ({ currentUser }) => {
       await MockDb.deleteServiceInterval(interval.interval_id);
       showToast.success('Service interval deleted');
       await loadIntervals();
-    } catch (e) {
+    } catch (_e) {
       showToast.error('Failed to delete service interval');
     }
   };

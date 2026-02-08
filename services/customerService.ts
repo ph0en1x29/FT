@@ -162,7 +162,7 @@ export const getCustomerFinancialSummary = async (customerId: string): Promise<a
       active_rentals: ((rentals || []) as RentalRow[]).filter((r) => r.status === 'active').length,
       total_jobs: (jobs || []).length,
     };
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -193,7 +193,7 @@ export const getCustomerJobsWithCancelled = async (customerId: string): Promise<
       ...job,
       is_cancelled: job.deleted_at !== null,
     })) as (Job & { is_cancelled: boolean })[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };

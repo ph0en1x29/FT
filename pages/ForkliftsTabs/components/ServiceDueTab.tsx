@@ -55,7 +55,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser }) => {
       
       // Load daily usage for each forklift (in background)
       loadDailyUsage(overview.map(f => f.forklift_id));
-    } catch (e) {
+    } catch (_e) {
       showToast.error('Failed to load service due data');
     } finally {
       setLoading(false);

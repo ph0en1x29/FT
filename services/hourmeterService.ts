@@ -34,7 +34,7 @@ export const getForkliftHourmeterHistory = async (forkliftId: string): Promise<a
       return [];
     }
     return data || [];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -64,7 +64,7 @@ export const getHourmeterAmendments = async (statusFilter?: HourmeterAmendmentSt
       return [];
     }
     return (data || []) as HourmeterAmendment[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -196,7 +196,7 @@ export const getJobHourmeterAmendment = async (jobId: string): Promise<Hourmeter
       return null;
     }
     return data as HourmeterAmendment;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };

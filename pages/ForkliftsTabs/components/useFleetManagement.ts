@@ -72,7 +72,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
       ]);
       setForklifts(forkliftData);
       setCustomers(customerData);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load forklifts');
       try {
         const data = await MockDb.getForklifts();
