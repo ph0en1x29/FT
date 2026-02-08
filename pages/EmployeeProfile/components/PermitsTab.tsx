@@ -35,7 +35,7 @@ export default function PermitsTab({
     try {
       await HRService.deletePermit(permitId);
       onRefresh();
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to delete permit');
       alert('Failed to delete permit');
     }

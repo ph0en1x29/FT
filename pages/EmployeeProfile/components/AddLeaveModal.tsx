@@ -94,7 +94,7 @@ export default function AddLeaveModal({
         supporting_document_url: documentUrl || undefined,
         total_days: totalDays,
       });
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to submit leave request');
       alert('Failed to submit leave request. Please try again.');
     } finally {

@@ -52,7 +52,7 @@ const TechnicianJobsTab: React.FC<TechnicianJobsTabProps> = ({ employee, current
       );
 
       setJobs(techJobs);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load job history');
     } finally {
       setLoading(false);

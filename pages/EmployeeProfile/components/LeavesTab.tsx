@@ -56,7 +56,7 @@ export default function LeavesTab({
         currentUser.name
       );
       onRefresh();
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to approve leave');
       alert('Failed to approve leave');
     }
@@ -73,7 +73,7 @@ export default function LeavesTab({
         reason
       );
       onRefresh();
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to reject leave');
       alert('Failed to reject leave');
     }
@@ -84,7 +84,7 @@ export default function LeavesTab({
     try {
       await HRService.cancelLeave(leaveId);
       onRefresh();
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to cancel leave');
       alert('Failed to cancel leave');
     }

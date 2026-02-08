@@ -78,7 +78,7 @@ export default function AddPermitModal({
         notes: formData.notes || undefined,
         status: LicenseStatus.ACTIVE,
       });
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to save permit');
       alert('Failed to save permit. Please try again.');
     } finally {

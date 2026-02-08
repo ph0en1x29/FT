@@ -29,7 +29,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ compact = f
           'Please enable notifications in your browser settings'
         );
       }
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to enable notifications');
     } finally {
       setRequesting(false);
@@ -199,7 +199,7 @@ export const NotificationPermissionPrompt: React.FC = () => {
       if (success) {
         showToast.success('Notifications enabled!');
       }
-    } catch (error) {
+    } catch (_error) {
       /* Silently ignore */
     } finally {
       setRequesting(false);

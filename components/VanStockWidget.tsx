@@ -27,7 +27,7 @@ export default function VanStockWidget({ currentUser }: VanStockWidgetProps) {
     try {
       const data = await MockDb.getVanStockByTechnician(currentUser.user_id);
       setVanStock(data);
-    } catch (error) {
+    } catch (_error) {
       /* Silently ignore */
     }
     setLoading(false);

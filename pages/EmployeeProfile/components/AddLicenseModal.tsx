@@ -78,7 +78,7 @@ export default function AddLicenseModal({
         license_back_image_url: backUrl || undefined,
         status: LicenseStatus.ACTIVE,
       });
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to save license');
       alert('Failed to save license. Please try again.');
     } finally {

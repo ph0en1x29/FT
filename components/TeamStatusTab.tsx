@@ -108,7 +108,7 @@ const TeamStatusTab: React.FC<TeamStatusTabProps> = ({ currentUser }) => {
       });
 
       setTechnicians(techsWithStatus);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load team data');
     } finally {
       setLoading(false);

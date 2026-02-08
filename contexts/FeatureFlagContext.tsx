@@ -59,7 +59,7 @@ const loadStoredFlags = (): Partial<FeatureFlags> | null => {
     if (stored) {
       return JSON.parse(stored);
     }
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
   return null;
@@ -69,7 +69,7 @@ const loadStoredFlags = (): Partial<FeatureFlags> | null => {
 const saveFlags = (flags: FeatureFlags) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(flags));
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };

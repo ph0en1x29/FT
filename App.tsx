@@ -50,7 +50,7 @@ export default function App() {
           setCurrentUser(null);
           await supabase.auth.signOut();
         }
-      } catch (_error) {
+      } catch {
         if (!isMounted) return;
         setCurrentUser(null);
       }
@@ -61,7 +61,7 @@ export default function App() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!isMounted) return;
         await syncUser(session);
-      } catch (_error) {
+      } catch {
         if (!isMounted) return;
         setCurrentUser(null);
         await supabase.auth.signOut().catch(() => undefined);

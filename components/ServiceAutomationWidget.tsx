@@ -35,7 +35,7 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
         overdue: dueForklifts.filter(f => f.is_overdue).length,
         withOpenJobs: dueForklifts.filter(f => f.has_open_job).length,
       });
-    } catch (e) {
+    } catch (_e) {
       /* Silently ignore */
     } finally {
       setLoading(false);
