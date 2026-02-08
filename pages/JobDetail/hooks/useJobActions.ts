@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { checkServiceUpgradeNeeded,declineServiceUpgrade,upgradeToFullService } from '../../../services/serviceTrackingService';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { ForkliftConditionChecklist,Job,JobStatus,User,UserRole } from '../../../types';
+import { ForkliftConditionChecklist,Job,JobStatus,User } from '../../../types';
 import { getMissingMandatoryItems } from '../utils';
 import { JobDetailState } from './useJobDetailState';
 import { useJobExportActions } from './useJobExportActions';
 import { useJobRequestActions } from './useJobRequestActions';
+import { useJobPartsHandlers } from './useJobPartsHandlers';
 
 interface UseJobActionsParams {
   state: JobDetailState;
@@ -68,6 +69,15 @@ export const useJobActions = ({
     currentUserId,
     currentUserName,
     loadJob,
+  });
+
+  const partsHandlers = useJobPartsHandlers({
+    job,
+    state,
+    currentUserId,
+    currentUserName,
+    loadJob,
+    setJob,
   });
 
   // Accept/Reject job handlers
@@ -566,71 +576,7 @@ export const useJobActions = ({
     showToast.success('All items checked', 'Untick any item to mark as needs attention');
   }, [state]);
 
-  // Parts handlers
-  const handleAddPart = useCallback(async () => {
-    if (!job || !state.selectedPartId) return;
-    const price = parseFloat(state.selectedPartPrice) || 0;
-    try {
-      const updated = await MockDb.addPartToJob(job.job_id, state.selectedPartId, 1, price, UserRole.ADMIN, currentUserId, currentUserName);
-      setJob({ ...updated } as Job);
-      state.setSelectedPartId('');
-      state.setSelectedPartPrice('');
-      showToast.success('Part added');
-    } catch (e) {
-      showToast.error('Could not add part', (e as Error).message);
-    }
-  }, [job, state, setJob, currentUserId, currentUserName]);
-
-  const handleStartEditPartPrice = useCallback((partId: string, currentPrice: number) => {
-    state.setEditingPartId(partId);
-    state.setEditingPrice(currentPrice.toString());
-  }, [state]);
-
-  const handleSavePartPrice = useCallback(async (partId: string) => {
-    if (!job) return;
-    const price = parseFloat(state.editingPrice);
-    if (isNaN(price) || price < 0) {
-      showToast.error('Invalid price');
-      return;
-    }
-    try {
-      const updated = await MockDb.updatePartPrice(job.job_id, partId, price);
-      setJob({ ...updated } as Job);
-      state.setEditingPartId(null);
-      state.setEditingPrice('');
-      showToast.success('Price updated');
-    } catch (e) {
-      showToast.error('Could not update price', (e as Error).message);
-    }
-  }, [job, state, setJob]);
-
-  const handleCancelPartEdit = useCallback(() => {
-    state.setEditingPartId(null);
-    state.setEditingPrice('');
-  }, [state]);
-
-  const handleRemovePart = useCallback(async (partId: string) => {
-    if (!job) return;
-    try {
-      const updated = await MockDb.removePartFromJob(job.job_id, partId);
-      setJob({ ...updated } as Job);
-      showToast.success('Part removed');
-    } catch (e) {
-      showToast.error('Could not remove part', (e as Error).message);
-    }
-  }, [job, setJob]);
-
-  const handleToggleNoPartsUsed = useCallback(async () => {
-    if (!job) return;
-    const newValue = !state.noPartsUsed;
-    try {
-      await MockDb.setNoPartsUsed(job.job_id, newValue);
-      state.setNoPartsUsed(newValue);
-      showToast.success(newValue ? 'Marked as no parts used' : 'Cleared no parts flag');
-    } catch (e) {
-      showToast.error('Could not update', (e as Error).message);
-    }
-  }, [job, state]);
+  // Parts handlers moved to useJobPartsHandlers
 
   // Job Details handlers
   const handleStartEditJobCarriedOut = useCallback(() => {
@@ -661,17 +607,7 @@ export const useJobActions = ({
     state.setRecommendationInput('');
   }, [state]);
 
-  // Confirmation handlers
-  const handleConfirmParts = useCallback(async () => {
-    if (!job) return;
-    try {
-      const updated = await MockDb.confirmParts(job.job_id, currentUserId, currentUserName);
-      setJob({ ...updated } as Job);
-      showToast.success('Parts confirmed');
-    } catch (e) {
-      showToast.error('Could not confirm parts', (e as Error).message);
-    }
-  }, [job, currentUserId, currentUserName, setJob]);
+  // Confirmation handlers moved to useJobPartsHandlers
 
   // Extra Charges handlers
   const handleAddExtraCharge = useCallback(async () => {
@@ -840,21 +776,13 @@ export const useJobActions = ({
     handleSetChecklistItemState,
     handleCheckAll,
     
-    // Parts
-    handleAddPart,
-    handleStartEditPartPrice,
-    handleSavePartPrice,
-    handleCancelPartEdit,
-    handleRemovePart,
-    handleToggleNoPartsUsed,
+    // Parts (from useJobPartsHandlers)
+    ...partsHandlers,
     
     // Job Details
     handleStartEditJobCarriedOut,
     handleSaveJobCarriedOut,
     handleCancelJobCarriedOutEdit,
-    
-    // Confirmation
-    handleConfirmParts,
     
     // Extra Charges
     handleAddExtraCharge,
