@@ -19,6 +19,44 @@ import { supabase } from './supabaseClient';
 // ON-CALL JOB ACCEPT/REJECT
 // =====================
 
+export const assignJob = async (jobId: string, technicianId: string, technicianName: string, assignedById?: string, assignedByName?: string): Promise<Job> => {
+  const now = new Date();
+  const responseDeadline = new Date(now.getTime() + 15 * 60 * 1000);
+  
+  const { data, error } = await supabase
+    .from('jobs')
+    .update({
+      assigned_technician_id: technicianId,
+      assigned_technician_name: technicianName,
+      status: JobStatusEnum.ASSIGNED,
+      assigned_at: now.toISOString(),
+      assigned_by_id: assignedById || null,
+      assigned_by_name: assignedByName || null,
+      technician_response_deadline: responseDeadline.toISOString(),
+      technician_accepted_at: null,
+      technician_rejected_at: null,
+      technician_rejection_reason: null,
+      no_response_alerted_at: null,
+    })
+    .eq('job_id', jobId)
+    .select(`
+      *,
+      customer:customers(*),
+      forklift:forklifts!forklift_id(*),
+      parts_used:job_parts(*),
+      media:job_media(*),
+      extra_charges:extra_charges(*)
+    `)
+    .single();
+
+  if (error) throw new Error(error.message);
+  
+  const job = data as Job;
+  await notifyJobAssignment(technicianId, job);
+  
+  return job;
+};
+
 export const acceptJobAssignment = async (jobId: string, technicianId: string, technicianName: string): Promise<Job> => {
   const now = new Date().toISOString();
   
