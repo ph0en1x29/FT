@@ -103,7 +103,9 @@ services/
 ├── # Forklift services (split from forkliftService.ts)
 ├── forkliftService.ts        # Core forklift CRUD + re-exports
 ├── rentalService.ts          # Rental operations (assign, end, extend)
-├── hourmeterService.ts       # Hourmeter readings, amendments
+├── hourmeterService.ts       # Hourmeter readings, amendments (facade)
+├── servicePredictionService.ts # Service prediction & automation
+├── jobRequestApprovalService.ts # Request approval/rejection logic
 ├── serviceScheduleService.ts # Service due, intervals, predictions
 │
 ├── # HR services (split from hrService.ts)

@@ -23,8 +23,12 @@ Successfully split large files for better maintainability:
 | `types/job.types.ts` (678 lines) | 5 files: job-core, job-hourmeter, job-quotation, job-request, job-validation | -91% (59 lines) |
 | `services/jobAssignmentService.ts` (453 lines) | 3 files: jobAssignmentCrudService, jobAssignmentBulkService + facade | -94% (27 lines) |
 | `utils/useRealtimeNotifications.ts` (477 lines) | 3 files: notificationHandlers, realtimeChannels + hook | -49% (244 lines) |
+| `services/hourmeterService.ts` (678 lines) | servicePredictionService.ts | -61% (262 lines) |
+| `pages/JobDetail/components/JobDetailModals.tsx` (666 lines) | JobDetailModalsSecondary.tsx | -38% (411 lines) |
+| `services/jobRequestService.ts` (452 lines) | jobRequestApprovalService.ts | -62% (171 lines) |
+| `pages/JobDetail/hooks/useJobActions.ts` (870 lines) | useJobPartsHandlers.ts | -8% (798 lines) |
 
-**26 large files remain** with `eslint-disable max-lines` — these are mostly:
+**25 large files remain** with `eslint-disable max-lines` — these are mostly:
 - PDF generators (template-heavy, hard to split)
 - Dashboard previews (prototype components)
 - Complex hooks (need careful refactoring)
