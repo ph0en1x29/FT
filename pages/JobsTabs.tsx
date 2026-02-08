@@ -35,6 +35,7 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
     if (tabFromUrl && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const tabs = [

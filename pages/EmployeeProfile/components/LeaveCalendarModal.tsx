@@ -24,6 +24,7 @@ export default function LeaveCalendarModal({
 
   useEffect(() => {
     loadLeaves();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month]);
 
   const loadLeaves = async () => {

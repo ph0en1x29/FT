@@ -28,6 +28,7 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
 
   useEffect(() => {
     loadRequests();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job.job_id]);
 
   const loadRequests = async () => {

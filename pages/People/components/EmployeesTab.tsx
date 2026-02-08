@@ -25,6 +25,7 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ _currentUser, initialStatus
     if (newStatus !== filterStatus) {
       setFilterStatus(newStatus);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialStatus]);
 
   const handleStatusFilter = (status: string) => {

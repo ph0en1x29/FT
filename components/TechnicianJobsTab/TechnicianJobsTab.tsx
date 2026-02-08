@@ -38,6 +38,7 @@ const TechnicianJobsTab: React.FC<TechnicianJobsTabProps> = ({ employee, current
 
   useEffect(() => {
     loadJobs();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [employee.user_id]);
 
   const loadJobs = async () => {

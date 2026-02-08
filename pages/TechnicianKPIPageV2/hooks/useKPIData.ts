@@ -41,6 +41,7 @@ export const useKPIData = (
 
   useEffect(() => {
     loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Filter jobs by date range

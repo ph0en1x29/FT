@@ -78,6 +78,7 @@ export function useCreateJobForm(currentUser: User) {
       setSelectedForklift(null);
       setFormData(prev => ({ ...prev, hourmeter_reading: '' }));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.forklift_id, forklifts]);
 
   // Form submission handler

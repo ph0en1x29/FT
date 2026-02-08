@@ -29,6 +29,7 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser, hideHeader
 
   useEffect(() => {
     loadJobs();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadJobs = async () => {

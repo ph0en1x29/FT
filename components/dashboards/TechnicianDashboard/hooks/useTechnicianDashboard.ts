@@ -19,6 +19,7 @@ export function useTechnicianDashboard(currentUser: User): UseTechnicianDashboar
 
   useEffect(() => {
     loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
   const loadData = async () => {

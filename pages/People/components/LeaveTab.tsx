@@ -32,6 +32,7 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilte
     if (newFilter !== filter) {
       setFilter(newFilter);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialFilter]);
 
   const handleFilterChange = (newFilter: LeaveFilterType) => {

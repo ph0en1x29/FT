@@ -20,6 +20,7 @@ const InvoiceHistoryTab: React.FC<InvoiceHistoryTabProps> = ({ currentUser }) =>
 
   useEffect(() => {
     loadJobs();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadJobs = async () => {

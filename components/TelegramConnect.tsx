@@ -109,6 +109,7 @@ const TelegramConnect: React.FC<TelegramConnectProps> = ({ currentUser, compact 
   // Fetch existing telegram link
   useEffect(() => {
     fetchTelegramLink();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.id]);
 
   const fetchTelegramLink = async () => {

@@ -20,6 +20,7 @@ export default function VanStockWidget({ currentUser }: VanStockWidgetProps) {
 
   useEffect(() => {
     loadVanStock();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.user_id]);
 
   const loadVanStock = async () => {

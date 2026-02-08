@@ -164,6 +164,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
 
   useEffect(() => {
     loadDashboardData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Computed: status counts

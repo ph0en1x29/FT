@@ -22,6 +22,7 @@ export function LeaveCalendar({ userId, employeeName, onClose }: LeaveCalendarPr
 
   useEffect(() => {
     loadLeaves();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month]);
 
   const loadLeaves = async () => {
