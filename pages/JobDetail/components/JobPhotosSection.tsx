@@ -127,7 +127,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
         .getPublicUrl(fileName);
       
       return publicUrl;
-    } catch (e) {
+    } catch (_e) {
       return dataURL;
     }
   };

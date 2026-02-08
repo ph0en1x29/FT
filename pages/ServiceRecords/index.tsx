@@ -41,7 +41,7 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser, hideHeader
         j.status === JobStatus.AWAITING_FINALIZATION
       );
       setJobs(completedJobs);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load service records');
     }
     setLoading(false);

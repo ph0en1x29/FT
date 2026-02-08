@@ -53,7 +53,7 @@ export const getAllVanStocks = async (): Promise<VanStock[]> => {
         return sum + (partCost * item.quantity);
       }, 0) || 0,
     })) as VanStock[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -83,7 +83,7 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
     }, 0);
 
     return { ...data, total_value } as VanStock;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -111,7 +111,7 @@ export const getVanStockById = async (vanStockId: string): Promise<VanStock | nu
     }, 0);
 
     return { ...data, total_value } as VanStock;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -294,7 +294,7 @@ export const getPendingVanStockApprovals = async (): Promise<VanStockUsage[]> =>
       return [];
     }
     return data as VanStockUsage[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -379,7 +379,7 @@ export const getLowStockItems = async (technicianId: string): Promise<VanStockIt
     if (!vanStock?.items) return [];
 
     return (vanStock.items as VanStockItemRow[]).filter((item) => item.quantity <= item.min_quantity) as VanStockItem[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -426,7 +426,7 @@ export const getVanStockUsageHistory = async (
       return [];
     }
     return data as VanStockUsage[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };

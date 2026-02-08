@@ -53,7 +53,7 @@ export const uploadToStorage = async (
     logDebug(`[Storage] Uploaded to ${bucket}:`, fileName);
     // Return path, not public URL - caller uses getSignedUrl when needed
     return data.path;
-  } catch (e) {
+  } catch (_e) {
     // Fallback to base64 if storage fails
     return dataURL;
   }
@@ -79,7 +79,7 @@ export const deleteFromStorage = async (
     
     logDebug(`[Storage] Deleted from ${bucket}:`, filePath);
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -105,7 +105,7 @@ export const getSignedUrl = async (
     }
     
     return data.signedUrl;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };

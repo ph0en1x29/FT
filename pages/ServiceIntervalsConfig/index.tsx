@@ -28,7 +28,7 @@ const ServiceIntervalsConfig: React.FC<ServiceIntervalsConfigProps> = ({ current
     try {
       const data = await SupabaseDb.getServiceIntervals();
       setIntervals(data);
-    } catch (e) {
+    } catch (_e) {
       showToast.error('Failed to load service intervals');
     } finally {
       setLoading(false);
@@ -70,7 +70,7 @@ const ServiceIntervalsConfig: React.FC<ServiceIntervalsConfigProps> = ({ current
       } else {
         showToast.error('Failed to create service interval');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to create service interval');
     }
   };
@@ -113,7 +113,7 @@ const ServiceIntervalsConfig: React.FC<ServiceIntervalsConfigProps> = ({ current
       } else {
         showToast.error('Failed to update service interval');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to update service interval');
     }
   };
@@ -129,7 +129,7 @@ const ServiceIntervalsConfig: React.FC<ServiceIntervalsConfigProps> = ({ current
       } else {
         showToast.error('Failed to delete service interval');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to delete service interval');
     }
   };

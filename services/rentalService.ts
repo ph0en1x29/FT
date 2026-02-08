@@ -48,7 +48,7 @@ export const getActiveRentalForForklift = async (forkliftId: string): Promise<{
       start_date: data.start_date,
       end_date: data.end_date,
     };
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -69,7 +69,7 @@ export const getRentals = async (filters?: { forklift_id?: string; customer_id?:
       return [];
     }
     return data as ForkliftRental[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -86,7 +86,7 @@ export const getForkliftRentals = async (forkliftId: string): Promise<ForkliftRe
       return [];
     }
     return data as ForkliftRental[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -103,7 +103,7 @@ export const getCustomerRentals = async (customerId: string): Promise<ForkliftRe
       return [];
     }
     return data as ForkliftRental[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -121,7 +121,7 @@ export const getCustomerActiveRentals = async (customerId: string): Promise<Fork
       return [];
     }
     return data as ForkliftRental[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -261,7 +261,7 @@ export const updateRentalRate = async (rentalId: string, monthlyRate: number, cu
       return null;
     }
     return data as ForkliftRental;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -339,8 +339,8 @@ export const bulkAssignForkliftsToCustomer = async (
         .eq('forklift_id', forkliftId);
 
       results.success.push(data as ForkliftRental);
-    } catch (e) {
-      results.failed.push({ forkliftId, error: (e as Error).message });
+    } catch (_e) {
+      results.failed.push({ forkliftId, error: (_e as Error).message });
     }
   }
 
@@ -401,8 +401,8 @@ export const bulkEndRentals = async (
         .eq('forklift_id', forkliftId);
 
       results.success.push(data as ForkliftRental);
-    } catch (e) {
-      results.failed.push({ forkliftId, error: (e as Error).message });
+    } catch (_e) {
+      results.failed.push({ forkliftId, error: (_e as Error).message });
     }
   }
 

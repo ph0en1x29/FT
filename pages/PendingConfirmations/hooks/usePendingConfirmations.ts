@@ -30,7 +30,7 @@ export function usePendingConfirmations(currentUser: User) {
         j.status === JobStatus.AWAITING_FINALIZATION
       );
       setJobs(awaitingJobs);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load pending confirmations');
     } finally {
       setLoading(false);

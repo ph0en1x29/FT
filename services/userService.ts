@@ -84,7 +84,7 @@ export const getAdminsAndSupervisors = async (): Promise<User[]> => {
       return [];
     }
     return data as User[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };

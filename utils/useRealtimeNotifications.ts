@@ -39,7 +39,7 @@ const initAudio = async () => {
     const response = await fetch(NOTIFICATION_SOUND_URL);
     const arrayBuffer = await response.arrayBuffer();
     notificationBuffer = await audioContext.decodeAudioData(arrayBuffer);
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };
@@ -56,7 +56,7 @@ export const playNotificationSound = () => {
     source.buffer = notificationBuffer;
     source.connect(audioContext.destination);
     source.start(0);
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };
@@ -102,7 +102,7 @@ export const showBrowserNotification = async (
         data: { url: options?.url || '/' }
       } as NotificationOptions & { vibrate?: number[] });
       return;
-    } catch (e) {
+    } catch (_e) {
       /* Silently ignore */
     }
   }
@@ -134,7 +134,7 @@ export const showBrowserNotification = async (
     if (!requireInteraction) {
       setTimeout(() => notification.close(), 5000);
     }
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };
@@ -144,7 +144,7 @@ export const vibrateDevice = (pattern: number | number[] = [200, 100, 200]) => {
   if ('vibrate' in navigator) {
     try {
       navigator.vibrate(pattern);
-    } catch (e) {
+    } catch (_e) {
       // Vibration not supported or blocked
     }
   }
@@ -407,7 +407,7 @@ export const useRealtimeNotifications = (
           setNotifications(data as AppNotification[]);
           setUnreadCount(data.filter((n: AppNotification) => !n.is_read).length);
         }
-      } catch (e) {
+      } catch (_e) {
         /* Silently ignore */
       }
     };

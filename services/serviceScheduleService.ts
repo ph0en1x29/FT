@@ -26,7 +26,7 @@ export const getScheduledServices = async (filters?: { forklift_id?: string; sta
       return [];
     }
     return data as ScheduledService[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -47,7 +47,7 @@ export const getUpcomingServices = async (daysAhead: number = 30): Promise<Sched
       return [];
     }
     return data as ScheduledService[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -79,7 +79,7 @@ export const createScheduledService = async (
       return null;
     }
     return data as ScheduledService;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -100,7 +100,7 @@ export const updateScheduledService = async (
       return null;
     }
     return data as ScheduledService;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -121,7 +121,7 @@ export const getServiceIntervals = async (): Promise<any[]> => {
       return [];
     }
     return data || [];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -139,7 +139,7 @@ export const getServiceIntervalsByType = async (forkliftType: string): Promise<a
       return [];
     }
     return data || [];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -175,7 +175,7 @@ export const createServiceInterval = async (interval: {
       return null;
     }
     return data;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -206,7 +206,7 @@ export const updateServiceInterval = async (
       return null;
     }
     return data;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -222,7 +222,7 @@ export const deleteServiceInterval = async (intervalId: string): Promise<boolean
       return false;
     }
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -238,7 +238,7 @@ export const hardDeleteServiceInterval = async (intervalId: string): Promise<boo
       return false;
     }
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -260,7 +260,7 @@ export const getForkliftServiceHistory = async (forkliftId: string): Promise<Job
       return [];
     }
     return data as Job[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -281,7 +281,7 @@ export const getForkliftServiceHistoryWithCancelled = async (forkliftId: string)
       ...job,
       is_cancelled: job.deleted_at !== null,
     }));
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };

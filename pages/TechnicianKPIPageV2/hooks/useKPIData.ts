@@ -33,7 +33,7 @@ export const useKPIData = (
       ]);
       setTechnicians(techData);
       setAllJobs(jobData);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load KPI data');
     }
     setLoading(false);

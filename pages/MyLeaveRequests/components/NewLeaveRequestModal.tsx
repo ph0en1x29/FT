@@ -84,7 +84,7 @@ export function NewLeaveRequestModal({
         supporting_document_url: documentUrl || undefined,
         total_days: totalDays,
       });
-    } catch (error) {
+    } catch (_error) {
       alert('Failed to submit leave request');
     } finally {
       setSaving(false);

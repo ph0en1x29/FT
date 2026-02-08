@@ -31,7 +31,7 @@ export function useVanStock({ userId }: UseVanStockParams) {
       setVanStock(stockData);
       setUsageHistory(historyData);
       setReplenishments(replenishmentData);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load Van Stock data');
     }
     setLoading(false);

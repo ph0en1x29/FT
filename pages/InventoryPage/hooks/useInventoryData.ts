@@ -53,7 +53,7 @@ export function useInventoryData(currentUser: User) {
     try {
       const data = await MockDb.getParts();
       setParts(data);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load inventory');
     }
     setLoading(false);

@@ -25,7 +25,7 @@ export function useLeaveData(userId: string) {
       ]);
       setLeaves(leavesData);
       setLeaveTypes(typesData);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load leave data');
     } finally {
       setLoading(false);
@@ -42,7 +42,7 @@ export function useLeaveData(userId: string) {
       await loadData();
       showToast.success('Leave request cancelled');
       return true;
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to cancel leave');
       return false;
     }

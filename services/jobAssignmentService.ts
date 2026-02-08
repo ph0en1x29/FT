@@ -160,7 +160,7 @@ export const checkExpiredJobResponses = async (): Promise<{ alertedJobs: string[
     }
 
     return { alertedJobs };
-  } catch (e) {
+  } catch (_e) {
     return { alertedJobs };
   }
 };
@@ -181,7 +181,7 @@ export const getJobsPendingResponse = async (): Promise<Job[]> => {
     }
 
     return (data || []) as Job[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -256,7 +256,7 @@ export const reassignJob = async (
     }
 
     return updatedJob;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -277,7 +277,7 @@ export const getJobAssignments = async (jobId: string): Promise<JobAssignment[]>
       return [];
     }
     return data || [];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -296,7 +296,7 @@ export const getActiveHelper = async (jobId: string): Promise<JobAssignment | nu
       return null;
     }
     return data || null;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -332,7 +332,7 @@ export const assignHelper = async (
       return null;
     }
     return data;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -350,7 +350,7 @@ export const removeHelper = async (jobId: string): Promise<boolean> => {
       return false;
     }
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -366,7 +366,7 @@ export const startHelperWork = async (assignmentId: string): Promise<boolean> =>
       return false;
     }
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -382,7 +382,7 @@ export const endHelperWork = async (assignmentId: string): Promise<boolean> => {
       return false;
     }
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -400,7 +400,7 @@ export const getHelperJobs = async (technicianId: string): Promise<string[]> => 
       return [];
     }
     return data?.map(d => d.job_id) || [];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -420,7 +420,7 @@ export const isUserHelperOnJob = async (jobId: string, userId: string): Promise<
       return false;
     }
     return !!data;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -446,7 +446,7 @@ export const getUserAssignmentType = async (jobId: string, userId: string): Prom
     if (assignment?.assignment_type === 'assistant') return 'assistant';
 
     return null;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };

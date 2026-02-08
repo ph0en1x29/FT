@@ -203,7 +203,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
     try {
       const technicians = await MockDb.getTechnicians();
       setAllTechnicians(technicians);
-    } catch (error) {
+    } catch (_error) {
       if (selectedVanStock.technician) {
         setAllTechnicians([selectedVanStock.technician]);
       }

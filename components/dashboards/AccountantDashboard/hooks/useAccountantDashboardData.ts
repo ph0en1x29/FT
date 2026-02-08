@@ -27,7 +27,7 @@ export function useAccountantDashboardData(currentUser: User): AccountantDashboa
     try {
       const jobsData = await MockDb.getJobs(currentUser);
       setJobs(jobsData || []);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       showToast.error('Failed to load data');
     } finally {
       setLoading(false);

@@ -41,7 +41,7 @@ export const getNotifications = async (userId: string, unreadOnly: boolean = fal
       return [];
     }
     return data as Notification[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -56,7 +56,7 @@ export const getUnreadNotificationCount = async (userId: string): Promise<number
 
     if (error) return 0;
     return count || 0;
-  } catch (e) {
+  } catch (_e) {
     return 0;
   }
 };
@@ -84,7 +84,7 @@ export const createNotification = async (notification: Partial<Notification>): P
       return false;
     }
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -95,7 +95,7 @@ export const markNotificationRead = async (notificationId: string): Promise<void
       .from('notifications')
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('notification_id', notificationId);
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };
@@ -107,7 +107,7 @@ export const markAllNotificationsRead = async (userId: string): Promise<void> =>
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('is_read', false);
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };
@@ -141,7 +141,7 @@ export const getAdminsAndSupervisors = async (): Promise<{ user_id: string; name
       return [];
     }
     return data || [];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -184,7 +184,7 @@ export const notifyPendingFinalization = async (job: Job): Promise<void> => {
         priority: job.priority === 'Emergency' ? 'urgent' : job.priority === 'High' ? 'high' : 'normal',
       });
     }
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };
@@ -217,7 +217,7 @@ export const notifyAdminsOfRequest = async (
         priority: requestType === 'assistance' ? 'high' : 'normal',
       });
     }
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };
@@ -238,7 +238,7 @@ export const notifyRequestApproved = async (
       reference_id: jobId,
       priority: 'high',
     });
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };
@@ -259,7 +259,7 @@ export const notifyRequestRejected = async (
       reference_id: jobId,
       priority: 'high',
     });
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };
@@ -280,7 +280,7 @@ export const notifyJobReassigned = async (
       reference_id: jobId,
       priority: 'high',
     });
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };
@@ -305,7 +305,7 @@ export const notifyJobRejectedByTech = async (
         priority: 'high',
       });
     }
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };
@@ -329,7 +329,7 @@ export const notifyNoResponseFromTech = async (
         priority: 'urgent',
       });
     }
-  } catch (e) {
+  } catch (_e) {
     /* Silently ignore */
   }
 };

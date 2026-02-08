@@ -45,7 +45,7 @@ export function useEmployeeProfile({
       if (data) {
         setEditData(data);
       }
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load employee profile');
     } finally {
       setLoading(false);
@@ -56,7 +56,7 @@ export function useEmployeeProfile({
     try {
       const types = await HRService.getLeaveTypes();
       setLeaveTypes(types);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load leave types');
     }
   }, []);
@@ -79,7 +79,7 @@ export function useEmployeeProfile({
       );
       setEmployee({ ...employee, ...editData });
       setEditing(false);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to update employee');
     }
   };

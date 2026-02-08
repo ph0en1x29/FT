@@ -67,7 +67,7 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilte
       await HRService.approveLeave(leaveId, currentUser.user_id, currentUser.name);
       showToast.success('Leave approved');
       loadLeaves();
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to approve leave');
     }
   };
@@ -81,7 +81,7 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilte
       setRejectingLeaveId(null);
       setRejectionReason('');
       loadLeaves();
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to reject leave');
     }
   };

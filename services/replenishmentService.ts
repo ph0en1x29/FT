@@ -73,7 +73,7 @@ export const getReplenishmentRequests = async (filters?: {
       return [];
     }
     return data as VanStockReplenishment[];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };

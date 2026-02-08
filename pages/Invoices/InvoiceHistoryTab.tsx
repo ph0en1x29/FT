@@ -28,7 +28,7 @@ const InvoiceHistoryTab: React.FC<InvoiceHistoryTabProps> = ({ currentUser }) =>
       // Filter at database level for better performance
       const data = await MockDb.getJobs(currentUser, { status: JobStatus.COMPLETED });
       setJobs(data);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load invoices');
     }
     setLoading(false);

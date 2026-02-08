@@ -30,7 +30,7 @@ export function useAutoCountExport(currentUser: User): UseAutoCountExportReturn 
       setExports(exportData);
       const jobs = await SupabaseDb.getJobsPendingExport();
       setPendingJobs(jobs);
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to load export data');
     }
     setLoading(false);

@@ -33,7 +33,7 @@ export function LeaveCalendar({ userId, employeeName, onClose }: LeaveCalendarPr
         endDate: new Date(year, month + 1, 0).toISOString().split('T')[0],
       });
       setLeaves(data.filter(l => l.status === LeaveStatus.APPROVED || l.status === LeaveStatus.PENDING));
-    } catch (error) {
+    } catch (_error) {
       // Silent fail
     } finally {
       setLoading(false);

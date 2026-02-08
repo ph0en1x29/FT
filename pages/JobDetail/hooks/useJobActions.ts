@@ -312,7 +312,7 @@ export const useJobActions = ({
       setEditingLabor(false);
       setLaborCostInput('');
       showToast.success('Labor cost updated');
-    } catch (e) {
+    } catch (_e) {
       showToast.error('Could not update labor cost');
     }
   }, [job, state, setJob]);
@@ -417,7 +417,7 @@ export const useJobActions = ({
       } else {
         showToast.error('Failed to update job');
       }
-    } catch (e) {
+    } catch (_e) {
       showToast.error('Error updating job');
     } finally {
       state.setSubmittingContinue(false);
@@ -434,7 +434,7 @@ export const useJobActions = ({
       } else {
         showToast.error('Failed to resume job');
       }
-    } catch (e) {
+    } catch (_e) {
       showToast.error('Error resuming job');
     }
   }, [job, currentUserId, currentUserName, loadJob]);

@@ -53,7 +53,7 @@ export const createJobRequest = async (
     await notifyAdminsOfRequest(requestType, techName, jobId, description);
 
     return data;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -96,7 +96,7 @@ export const updateJobRequest = async (
     }
 
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -118,7 +118,7 @@ export const getJobRequests = async (jobId: string): Promise<any[]> => {
       return [];
     }
     return data || [];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -140,7 +140,7 @@ export const getPendingRequests = async (): Promise<any[]> => {
     }
 
     return data || [];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 };
@@ -251,7 +251,7 @@ export const approveSparePartRequest = async (
     );
 
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -294,7 +294,7 @@ export const rejectRequest = async (
     );
 
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -337,7 +337,7 @@ export const acknowledgeSkillfulTechRequest = async (
     );
 
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -424,7 +424,7 @@ export const approveAssistanceRequest = async (
     });
 
     return true;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
@@ -443,7 +443,7 @@ export const getRequestCounts = async (): Promise<{ pending: number; total: numb
     if (pendingError || totalError) return { pending: 0, total: 0 };
 
     return { pending: pending || 0, total: total || 0 };
-  } catch (e) {
+  } catch (_e) {
     return { pending: 0, total: 0 };
   }
 };

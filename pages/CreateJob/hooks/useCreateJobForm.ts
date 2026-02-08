@@ -146,7 +146,7 @@ export function useCreateJobForm(currentUser: User) {
       setShowNewCustomerModal(false);
       setNewCustomerNameQuery('');
       showToast.success('Customer created');
-    } catch (error) {
+    } catch (_error) {
       showToast.error('Failed to create customer');
     }
   };

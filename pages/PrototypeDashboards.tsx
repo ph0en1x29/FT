@@ -50,7 +50,7 @@ const DashboardV4: React.FC<DashboardV4Props> = ({ currentUser }) => {
       ]);
       setJobs(jobsData);
       setUsers(usersData);
-    } catch (err) {
+    } catch (_err) {
       /* Silently ignore */
     }
   };
