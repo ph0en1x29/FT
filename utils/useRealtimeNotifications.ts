@@ -155,6 +155,7 @@ export const useRealtimeNotifications = (
         channelRef.current = null;
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.user_id, currentUser?.role, handleNewNotification]);
 
   // Load initial notifications
