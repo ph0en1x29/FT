@@ -1,7 +1,7 @@
+import { CheckCircle,PenTool,ShieldCheck,UserCheck } from 'lucide-react';
 import React from 'react';
 import { Job } from '../../../types';
-import { RoleFlags, StatusFlags } from '../types';
-import { PenTool, ShieldCheck, UserCheck, CheckCircle } from 'lucide-react';
+import { RoleFlags,StatusFlags } from '../types';
 
 interface SignaturesCardProps {
   job: Job;

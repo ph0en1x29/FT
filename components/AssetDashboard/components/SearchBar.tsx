@@ -1,7 +1,7 @@
-import React from 'react';
 import { Search } from 'lucide-react';
-import { OperationalStatus } from '../types';
+import React from 'react';
 import { STATUS_CONFIG } from '../constants';
+import { OperationalStatus } from '../types';
 
 interface SearchBarProps {
   searchQuery: string;

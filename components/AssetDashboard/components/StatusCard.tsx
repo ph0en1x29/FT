@@ -1,6 +1,6 @@
 import React from 'react';
-import { OperationalStatus, StatusCounts } from '../types';
 import { STATUS_CONFIG } from '../constants';
+import { OperationalStatus,StatusCounts } from '../types';
 
 interface StatusCardProps {
   status: OperationalStatus;

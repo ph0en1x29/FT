@@ -1,9 +1,9 @@
+import { AlertTriangle,ChevronRight,Clock,MapPin,Wrench } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, MapPin, ChevronRight, AlertTriangle, Wrench } from 'lucide-react';
-import { Job, JobType } from '../types';
-import { getStatusColor, getJobTypeColor, formatShortDate } from '../helpers';
 import SlotInSLABadge from '../../../SlotInSLABadge';
+import { formatShortDate,getJobTypeColor,getStatusColor } from '../helpers';
+import { Job,JobType } from '../types';
 
 interface ActiveJobItemProps {
   job: Job;

@@ -8,19 +8,17 @@
  * @created 2026-01-31
  */
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Send, 
-  CheckCircle, 
-  XCircle, 
-  Settings, 
-  Globe, 
-  Bell,
-  BellOff,
-  RefreshCw,
-  ExternalLink,
-  AlertCircle
+import {
+AlertCircle,
+Bell,
+CheckCircle,
+ExternalLink,
+Globe,
+RefreshCw,
+Send,
+Settings
 } from 'lucide-react';
+import React,{ useEffect,useState } from 'react';
 import { supabase } from '../services/supabaseService';
 import { User } from '../types';
 

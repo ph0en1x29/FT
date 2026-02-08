@@ -1,5 +1,5 @@
 import React from 'react';
-import { JobStatus, JobType } from '../../../types';
+import { JobStatus,JobType } from '../../../types';
 import { FilterMode } from '../hooks/useJobFilters';
 
 interface FilterBarProps {

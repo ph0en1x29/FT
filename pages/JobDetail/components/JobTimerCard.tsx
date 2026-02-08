@@ -1,7 +1,7 @@
+import { Clock } from 'lucide-react';
 import React from 'react';
 import { Job } from '../../../types';
 import { getRepairDuration } from '../utils';
-import { Clock } from 'lucide-react';
 
 interface JobTimerCardProps {
   job: Job;

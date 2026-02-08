@@ -1,6 +1,6 @@
+import { Briefcase,CheckCircle } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, CheckCircle } from 'lucide-react';
 import { Job } from '../types';
 import { ActiveJobItem } from './ActiveJobItem';
 

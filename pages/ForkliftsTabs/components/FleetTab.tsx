@@ -1,15 +1,15 @@
+import { CheckSquare,Loader2,Plus,Square } from 'lucide-react';
 import React from 'react';
-import { Plus, Square, CheckSquare, Loader2 } from 'lucide-react';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { TabProps } from '../types';
-import { useFleetManagement } from './useFleetManagement';
-import ForkliftGrid from './ForkliftGrid';
-import ForkliftFilters from './ForkliftFilters';
-import BulkActionsBar from './BulkActionsBar';
-import BulkEndRentalModal from './BulkEndRentalModal';
 import AddEditForkliftModal from './AddEditForkliftModal';
 import AssignForkliftModal from './AssignForkliftModal';
+import BulkActionsBar from './BulkActionsBar';
+import BulkEndRentalModal from './BulkEndRentalModal';
+import ForkliftFilters from './ForkliftFilters';
+import ForkliftGrid from './ForkliftGrid';
 import ResultModal from './ResultModal';
+import { useFleetManagement } from './useFleetManagement';
 
 const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
   const { displayRole } = useDevModeContext();

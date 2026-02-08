@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Package, Plus, Clock, CheckCircle, XCircle, AlertTriangle, Edit3 } from 'lucide-react';
-import { Job, JobRequest, JobRequestType, JobRequestStatus } from '../../../types';
+import { CheckCircle,Clock,Edit3,Package,Plus,XCircle } from 'lucide-react';
+import React,{ useEffect,useState } from 'react';
 import { getJobRequests } from '../../../services/jobRequestService';
-import { RoleFlags, StatusFlags } from '../types';
+import { Job,JobRequest,JobRequestStatus,JobRequestType } from '../../../types';
+import { RoleFlags,StatusFlags } from '../types';
 
 interface JobRequestsSectionProps {
   job: Job;

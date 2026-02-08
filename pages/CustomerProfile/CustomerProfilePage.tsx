@@ -1,15 +1,23 @@
-import React, { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React,{ useMemo,useState } from 'react';
+import { useNavigate,useParams } from 'react-router-dom';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
-import { CustomerProfileProps, RentalTab, ServiceTab } from './types';
 import {
-  useCustomerData, useRentalSelection,
-  useBulkEndRentals, useRentForklifts, useResultModal, useRentalActions,
-} from './hooks';
-import {
-  CustomerHeader, CustomerKPIStrip, RentalsSection, ServiceHistory,
-  InsightsSidebar, EditRentalModal, BulkEndRentalModal, RentForkliftModal, ResultModal,
+BulkEndRentalModal,
+CustomerHeader,CustomerKPIStrip,
+EditRentalModal,
+InsightsSidebar,
+RentalsSection,
+RentForkliftModal,ResultModal,
+ServiceHistory,
 } from './components';
+import {
+useBulkEndRentals,
+useCustomerData,
+useRentalActions,
+useRentalSelection,
+useRentForklifts,useResultModal,
+} from './hooks';
+import { CustomerProfileProps,RentalTab,ServiceTab } from './types';
 
 const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) => {
   const { id } = useParams<{ id: string }>();

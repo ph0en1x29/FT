@@ -1,6 +1,6 @@
+import { Building2,Calendar,History } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Building2, Calendar } from 'lucide-react';
 import { ForkliftRental } from '../../../types';
 
 interface RentalHistorySectionProps {

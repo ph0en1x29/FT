@@ -1,4 +1,3 @@
-import React from 'react';
 import { LeaveFilter } from '../hooks/useLeaveData';
 
 interface LeaveFilterTabsProps {

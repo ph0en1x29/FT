@@ -1,4 +1,4 @@
-import { Job, JobStatus, MediaCategory } from '../../types';
+import { Job,JobStatus,MediaCategory } from '../../types';
 
 // Checklist categories for the forklift condition check
 export const CHECKLIST_CATEGORIES = [

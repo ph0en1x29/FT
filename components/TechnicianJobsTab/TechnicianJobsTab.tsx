@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { User, Job, Employee } from '../../types';
+import { Loader2 } from 'lucide-react';
+import React,{ useEffect,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
-import { Loader2 } from 'lucide-react';
+import { Employee,Job,User } from '../../types';
 
-import { useJobFilters } from './hooks/useJobFilters';
-import StatsGrid from './components/StatsGrid';
+import EmptyState from './components/EmptyState';
 import FilterBar from './components/FilterBar';
 import JobCard from './components/JobCard';
-import EmptyState from './components/EmptyState';
+import StatsGrid from './components/StatsGrid';
+import { useJobFilters } from './hooks/useJobFilters';
 
 interface TechnicianJobsTabProps {
   employee: Employee;

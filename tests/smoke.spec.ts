@@ -5,8 +5,8 @@
  * Run: npm run test:smoke
  */
 
-import { test, expect, Page } from '@playwright/test';
-import { ErrorCapture, smokeTest } from './utilities/core';
+import { expect,Page,test } from '@playwright/test';
+import { ErrorCapture,smokeTest } from './utilities/core';
 
 // ===========================================
 // CONFIGURATION - FIELDPRO SPECIFIC

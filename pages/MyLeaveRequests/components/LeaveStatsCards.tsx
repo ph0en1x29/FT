@@ -1,5 +1,4 @@
-import React from 'react';
-import { Clock, CheckCircle, Calendar } from 'lucide-react';
+import { Calendar,CheckCircle,Clock } from 'lucide-react';
 import { LeaveStats } from '../hooks/useLeaveData';
 
 interface LeaveStatsCardsProps {

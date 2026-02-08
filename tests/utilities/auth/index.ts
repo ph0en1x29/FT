@@ -5,7 +5,7 @@
  * Configured for FieldPro's Supabase auth.
  */
 
-import { Page, expect } from '@playwright/test';
+import { Page,expect } from '@playwright/test';
 
 // ===========================================
 // CONFIGURATION - FIELDPRO SPECIFIC

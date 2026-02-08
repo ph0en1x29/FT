@@ -1,6 +1,6 @@
+import { Save,X } from 'lucide-react';
 import React from 'react';
 import { Part } from '../../../types';
-import { X, Save } from 'lucide-react';
 import { InventoryFormData } from '../hooks/useInventoryData';
 
 interface AddPartModalProps {

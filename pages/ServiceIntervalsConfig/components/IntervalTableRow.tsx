@@ -1,8 +1,8 @@
+import { Calendar,Clock,Edit2,Save,Trash2,X } from 'lucide-react';
 import React from 'react';
-import { Save, X, Edit2, Trash2, Clock, Calendar } from 'lucide-react';
-import { ServiceInterval, ServiceIntervalFormData } from '../types';
-import { FORKLIFT_TYPES, PRIORITIES } from '../constants';
-import { getTypeIcon, getPriorityColor } from '../utils';
+import { FORKLIFT_TYPES,PRIORITIES } from '../constants';
+import { ServiceInterval,ServiceIntervalFormData } from '../types';
+import { getPriorityColor,getTypeIcon } from '../utils';
 
 interface IntervalTableRowProps {
   interval: ServiceInterval;

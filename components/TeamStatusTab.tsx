@@ -1,12 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import {
+AlertCircle,
+Briefcase,
+ChevronDown,
+ChevronRight,
+ChevronUp,
+Loader2,
+UserCheck,
+Users
+} from 'lucide-react';
+import React,{ useEffect,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, UserRole, Job } from '../types';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
-import {
-  Users, UserCheck, UserX, Loader2, ChevronRight, Briefcase,
-  AlertCircle, ChevronDown, ChevronUp
-} from 'lucide-react';
+import { Job,User,UserRole } from '../types';
 
 interface TeamStatusTabProps {
   currentUser: User;

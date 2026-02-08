@@ -1,5 +1,5 @@
+import { Plus,Settings } from 'lucide-react';
 import React from 'react';
-import { Settings, Plus } from 'lucide-react';
 
 interface ServiceIntervalsHeaderProps {
   onAddClick: () => void;

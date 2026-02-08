@@ -5,16 +5,11 @@
  *   import AssetDashboard from './AssetDashboard'
  */
 
-export { default } from './AssetDashboard';
-export { default as AssetDashboard } from './AssetDashboard';
+export { default as AssetDashboard,default } from './AssetDashboard';
 
 // Export types for consumers
 export type {
-  AssetDashboardProps,
-  OperationalStatus,
-  ForkliftWithStatus,
-  StatusCounts,
-  DashboardMetrics
+AssetDashboardProps,DashboardMetrics,ForkliftWithStatus,OperationalStatus,StatusCounts
 } from './types';
 
 // Export hook for advanced usage
@@ -22,13 +17,9 @@ export { useAssetDashboard } from './hooks/useAssetDashboard';
 
 // Export sub-components
 export {
-  StatusCard,
-  StatusCardGrid,
-  MetricsBar,
-  SearchBar,
-  ResultsCount,
-  ForkliftTable
+ForkliftTable,MetricsBar,ResultsCount,SearchBar,StatusCard,
+StatusCardGrid
 } from './components';
 
 // Export constants
-export { STATUS_CONFIG, PRIMARY_STATUSES, SECONDARY_STATUSES } from './constants';
+export { PRIMARY_STATUSES,SECONDARY_STATUSES,STATUS_CONFIG } from './constants';

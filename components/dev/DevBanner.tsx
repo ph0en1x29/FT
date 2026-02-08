@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { AlertTriangle, X, Eye, Lock, Shield } from 'lucide-react';
-import { UserRole } from '../../types';
-import { DevModeType } from '../../hooks/useDevMode';
+import { AlertTriangle,Eye,Lock,Shield,X } from 'lucide-react';
+import React,{ useState } from 'react';
 import { useDevModeContext } from '../../contexts/DevModeContext';
+import { DevModeType } from '../../hooks/useDevMode';
+import { UserRole } from '../../types';
 import { PermissionModal } from './PermissionModal';
 
 interface DevBannerProps {

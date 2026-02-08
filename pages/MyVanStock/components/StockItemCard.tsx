@@ -1,6 +1,5 @@
-import React from 'react';
+import { AlertTriangle,CheckCircle,TrendingDown } from 'lucide-react';
 import { VanStockItem } from '../../../types';
-import { AlertTriangle, CheckCircle, TrendingDown } from 'lucide-react';
 
 interface StockItemCardProps {
   item: VanStockItem;

@@ -1,28 +1,28 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { UserRole } from '../../types';
-import { HRService } from '../../services/hrService';
-import { useDevModeContext } from '../../contexts/DevModeContext';
+import { useState } from 'react';
+import { useNavigate,useParams } from 'react-router-dom';
 import TechnicianJobsTab from '../../components/TechnicianJobsTab';
 import TelegramConnect from '../../components/TelegramConnect';
-import { EmployeeProfileProps, ActiveTab } from './types';
-import { useEmployeeProfile, useEmployeeModals } from './hooks';
+import { useDevModeContext } from '../../contexts/DevModeContext';
+import { HRService } from '../../services/hrService';
+import { UserRole } from '../../types';
 import {
-  ProfileHeader,
-  ProfileCard,
-  ProfileTabs,
-  LoadingState,
-  ProfileNotSetUp,
-  EmployeeNotFound,
-  InfoTab,
-  LicensesTab,
-  PermitsTab,
-  LeavesTab,
-  AddLicenseModal,
-  AddPermitModal,
-  AddLeaveModal,
-  LeaveCalendarModal,
+AddLeaveModal,
+AddLicenseModal,
+AddPermitModal,
+EmployeeNotFound,
+InfoTab,
+LeaveCalendarModal,
+LeavesTab,
+LicensesTab,
+LoadingState,
+PermitsTab,
+ProfileCard,
+ProfileHeader,
+ProfileNotSetUp,
+ProfileTabs,
 } from './components';
+import { useEmployeeModals,useEmployeeProfile } from './hooks';
+import { ActiveTab,EmployeeProfileProps } from './types';
 
 /**
  * EmployeeProfilePage - Main container for viewing and editing employee profiles

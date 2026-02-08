@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import { Package,Search } from 'lucide-react';
+import { useMemo,useState } from 'react';
 import { VanStockItem } from '../../../types';
-import { Package, Search } from 'lucide-react';
 import { StockItemCard } from './StockItemCard';
 
 interface StockItemsListProps {

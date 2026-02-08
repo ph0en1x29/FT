@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { EmployeeLeave, LeaveType, LeaveStatus } from '../../../types';
+import { ChevronLeft,ChevronRight,X } from 'lucide-react';
+import { useEffect,useState } from 'react';
 import { HRService } from '../../../services/hrService';
 import { showToast } from '../../../services/toastService';
+import { EmployeeLeave,LeaveStatus,LeaveType } from '../../../types';
 import { LeaveCalendarModalProps } from '../types';
 
 /**

@@ -4,10 +4,10 @@
  * Handles invoice/billing related operations, parts, and extra charges.
  */
 
-import { supabase } from './supabaseClient';
-import { updateForkliftHourmeter } from './forkliftService';
 import type { Job } from '../types';
-import { JobStatus as JobStatusEnum, UserRole } from '../types';
+import { JobStatus as JobStatusEnum,UserRole } from '../types';
+import { updateForkliftHourmeter } from './forkliftService';
+import { supabase } from './supabaseClient';
 
 // Forward declaration to avoid circular dependency
 const getJobById = async (jobId: string): Promise<Job | null> => {

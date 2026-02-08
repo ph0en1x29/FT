@@ -9,17 +9,17 @@
  */
 import React from 'react';
 import DashboardNotificationCard from '../../DashboardNotificationCard';
-import { AccountantDashboardProps } from './types';
-import { useAccountantDashboardData } from './hooks';
 import {
-  DashboardHeader,
-  FinalizationAlertBanner,
-  FinalizationQueue,
-  AccountantKPIStats,
-  RevenueChart,
-  InvoiceStatusChart,
-  AccountantQuickActions,
+AccountantKPIStats,
+AccountantQuickActions,
+DashboardHeader,
+FinalizationAlertBanner,
+FinalizationQueue,
+InvoiceStatusChart,
+RevenueChart,
 } from './components';
+import { useAccountantDashboardData } from './hooks';
+import { AccountantDashboardProps } from './types';
 
 const AccountantDashboard: React.FC<AccountantDashboardProps> = ({ currentUser }) => {
   const {

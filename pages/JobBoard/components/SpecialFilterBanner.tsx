@@ -1,5 +1,5 @@
+import { AlertTriangle,Clock,User as UserIcon } from 'lucide-react';
 import React from 'react';
-import { Clock, User as UserIcon, AlertTriangle } from 'lucide-react';
 import { SpecialFilter } from '../types';
 
 interface SpecialFilterBannerProps {

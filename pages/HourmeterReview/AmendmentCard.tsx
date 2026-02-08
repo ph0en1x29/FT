@@ -1,5 +1,4 @@
-import React from 'react';
-import { Gauge, AlertTriangle, ArrowRight, ChevronRight } from 'lucide-react';
+import { AlertTriangle,ArrowRight,ChevronRight,Gauge } from 'lucide-react';
 import { HourmeterAmendment } from '../../types';
 import { FLAG_REASON_LABELS } from './constants';
 import { getTimeSince } from './utils';

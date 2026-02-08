@@ -3,10 +3,9 @@
  * Displays service prediction information for a forklift
  */
 
-import React from 'react';
-import { Calendar, Clock, TrendingUp, AlertTriangle, CheckCircle, Gauge } from 'lucide-react';
-import type { ForkliftWithPrediction, ServiceUrgency } from '../../types';
-import { formatDaysRemaining, getUrgencyColor } from '../../services/hourmeterService';
+import { AlertTriangle,Calendar,CheckCircle,Clock,Gauge,TrendingUp } from 'lucide-react';
+import { formatDaysRemaining,getUrgencyColor } from '../../services/hourmeterService';
+import type { ForkliftWithPrediction,ServiceUrgency } from '../../types';
 
 interface ServicePredictionCardProps {
   forklift: ForkliftWithPrediction;

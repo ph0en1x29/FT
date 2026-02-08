@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Settings, Eye, Lock, ChevronDown } from 'lucide-react';
-import { UserRole } from '../../types';
+import { ChevronDown,Eye,Lock,Settings } from 'lucide-react';
+import React,{ useEffect,useRef,useState } from 'react';
 import { useOptionalDevModeContext } from '../../contexts/DevModeContext';
 import { DevModeType } from '../../hooks/useDevMode';
+import { UserRole } from '../../types';
 
 const roleLabels: Record<UserRole, string> = {
   [UserRole.ADMIN]: 'Admin',

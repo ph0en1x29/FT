@@ -1,4 +1,4 @@
-import { CheckCircle, XCircle, Clock, X } from 'lucide-react';
+import { CheckCircle,Clock,X,XCircle } from 'lucide-react';
 import { AutoCountExportStatus } from '../../types';
 import { StatusConfig } from './types';
 

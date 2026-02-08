@@ -1,9 +1,8 @@
 /**
  * Modal for adding an item to van stock
  */
-import React from 'react';
-import { Part } from '../../../../types';
 import { X } from 'lucide-react';
+import { Part } from '../../../../types';
 
 interface AddItemModalProps {
   isOpen: boolean;

@@ -5,8 +5,8 @@
  * Always run basic accessibility tests.
  */
 
-import { Page, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { Page } from '@playwright/test';
 
 // ===========================================
 // AXE-CORE AUDIT

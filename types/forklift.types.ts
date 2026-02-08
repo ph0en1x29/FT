@@ -2,9 +2,9 @@
 // FORKLIFT / RENTAL / SERVICE TYPES
 // =============================================
 
-import type { Customer } from './customer.types';
 import type { ChecklistItemState } from './common.types';
-import type { JobPriority, Job } from './job.types';
+import type { Customer } from './customer.types';
+import type { Job,JobPriority } from './job.types';
 
 // Forklift/Asset types
 export enum ForkliftType {

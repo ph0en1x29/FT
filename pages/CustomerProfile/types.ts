@@ -1,5 +1,5 @@
 import React from 'react';
-import { Customer, User, ForkliftRental, ForkliftServiceEntry, Forklift } from '../../types';
+import { Customer,Forklift,ForkliftRental,ForkliftServiceEntry,User } from '../../types';
 
 export interface CustomerProfileProps {
   currentUser: User;

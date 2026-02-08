@@ -8,19 +8,19 @@
  * @created 2026-01-31
  */
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Send, 
-  CheckCircle, 
-  XCircle, 
-  RefreshCw,
-  Users,
-  AlertCircle,
-  ChevronDown,
-  ChevronUp
+import {
+AlertCircle,
+CheckCircle,
+ChevronDown,
+ChevronUp,
+RefreshCw,
+Send,
+Users,
+XCircle
 } from 'lucide-react';
+import React,{ useEffect,useState } from 'react';
 import { supabase } from '../services/supabaseService';
-import { User, UserRole } from '../types';
+import { User,UserRole } from '../types';
 
 interface TeamMemberStatus {
   id: string;

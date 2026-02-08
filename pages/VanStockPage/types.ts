@@ -1,7 +1,7 @@
 /**
  * Types for VanStockPage module
  */
-import { User, VanStock, VanStockReplenishment, Part } from '../../types';
+import { Part,User,VanStock,VanStockReplenishment } from '../../types';
 
 export type ViewMode = 'grid' | 'list';
 export type FilterType = 'all' | 'low_stock' | 'pending_audit' | 'pending_replenishment';

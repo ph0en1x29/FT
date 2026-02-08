@@ -5,14 +5,13 @@
  * Created: 2026-02-05 for customer feedback implementation
  */
 
-import { supabase } from './supabaseClient';
-import { 
-  FleetServiceOverview, 
-  DailyUsageResult, 
-  ServiceUpgradeLog,
-  ServiceUpgradePrompt,
-  Forklift
+import {
+DailyUsageResult,
+FleetServiceOverview,
+ServiceUpgradeLog,
+ServiceUpgradePrompt
 } from '../types';
+import { supabase } from './supabaseClient';
 
 // =============================================
 // FLEET SERVICE OVERVIEW

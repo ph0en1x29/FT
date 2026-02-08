@@ -1,6 +1,6 @@
+import { Calendar } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar } from 'lucide-react';
 import { Job } from '../types';
 import { ScheduleCard } from './ScheduleCard';
 

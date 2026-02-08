@@ -1,8 +1,8 @@
+import { Package } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package } from 'lucide-react';
-import { User } from '../types';
 import { getGreeting } from '../helpers';
+import { User } from '../types';
 
 interface DashboardHeaderProps {
   currentUser: User;

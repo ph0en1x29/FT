@@ -1,12 +1,12 @@
-import { supabase, SupabaseDb } from './supabaseService';
 import {
-  EmployeeLeave,
-  LeaveType,
-  EmployeeLeaveBalance,
-  LeaveStatus,
-  UserRole,
-  NotificationType,
+EmployeeLeave,
+EmployeeLeaveBalance,
+LeaveStatus,
+LeaveType,
+NotificationType,
+UserRole,
 } from '../types';
+import { supabase,SupabaseDb } from './supabaseService';
 
 export const LeaveService = {
   // =============================================

@@ -1,5 +1,5 @@
+import { AlertCircle,CheckCircle,X } from 'lucide-react';
 import React from 'react';
-import { X, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface ResultModalProps {
   isOpen: boolean;

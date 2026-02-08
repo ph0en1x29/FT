@@ -1,8 +1,15 @@
-import React from 'react';
 import {
-  AlertTriangle, Clock, CheckCircle, UserX, Timer,
-  Play, Calendar, ChevronRight, ArrowRight
+AlertTriangle,
+ArrowRight,
+Calendar,
+CheckCircle,
+ChevronRight,
+Clock,
+Play,
+Timer,
+UserX
 } from 'lucide-react';
+import React from 'react';
 
 /**
  * Design tokens and shared UI components for Dashboard V4

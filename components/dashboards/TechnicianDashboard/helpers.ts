@@ -1,4 +1,4 @@
-import { Job, JobStatus, JobType, StatusColor } from './types';
+import { Job,JobStatus,JobType,StatusColor } from './types';
 
 /**
  * Returns time-appropriate greeting

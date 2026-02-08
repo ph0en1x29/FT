@@ -1,4 +1,3 @@
-import { BENCHMARKS } from './constants';
 
 // Calculate working days in period (excluding weekends)
 export const getWorkingDays = (startDate: Date, endDate: Date): number => {

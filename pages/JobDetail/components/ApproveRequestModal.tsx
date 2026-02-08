@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Package, CheckCircle, XCircle, X, Image } from 'lucide-react';
-import { JobRequest, Part } from '../../../types';
-import { Combobox, ComboboxOption } from '../../../components/Combobox';
+import { CheckCircle,Image,Package,X,XCircle } from 'lucide-react';
+import React,{ useState } from 'react';
+import { Combobox,ComboboxOption } from '../../../components/Combobox';
 import { usePartsForList } from '../../../hooks/useQueryHooks';
+import { JobRequest,Part } from '../../../types';
 
 interface ApproveRequestModalProps {
   show: boolean;

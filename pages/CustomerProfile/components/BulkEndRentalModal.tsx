@@ -1,5 +1,5 @@
+import { CircleOff,Loader2,Truck,X } from 'lucide-react';
 import React from 'react';
-import { X, Truck, Loader2, CircleOff } from 'lucide-react';
 import { BulkEndRentalModalProps } from '../types';
 
 const BulkEndRentalModal: React.FC<BulkEndRentalModalProps> = ({

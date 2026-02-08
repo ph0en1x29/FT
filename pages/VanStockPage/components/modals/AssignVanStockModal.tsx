@@ -1,9 +1,8 @@
 /**
  * Modal for assigning van stock to a technician
  */
-import React from 'react';
-import { User } from '../../../../types';
 import { X } from 'lucide-react';
+import { User } from '../../../../types';
 
 interface AssignVanStockModalProps {
   isOpen: boolean;

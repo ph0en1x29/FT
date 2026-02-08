@@ -1,4 +1,4 @@
-import { JobStatus, JobType } from '../../types';
+import { JobStatus,JobType } from '../../types';
 
 /**
  * Status badge color classes

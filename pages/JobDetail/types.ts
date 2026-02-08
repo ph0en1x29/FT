@@ -1,5 +1,5 @@
-import { Job, User, Part, JobRequest, VanStock, HourmeterFlagReason, ForkliftConditionChecklist } from '../../types';
 import { ComboboxOption } from '../../components/Combobox';
+import { ForkliftConditionChecklist,Job,JobRequest,Part,User,VanStock } from '../../types';
 
 export interface JobDetailProps {
   currentUser: User;

@@ -1,5 +1,4 @@
-import React from 'react';
-import { X, RefreshCw, AlertTriangle } from 'lucide-react';
+import { AlertTriangle,RefreshCw,X } from 'lucide-react';
 import { AutoCountExport } from '../../../types';
 import { STATUS_CONFIG } from '../statusConfig';
 

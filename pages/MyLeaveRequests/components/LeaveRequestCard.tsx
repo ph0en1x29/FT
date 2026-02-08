@@ -1,6 +1,5 @@
-import React from 'react';
-import { EmployeeLeave, LeaveType, LeaveStatus } from '../../../types';
 import { Trash2 } from 'lucide-react';
+import { EmployeeLeave,LeaveStatus,LeaveType } from '../../../types';
 import { LeaveStatusBadge } from './LeaveStatusBadge';
 
 interface LeaveRequestCardProps {

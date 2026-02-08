@@ -1,4 +1,4 @@
-import { Job, User } from '../../types';
+import { Job,User } from '../../types';
 
 export type TabType = 'parts' | 'jobs';
 

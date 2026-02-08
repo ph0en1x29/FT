@@ -1,5 +1,5 @@
+import { CircleOff,Loader2,X } from 'lucide-react';
 import React from 'react';
-import { X, CircleOff, Loader2 } from 'lucide-react';
 
 interface BulkEndRentalModalProps {
   isOpen: boolean;

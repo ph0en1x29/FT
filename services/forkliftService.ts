@@ -5,9 +5,9 @@
  * Re-exports from specialized services for backward compatibility
  */
 
-import { supabase } from './supabaseClient';
-import type { Forklift, Job } from '../types';
+import type { Forklift } from '../types';
 import { ForkliftStatus as ForkliftStatusEnum } from '../types';
+import { supabase } from './supabaseClient';
 
 // =====================
 // RE-EXPORTS FOR BACKWARD COMPATIBILITY
@@ -15,50 +15,23 @@ import { ForkliftStatus as ForkliftStatusEnum } from '../types';
 
 // Rental operations
 export {
-  getActiveRentalForForklift,
-  getRentals,
-  getForkliftRentals,
-  getCustomerRentals,
-  getCustomerActiveRentals,
-  assignForkliftToCustomer,
-  endRental,
-  updateRental,
-  updateRentalRate,
-  bulkAssignForkliftsToCustomer,
-  bulkEndRentals,
+assignForkliftToCustomer,bulkAssignForkliftsToCustomer,
+bulkEndRentals,endRental,getActiveRentalForForklift,getCustomerActiveRentals,getCustomerRentals,getForkliftRentals,getRentals,updateRental,
+updateRentalRate
 } from './rentalService';
 
 // Hourmeter operations
 export {
-  getForkliftHourmeterHistory,
-  getHourmeterAmendments,
-  createHourmeterAmendment,
-  approveHourmeterAmendment,
-  rejectHourmeterAmendment,
-  getJobHourmeterAmendment,
-  flagJobHourmeter,
-  validateHourmeterReading,
-  // Service prediction
-  getForkliftsDueForService,
-  runDailyServiceCheck,
-  getServicePredictionDashboard,
-  getForkliftServicePredictions,
+approveHourmeterAmendment,createHourmeterAmendment,flagJobHourmeter,getForkliftHourmeterHistory,
+// Service prediction
+getForkliftsDueForService,getForkliftServicePredictions,getHourmeterAmendments,getJobHourmeterAmendment,getServicePredictionDashboard,rejectHourmeterAmendment,runDailyServiceCheck,validateHourmeterReading
 } from './hourmeterService';
 
 // Service schedule operations
 export {
-  getScheduledServices,
-  getUpcomingServices,
-  createScheduledService,
-  updateScheduledService,
-  getServiceIntervals,
-  getServiceIntervalsByType,
-  createServiceInterval,
-  updateServiceInterval,
-  deleteServiceInterval,
-  hardDeleteServiceInterval,
-  getForkliftServiceHistory,
-  getForkliftServiceHistoryWithCancelled,
+createScheduledService,createServiceInterval,deleteServiceInterval,getForkliftServiceHistory,
+getForkliftServiceHistoryWithCancelled,getScheduledServices,getServiceIntervals,
+getServiceIntervalsByType,getUpcomingServices,hardDeleteServiceInterval,updateScheduledService,updateServiceInterval
 } from './serviceScheduleService';
 
 // =====================

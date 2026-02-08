@@ -1,7 +1,7 @@
+import { Edit2,FileText } from 'lucide-react';
 import React from 'react';
 import { Job } from '../../../types';
-import { RoleFlags, StatusFlags } from '../types';
-import { FileText, Edit2 } from 'lucide-react';
+import { RoleFlags,StatusFlags } from '../types';
 
 interface JobDetailsCardProps {
   job: Job;

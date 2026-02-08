@@ -1,10 +1,14 @@
-import React from 'react';
-import { Job, User } from '../../../../types';
 import {
-  CheckCircle, Calendar, TrendingUp,
-  RefreshCw, Play, ArrowRight
+ArrowRight,
+Calendar,
+CheckCircle,
+Play,
+RefreshCw,
+TrendingUp
 } from 'lucide-react';
-import { colors, KPICard, QueueItem } from './DashboardWidgets';
+import React from 'react';
+import { Job,User } from '../../../../types';
+import { colors,KPICard,QueueItem } from './DashboardWidgets';
 
 interface TechnicianDashboardProps {
   currentUser: User;

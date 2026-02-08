@@ -4,9 +4,9 @@
  * Handles condition checklists, service records, and repair times.
  */
 
-import { supabase } from './supabaseClient';
-import type { Job, ForkliftConditionChecklist } from '../types';
+import type { ForkliftConditionChecklist,Job } from '../types';
 import { JobStatus as JobStatusEnum } from '../types';
+import { supabase } from './supabaseClient';
 
 // Type for forklift hourmeter query result
 interface ForkliftHourmeterRow {

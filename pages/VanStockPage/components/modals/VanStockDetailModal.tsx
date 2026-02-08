@@ -1,20 +1,20 @@
 /**
  * Detail modal for viewing a van stock's items
  */
-import React, { useState, useEffect } from 'react';
-import { VanStock, VanStockItem } from '../../../../types';
 import {
-  X,
-  MoreVertical,
-  Edit2,
-  ArrowRightLeft,
-  Trash2,
-  Plus,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle,
+AlertTriangle,
+ArrowRightLeft,
+CheckCircle,
+Edit2,
+MoreVertical,
+Plus,
+Trash2,
+TrendingDown,
+X,
 } from 'lucide-react';
-import { getLowStockItems, getStockStatusColor } from '../../hooks/useVanStockData';
+import { useEffect,useState } from 'react';
+import { VanStock,VanStockItem } from '../../../../types';
+import { getLowStockItems,getStockStatusColor } from '../../hooks/useVanStockData';
 
 interface VanStockDetailModalProps {
   isOpen: boolean;

@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React,{ useEffect,useState } from 'react';
 import { SupabaseDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
-import { ServiceInterval, ServiceIntervalFormData, ServiceIntervalsConfigProps } from './types';
-import { INITIAL_FORM_DATA } from './constants';
 import {
-  ServiceIntervalsHeader,
-  AcwerReferenceCard,
-  FilterTabs,
-  IntervalsTable,
-  AddIntervalModal,
+AcwerReferenceCard,
+AddIntervalModal,
+FilterTabs,
+IntervalsTable,
+ServiceIntervalsHeader,
 } from './components';
+import { INITIAL_FORM_DATA } from './constants';
+import { ServiceInterval,ServiceIntervalFormData,ServiceIntervalsConfigProps } from './types';
 
 const ServiceIntervalsConfig: React.FC<ServiceIntervalsConfigProps> = ({ currentUser }) => {
   const [intervals, setIntervals] = useState<ServiceInterval[]>([]);

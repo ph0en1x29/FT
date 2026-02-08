@@ -1,8 +1,7 @@
 /**
  * Search and filter component for VanStockPage
  */
-import React from 'react';
-import { Search, Filter } from 'lucide-react';
+import { Filter,Search } from 'lucide-react';
 import { FilterType } from '../types';
 
 interface VanStockFiltersProps {

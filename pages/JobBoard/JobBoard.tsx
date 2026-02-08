@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React,{ useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserRole } from '../../types';
 import { useDevModeContext } from '../../contexts/DevModeContext';
-import { JobBoardProps } from './types';
-import { useJobData, useJobFilters, useJobAcceptance } from './hooks';
+import { UserRole } from '../../types';
 import {
-  QuickStats, SearchFilterBar, SlotInAlertBanner, SpecialFilterBanner,
-  JobCard, DeletedJobsSection, RejectJobModal, EmptyJobsState, LoadingState,
+DeletedJobsSection,
+EmptyJobsState,
+JobCard,
+LoadingState,
+QuickStats,
+RejectJobModal,
+SearchFilterBar,SlotInAlertBanner,SpecialFilterBanner,
 } from './components';
+import { useJobAcceptance,useJobData,useJobFilters } from './hooks';
+import { JobBoardProps } from './types';
 
 /** Job Board - Main view for listing, filtering, and managing jobs */
 const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) => {

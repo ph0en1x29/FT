@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { LayoutDashboard, Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
+import { AlertCircle,ArrowRight,LayoutDashboard,Lock,Mail } from 'lucide-react';
+import React,{ useState } from 'react';
 import { SupabaseDb as MockDb } from '../services/supabaseService';
 import { User } from '../types';
 

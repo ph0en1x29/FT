@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
 import {
-  Job,
-  HourmeterFlagReason,
-} from '../types';
-import {
-  X,
-  Gauge,
-  AlertTriangle,
-  ArrowRight,
-  Send,
-  Info,
+AlertTriangle,
+ArrowRight,
+Gauge,
+Info,
+Send,
+X,
 } from 'lucide-react';
+import { useState } from 'react';
+import {
+HourmeterFlagReason,
+Job,
+} from '../types';
 
 interface HourmeterAmendmentModalProps {
   job: Job;

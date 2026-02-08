@@ -1,5 +1,4 @@
-import React from 'react';
-import { Package, AlertTriangle, TrendingDown, CheckCircle } from 'lucide-react';
+import { AlertTriangle,CheckCircle,Package,TrendingDown } from 'lucide-react';
 
 interface StatsCardsProps {
   totalItems: number;

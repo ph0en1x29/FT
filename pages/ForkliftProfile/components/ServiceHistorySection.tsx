@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Wrench, Calendar, Gauge, Package, ChevronRight, 
-  XCircle, User as UserIcon, AlertOctagon, Clock 
+import {
+AlertOctagon,
+Calendar,
+ChevronRight,
+Clock,
+Gauge,Package,
+User as UserIcon,
+Wrench,
+XCircle
 } from 'lucide-react';
+import React,{ useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ForkliftServiceEntry } from '../../../types';
 import { getJobStatusBadge } from '../utils';
 

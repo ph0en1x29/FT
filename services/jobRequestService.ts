@@ -4,15 +4,15 @@
  * Handles in-job requests: spare parts, assistance, skillful technician.
  */
 
-import { supabase } from './supabaseClient';
-import { 
-  createNotification,
-  notifyAdminsOfRequest,
-  notifyRequestApproved,
-  notifyRequestRejected,
-} from './notificationService';
-import { assignHelper } from './jobAssignmentService';
 import { NotificationType } from '../types';
+import { assignHelper } from './jobAssignmentService';
+import {
+createNotification,
+notifyAdminsOfRequest,
+notifyRequestApproved,
+notifyRequestRejected,
+} from './notificationService';
+import { supabase } from './supabaseClient';
 
 // =====================
 // JOB REQUESTS

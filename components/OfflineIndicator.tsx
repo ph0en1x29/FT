@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { WifiOff, Wifi, CloudOff, RefreshCw } from 'lucide-react';
+import { CloudOff,RefreshCw,Wifi,WifiOff } from 'lucide-react';
+import React,{ useEffect,useState } from 'react';
 
 interface OfflineIndicatorProps {
   /** Show as banner at top of screen */

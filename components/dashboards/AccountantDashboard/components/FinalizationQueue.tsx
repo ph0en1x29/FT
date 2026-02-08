@@ -1,11 +1,11 @@
 /**
  * Finalization queue section showing jobs awaiting finalization
  */
+import { AlertCircle,CheckCircle,FileText } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, CheckCircle, FileText } from 'lucide-react';
 import { Job } from '../../../../types';
-import { UrgencyLevel, UrgencyStyle } from '../types';
+import { UrgencyLevel,UrgencyStyle } from '../types';
 import { FinalizationQueueItem } from './FinalizationQueueItem';
 
 interface FinalizationQueueProps {

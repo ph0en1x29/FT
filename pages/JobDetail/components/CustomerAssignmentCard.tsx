@@ -1,8 +1,8 @@
+import { MapPin,Phone,RefreshCw,UserIcon,UserPlus,X } from 'lucide-react';
 import React from 'react';
-import { Job, User } from '../../../types';
-import { Combobox, ComboboxOption } from '../../../components/Combobox';
-import { UserIcon, MapPin, Phone, UserPlus, RefreshCw, X } from 'lucide-react';
-import { RoleFlags, StatusFlags } from '../types';
+import { Combobox,ComboboxOption } from '../../../components/Combobox';
+import { Job } from '../../../types';
+import { RoleFlags,StatusFlags } from '../types';
 
 interface CustomerAssignmentCardProps {
   job: Job;

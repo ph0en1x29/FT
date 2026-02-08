@@ -1,4 +1,4 @@
-import { AcwerDefault, ServiceIntervalFormData } from './types';
+import { AcwerDefault,ServiceIntervalFormData } from './types';
 
 export const FORKLIFT_TYPES = ['Diesel', 'Electric', 'LPG'];
 

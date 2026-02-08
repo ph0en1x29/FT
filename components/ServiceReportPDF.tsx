@@ -1,6 +1,6 @@
 import React from 'react';
-import { Job, ForkliftConditionChecklist, JobType } from '../types';
 import { sanitizeHtml } from '../services/sanitizeService';
+import { ForkliftConditionChecklist,Job,JobType } from '../types';
 
 interface ServiceReportProps {
   job: Job;

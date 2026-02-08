@@ -1,5 +1,4 @@
-import React from 'react';
-import { Clock, Wrench, AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle,CheckCircle,Clock,Wrench } from 'lucide-react';
 import { SummaryCardsProps } from '../types';
 
 export function SummaryCards({ partsPending, jobsPending, overdueCount, confirmedToday }: SummaryCardsProps) {

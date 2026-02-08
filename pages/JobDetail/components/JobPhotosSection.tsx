@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Job, MediaCategory, JobMedia, JobStatus } from '../../../types';
-import { SupabaseDb as MockDb, supabase } from '../../../services/supabaseService';
+import { Camera,Download } from 'lucide-react';
+import React,{ useState } from 'react';
+import { SupabaseDb as MockDb,supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { RoleFlags, StatusFlags } from '../types';
-import { PHOTO_CATEGORIES, getDefaultPhotoCategory } from '../constants';
-import { Camera, Download, CheckCircle } from 'lucide-react';
+import { Job,JobMedia,JobStatus,MediaCategory } from '../../../types';
+import { PHOTO_CATEGORIES,getDefaultPhotoCategory } from '../constants';
+import { RoleFlags,StatusFlags } from '../types';
 
 // Type for media data being created (without ID fields that are auto-generated)
 type NewMediaData = Omit<JobMedia, 'media_id' | 'job_id' | 'uploaded_by_id' | 'uploaded_by_name' | 'is_helper_photo' | 'uploaded_by_assignment_id'>;

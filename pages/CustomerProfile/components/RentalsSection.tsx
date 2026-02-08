@@ -1,5 +1,5 @@
+import { Calendar,CheckSquare,ChevronRight,CircleOff,Square,Truck } from 'lucide-react';
 import React from 'react';
-import { Truck, Calendar, ChevronRight, Square, CheckSquare, CircleOff } from 'lucide-react';
 import { RentalsSectionProps } from '../types';
 
 const RentalsSection: React.FC<RentalsSectionProps> = ({

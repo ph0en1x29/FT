@@ -1,5 +1,4 @@
-import React from 'react';
-import { Clock, CheckCircle, XCircle, LucideIcon } from 'lucide-react';
+import { CheckCircle,Clock,LucideIcon,XCircle } from 'lucide-react';
 import { TabType } from './constants';
 
 interface StatCardProps {

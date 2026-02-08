@@ -1,4 +1,4 @@
-import { Job, User } from '../../types';
+import { Job,User } from '../../types';
 
 /**
  * Extended Job type with helper assignment flag (added at runtime by jobService)

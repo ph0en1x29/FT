@@ -1,8 +1,8 @@
+import { ChevronDown,ChevronUp,Gauge,Plus,Truck } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, Plus, Gauge, ChevronDown, ChevronUp } from 'lucide-react';
-import { ForkliftWithStatus } from '../types';
 import { STATUS_CONFIG } from '../constants';
+import { ForkliftWithStatus } from '../types';
 
 interface ForkliftTableProps {
   forklifts: ForkliftWithStatus[];
@@ -17,7 +17,7 @@ interface ForkliftTableProps {
 export const ForkliftTable: React.FC<ForkliftTableProps> = ({
   forklifts,
   filteredCount,
-  displayLimit,
+  _displayLimit,
   hasMore,
   onShowMore,
   onShowAll,

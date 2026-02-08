@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Job, JobStatus, User } from '../../types';
+import React,{ useEffect,useMemo,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
-import { openServiceReportPDF } from './ServiceReportPDF';
+import { Job,JobStatus,User } from '../../types';
 import ServiceRecordsFilters from './ServiceRecordsFilters';
-import ServiceRecordsTable from './ServiceRecordsTable';
 import ServiceRecordsLoading from './ServiceRecordsLoading';
+import ServiceRecordsTable from './ServiceRecordsTable';
+import { openServiceReportPDF } from './ServiceReportPDF';
 
 interface ServiceRecordsProps {
   currentUser: User;

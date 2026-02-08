@@ -12,17 +12,17 @@
  * - Quick job creation from table rows
  */
 
+import { Loader2,RefreshCw } from 'lucide-react';
 import React from 'react';
-import { Loader2, RefreshCw } from 'lucide-react';
-import { AssetDashboardProps, OperationalStatus } from './types';
-import { useAssetDashboard } from './hooks/useAssetDashboard';
 import {
-  StatusCardGrid,
-  MetricsBar,
-  SearchBar,
-  ResultsCount,
-  ForkliftTable
+ForkliftTable,
+MetricsBar,
+ResultsCount,
+SearchBar,
+StatusCardGrid
 } from './components';
+import { useAssetDashboard } from './hooks/useAssetDashboard';
+import { AssetDashboardProps,OperationalStatus } from './types';
 
 const AssetDashboard: React.FC<AssetDashboardProps> = ({ currentUser }) => {
   const {

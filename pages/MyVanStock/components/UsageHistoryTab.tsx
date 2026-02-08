@@ -1,6 +1,5 @@
-import React from 'react';
-import { VanStockUsage, VanStockReplenishment } from '../../../types';
-import { History, CheckCircle, Clock, TrendingDown } from 'lucide-react';
+import { CheckCircle,Clock,History,TrendingDown } from 'lucide-react';
+import { VanStockReplenishment,VanStockUsage } from '../../../types';
 
 interface UsageHistoryTabProps {
   usageHistory: VanStockUsage[];

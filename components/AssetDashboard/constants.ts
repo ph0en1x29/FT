@@ -1,8 +1,13 @@
 import {
-  Truck, Wrench, AlertTriangle, CheckCircle, XCircle,
-  Building2, Package, CalendarClock
+AlertTriangle,
+Building2,
+CalendarClock,
+CheckCircle,
+Package,
+Wrench,
+XCircle
 } from 'lucide-react';
-import { OperationalStatus, StatusConfig } from './types';
+import { OperationalStatus,StatusConfig } from './types';
 
 export const STATUS_CONFIG: Record<OperationalStatus, StatusConfig> = {
   out_of_service: {

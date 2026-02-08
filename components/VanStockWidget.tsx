@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, VanStock, VanStockItem } from '../types';
-import { SupabaseDb as MockDb } from '../services/supabaseService';
 import {
-  Truck,
-  Package,
-  AlertTriangle,
-  TrendingDown,
-  ChevronRight,
-  RefreshCw,
+AlertTriangle,
+ChevronRight,
+TrendingDown,
+Truck
 } from 'lucide-react';
+import { useEffect,useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { SupabaseDb as MockDb } from '../services/supabaseService';
+import { User,VanStock,VanStockItem } from '../types';
 
 interface VanStockWidgetProps {
   currentUser: User;

@@ -1,9 +1,9 @@
+import { ChevronRight,Clock,MapPin,Truck } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, MapPin, ChevronRight, Truck } from 'lucide-react';
-import { Job, JobType } from '../types';
-import { getStatusColor, getJobTypeColor, isJobOverdue, formatScheduledTime } from '../helpers';
 import SlotInSLABadge from '../../../SlotInSLABadge';
+import { formatScheduledTime,getJobTypeColor,getStatusColor,isJobOverdue } from '../helpers';
+import { Job,JobType } from '../types';
 
 interface ScheduleCardProps {
   job: Job;

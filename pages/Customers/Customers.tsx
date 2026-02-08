@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { Plus,Search,Users } from 'lucide-react';
+import React,{ useEffect,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Customer } from '../../types';
+import { SkeletonGrid } from '../../components/Skeleton';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
-import { Users, Search, Plus } from 'lucide-react';
-import { SkeletonGrid } from '../../components/Skeleton';
-import { CustomerCard, CreateCustomerModal } from './components';
+import { Customer } from '../../types';
+import { CreateCustomerModal,CustomerCard } from './components';
 
 const Customers: React.FC = () => {
   const navigate = useNavigate();

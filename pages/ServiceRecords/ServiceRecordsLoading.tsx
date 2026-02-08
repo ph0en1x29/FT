@@ -1,5 +1,5 @@
 import React from 'react';
-import { Skeleton, SkeletonTableRow } from '../../components/Skeleton';
+import { Skeleton,SkeletonTableRow } from '../../components/Skeleton';
 
 interface ServiceRecordsLoadingProps {
   hideHeader?: boolean;

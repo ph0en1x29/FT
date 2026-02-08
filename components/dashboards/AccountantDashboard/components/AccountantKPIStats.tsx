@@ -1,9 +1,9 @@
 /**
  * KPI stats cards for accountant dashboard
  */
+import { CheckCircle,Clock,DollarSign,FileText } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DollarSign, FileText, Clock, CheckCircle } from 'lucide-react';
 
 interface AccountantKPIStatsProps {
   monthlyRevenue: number;

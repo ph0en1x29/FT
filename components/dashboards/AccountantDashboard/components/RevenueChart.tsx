@@ -1,17 +1,17 @@
 /**
  * Revenue trend area chart component
  */
+import { DollarSign,TrendingUp } from 'lucide-react';
 import React from 'react';
 import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
+Area,
+AreaChart,
+CartesianGrid,
+ResponsiveContainer,
+Tooltip,
+XAxis,
+YAxis,
 } from 'recharts';
-import { DollarSign, TrendingUp } from 'lucide-react';
 import { RevenueDataPoint } from '../types';
 
 interface RevenueChartProps {

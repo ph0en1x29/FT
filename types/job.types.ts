@@ -2,12 +2,11 @@
 // JOB / JOB REQUEST / JOB PARTS TYPES
 // =============================================
 
+import type { AssignmentType,MediaCategory,SignatureEntry } from './common.types';
 import type { Customer } from './customer.types';
-import type { Forklift, ForkliftConditionChecklist } from './forklift.types';
-import type { JobPartUsed } from './inventory.types';
+import type { Forklift,ForkliftConditionChecklist } from './forklift.types';
+import type { JobPartUsed,Part } from './inventory.types';
 import type { User } from './user.types';
-import type { Part } from './inventory.types';
-import type { MediaCategory, AssignmentType, SignatureEntry } from './common.types';
 
 export enum JobStatus {
   NEW = 'New',

@@ -1,5 +1,5 @@
+import { ChevronRight,Clock,Trash2 } from 'lucide-react';
 import React from 'react';
-import { Trash2, ChevronRight, Clock } from 'lucide-react';
 import { DeletedJob } from '../../../types';
 
 interface DeletedJobsSectionProps {

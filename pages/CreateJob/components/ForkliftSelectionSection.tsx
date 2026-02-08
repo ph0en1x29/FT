@@ -1,6 +1,6 @@
+import { Gauge,Truck } from 'lucide-react';
 import React from 'react';
-import { Truck, Gauge } from 'lucide-react';
-import { Combobox, ComboboxOption } from '../../../components/Combobox';
+import { Combobox,ComboboxOption } from '../../../components/Combobox';
 import { ForkliftSelectionSectionProps } from '../types';
 
 /**

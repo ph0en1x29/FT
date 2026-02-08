@@ -1,8 +1,8 @@
+import { Box,CheckCircle,Edit2,Info,Plus,Save,Trash2,X } from 'lucide-react';
 import React from 'react';
-import { Job, Part } from '../../../types';
-import { RoleFlags, StatusFlags } from '../types';
-import { Combobox, ComboboxOption } from '../../../components/Combobox';
-import { Box, Plus, Edit2, Save, X, Trash2, Clock, CheckCircle, Info } from 'lucide-react';
+import { Combobox,ComboboxOption } from '../../../components/Combobox';
+import { Job } from '../../../types';
+import { RoleFlags,StatusFlags } from '../types';
 
 interface PartsSectionProps {
   job: Job;

@@ -3,11 +3,11 @@
  * Shows upcoming service predictions grouped by urgency
  */
 
-import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Clock, Calendar, RefreshCw, Wrench } from 'lucide-react';
+import { AlertTriangle,Calendar,Clock,RefreshCw,Wrench } from 'lucide-react';
+import { useEffect,useState } from 'react';
 import { getServicePredictionDashboard } from '../../services/hourmeterService';
-import { ServicePredictionCard } from './ServicePredictionCard';
 import type { ServicePredictionDashboard as DashboardData } from '../../types';
+import { ServicePredictionCard } from './ServicePredictionCard';
 
 interface ServicePredictionDashboardProps {
   onForkliftClick?: (forkliftId: string) => void;

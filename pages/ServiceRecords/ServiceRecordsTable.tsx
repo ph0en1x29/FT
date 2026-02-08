@@ -1,10 +1,16 @@
+import {
+Building2,
+CheckCircle,
+Clock,
+Download,
+Eye,
+FileText,
+Truck,
+User as UserIcon
+} from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Job, JobStatus } from '../../types';
-import { 
-  Eye, Download, Clock, CheckCircle, Building2, 
-  User as UserIcon, Truck, FileText 
-} from 'lucide-react';
+import { Job,JobStatus } from '../../types';
 
 interface ServiceRecordsTableProps {
   jobs: Job[];

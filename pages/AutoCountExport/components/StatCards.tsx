@@ -1,6 +1,5 @@
-import React from 'react';
-import { Clock, CheckCircle, XCircle } from 'lucide-react';
-import { TabType, ExportStats } from '../types';
+import { CheckCircle,Clock,XCircle } from 'lucide-react';
+import { ExportStats,TabType } from '../types';
 
 interface StatCardsProps {
   stats: ExportStats;

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { X, CalendarClock } from 'lucide-react';
-import { Forklift, User } from '../../../types';
+import { CalendarClock,X } from 'lucide-react';
+import React,{ useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
+import { Forklift,User } from '../../../types';
 
 interface ScheduleServiceModalProps {
   forklift: Forklift;

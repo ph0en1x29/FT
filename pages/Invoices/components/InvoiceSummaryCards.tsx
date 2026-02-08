@@ -1,5 +1,5 @@
+import { Calendar,DollarSign,FileText } from 'lucide-react';
 import React from 'react';
-import { FileText, DollarSign, Calendar } from 'lucide-react';
 
 interface InvoiceSummaryCardsProps {
   totalInvoices: number;

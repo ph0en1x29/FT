@@ -1,6 +1,6 @@
+import { Briefcase,MapPin,Package,Truck } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, Package, Truck, MapPin } from 'lucide-react';
 
 /**
  * Quick action buttons grid for common technician tasks

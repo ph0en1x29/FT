@@ -1,13 +1,20 @@
+import {
+AlertTriangle,CheckCircle,
+ClipboardList,
+Clock,
+Gauge,
+Play,
+RefreshCw,
+Trash2,
+XCircle
+} from 'lucide-react';
 import React from 'react';
-import { Job, ForkliftConditionChecklist } from '../../../types';
-import { SignaturePad } from '../../../components/SignaturePad';
-import { Combobox, ComboboxOption } from '../../../components/Combobox';
+import { Combobox,ComboboxOption } from '../../../components/Combobox';
 import HourmeterAmendmentModal from '../../../components/HourmeterAmendmentModal';
+import { SignaturePad } from '../../../components/SignaturePad';
+import { ForkliftConditionChecklist,Job } from '../../../types';
 import { CHECKLIST_CATEGORIES } from '../constants';
 import { calculateJobTotals } from '../utils';
-import { 
-  Play, Clock, Trash2, RefreshCw, Gauge, ClipboardList, XCircle, AlertTriangle, CheckCircle 
-} from 'lucide-react';
 
 interface SignatureModalProps {
   show: boolean;

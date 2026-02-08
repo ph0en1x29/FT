@@ -1,5 +1,5 @@
-import React from 'react';
 import { Briefcase } from 'lucide-react';
+import React from 'react';
 
 interface EmptyJobsStateProps {
   hasActiveFilters: boolean;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { JobPriority, JobType, Customer, User, Forklift } from '../../types';
+import { Forklift,JobPriority,JobType,User } from '../../types';
 
 export interface CreateJobFormData {
   customer_id: string;

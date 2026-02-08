@@ -1,9 +1,9 @@
 /**
  * Quick action buttons for accountant dashboard
  */
+import { AlertCircle,DollarSign,FileText,Receipt } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Receipt, FileText, DollarSign, AlertCircle } from 'lucide-react';
 
 export const AccountantQuickActions: React.FC = () => {
   const navigate = useNavigate();

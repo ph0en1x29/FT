@@ -4,11 +4,11 @@
  * This file is kept small to reduce initial bundle size.
  * The authenticated layout is lazy-loaded after login.
  */
-import React, { useState, useEffect, lazy, Suspense } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { User } from './types';
-import { supabase, SupabaseDb } from './services/supabaseService';
 import { Loader2 } from 'lucide-react';
+import { lazy,Suspense,useEffect,useState } from 'react';
+import { supabase,SupabaseDb } from './services/supabaseService';
+import { User } from './types';
 
 // Lazy load pages
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -50,7 +50,7 @@ export default function App() {
           setCurrentUser(null);
           await supabase.auth.signOut();
         }
-      } catch (error) {
+      } catch (_error) {
         if (!isMounted) return;
         setCurrentUser(null);
       }
@@ -61,7 +61,7 @@ export default function App() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!isMounted) return;
         await syncUser(session);
-      } catch (error) {
+      } catch (_error) {
         if (!isMounted) return;
         setCurrentUser(null);
         await supabase.auth.signOut().catch(() => undefined);

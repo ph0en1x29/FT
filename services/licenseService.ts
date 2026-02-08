@@ -1,8 +1,8 @@
 /** License Service — CRUD and signed-URL document storage for employee licenses. */
 
-import { supabase } from './supabaseService';
+import { EmployeeLicense,LicenseStatus } from '../types';
 import { getSignedStorageUrl } from './supabaseClient';
-import { EmployeeLicense, LicenseStatus } from '../types';
+import { supabase } from './supabaseService';
 
 export const LicenseService = {
   // =============================================

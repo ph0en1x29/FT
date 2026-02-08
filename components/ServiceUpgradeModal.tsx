@@ -7,8 +7,8 @@
  * Created: 2026-02-05 for customer feedback implementation
  */
 
+import { AlertTriangle,ArrowUpCircle,X } from 'lucide-react';
 import React from 'react';
-import { AlertTriangle, ArrowUpCircle, X } from 'lucide-react';
 import { ServiceUpgradePrompt } from '../types';
 
 interface ServiceUpgradeModalProps {

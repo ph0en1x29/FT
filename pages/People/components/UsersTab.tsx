@@ -1,11 +1,22 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { User, UserRole } from '../../../types';
+import {
+CheckCircle,
+Edit2,
+FileText,
+Loader2,
+Plus,
+Search,
+Shield,
+UserCheck,
+Users,
+UserX,
+Wrench,
+X,
+XCircle
+} from 'lucide-react';
+import React,{ useEffect,useMemo,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import {
-  Users, UserCheck, UserX, Shield, Wrench, FileText, Plus, Edit2, Search,
-  CheckCircle, XCircle, X, Loader2
-} from 'lucide-react';
+import { User,UserRole } from '../../../types';
 
 interface UsersTabProps {
   currentUser: User;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { JobStatus } from '../../../types';
-import { StatusCounts, DateFilter } from '../types';
 import { QUICK_STATS_ACTIVE_COLORS } from '../constants';
+import { DateFilter,StatusCounts } from '../types';
 
 interface QuickStatsProps {
   statusCounts: StatusCounts;

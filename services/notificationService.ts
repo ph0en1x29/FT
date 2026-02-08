@@ -4,9 +4,9 @@
  * Handles notification CRUD and various notification triggers
  */
 
+import type { Job,Notification } from '../types';
+import { NotificationType,UserRole } from '../types';
 import { supabase } from './supabaseClient';
-import { NotificationType, UserRole } from '../types';
-import type { Notification, Job } from '../types';
 
 // =====================
 // NOTIFICATION CRUD

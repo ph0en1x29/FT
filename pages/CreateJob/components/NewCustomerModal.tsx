@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { NewCustomerModalProps, NewCustomerFormData } from '../types';
+import React,{ useEffect,useState } from 'react';
+import { NewCustomerFormData,NewCustomerModalProps } from '../types';
 
 /**
  * Modal for creating a new customer during job creation.

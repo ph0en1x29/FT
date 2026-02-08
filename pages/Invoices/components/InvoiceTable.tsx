@@ -1,8 +1,8 @@
+import { Building2,Download,Eye,FileText } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Job } from '../../../types';
-import { FileText, Building2, Eye, Download } from 'lucide-react';
-import { generateInvoicePDF, calculateJobTotal } from './generateInvoicePDF';
+import { calculateJobTotal,generateInvoicePDF } from './generateInvoicePDF';
 
 interface InvoiceTableProps {
   jobs: Job[];

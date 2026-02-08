@@ -4,8 +4,8 @@
  * Handles user authentication and session management
  */
 
-import { supabase } from './supabaseClient';
 import type { User } from '../types';
+import { supabase } from './supabaseClient';
 
 /**
  * Fetch user by auth ID from the users table

@@ -1,5 +1,5 @@
+import { Battery,Flame,Fuel,Wrench } from 'lucide-react';
 import React from 'react';
-import { Fuel, Battery, Flame, Wrench } from 'lucide-react';
 
 export const getTypeIcon = (type: string): React.ReactNode => {
   switch (type) {

@@ -1,5 +1,4 @@
-import React from 'react';
-import { FileText, ChevronRight } from 'lucide-react';
+import { ChevronRight,FileText } from 'lucide-react';
 import { AutoCountExport } from '../../../types';
 import { STATUS_CONFIG } from '../statusConfig';
 import { TabType } from '../types';

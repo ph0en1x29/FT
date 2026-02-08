@@ -1,5 +1,5 @@
+import { AlertCircle,CheckCircle,X } from 'lucide-react';
 import React from 'react';
-import { X, CheckCircle, AlertCircle } from 'lucide-react';
 import { ResultModalProps } from '../types';
 
 const ResultModal: React.FC<ResultModalProps> = ({

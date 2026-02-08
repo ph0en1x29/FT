@@ -5,7 +5,7 @@
  * For comprehensive security, use dedicated tools like OWASP ZAP.
  */
 
-import { Page, APIRequestContext, expect } from '@playwright/test';
+import { APIRequestContext,Page } from '@playwright/test';
 
 // ===========================================
 // XSS TESTING

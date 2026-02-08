@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Job, JobStatus, User, ForkliftConditionChecklist, HourmeterFlagReason, JobRequestType, UserRole } from '../../../types';
+import { approveSparePartRequest,createJobRequest,rejectRequest,updateJobRequest } from '../../../services/jobRequestService';
+import { checkServiceUpgradeNeeded,declineServiceUpgrade,upgradeToFullService } from '../../../services/serviceTrackingService';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
+import { ForkliftConditionChecklist,Job,JobRequestType,JobStatus,User,UserRole } from '../../../types';
 import { getMissingMandatoryItems } from '../utils';
 import { JobDetailState } from './useJobDetailState';
-import { createJobRequest, updateJobRequest, approveSparePartRequest, rejectRequest } from '../../../services/jobRequestService';
-import { checkServiceUpgradeNeeded, upgradeToFullService, declineServiceUpgrade } from '../../../services/serviceTrackingService';
 
 interface UseJobActionsParams {
   state: JobDetailState;

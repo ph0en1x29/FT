@@ -1,5 +1,5 @@
-import { Job } from '../types';
 import { sanitizeHtml } from '../services/sanitizeService';
+import { Job } from '../types';
 
 // Company info interface for customization
 interface CompanyInfo {
@@ -90,6 +90,9 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
     `;
   }).join('');
 
+  // Will be assigned based on whether labor is included
+  let allItemsHtml: string;
+
   // Labor row
   if (laborCost > 0) {
     itemCounter++;
@@ -108,10 +111,9 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
     `;
     // Insert labor after parts
     const partsWithLabor = partsHtml + laborHtml;
-    // Reassign
-    var allItemsHtml = partsWithLabor;
+    allItemsHtml = partsWithLabor;
   } else {
-    var allItemsHtml = partsHtml;
+    allItemsHtml = partsHtml;
   }
 
   // Extra charges

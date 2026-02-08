@@ -5,8 +5,8 @@
  * This dramatically reduces redundant API calls across components.
  */
 
+import { QueryClient,QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Create a client with sensible defaults
 const queryClient = new QueryClient({

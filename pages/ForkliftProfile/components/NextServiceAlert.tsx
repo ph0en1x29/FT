@@ -1,5 +1,5 @@
-import React from 'react';
 import { Bell } from 'lucide-react';
+import React from 'react';
 import { Forklift } from '../../../types';
 
 interface NextServiceAlertProps {

@@ -1,5 +1,5 @@
+import { Building2,Calendar,DollarSign,Edit2 } from 'lucide-react';
 import React from 'react';
-import { Building2, Calendar, DollarSign, Edit2 } from 'lucide-react';
 import { ForkliftRental } from '../../../types';
 
 interface CurrentAssignmentCardProps {

@@ -1,9 +1,9 @@
+import { AlertTriangle,Calendar,CheckCircle,Clock,MapPin,User as UserIcon,XCircle } from 'lucide-react';
 import React from 'react';
-import { MapPin, User as UserIcon, Calendar, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { JobType, User } from '../../../types';
 import SlotInSLABadge from '../../../components/SlotInSLABadge';
-import { JobWithHelperFlag, ResponseTimeState } from '../types';
-import { getStatusColor, getJobTypeColor } from '../constants';
+import { JobType,User } from '../../../types';
+import { getJobTypeColor,getStatusColor } from '../constants';
+import { JobWithHelperFlag,ResponseTimeState } from '../types';
 
 interface JobCardProps {
   job: JobWithHelperFlag;

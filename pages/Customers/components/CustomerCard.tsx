@@ -1,7 +1,7 @@
+import { Eye,Mail,MapPin,Phone } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Customer } from '../../../types';
-import { MapPin, Phone, Mail, Eye } from 'lucide-react';
 
 interface CustomerCardProps {
   customer: Customer;

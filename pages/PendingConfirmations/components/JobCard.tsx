@@ -1,11 +1,10 @@
-import React from 'react';
 import {
-  CheckCircle,
-  Clock,
-  XCircle,
-  Package,
-  Wrench,
-  FileText,
+CheckCircle,
+Clock,
+FileText,
+Package,
+Wrench,
+XCircle,
 } from 'lucide-react';
 import { Job } from '../../../types';
 import { JobCardProps } from '../types';

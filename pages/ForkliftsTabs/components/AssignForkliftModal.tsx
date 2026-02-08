@@ -1,6 +1,6 @@
+import { Building2,Loader2,X } from 'lucide-react';
 import React from 'react';
-import { Forklift, Customer } from '../../../types';
-import { X, Building2, Loader2 } from 'lucide-react';
+import { Customer,Forklift } from '../../../types';
 
 interface AssignForkliftModalProps {
   isOpen: boolean;

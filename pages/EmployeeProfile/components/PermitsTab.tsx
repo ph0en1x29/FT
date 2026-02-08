@@ -1,12 +1,11 @@
-import React from 'react';
 import {
-  Shield,
-  Plus,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Trash2,
-  FileText,
+AlertTriangle,
+CheckCircle,
+Clock,
+FileText,
+Plus,
+Shield,
+Trash2,
 } from 'lucide-react';
 import { HRService } from '../../../services/hrService';
 import { showToast } from '../../../services/toastService';

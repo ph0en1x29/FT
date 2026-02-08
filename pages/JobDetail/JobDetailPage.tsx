@@ -1,26 +1,49 @@
+import { AlertTriangle,ArrowLeft } from 'lucide-react';
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { JobStatus, Part, User } from '../../types';
-import { useTechnicians, usePartsForList } from '../../hooks/useQueryHooks';
+import { useNavigate,useParams } from 'react-router-dom';
 import { ComboboxOption } from '../../components/Combobox';
-import { useDevModeContext } from '../../contexts/DevModeContext';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import ServiceUpgradeModal from '../../components/ServiceUpgradeModal';
 import { SkeletonJobDetail } from '../../components/Skeleton';
+import { useDevModeContext } from '../../contexts/DevModeContext';
+import { usePartsForList,useTechnicians } from '../../hooks/useQueryHooks';
+import { JobStatus,Part,User } from '../../types';
 
 // Extracted components
 import {
-  JobHeader, JobTimerCard, EquipmentCard, FinancialSummary, JobTimeline, SignaturesCard,
-  JobPhotosSection, CustomerAssignmentCard, NotesSection, SignatureModal, StartJobModal, FinalizeModal,
-  ReassignModal, ContinueTomorrowModal, DeleteModal, RejectJobModal, ChecklistWarningModal, HourmeterAmendmentModal,
-  JobRequestsSection, CreateRequestModal, ApproveRequestModal, ConditionChecklistCard, PartsSection,
-  JobDetailsCard, ConfirmationStatusCard, ExtraChargesSection, HelperModal, DeferredCompletionModal,
+ApproveRequestModal,
+ChecklistWarningModal,
+ConditionChecklistCard,
+ConfirmationStatusCard,
+ContinueTomorrowModal,
+CreateRequestModal,
+CustomerAssignmentCard,
+DeferredCompletionModal,
+DeleteModal,
+EquipmentCard,
+ExtraChargesSection,
+FinalizeModal,
+FinancialSummary,
+HelperModal,
+HourmeterAmendmentModal,
+JobDetailsCard,
+JobHeader,
+JobPhotosSection,
+JobRequestsSection,
+JobTimeline,
+JobTimerCard,
+NotesSection,
+PartsSection,
+ReassignModal,
+RejectJobModal,
+SignatureModal,
+SignaturesCard,
+StartJobModal,
 } from './components';
 
 // Extracted hooks
-import { useJobDetailState, useJobActions, useJobData } from './hooks';
-import { getRoleFlags, getStatusFlags } from './utils';
+import { useJobActions,useJobData,useJobDetailState } from './hooks';
 import { JobDetailProps } from './types';
+import { getRoleFlags,getStatusFlags } from './utils';
 
 const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const { displayRole } = useDevModeContext();

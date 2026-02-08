@@ -1,6 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { X, Calendar, CalendarDays, FileText, Upload } from 'lucide-react';
-import { LeaveType } from '../../../types';
+import { Calendar,CalendarDays,FileText,Upload,X } from 'lucide-react';
+import React,{ useRef,useState } from 'react';
 import { HRService } from '../../../services/hrService';
 import { showToast } from '../../../services/toastService';
 import { AddLeaveModalProps } from '../types';

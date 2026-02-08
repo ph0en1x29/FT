@@ -1,5 +1,5 @@
-import React from 'react';
 import { AlertTriangle } from 'lucide-react';
+import React from 'react';
 import { ACWER_DEFAULTS } from '../constants';
 import { getTypeIcon } from '../utils';
 

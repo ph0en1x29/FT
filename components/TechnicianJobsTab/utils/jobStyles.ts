@@ -1,4 +1,4 @@
-import { JobStatus, JobType } from '../../../types';
+import { JobStatus,JobType } from '../../../types';
 
 export type ToneStyle = { bg: string; text: string };
 

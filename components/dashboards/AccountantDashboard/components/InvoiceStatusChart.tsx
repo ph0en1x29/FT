@@ -1,9 +1,9 @@
 /**
  * Invoice status pie chart component
  */
-import React from 'react';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { FileText } from 'lucide-react';
+import React from 'react';
+import { Cell,Pie,PieChart,ResponsiveContainer,Tooltip } from 'recharts';
 import { InvoiceStatusDataPoint } from '../types';
 
 interface InvoiceStatusChartProps {

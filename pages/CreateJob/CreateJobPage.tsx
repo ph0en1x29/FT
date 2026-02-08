@@ -1,10 +1,10 @@
+import { ArrowLeft,Save } from 'lucide-react';
 import React from 'react';
-import { ArrowLeft, Save } from 'lucide-react';
-import { Combobox, ComboboxOption } from '../../components/Combobox';
-import { JobPriority, JobType, User } from '../../types';
-import { NewCustomerModal, ForkliftSelectionSection } from './components';
+import { Combobox,ComboboxOption } from '../../components/Combobox';
+import { JobPriority,JobType,User } from '../../types';
+import { ForkliftSelectionSection,NewCustomerModal } from './components';
+import { INPUT_CLASS_NAME,SELECT_CLASS_NAME } from './constants';
 import { useCreateJobForm } from './hooks';
-import { INPUT_CLASS_NAME, SELECT_CLASS_NAME } from './constants';
 
 interface CreateJobProps {
   currentUser: User;

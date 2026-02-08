@@ -1,4 +1,4 @@
-import { supabase, logDebug } from './supabaseClient';
+import { logDebug,supabase } from './supabaseClient';
 
 // ===================
 // STORAGE HELPERS

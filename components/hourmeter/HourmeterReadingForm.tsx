@@ -3,8 +3,8 @@
  * Allows technicians to record hourmeter readings for forklifts
  */
 
-import React, { useState } from 'react';
-import { Gauge, Save, X, AlertCircle } from 'lucide-react';
+import { AlertCircle,Gauge,Save,X } from 'lucide-react';
+import React,{ useState } from 'react';
 import { recordHourmeterReading } from '../../services/hourmeterService';
 import type { Forklift } from '../../types';
 

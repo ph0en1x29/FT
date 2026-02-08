@@ -1,9 +1,8 @@
 /**
  * Header component for VanStockPage
  */
-import React from 'react';
-import { User, UserRole, VanStock } from '../../../types';
-import { Truck, RefreshCw, UserPlus } from 'lucide-react';
+import { RefreshCw,Truck,UserPlus } from 'lucide-react';
+import { User,UserRole,VanStock } from '../../../types';
 
 interface VanStockHeaderProps {
   currentUser: User;

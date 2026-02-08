@@ -1,5 +1,5 @@
-import { Job, JobStatus, JobType, UserRole, MANDATORY_CHECKLIST_ITEMS, ForkliftConditionChecklist, normalizeChecklistState } from '../../types';
-import { RoleFlags, StatusFlags } from './types';
+import { ForkliftConditionChecklist,Job,JobType,MANDATORY_CHECKLIST_ITEMS,normalizeChecklistState } from '../../types';
+import { RoleFlags,StatusFlags } from './types';
 
 /**
  * Calculate repair duration from job start/end times

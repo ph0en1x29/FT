@@ -1,6 +1,6 @@
+import { Truck } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck } from 'lucide-react';
 import { Forklift } from '../../../types';
 import ForkliftCard from './ForkliftCard';
 

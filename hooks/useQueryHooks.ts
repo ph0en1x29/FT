@@ -10,9 +10,9 @@
  * - Stale data is automatically refreshed in background
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery,useQueryClient } from '@tanstack/react-query';
 import { SupabaseDb } from '../services/supabaseService';
-import { User, Customer, Forklift, Job, JobStatus, Part } from '../types';
+import { JobStatus,User } from '../types';
 
 // Query keys for cache management
 export const queryKeys = {

@@ -1,5 +1,5 @@
-import React, { Component, ReactNode } from 'react';
 import { RefreshCw } from 'lucide-react';
+import React,{ Component,ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -33,7 +33,7 @@ class ChunkErrorBoundary extends Component<Props, State> {
     return { hasError: true, isChunkError };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(_error: Error, _errorInfo: React.ErrorInfo) {
   }
 
   handleRefresh = () => {

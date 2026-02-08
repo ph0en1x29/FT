@@ -1,12 +1,25 @@
+import {
+AlertTriangle,
+Bell,BellRing,
+CalendarCheck,
+CalendarDays,
+CalendarX,
+CheckCheck,
+CheckCircle,
+Clock,
+Cog,
+Package,
+Truck,
+UserCheck,
+UserPlus,
+Wifi,WifiOff,
+Wrench,
+XCircle
+} from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Bell, BellRing, Check, CheckCheck, Clock, 
-  AlertTriangle, Wrench, Truck, Package, CalendarDays, CalendarCheck, CalendarX,
-  ChevronRight, Wifi, WifiOff, UserPlus, UserCheck, Cog, CheckCircle, XCircle
-} from 'lucide-react';
-import { NotificationType, ROLE_PERMISSIONS } from '../types';
-import type { Notification, User } from '../types';
+import type { Notification,User } from '../types';
+import { NotificationType,ROLE_PERMISSIONS } from '../types';
 
 interface NotificationPanelProps {
   notifications: Notification[];

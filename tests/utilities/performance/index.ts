@@ -5,7 +5,7 @@
  * Always run basic performance checks.
  */
 
-import { Page, expect } from '@playwright/test';
+import { Page } from '@playwright/test';
 
 // ===========================================
 // PERFORMANCE BUDGETS

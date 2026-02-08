@@ -1,9 +1,8 @@
 /**
  * Individual van stock card component
  */
-import React from 'react';
-import { VanStock, VanStockReplenishment } from '../../../types';
-import { AlertTriangle, Clock, Calendar, ChevronRight } from 'lucide-react';
+import { AlertTriangle,Calendar,ChevronRight,Clock } from 'lucide-react';
+import { VanStock,VanStockReplenishment } from '../../../types';
 import { getLowStockItems } from '../hooks/useVanStockData';
 
 interface VanStockCardProps {

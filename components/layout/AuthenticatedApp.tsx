@@ -4,25 +4,18 @@
  * This component is lazy-loaded to reduce initial bundle size.
  * Contains: Sidebar, TopHeader, MobileNav, MobileDrawer, and all routes.
  */
-import React, { useState, lazy, Suspense } from 'react';
-import { HashRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { Building2,CalendarDays,ChevronLeft,FileText,LayoutDashboard,List,Loader2,LogOut,Menu,Moon,Package,Sun,Truck,User as UserIcon,Users,X,Zap,type LucideIcon } from 'lucide-react';
+import React,{ lazy,Suspense,useState } from 'react';
+import { Link,Navigate,Route,HashRouter as Router,Routes,useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { Sun, Moon } from 'lucide-react';
-import { User, UserRole, ROLE_PERMISSIONS } from '../../types';
-import { useDevModeContext } from '../../contexts/DevModeContext';
-import NotificationBell from '../NotificationBell';
-import { NotificationProvider } from '../../contexts/NotificationContext';
-import { DevModeProvider } from '../../contexts/DevModeContext';
+import { DevModeProvider,useDevModeContext } from '../../contexts/DevModeContext';
 import { FeatureFlagProvider } from '../../contexts/FeatureFlagContext';
+import { NotificationProvider } from '../../contexts/NotificationContext';
+import { QueryProvider } from '../../contexts/QueryProvider';
+import { User,UserRole } from '../../types';
 import DevBanner from '../dev/DevBanner';
 import DevModeSelector from '../dev/DevModeSelector';
-import { QueryProvider } from '../../contexts/QueryProvider';
-import {
-  LayoutDashboard, List, Package, LogOut,
-  Building2, Truck, FileText, Menu, X, User as UserIcon,
-  CalendarDays, ChevronLeft, Zap, Loader2, Users,
-  type LucideIcon
-} from 'lucide-react';
+import NotificationBell from '../NotificationBell';
 
 // Lazy load all pages
 const JobsTabs = lazy(() => import('../../pages/JobsTabs'));

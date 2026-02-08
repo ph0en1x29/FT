@@ -9,14 +9,18 @@
  * - Notifications inline
  */
 
-import React, { useState } from 'react';
-import { Job, User, UserRole } from '../../../../types';
 import {
-  Clock, CheckCircle, Users, UserX, Play, AlertTriangle,
-  RefreshCw, Plus, ChevronRight
+CheckCircle,
+Clock,
+Play,
+Plus,
+RefreshCw,
+Users,UserX
 } from 'lucide-react';
-import { colors, EscalationBanner, KPICard, QueueItem, QueueItemType } from './DashboardWidgets';
+import React,{ useState } from 'react';
+import { Job,User,UserRole } from '../../../../types';
 import DashboardNotificationCard from '../../../DashboardNotificationCard';
+import { colors,EscalationBanner,KPICard,QueueItem,QueueItemType } from './DashboardWidgets';
 
 interface SupervisorDashboardV5Props {
   currentUser: User;

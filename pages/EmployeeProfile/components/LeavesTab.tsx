@@ -1,16 +1,16 @@
-import React from 'react';
 import {
-  Calendar,
-  CalendarDays,
-  Plus,
-  CheckCircle,
-  Clock,
-  Trash2,
-  X,
+Calendar,
+CalendarDays,
+CheckCircle,
+Clock,
+Plus,
+Trash2,
+X,
 } from 'lucide-react';
-import { EmployeeLeave, LeaveType, LeaveStatus } from '../../../types';
+import React from 'react';
 import { HRService } from '../../../services/hrService';
 import { showToast } from '../../../services/toastService';
+import { EmployeeLeave,LeaveStatus,LeaveType } from '../../../types';
 import { LeavesTabProps } from '../types';
 
 /**

@@ -1,7 +1,7 @@
-import React from 'react';
 import { X } from 'lucide-react';
+import React from 'react';
+import { FORKLIFT_TYPES,PRIORITIES } from '../constants';
 import { ServiceIntervalFormData } from '../types';
-import { FORKLIFT_TYPES, PRIORITIES } from '../constants';
 
 interface AddIntervalModalProps {
   isOpen: boolean;

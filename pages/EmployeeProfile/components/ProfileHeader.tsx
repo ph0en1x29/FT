@@ -1,5 +1,4 @@
-import React from 'react';
-import { ArrowLeft, Edit, Save, X } from 'lucide-react';
+import { ArrowLeft,Edit,Save,X } from 'lucide-react';
 import { Employee } from '../../../types';
 
 interface ProfileHeaderProps {

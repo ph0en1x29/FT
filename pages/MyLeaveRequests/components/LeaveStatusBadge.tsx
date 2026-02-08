@@ -1,6 +1,6 @@
+import { AlertTriangle,CheckCircle,Clock,X } from 'lucide-react';
 import React from 'react';
 import { LeaveStatus } from '../../../types';
-import { Clock, CheckCircle, X, AlertTriangle } from 'lucide-react';
 
 interface LeaveStatusBadgeProps {
   status: LeaveStatus;

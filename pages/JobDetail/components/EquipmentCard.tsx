@@ -1,7 +1,7 @@
+import { AlertTriangle,Edit2,Gauge,Save,Truck,X } from 'lucide-react';
 import React from 'react';
 import { Job } from '../../../types';
-import { RoleFlags, StatusFlags } from '../types';
-import { Truck, Gauge, Edit2, Save, X, AlertTriangle } from 'lucide-react';
+import { RoleFlags,StatusFlags } from '../types';
 
 interface EquipmentCardProps {
   job: Job;

@@ -1,5 +1,4 @@
-import React from 'react';
-import { Phone, MapPin } from 'lucide-react';
+import { MapPin,Phone } from 'lucide-react';
 import { EmploymentStatus } from '../../../types';
 import { InfoTabProps } from '../types';
 

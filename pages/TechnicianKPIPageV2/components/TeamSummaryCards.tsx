@@ -1,7 +1,7 @@
+import { CheckCircle,Clock,DollarSign,Gauge,Target,Users,Zap } from 'lucide-react';
 import React from 'react';
-import { Users, Clock, CheckCircle, DollarSign, Gauge, Zap, Target } from 'lucide-react';
-import { TeamTotals } from '../types';
 import { BENCHMARKS } from '../constants';
+import { TeamTotals } from '../types';
 import { getBenchmarkStatus } from '../utils';
 
 interface TeamSummaryCardsProps {

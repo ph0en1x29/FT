@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { ChevronRight,Loader2,Search,Users } from 'lucide-react';
+import React,{ useEffect,useMemo,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User } from '../../../types';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { Users, Search, ChevronRight, Loader2 } from 'lucide-react';
+import { User } from '../../../types';
 
 interface EmployeesTabProps {
   currentUser: User;

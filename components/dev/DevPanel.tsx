@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
-import { X, Settings, RotateCcw } from 'lucide-react';
+import { RotateCcw,Settings,X } from 'lucide-react';
+import React,{ useEffect } from 'react';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
-import RoleSwitcher from './RoleSwitcher';
-import PermissionOverrides from './PermissionOverrides';
 import FeatureFlagsPanel from './FeatureFlags';
+import PermissionOverrides from './PermissionOverrides';
 import QuickActions from './QuickActions';
+import RoleSwitcher from './RoleSwitcher';
 
 interface DevPanelProps {
   isOpen: boolean;

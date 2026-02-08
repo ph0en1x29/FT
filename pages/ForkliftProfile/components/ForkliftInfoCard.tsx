@@ -1,5 +1,5 @@
+import { Calendar,Gauge,MapPin,Package,Truck } from 'lucide-react';
 import React from 'react';
-import { Truck, MapPin, Gauge, Calendar, Package } from 'lucide-react';
 import { Forklift } from '../../../types';
 import { getStatusBadge } from '../utils';
 

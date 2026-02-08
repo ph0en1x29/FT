@@ -1,6 +1,5 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User as UserIcon } from 'lucide-react';
+import { ArrowLeft,User as UserIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 /**
  * Loading state component

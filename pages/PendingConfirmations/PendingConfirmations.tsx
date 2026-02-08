@@ -1,18 +1,17 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SkeletonJobList,SkeletonStats } from '../../components/Skeleton';
 import { JobStatus } from '../../types';
-import { usePendingConfirmations } from './hooks/usePendingConfirmations';
 import {
-  Header,
-  Tabs,
-  SummaryCards,
-  JobCard,
-  EmptyState,
-  RejectionModal,
-  getHoursPending,
+EmptyState,
+Header,
+JobCard,
+RejectionModal,
+SummaryCards,
+Tabs,
+getHoursPending,
 } from './components';
+import { usePendingConfirmations } from './hooks/usePendingConfirmations';
 import { PendingConfirmationsProps } from './types';
-import { SkeletonJobList, SkeletonStats } from '../../components/Skeleton';
 
 export default function PendingConfirmations({ currentUser, hideHeader = false }: PendingConfirmationsProps) {
   const navigate = useNavigate();

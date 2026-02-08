@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
+import React,{ useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { User, ForkliftRental, UserRole } from '../../types';
-import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { useDevModeContext } from '../../contexts/DevModeContext';
-import { useForkliftData } from './hooks/useForkliftData';
+import { SupabaseDb as MockDb } from '../../services/supabaseService';
+import { ForkliftRental,User,UserRole } from '../../types';
 import {
-  ForkliftHeader,
-  ForkliftInfoCard,
-  NextServiceAlert,
-  CurrentAssignmentCard,
-  ScheduledServicesSection,
-  ServiceHistorySection,
-  RentalHistorySection,
-  HourmeterHistorySection,
-  AssignForkliftModal,
-  EditRentalRateModal,
-  ScheduleServiceModal,
+AssignForkliftModal,
+CurrentAssignmentCard,
+EditRentalRateModal,
+ForkliftHeader,
+ForkliftInfoCard,
+HourmeterHistorySection,
+NextServiceAlert,
+RentalHistorySection,
+ScheduledServicesSection,
+ScheduleServiceModal,
+ServiceHistorySection,
 } from './components';
+import { useForkliftData } from './hooks/useForkliftData';
 
 interface ForkliftProfilePageProps {
   currentUser: User;

@@ -4,8 +4,8 @@
  * Handles forklift rental operations: assign, end, extend, bulk operations
  */
 
+import type { ForkliftRental,RentalStatus } from '../types';
 import { supabase } from './supabaseClient';
-import type { ForkliftRental, RentalStatus } from '../types';
 
 // =====================
 // RENTAL QUERIES

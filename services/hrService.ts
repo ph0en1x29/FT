@@ -1,29 +1,29 @@
-import { supabase } from './supabaseService';
 import {
-  Employee,
-  User,
-  HRDashboardSummary,
-  AttendanceToday,
-  EmploymentStatus,
-  LeaveStatus,
-  UserRole,
-  EmployeeLeave,
-  LeaveType,
+AttendanceToday,
+Employee,
+EmployeeLeave,
+EmploymentStatus,
+HRDashboardSummary,
+LeaveStatus,
+LeaveType,
+User,
+UserRole,
 } from '../types';
+import { supabase } from './supabaseService';
 
 // Type for employee leave with joined relations
 type EmployeeLeaveWithRelations = EmployeeLeave & { user: User; leave_type: LeaveType };
 
 // Re-export all HR-related services for backwards compatibility
+export { HRAlertService } from './hrAlertService';
 export { LeaveService } from './leaveService';
 export { LicenseService } from './licenseService';
 export { PermitService } from './permitService';
-export { HRAlertService } from './hrAlertService';
 
 // Import for proxy functions
+import { LeaveService } from './leaveService';
 import { LicenseService } from './licenseService';
 import { PermitService } from './permitService';
-import { LeaveService } from './leaveService';
 
 // Lightweight employee fields for lists (reduces egress ~70%)
 const EMPLOYEE_SELECT_LIGHTWEIGHT = `

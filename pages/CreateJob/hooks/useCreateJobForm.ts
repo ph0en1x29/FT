@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { SupabaseDb as MockDb } from '../../../services/supabaseService';
-import { JobPriority, JobStatus, JobType, User, Forklift, Customer } from '../../../types';
-import { showToast } from '../../../services/toastService';
+import React,{ useEffect,useState } from 'react';
+import { useNavigate,useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
-import { useCustomersForList, useForkliftsForList, useTechnicians } from '../../../hooks/useQueryHooks';
-import { CreateJobFormData, NewCustomerFormData } from '../types';
+import { useCustomersForList,useForkliftsForList,useTechnicians } from '../../../hooks/useQueryHooks';
+import { SupabaseDb as MockDb } from '../../../services/supabaseService';
+import { showToast } from '../../../services/toastService';
+import { Customer,Forklift,JobPriority,JobStatus,JobType,User } from '../../../types';
+import { CreateJobFormData,NewCustomerFormData } from '../types';
 
 /**
  * Custom hook for managing CreateJob form state and submission logic.

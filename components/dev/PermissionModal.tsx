@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { X, RotateCcw, Search, ChevronDown, ChevronUp, ToggleLeft, ToggleRight } from 'lucide-react';
-import { RolePermissions, UserRole } from '../../types';
+import { ChevronDown,ChevronUp,RotateCcw,Search,ToggleLeft,ToggleRight,X } from 'lucide-react';
+import React,{ useCallback,useEffect,useState } from 'react';
 import { useDevModeContext } from '../../contexts/DevModeContext';
+import { RolePermissions,UserRole } from '../../types';
 
 // Permission display labels (user-friendly names)
 const permissionLabels: Record<keyof RolePermissions, string> = {

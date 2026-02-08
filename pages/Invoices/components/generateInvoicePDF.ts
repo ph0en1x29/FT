@@ -1,5 +1,5 @@
-import { Job } from '../../../types';
 import { sanitizeHtml } from '../../../services/sanitizeService';
+import { Job } from '../../../types';
 
 /**
  * Generates and opens a printable invoice PDF in a new window

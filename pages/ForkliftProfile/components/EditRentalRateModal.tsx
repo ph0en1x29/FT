@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, DollarSign } from 'lucide-react';
+import { DollarSign,X } from 'lucide-react';
+import React,{ useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 
 interface EditRentalRateModalProps {

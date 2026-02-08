@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Package, Camera, X, Send, Edit3 } from 'lucide-react';
-import { JobRequest, JobRequestType } from '../../../types';
+import { Camera,Edit3,Package,Send,X } from 'lucide-react';
+import React,{ useEffect,useState } from 'react';
+import { JobRequest,JobRequestType } from '../../../types';
 
 interface CreateRequestModalProps {
   show: boolean;

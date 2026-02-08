@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css';
 import App from './App';
 import ChunkErrorBoundary from './components/ChunkErrorBoundary';
+import './index.css';
 
 // Lazy load error tracking (Sentry) - not needed on initial render
 if (!import.meta.env.DEV) {

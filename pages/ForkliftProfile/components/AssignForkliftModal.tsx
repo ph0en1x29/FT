@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { X, Save, DollarSign } from 'lucide-react';
-import { Forklift, Customer, User } from '../../../types';
+import { DollarSign,Save,X } from 'lucide-react';
+import React,{ useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
+import { Customer,Forklift,User } from '../../../types';
 
 interface AssignForkliftModalProps {
   forklift: Forklift;

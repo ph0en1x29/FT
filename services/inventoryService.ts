@@ -4,16 +4,16 @@
  * Handles parts CRUD and van stock management
  */
 
-import { supabase } from './supabaseClient';
-import type { 
-  Part, 
-  VanStock, 
-  VanStockItem, 
-  VanStockUsage, 
-  VanStockReplenishment,
-  VanStockAudit,
-  ReplenishmentStatus 
+import type {
+Part,
+ReplenishmentStatus,
+VanStock,
+VanStockAudit,
+VanStockItem,
+VanStockReplenishment,
+VanStockUsage
 } from '../types';
+import { supabase } from './supabaseClient';
 
 // Database row types for Supabase responses (before transformation)
 interface VanStockItemRow extends VanStockItem {

@@ -1,5 +1,5 @@
+import { Filter,Search } from 'lucide-react';
 import React from 'react';
-import { Search, Filter } from 'lucide-react';
 
 interface InventoryFiltersProps {
   searchQuery: string;

@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { X, Camera, Upload } from 'lucide-react';
-import { LicenseStatus } from '../../../types';
+import { Camera,Upload,X } from 'lucide-react';
+import React,{ useRef,useState } from 'react';
 import { HRService } from '../../../services/hrService';
 import { showToast } from '../../../services/toastService';
+import { LicenseStatus } from '../../../types';
 import { AddLicenseModalProps } from '../types';
 
 /**

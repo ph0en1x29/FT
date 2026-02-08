@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { X, Search, Truck, Plus, Square, CheckSquare, Loader2 } from 'lucide-react';
+import { CheckSquare,Loader2,Plus,Search,Square,Truck,X } from 'lucide-react';
+import React,{ useMemo } from 'react';
 import { RentForkliftModalProps } from '../types';
 
 const RentForkliftModal: React.FC<RentForkliftModalProps> = ({

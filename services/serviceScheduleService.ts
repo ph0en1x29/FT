@@ -4,8 +4,8 @@
  * Handles service scheduling, intervals, and predictions
  */
 
+import type { ForkliftServiceEntry,Job,ScheduledService } from '../types';
 import { supabase } from './supabaseClient';
-import type { ScheduledService, Job, ForkliftServiceEntry } from '../types';
 
 // =====================
 // SCHEDULED SERVICES

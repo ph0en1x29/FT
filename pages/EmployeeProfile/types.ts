@@ -2,7 +2,7 @@
 // TypeScript types used across EmployeeProfile components
 
 import React from 'react';
-import { User, Employee, LeaveType, EmployeeLeave, EmployeeLicense, EmployeePermit } from '../../types';
+import { Employee,EmployeeLeave,EmployeeLicense,EmployeePermit,LeaveType,User } from '../../types';
 
 /**
  * Props for the main EmployeeProfile component

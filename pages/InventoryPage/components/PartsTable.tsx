@@ -1,7 +1,7 @@
+import { AlertTriangle,Clock,Edit2,Package,Trash2 } from 'lucide-react';
 import React from 'react';
+import { Skeleton,SkeletonStats,SkeletonTableRow } from '../../../components/Skeleton';
 import { Part } from '../../../types';
-import { Edit2, Trash2, AlertTriangle, Clock, Package } from 'lucide-react';
-import { Skeleton, SkeletonTableRow, SkeletonStats } from '../../../components/Skeleton';
 
 interface PartsTableProps {
   groupedParts: Record<string, Part[]>;

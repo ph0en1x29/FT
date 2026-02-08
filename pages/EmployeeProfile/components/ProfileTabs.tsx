@@ -1,5 +1,4 @@
-import React from 'react';
-import { Briefcase, Car, Shield, Calendar } from 'lucide-react';
+import { Briefcase,Calendar,Car,Shield } from 'lucide-react';
 import { Employee } from '../../../types';
 import { ActiveTab } from '../types';
 

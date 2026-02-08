@@ -1,8 +1,8 @@
+import { CheckCircle,CheckSquare,ClipboardList,Edit2,X } from 'lucide-react';
 import React from 'react';
-import { Job, ForkliftConditionChecklist, normalizeChecklistState, MANDATORY_CHECKLIST_ITEMS } from '../../../types';
-import { RoleFlags, StatusFlags } from '../types';
+import { ForkliftConditionChecklist,Job,MANDATORY_CHECKLIST_ITEMS,normalizeChecklistState } from '../../../types';
 import { CHECKLIST_CATEGORIES } from '../constants';
-import { ClipboardList, Edit2, CheckCircle, X, CheckSquare } from 'lucide-react';
+import { RoleFlags,StatusFlags } from '../types';
 
 interface ConditionChecklistCardProps {
   job: Job;

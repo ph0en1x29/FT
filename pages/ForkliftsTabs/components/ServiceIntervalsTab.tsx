@@ -1,10 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import {
+Battery,
+Edit2,
+Flame,
+Fuel,
+Loader2,
+Plus,
+Settings,
+Trash2,
+Wrench,
+X
+} from 'lucide-react';
+import React,{ useEffect,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import {
-  Plus, Edit2, Trash2, X, Settings, Loader2, Fuel, Battery, Flame, Wrench
-} from 'lucide-react';
-import { TabProps, ServiceInterval } from '../types';
+import { ServiceInterval,TabProps } from '../types';
 
 const FORKLIFT_TYPES = ['Diesel', 'Electric', 'LPG'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Emergency'];

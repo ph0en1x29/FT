@@ -1,5 +1,5 @@
+import { Calendar,Truck,Wrench,XCircle } from 'lucide-react';
 import React from 'react';
-import { Wrench, Truck, Calendar, XCircle } from 'lucide-react';
 import { ServiceHistoryProps } from '../types';
 
 const ServiceHistory: React.FC<ServiceHistoryProps> = ({

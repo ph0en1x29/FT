@@ -1,5 +1,4 @@
-import React from 'react';
-import { Package, Wrench } from 'lucide-react';
+import { Package,Wrench } from 'lucide-react';
 import { TabsProps } from '../types';
 
 export function Tabs({ activeTab, onTabChange, partsCount, jobsCount }: TabsProps) {

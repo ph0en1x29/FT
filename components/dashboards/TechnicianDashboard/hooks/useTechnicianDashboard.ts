@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { User, Job, JobStatus, JobType, DashboardStats } from '../types';
+import { useEffect,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../../services/supabaseService';
 import { showToast } from '../../../../services/toastService';
+import { DashboardStats,Job,JobStatus,JobType,User } from '../types';
 
 interface UseTechnicianDashboardResult {
   loading: boolean;

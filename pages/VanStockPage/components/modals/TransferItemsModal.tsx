@@ -1,9 +1,8 @@
 /**
  * Modal for transferring items between van stocks
  */
-import React from 'react';
+import { ArrowRightLeft,X } from 'lucide-react';
 import { VanStock } from '../../../../types';
-import { X, ArrowRightLeft } from 'lucide-react';
 
 interface TransferItemsModalProps {
   isOpen: boolean;

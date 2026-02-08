@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Forklift, ForkliftRental, User, Customer, ScheduledService, ForkliftServiceEntry } from '../../../types';
+import { useCallback,useEffect,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
+import { Customer,Forklift,ForkliftRental,ForkliftServiceEntry,ScheduledService,User } from '../../../types';
 
 export interface ForkliftData {
   forklift: Forklift | null;

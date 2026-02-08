@@ -1,6 +1,6 @@
+import { ArrowLeft,Building2,CalendarClock } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, CalendarClock } from 'lucide-react';
 
 interface ForkliftHeaderProps {
   hasActiveRental: boolean;

@@ -1,7 +1,7 @@
+import { Plus,Receipt,Trash2 } from 'lucide-react';
 import React from 'react';
 import { Job } from '../../../types';
 import { RoleFlags } from '../types';
-import { Receipt, Plus, Trash2 } from 'lucide-react';
 
 interface ExtraChargesSectionProps {
   job: Job;

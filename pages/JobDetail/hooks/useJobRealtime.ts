@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect,useState } from 'react';
 import { supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import type { Job, JobRequest } from '../../../types';
 
 // Database row types for realtime payloads (subset of full types)
 interface JobRow {

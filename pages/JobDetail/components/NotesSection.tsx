@@ -1,7 +1,7 @@
+import { PenTool } from 'lucide-react';
 import React from 'react';
 import { Job } from '../../../types';
-import { PenTool } from 'lucide-react';
-import { RoleFlags, StatusFlags } from '../types';
+import { RoleFlags,StatusFlags } from '../types';
 
 interface NotesSectionProps {
   job: Job;

@@ -5,7 +5,7 @@
  * Always include these regardless of project type.
  */
 
-import { Page, expect } from '@playwright/test';
+import { Page,expect } from '@playwright/test';
 
 // ===========================================
 // ERROR CAPTURE

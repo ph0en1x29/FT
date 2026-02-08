@@ -1,6 +1,6 @@
+import { Calendar,CheckCircle,Package,Play } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Play, CheckCircle, Package } from 'lucide-react';
 import { Job } from '../types';
 
 interface KPIStatsGridProps {

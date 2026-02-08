@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { ForkliftRental, User } from '../../../types';
+import { useCallback,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
+import { ForkliftRental,User } from '../../../types';
 import { ResultModalState } from '../types';
 
 interface UseBulkEndRentalsResult {

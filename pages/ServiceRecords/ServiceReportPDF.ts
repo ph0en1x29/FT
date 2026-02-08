@@ -1,5 +1,5 @@
-import { Job } from '../../types';
 import { sanitizeHtml } from '../../services/sanitizeService';
+import { Job } from '../../types';
 
 /**
  * Opens a printable service report PDF in a new window

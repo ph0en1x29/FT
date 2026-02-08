@@ -1,6 +1,6 @@
-import React from 'react';
 import { Wrench } from 'lucide-react';
-import { ServiceInterval, ServiceIntervalFormData } from '../types';
+import React from 'react';
+import { ServiceInterval,ServiceIntervalFormData } from '../types';
 import IntervalTableRow from './IntervalTableRow';
 
 interface IntervalsTableProps {

@@ -1,5 +1,5 @@
+import { AlertTriangle,Bell,BellOff,CheckCircle,Smartphone,XCircle } from 'lucide-react';
 import React from 'react';
-import { Bell, BellOff, CheckCircle, XCircle, AlertTriangle, Smartphone } from 'lucide-react';
 import { useNotifications } from '../contexts/NotificationContext';
 import { showToast } from '../services/toastService';
 

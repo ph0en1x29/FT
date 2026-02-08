@@ -1,10 +1,10 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useCallback,useEffect,useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserRole } from '../../../types';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { useJobRealtime } from './useJobRealtime';
+import { UserRole } from '../../../types';
 import { JobDetailState } from './useJobDetailState';
+import { useJobRealtime } from './useJobRealtime';
 
 interface UseJobDataParams {
   jobId: string | undefined;

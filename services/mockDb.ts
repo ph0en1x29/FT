@@ -1,10 +1,10 @@
-import { Job, JobStatus, JobPriority, Part, User, UserRole, Customer, JobMedia, SignatureEntry } from '../types';
+import { Customer,Job,JobMedia,JobPriority,JobStatus,Part,SignatureEntry,User,UserRole } from '../types';
 
 // Simple "hashing" for prototype
 const hashPassword = (pwd: string) => `hashed_${pwd}`;
 
 // Initial Seed Data
-let USERS: User[] = [
+const USERS: User[] = [
   { 
     user_id: 'u1', 
     name: 'Alice Admin', 
@@ -222,7 +222,7 @@ export const MockDb = {
   getJobs: async (user: User) => {
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    let jobs = [...JOBS];
+    const jobs = [...JOBS];
     
     if (user.role === UserRole.TECHNICIAN) {
       return jobs.filter(j => j.assigned_technician_id === user.user_id);

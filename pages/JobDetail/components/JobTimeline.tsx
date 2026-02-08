@@ -1,6 +1,6 @@
+import { Clock } from 'lucide-react';
 import React from 'react';
 import { Job } from '../../../types';
-import { Clock } from 'lucide-react';
 
 interface JobTimelineProps {
   job: Job;

@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { CheckSquare,Package,Truck } from 'lucide-react';
+import React,{ useEffect,useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { User, UserRole, ROLE_PERMISSIONS } from '../../types';
-import { Package, Truck, CheckSquare } from 'lucide-react';
-import VanStockPage from '../VanStockPage';
-import PendingConfirmations from '../PendingConfirmations';
 import { useDevModeContext } from '../../contexts/DevModeContext';
-import { useInventoryData } from './hooks/useInventoryData';
-import TabNavigation, { TabType, Tab } from './components/TabNavigation';
-import InventoryStats from './components/InventoryStats';
+import { ROLE_PERMISSIONS,User,UserRole } from '../../types';
+import PendingConfirmations from '../PendingConfirmations';
+import VanStockPage from '../VanStockPage';
+import AddPartModal from './components/AddPartModal';
 import InventoryFilters from './components/InventoryFilters';
+import InventoryStats from './components/InventoryStats';
 import PartsHeader from './components/PartsHeader';
 import PartsTable from './components/PartsTable';
-import AddPartModal from './components/AddPartModal';
+import TabNavigation,{ Tab,TabType } from './components/TabNavigation';
+import { useInventoryData } from './hooks/useInventoryData';
 
 interface InventoryPageProps {
   currentUser: User;

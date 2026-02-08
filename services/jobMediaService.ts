@@ -4,8 +4,8 @@
  * Handles photos, signatures, and media attachments for jobs.
  */
 
-import { supabase, uploadToStorage, getSignedStorageUrl } from './supabaseClient';
-import type { Job, JobMedia, SignatureEntry } from '../types';
+import type { Job,JobMedia,SignatureEntry } from '../types';
+import { getSignedStorageUrl,supabase,uploadToStorage } from './supabaseClient';
 
 // Forward declaration to avoid circular dependency
 const getJobById = async (jobId: string): Promise<Job | null> => {

@@ -1,6 +1,6 @@
+import { Save,X } from 'lucide-react';
 import React from 'react';
-import { ForkliftType, ForkliftStatus } from '../../../types';
-import { X, Save } from 'lucide-react';
+import { ForkliftStatus,ForkliftType } from '../../../types';
 
 interface FormData {
   serial_number: string;

@@ -1,8 +1,8 @@
 /** Permit Service — CRUD and signed-URL document storage for employee permits. */
 
-import { supabase } from './supabaseService';
+import { EmployeePermit,LicenseStatus } from '../types';
 import { getSignedStorageUrl } from './supabaseClient';
-import { EmployeePermit, LicenseStatus } from '../types';
+import { supabase } from './supabaseService';
 
 export const PermitService = {
   // =============================================

@@ -1,13 +1,12 @@
-import React from 'react';
 import {
-  Phone,
-  Mail,
-  Calendar,
-  Building2,
-  User as UserIcon,
-  FileText,
+Building2,
+Calendar,
+FileText,
+Mail,
+Phone,
+User as UserIcon,
 } from 'lucide-react';
-import { Employee, EmploymentStatus } from '../../../types';
+import { Employee,EmploymentStatus } from '../../../types';
 import { InfoItem } from './InfoItem';
 
 interface ProfileCardProps {

@@ -1,9 +1,8 @@
 /**
  * Modal for editing van stock details
  */
-import React from 'react';
-import { User, VanStock } from '../../../../types';
 import { X } from 'lucide-react';
+import { User,VanStock } from '../../../../types';
 
 interface EditVanStockModalProps {
   isOpen: boolean;

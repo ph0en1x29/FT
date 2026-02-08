@@ -1,7 +1,7 @@
+import { Award,ChevronDown,ChevronUp } from 'lucide-react';
 import React from 'react';
-import { Award, ChevronDown, ChevronUp } from 'lucide-react';
 import { EnhancedTechnicianKPI } from '../../../types';
-import { getScoreColor, getScoreBg } from '../utils';
+import { getScoreBg,getScoreColor } from '../utils';
 import { TechnicianExpandedDetails } from './TechnicianExpandedDetails';
 
 interface TechnicianCardProps {

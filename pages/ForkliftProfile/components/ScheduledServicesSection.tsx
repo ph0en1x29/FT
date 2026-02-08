@@ -1,5 +1,5 @@
+import { Calendar,CalendarClock,Gauge } from 'lucide-react';
 import React from 'react';
-import { CalendarClock, Calendar, Gauge } from 'lucide-react';
 import { ScheduledService } from '../../../types';
 import { getScheduledServiceStatusBadge } from '../utils';
 

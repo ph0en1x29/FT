@@ -1,18 +1,18 @@
-import React, { useState, useMemo } from 'react';
 import {
-  VanStock,
-  VanStockItem,
-} from '../types';
-import {
-  X,
-  Package,
-  AlertTriangle,
-  Plus,
-  Minus,
-  Send,
-  CheckSquare,
-  Square,
+AlertTriangle,
+CheckSquare,
+Minus,
+Package,
+Plus,
+Send,
+Square,
+X,
 } from 'lucide-react';
+import { useMemo,useState } from 'react';
+import {
+VanStock,
+VanStockItem,
+} from '../types';
 
 interface ReplenishmentRequestModalProps {
   vanStock: VanStock;

@@ -1,9 +1,9 @@
 /**
  * Modal exports for VanStockPage
  */
-export { VanStockDetailModal } from './VanStockDetailModal';
-export { AssignVanStockModal } from './AssignVanStockModal';
 export { AddItemModal } from './AddItemModal';
-export { EditVanStockModal } from './EditVanStockModal';
+export { AssignVanStockModal } from './AssignVanStockModal';
 export { DeleteConfirmModal } from './DeleteConfirmModal';
+export { EditVanStockModal } from './EditVanStockModal';
 export { TransferItemsModal } from './TransferItemsModal';
+export { VanStockDetailModal } from './VanStockDetailModal';

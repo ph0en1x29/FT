@@ -1,8 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
-import { User, DeletedJob, UserRole } from '../../../types';
-import { SupabaseDb as MockDb, supabase } from '../../../services/supabaseService';
+import { useCallback,useEffect,useState } from 'react';
+import { SupabaseDb as MockDb,supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { Job, JobStatus } from '../../../types';
+import { DeletedJob,Job,JobStatus,User,UserRole } from '../../../types';
 import { JobWithHelperFlag } from '../types';
 
 interface UseJobDataProps {

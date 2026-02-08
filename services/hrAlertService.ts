@@ -1,11 +1,11 @@
-import { supabase } from './supabaseService';
 import {
-  EmployeeLicense,
-  EmployeePermit,
-  HRAlert,
-  HRAlertType,
-  HRAlertSeverity,
+EmployeeLicense,
+EmployeePermit,
+HRAlert,
+HRAlertSeverity,
+HRAlertType,
 } from '../types';
+import { supabase } from './supabaseService';
 
 export const HRAlertService = {
   // =============================================

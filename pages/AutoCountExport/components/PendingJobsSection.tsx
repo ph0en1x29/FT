@@ -1,5 +1,4 @@
-import React from 'react';
-import { Clock, Download, Send } from 'lucide-react';
+import { Clock,Download,Send } from 'lucide-react';
 import { Job } from '../../../types';
 
 interface PendingJobsSectionProps {

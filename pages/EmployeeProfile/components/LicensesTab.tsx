@@ -1,12 +1,11 @@
-import React from 'react';
 import {
-  Car,
-  Plus,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Trash2,
-  Image as ImageIcon,
+AlertTriangle,
+Car,
+CheckCircle,
+Clock,
+Image as ImageIcon,
+Plus,
+Trash2,
 } from 'lucide-react';
 import { HRService } from '../../../services/hrService';
 import { showToast } from '../../../services/toastService';

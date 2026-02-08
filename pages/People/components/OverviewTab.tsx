@@ -1,15 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import {
+Calendar,
+Car,
+CheckCircle,
+ChevronDown,
+ChevronRight,
+ChevronUp,
+Clock,
+Loader2,
+Shield,
+UserCheck,
+User as UserIcon,
+Users,
+UserX
+} from 'lucide-react';
+import React,{ useEffect,useState } from 'react';
 import { Link } from 'react-router-dom';
-import { User, EmployeeLeave, EmployeeLicense, EmployeePermit, HRDashboardSummary, AttendanceToday } from '../../../types';
+import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { HRService } from '../../../services/hrService';
 import { showToast } from '../../../services/toastService';
-import {
-  Users, UserCheck, UserX, Shield, Car,
-  CheckCircle, Calendar, Clock,
-  ChevronRight, Loader2, User as UserIcon, ChevronDown, ChevronUp,
-  LayoutDashboard
-} from 'lucide-react';
-import { useDevModeContext } from '../../../contexts/DevModeContext';
+import { AttendanceToday,EmployeeLeave,EmployeeLicense,EmployeePermit,HRDashboardSummary,User } from '../../../types';
 import { TabType } from '../types';
 
 interface OverviewTabProps {

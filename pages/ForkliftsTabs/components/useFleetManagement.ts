@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Forklift, ForkliftType, ForkliftStatus, Customer, UserRole, User } from '../../../types';
+import React,{ useCallback,useEffect,useMemo,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
+import { Customer,Forklift,ForkliftStatus,ForkliftType,User,UserRole } from '../../../types';
 import { ResultModalState } from '../types';
 
 const initialFormData = {

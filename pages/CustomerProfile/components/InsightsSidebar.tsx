@@ -1,5 +1,5 @@
+import { TrendingUp,Wrench } from 'lucide-react';
 import React from 'react';
-import { Wrench, TrendingUp } from 'lucide-react';
 
 interface InsightsSidebarProps {
   completedJobsCount: number;

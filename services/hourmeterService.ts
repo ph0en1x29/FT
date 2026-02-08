@@ -6,17 +6,17 @@
  * - Service prediction system (new - 2026-02-04)
  */
 
-import { supabase, logDebug, logError } from './supabaseClient';
-import type { 
-  HourmeterAmendment, 
-  HourmeterAmendmentStatus, 
-  HourmeterFlagReason,
-  HourmeterReading, 
-  ServicePrediction, 
-  ForkliftWithPrediction,
-  ServicePredictionDashboard,
-  ForkliftType 
+import type {
+ForkliftType,
+ForkliftWithPrediction,
+HourmeterAmendment,
+HourmeterAmendmentStatus,
+HourmeterFlagReason,
+HourmeterReading,
+ServicePrediction,
+ServicePredictionDashboard
 } from '../types';
+import { logDebug,logError,supabase } from './supabaseClient';
 
 // =============================================
 // HOURMETER HISTORY (existing)

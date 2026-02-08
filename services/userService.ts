@@ -4,8 +4,8 @@
  * Handles user management operations
  */
 
+import { User,UserRole } from '../types';
 import { supabase } from './supabaseClient';
-import { User, UserRole } from '../types';
 
 /**
  * Lightweight user fields for lists/dropdowns (reduces egress ~80%)

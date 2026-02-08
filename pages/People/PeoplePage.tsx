@@ -1,17 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { User } from '../../types';
 import {
-  Users, LayoutDashboard, Calendar, BarChart3, Briefcase, User as UserIcon
+BarChart3,Briefcase,
+Calendar,
+LayoutDashboard,
+User as UserIcon,
+Users
 } from 'lucide-react';
-import TechnicianKPIPage from '../TechnicianKPIPageV2/index';
+import React,{ useEffect,useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import TeamStatusTab from '../../components/TeamStatusTab';
 import { useDevModeContext } from '../../contexts/DevModeContext';
-import { TabType, LeaveFilterType } from './types';
-import OverviewTab from './components/OverviewTab';
-import UsersTab from './components/UsersTab';
+import { User } from '../../types';
+import TechnicianKPIPage from '../TechnicianKPIPageV2/index';
 import EmployeesTab from './components/EmployeesTab';
 import LeaveTab from './components/LeaveTab';
+import OverviewTab from './components/OverviewTab';
+import UsersTab from './components/UsersTab';
+import { LeaveFilterType,TabType } from './types';
 
 interface PeopleProps {
   currentUser: User;

@@ -1,11 +1,11 @@
 /**
  * Individual item in the finalization queue
  */
+import { AlertCircle,Calendar,ChevronRight,Receipt } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Calendar, ChevronRight, Receipt } from 'lucide-react';
 import { Job } from '../../../../types';
-import { UrgencyLevel, UrgencyStyle } from '../types';
+import { UrgencyLevel,UrgencyStyle } from '../types';
 
 interface FinalizationQueueItemProps {
   job: Job;

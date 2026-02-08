@@ -2,8 +2,8 @@
 // USER / ROLE / PERMISSION TYPES
 // =============================================
 
-import type { EmploymentType, EmploymentStatus } from './common.types';
-import type { EmployeeLicense, EmployeePermit, EmployeeLeave } from './hr.types';
+import type { EmploymentStatus,EmploymentType } from './common.types';
+import type { EmployeeLeave,EmployeeLicense,EmployeePermit } from './hr.types';
 
 export enum UserRole {
   ADMIN = 'admin',

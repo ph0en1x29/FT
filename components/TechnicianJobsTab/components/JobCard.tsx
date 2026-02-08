@@ -1,8 +1,8 @@
+import { AlertTriangle,ChevronRight,Clock,Package,Wrench } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Job, JobType } from '../../../types';
-import { Clock, ChevronRight, Wrench, AlertTriangle, Package } from 'lucide-react';
-import { getStatusTone, getJobTypeTone } from '../utils/jobStyles';
+import { Job,JobType } from '../../../types';
+import { getJobTypeTone,getStatusTone } from '../utils/jobStyles';
 
 interface JobCardProps {
   job: Job;

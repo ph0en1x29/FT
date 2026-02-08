@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { Job, ForkliftConditionChecklist, JobRequest, VanStock, HourmeterFlagReason, JobRequestType, ServiceUpgradePrompt } from '../../../types';
+import { useCallback,useState } from 'react';
+import { ForkliftConditionChecklist,HourmeterFlagReason,Job,JobRequest,JobRequestType,ServiceUpgradePrompt,VanStock } from '../../../types';
 
 /**
  * Custom hook that manages all state for JobDetailPage

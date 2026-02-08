@@ -1,5 +1,5 @@
+import { Building2,CircleOff } from 'lucide-react';
 import React from 'react';
-import { Building2, CircleOff } from 'lucide-react';
 
 interface BulkActionsBarProps {
   totalCount: number;

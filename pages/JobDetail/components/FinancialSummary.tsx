@@ -1,8 +1,8 @@
+import { DollarSign,Edit2,Save,X } from 'lucide-react';
 import React from 'react';
 import { Job } from '../../../types';
 import { RoleFlags } from '../types';
 import { calculateJobTotals } from '../utils';
-import { DollarSign, Edit2, Save, X } from 'lucide-react';
 
 interface FinancialSummaryProps {
   job: Job;

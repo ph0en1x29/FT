@@ -1,13 +1,20 @@
+import {
+ArrowLeft,CheckCircle,
+Clock,
+FileCheck,
+FileDown,
+Play,
+Send,
+Trash2,
+XCircle,
+Zap
+} from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Job, JobType, JobPriority, JobStatus } from '../../../types';
-import { RoleFlags, StatusFlags } from '../types';
-import { getStatusBadgeClass, getResponseTimeRemaining } from '../utils';
 import SlotInSLABadge from '../../../components/SlotInSLABadge';
-import {
-  ArrowLeft, CheckCircle, XCircle, Play, Clock, Trash2, FileDown, FileCheck,
-  Send, Zap
-} from 'lucide-react';
+import { Job,JobPriority,JobType } from '../../../types';
+import { RoleFlags,StatusFlags } from '../types';
+import { getResponseTimeRemaining,getStatusBadgeClass } from '../utils';
 
 interface JobHeaderProps {
   job: Job;

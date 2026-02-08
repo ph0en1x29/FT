@@ -1,5 +1,5 @@
+import { Briefcase,Calendar,CheckCircle } from 'lucide-react';
 import React from 'react';
-import { Briefcase, CheckCircle, Calendar } from 'lucide-react';
 
 interface StatsGridProps {
   currentJobsCount: number;

@@ -1,8 +1,8 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { supabase } from '../services/supabaseService';
-import type { User, Job, JobRequest } from '../types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useCallback,useEffect,useRef,useState } from 'react';
+import { supabase } from '../services/supabaseService';
 import { showToast } from '../services/toastService';
+import type { Job,JobRequest,User } from '../types';
 
 // WebkitAudioContext for Safari support
 interface WebkitWindow extends Window {

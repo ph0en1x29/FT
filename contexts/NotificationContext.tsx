@@ -1,14 +1,14 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { createContext,useCallback,useContext,useEffect,useState } from 'react';
+import {
+enablePushNotifications,
+getPushPermissionState,
+initializePushNotifications,
+isPushSupported,
+type PushPermissionState
+} from '../services/pushNotificationService';
 import type { User } from '../types';
 import { useRealtimeNotifications } from '../utils/useRealtimeNotifications';
-import {
-  initializePushNotifications,
-  enablePushNotifications,
-  getPushPermissionState,
-  isPushSupported,
-  type PushPermissionState
-} from '../services/pushNotificationService';
 
 type RealtimeState = ReturnType<typeof useRealtimeNotifications>;
 

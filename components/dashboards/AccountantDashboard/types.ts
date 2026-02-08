@@ -1,7 +1,7 @@
 /**
  * Shared types for AccountantDashboard components
  */
-import { Job, User } from '../../../types';
+import { Job,User } from '../../../types';
 
 export interface AccountantDashboardProps {
   currentUser: User;

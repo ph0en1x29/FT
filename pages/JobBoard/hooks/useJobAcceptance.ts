@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { User, Job, JobStatus } from '../../../types';
+import React,{ useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
+import { Job,JobStatus,User } from '../../../types';
 import { ResponseTimeState } from '../types';
 
 interface UseJobAcceptanceProps {

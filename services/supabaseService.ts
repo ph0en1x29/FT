@@ -20,22 +20,10 @@
 // RE-EXPORTS FROM SUPABASE CLIENT
 // =====================
 
-export { 
-  supabase,
-  logDebug,
-  logError,
-  wait,
-  isNetworkError,
-  dataURLtoBlob,
-  uploadToStorage,
-  JOB_SELECT,
-  MALAYSIA_TZ,
-  getMalaysiaTime,
-  formatDateMalaysia,
-  isSundayMalaysia,
-  isHolidayMalaysia,
-  getNextBusinessDay8AM,
-  addBusinessDaysMalaysia
+export {
+JOB_SELECT,
+MALAYSIA_TZ,addBusinessDaysMalaysia,dataURLtoBlob,formatDateMalaysia,getMalaysiaTime,getNextBusinessDay8AM,isHolidayMalaysia,isNetworkError,isSundayMalaysia,logDebug,
+logError,supabase,uploadToStorage,wait
 } from './supabaseClient';
 
 // =====================
@@ -43,12 +31,9 @@ export {
 // =====================
 
 export {
-  login,
-  getUserByAuthId,
-  fetchUserByAuthId,
-  getSession,
-  logout,
-  onAuthStateChange
+fetchUserByAuthId,
+getSession,getUserByAuthId,login,logout,
+onAuthStateChange
 } from './authService';
 
 // =====================
@@ -56,13 +41,9 @@ export {
 // =====================
 
 export {
-  getUsers,
-  getUsersLightweight,
-  getTechnicians,
-  getAccountants,
-  getAdminsAndSupervisors,
-  createUser,
-  updateUser
+createUser,getAccountants,
+getAdminsAndSupervisors,getTechnicians,getUsers,
+getUsersLightweight,updateUser
 } from './userService';
 
 // =====================
@@ -70,13 +51,10 @@ export {
 // =====================
 
 export {
-  getCustomers,
-  getCustomersForList,
-  createCustomer,
-  updateCustomer,
-  deleteCustomer,
-  getCustomerFinancialSummary,
-  getCustomerJobsWithCancelled
+createCustomer,deleteCustomer,
+getCustomerFinancialSummary,
+getCustomerJobsWithCancelled,getCustomers,
+getCustomersForList,updateCustomer
 } from './customerService';
 
 // =====================
@@ -84,52 +62,24 @@ export {
 // =====================
 
 export {
-  // Forklift CRUD
-  getForklifts,
-  getForkliftsForList,
-  getForkliftById,
-  getForkliftWithCustomer,
-  getForkliftsWithCustomers,
-  createForklift,
-  updateForklift,
-  deleteForklift,
-  updateForkliftHourmeter,
-  // Rentals
-  getActiveRentalForForklift,
-  getRentals,
-  getForkliftRentals,
-  getCustomerRentals,
-  getCustomerActiveRentals,
-  assignForkliftToCustomer,
-  endRental,
-  updateRental,
-  updateRentalRate,
-  bulkAssignForkliftsToCustomer,
-  bulkEndRentals,
-  // Service History
-  getForkliftServiceHistory,
-  getForkliftServiceHistoryWithCancelled,
-  // Hourmeter
-  getForkliftHourmeterHistory,
-  getHourmeterAmendments,
-  createHourmeterAmendment,
-  approveHourmeterAmendment,
-  rejectHourmeterAmendment,
-  getJobHourmeterAmendment,
-  flagJobHourmeter,
-  validateHourmeterReading,
-  // Scheduled Services
-  getScheduledServices,
-  getUpcomingServices,
-  createScheduledService,
-  updateScheduledService,
-  // Service Intervals
-  getServiceIntervals,
-  getServiceIntervalsByType,
-  createServiceInterval,
-  updateServiceInterval,
-  deleteServiceInterval,
-  hardDeleteServiceInterval
+approveHourmeterAmendment,assignForkliftToCustomer,bulkAssignForkliftsToCustomer,
+bulkEndRentals,createForklift,createHourmeterAmendment,createScheduledService,createServiceInterval,deleteForklift,deleteServiceInterval,endRental,flagJobHourmeter,
+// Rentals
+getActiveRentalForForklift,getCustomerActiveRentals,getCustomerRentals,getForkliftById,
+// Hourmeter
+getForkliftHourmeterHistory,getForkliftRentals,
+// Service History
+getForkliftServiceHistory,
+getForkliftServiceHistoryWithCancelled,getForkliftWithCustomer,
+// Forklift CRUD
+getForklifts,
+getForkliftsForList,getForkliftsWithCustomers,getHourmeterAmendments,getJobHourmeterAmendment,getRentals,
+// Scheduled Services
+getScheduledServices,
+// Service Intervals
+getServiceIntervals,
+getServiceIntervalsByType,getUpcomingServices,hardDeleteServiceInterval,rejectHourmeterAmendment,updateForklift,updateForkliftHourmeter,updateRental,
+updateRentalRate,updateScheduledService,updateServiceInterval,validateHourmeterReading
 } from './forkliftService';
 
 // =====================
@@ -137,35 +87,15 @@ export {
 // =====================
 
 export {
-  // Parts
-  getParts,
-  getPartsForList,
-  createPart,
-  updatePart,
-  deletePart,
-  // Van Stock
-  getAllVanStocks,
-  getVanStockByTechnician,
-  getVanStockById,
-  createVanStock,
-  updateVanStock,
-  deleteVanStock,
-  transferVanStockItems,
-  addVanStockItem,
-  updateVanStockItemQuantity,
-  useVanStockPart,
-  getPendingVanStockApprovals,
-  approveVanStockUsage,
-  rejectVanStockUsage,
-  // Replenishment
-  createReplenishmentRequest,
-  getReplenishmentRequests,
-  approveReplenishmentRequest,
-  fulfillReplenishment,
-  confirmReplenishmentReceipt,
-  getLowStockItems,
-  scheduleVanStockAudit,
-  getVanStockUsageHistory
+addVanStockItem,approveReplenishmentRequest,approveVanStockUsage,confirmReplenishmentReceipt,createPart,
+// Replenishment
+createReplenishmentRequest,createVanStock,deletePart,deleteVanStock,fulfillReplenishment,
+// Van Stock
+getAllVanStocks,getLowStockItems,
+// Parts
+getParts,
+getPartsForList,getPendingVanStockApprovals,getReplenishmentRequests,getVanStockById,getVanStockByTechnician,getVanStockUsageHistory,rejectVanStockUsage,scheduleVanStockAudit,transferVanStockItems,updatePart,updateVanStock,updateVanStockItemQuantity,
+useVanStockPart
 } from './inventoryService';
 
 // =====================
@@ -173,19 +103,11 @@ export {
 // =====================
 
 export {
-  getNotifications,
-  getUnreadNotificationCount,
-  createNotification,
-  markNotificationRead,
-  markAllNotificationsRead,
-  notifyJobAssignment,
-  notifyPendingFinalization,
-  notifyAdminsOfRequest,
-  notifyRequestApproved,
-  notifyRequestRejected,
-  notifyJobReassigned,
-  notifyJobRejectedByTech,
-  notifyNoResponseFromTech
+createNotification,getNotifications,
+getUnreadNotificationCount,markAllNotificationsRead,markNotificationRead,notifyAdminsOfRequest,notifyJobAssignment,notifyJobReassigned,
+notifyJobRejectedByTech,
+notifyNoResponseFromTech,notifyPendingFinalization,notifyRequestApproved,
+notifyRequestRejected
 } from './notificationService';
 
 // =====================
@@ -193,72 +115,26 @@ export {
 // =====================
 
 export {
-  // Job CRUD
-  getJobs,
-  getJobsLightweight,
-  getJobById,
-  getJobByIdFast,
-  createJob,
-  updateJob,
-  assignJob,
-  updateJobStatus,
-  deleteJob,
-  getRecentlyDeletedJobs,
-  hardDeleteJob,
-  // Job Accept/Reject
-  acceptJobAssignment,
-  rejectJobAssignment,
-  checkExpiredJobResponses,
-  getJobsPendingResponse,
-  // Job Operations
-  updateJobHourmeter,
-  addNote,
-  addPartToJob,
-  addMedia,
-  signJob,
-  updatePartPrice,
-  removePartFromJob,
-  updateLaborCost,
-  addExtraCharge,
-  removeExtraCharge,
-  finalizeInvoice,
-  sendInvoice,
-  generateInvoiceText,
-  // Job Condition & Checklist
-  updateJobConditionChecklist,
-  updateJobCarriedOut,
-  updateConditionChecklist,
-  setNoPartsUsed,
-  getJobServiceRecord,
-  updateJobRepairTimes,
-  startJobWithCondition,
-  // Job Reassignment
-  reassignJob,
-  // Job Assignments (Helper)
-  getJobAssignments,
-  getActiveHelper,
-  assignHelper,
-  removeHelper,
-  startHelperWork,
-  endHelperWork,
-  getHelperJobs,
-  isUserHelperOnJob,
-  getUserAssignmentType,
-  // Job Requests
-  createJobRequest,
-  updateJobRequest,
-  getJobRequests,
-  getPendingRequests,
-  approveSparePartRequest,
-  rejectRequest,
-  acknowledgeSkillfulTechRequest,
-  approveAssistanceRequest,
-  getRequestCounts,
-  // Job Locking
-  acquireJobLock,
-  releaseJobLock,
-  checkJobLock,
-  cleanupExpiredLocks
+// Job Accept/Reject
+acceptJobAssignment,acknowledgeSkillfulTechRequest,
+// Job Locking
+acquireJobLock,addExtraCharge,addMedia,addNote,
+addPartToJob,approveAssistanceRequest,approveSparePartRequest,assignHelper,assignJob,checkExpiredJobResponses,checkJobLock,
+cleanupExpiredLocks,createJob,
+// Job Requests
+createJobRequest,deleteJob,endHelperWork,finalizeInvoice,generateInvoiceText,getActiveHelper,getHelperJobs,
+// Job Assignments (Helper)
+getJobAssignments,getJobById,
+getJobByIdFast,getJobRequests,getJobServiceRecord,
+// Job CRUD
+getJobs,
+getJobsLightweight,getJobsPendingResponse,getPendingRequests,getRecentlyDeletedJobs,getRequestCounts,getUserAssignmentType,hardDeleteJob,isUserHelperOnJob,
+// Job Reassignment
+reassignJob,rejectJobAssignment,rejectRequest,releaseJobLock,removeExtraCharge,removeHelper,removePartFromJob,sendInvoice,setNoPartsUsed,signJob,startHelperWork,startJobWithCondition,updateConditionChecklist,updateJob,updateJobCarriedOut,
+// Job Condition & Checklist
+updateJobConditionChecklist,
+// Job Operations
+updateJobHourmeter,updateJobRepairTimes,updateJobRequest,updateJobStatus,updateLaborCost,updatePartPrice
 } from './jobService';
 
 // =====================
@@ -267,12 +143,12 @@ export {
 
 // Import all functions to build the SupabaseDb object
 import * as auth from './authService';
-import * as users from './userService';
 import * as customers from './customerService';
 import * as forklifts from './forkliftService';
 import * as inventory from './inventoryService';
-import * as notifications from './notificationService';
 import * as jobs from './jobService';
+import * as notifications from './notificationService';
+import * as users from './userService';
 
 /**
  * SupabaseDb - Legacy compatibility object

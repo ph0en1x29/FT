@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Customer, ForkliftServiceEntry, ForkliftRental, Forklift, JobPartUsed, ExtraCharge } from '../../../types';
+import { useCallback,useEffect,useMemo,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
+import { Customer,ExtraCharge,Forklift,ForkliftRental,ForkliftServiceEntry,JobPartUsed } from '../../../types';
 import { CustomerStats } from '../types';
 
 interface UseCustomerDataResult {

@@ -1,6 +1,6 @@
+import { Filter,Search } from 'lucide-react';
 import React from 'react';
-import { Search, Filter } from 'lucide-react';
-import { ForkliftType, ForkliftStatus } from '../../../types';
+import { ForkliftStatus,ForkliftType } from '../../../types';
 
 interface ForkliftFiltersProps {
   searchQuery: string;

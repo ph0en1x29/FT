@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Gauge, Search, RefreshCw } from 'lucide-react';
-import { User, UserRole, HourmeterAmendment } from '../../types';
+import { Gauge,RefreshCw,Search } from 'lucide-react';
+import { useEffect,useMemo,useState } from 'react';
 import { SupabaseDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
-import { TabType } from './constants';
-import StatCard from './StatCard';
+import { HourmeterAmendment,User,UserRole } from '../../types';
 import AmendmentCard from './AmendmentCard';
 import AmendmentDetailModal from './AmendmentDetailModal';
+import { TabType } from './constants';
+import StatCard from './StatCard';
 
 interface HourmeterReviewProps {
   currentUser: User;

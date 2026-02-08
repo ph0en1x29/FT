@@ -2,24 +2,24 @@
  * VanStockPage - Main container component
  * Manages van stock inventory for technicians
  */
-import React, { useState } from 'react';
-import { User, UserRole, VanStock, Part } from '../../types';
+import { useState } from 'react';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
+import { Part,User,UserRole,VanStock } from '../../types';
+import {
+AddItemModal,
+AssignVanStockModal,
+DeleteConfirmModal,
+EditVanStockModal,
+TransferItemsModal,
+VanStockDetailModal,
+VanStockFilters,
+VanStockGrid,
+VanStockHeader,
+VanStockStatsCards,
+} from './components';
 import { useVanStockData } from './hooks/useVanStockData';
 import { VanStockPageProps } from './types';
-import {
-  VanStockHeader,
-  VanStockStatsCards,
-  VanStockFilters,
-  VanStockGrid,
-  VanStockDetailModal,
-  AssignVanStockModal,
-  AddItemModal,
-  EditVanStockModal,
-  DeleteConfirmModal,
-  TransferItemsModal,
-} from './components';
 
 export default function VanStockPageMain({ currentUser, hideHeader = false }: VanStockPageProps) {
   // Data hook

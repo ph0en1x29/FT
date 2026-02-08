@@ -7,23 +7,21 @@
  * from the split service files.
  */
 
-import { supabase, logDebug, logError, wait, isNetworkError, JOB_SELECT } from './supabaseClient';
-import { 
-  createNotification, 
-  notifyJobAssignment, 
-  notifyPendingFinalization,
-  getAdminsAndSupervisors 
-} from './notificationService';
 import type {
-  Job,
-  JobStatus,
-  JobAssignment,
-  JobPartUsed,
-  JobMedia,
-  ExtraCharge,
-  User,
+ExtraCharge,
+Job,
+JobAssignment,
+JobMedia,
+JobPartUsed,
+JobStatus,
+User,
 } from '../types';
-import { JobStatus as JobStatusEnum, JobPriority as JobPriorityEnum, JobType as JobTypeEnum, ForkliftStatus, UserRole, NotificationType } from '../types';
+import { ForkliftStatus,JobPriority as JobPriorityEnum,JobStatus as JobStatusEnum,JobType as JobTypeEnum,UserRole } from '../types';
+import {
+notifyJobAssignment,
+notifyPendingFinalization
+} from './notificationService';
+import { isNetworkError,JOB_SELECT,logDebug,logError,supabase,wait } from './supabaseClient';
 
 // =====================
 // LOCAL TYPE DEFINITIONS
@@ -61,71 +59,37 @@ interface DeletedJobRow {
 
 // Assignment Service
 export {
-  acceptJobAssignment,
-  rejectJobAssignment,
-  checkExpiredJobResponses,
-  getJobsPendingResponse,
-  reassignJob,
-  getJobAssignments,
-  getActiveHelper,
-  assignHelper,
-  removeHelper,
-  startHelperWork,
-  endHelperWork,
-  getHelperJobs,
-  isUserHelperOnJob,
-  getUserAssignmentType,
+acceptJobAssignment,assignHelper,checkExpiredJobResponses,endHelperWork,getActiveHelper,getHelperJobs,getJobAssignments,getJobsPendingResponse,getUserAssignmentType,isUserHelperOnJob,reassignJob,rejectJobAssignment,removeHelper,
+startHelperWork
 } from './jobAssignmentService';
 
 // Request Service
 export {
-  createJobRequest,
-  updateJobRequest,
-  getJobRequests,
-  getPendingRequests,
-  approveSparePartRequest,
-  rejectRequest,
-  acknowledgeSkillfulTechRequest,
-  approveAssistanceRequest,
-  getRequestCounts,
+acknowledgeSkillfulTechRequest,
+approveAssistanceRequest,approveSparePartRequest,createJobRequest,getJobRequests,
+getPendingRequests,getRequestCounts,rejectRequest,updateJobRequest
 } from './jobRequestService';
 
 // Media Service
 export {
-  addMedia,
-  signJob,
+addMedia,
+signJob
 } from './jobMediaService';
 
 // Checklist Service
 export {
-  updateJobConditionChecklist,
-  updateJobCarriedOut,
-  updateConditionChecklist,
-  setNoPartsUsed,
-  getJobServiceRecord,
-  updateJobRepairTimes,
-  startJobWithCondition,
+getJobServiceRecord,setNoPartsUsed,startJobWithCondition,updateConditionChecklist,updateJobCarriedOut,updateJobConditionChecklist,updateJobRepairTimes
 } from './jobChecklistService';
 
 // Invoice Service
 export {
-  addPartToJob,
-  updatePartPrice,
-  removePartFromJob,
-  updateLaborCost,
-  addExtraCharge,
-  removeExtraCharge,
-  finalizeInvoice,
-  sendInvoice,
-  generateInvoiceText,
+addExtraCharge,addPartToJob,finalizeInvoice,generateInvoiceText,removeExtraCharge,removePartFromJob,sendInvoice,updateLaborCost,updatePartPrice
 } from './jobInvoiceService';
 
 // Locking Service
 export {
-  acquireJobLock,
-  releaseJobLock,
-  checkJobLock,
-  cleanupExpiredLocks,
+acquireJobLock,checkJobLock,
+cleanupExpiredLocks,releaseJobLock
 } from './jobLockingService';
 
 // =====================

@@ -4,10 +4,9 @@
  * This allows importing from hooks/ directory consistently
  */
 export {
-  useFeatureFlags,
-  useOptionalFeatureFlags,
-  DEFAULT_FEATURE_FLAGS,
-  FEATURE_FLAG_INFO,
+DEFAULT_FEATURE_FLAGS,
+FEATURE_FLAG_INFO,useFeatureFlags,
+useOptionalFeatureFlags
 } from '../contexts/FeatureFlagContext';
 
 export type { FeatureFlags } from '../contexts/FeatureFlagContext';

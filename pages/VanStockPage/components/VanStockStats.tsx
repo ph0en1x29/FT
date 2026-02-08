@@ -1,9 +1,8 @@
 /**
  * Statistics cards component for VanStockPage
  */
-import React from 'react';
-import { Users, Package } from 'lucide-react';
-import { FilterType, VanStockStats } from '../types';
+import { Package,Users } from 'lucide-react';
+import { FilterType,VanStockStats } from '../types';
 
 interface VanStockStatsCardsProps {
   stats: VanStockStats;

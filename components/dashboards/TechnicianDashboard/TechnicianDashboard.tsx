@@ -1,17 +1,17 @@
 import React from 'react';
-import { TechnicianDashboardProps } from './types';
-import { useTechnicianDashboard } from './hooks';
-import {
-  DashboardHeader,
-  SlotInAlertBanner,
-  TodayScheduleSection,
-  KPIStatsGrid,
-  ActiveJobsList,
-  QuickActionsGrid,
-  LoadingState,
-} from './components';
 import DashboardNotificationCard from '../../DashboardNotificationCard';
 import { NotificationPermissionPrompt } from '../../NotificationSettings';
+import {
+ActiveJobsList,
+DashboardHeader,
+KPIStatsGrid,
+LoadingState,
+QuickActionsGrid,
+SlotInAlertBanner,
+TodayScheduleSection,
+} from './components';
+import { useTechnicianDashboard } from './hooks';
+import { TechnicianDashboardProps } from './types';
 
 /**
  * Technician Dashboard - Main view for field technicians

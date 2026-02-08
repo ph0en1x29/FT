@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import { AlertTriangle,ClipboardCheck,LayoutDashboard,Settings,Truck } from 'lucide-react';
+import React,{ useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { UserRole } from '../../types';
-import { Truck, Settings, AlertTriangle, LayoutDashboard, ClipboardCheck } from 'lucide-react';
-import { useDevModeContext } from '../../contexts/DevModeContext';
 import AssetDashboard from '../../components/AssetDashboard';
+import StaleDataBanner from '../../components/StaleDataBanner';
+import { useDevModeContext } from '../../contexts/DevModeContext';
+import { UserRole } from '../../types';
 import HourmeterReview from '../HourmeterReview';
 import FleetTab from './components/FleetTab';
-import ServiceIntervalsTab from './components/ServiceIntervalsTab';
 import ServiceDueTab from './components/ServiceDueTab';
-import StaleDataBanner from '../../components/StaleDataBanner';
-import { ForkliftsTabsProps, TabType } from './types';
+import ServiceIntervalsTab from './components/ServiceIntervalsTab';
+import { ForkliftsTabsProps,TabType } from './types';
 
 /**
  * ForkliftsTabsPage - Main container for forklift management

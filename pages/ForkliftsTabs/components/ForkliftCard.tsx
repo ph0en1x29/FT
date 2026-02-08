@@ -1,10 +1,19 @@
-import React from 'react';
-import { Forklift, ForkliftType, ForkliftStatus } from '../../../types';
 import {
-  Truck, Edit2, Trash2, Gauge, Calendar, MapPin,
-  CheckCircle, AlertCircle, Clock, Building2, ChevronRight,
-  Square, CheckSquare
+AlertCircle,
+Building2,
+Calendar,
+CheckCircle,
+CheckSquare,
+ChevronRight,
+Clock,
+Edit2,
+Gauge,
+MapPin,
+Square,
+Trash2
 } from 'lucide-react';
+import React from 'react';
+import { Forklift,ForkliftStatus,ForkliftType } from '../../../types';
 
 interface ForkliftCardProps {
   forklift: Forklift;

@@ -1,5 +1,5 @@
+import { ChevronDown,Filter,Search,X } from 'lucide-react';
 import React from 'react';
-import { Search, Filter, X, ChevronDown } from 'lucide-react';
 import { JobStatus } from '../../../types';
 import { DateFilter } from '../types';
 

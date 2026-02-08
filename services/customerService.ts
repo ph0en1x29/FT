@@ -4,8 +4,8 @@
  * Handles customer CRUD operations
  */
 
+import type { Customer,ExtraCharge,Job,JobPartUsed } from '../types';
 import { supabase } from './supabaseClient';
-import type { Customer, Job, JobPartUsed, ExtraCharge } from '../types';
 
 // Database row types for query results
 interface RentalRow {

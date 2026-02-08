@@ -1,5 +1,5 @@
+import { ArrowLeft,Briefcase,Edit2,Mail,MapPin,Phone,Trash2,Truck } from 'lucide-react';
 import React from 'react';
-import { ArrowLeft, MapPin, Phone, Mail, Truck, Briefcase, Edit2, Trash2 } from 'lucide-react';
 import { CustomerHeaderProps } from '../types';
 
 const CustomerHeader: React.FC<CustomerHeaderProps> = ({

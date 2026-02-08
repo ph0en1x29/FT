@@ -1,9 +1,8 @@
 /**
  * Grid component for displaying van stock cards
  */
-import React from 'react';
-import { VanStock, VanStockReplenishment } from '../../../types';
 import { Truck } from 'lucide-react';
+import { VanStock,VanStockReplenishment } from '../../../types';
 import { VanStockCard } from './VanStockCard';
 
 interface VanStockGridProps {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, AutoCountExport, AutoCountExportStatus, Job } from '../../types';
+import { AutoCountExport,Job,User } from '../../types';
 
 export interface AutoCountExportProps {
   currentUser: User;

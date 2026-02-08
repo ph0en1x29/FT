@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { EmployeeLeave, LeaveType } from '../../../types';
+import { Calendar,CalendarDays,FileText,Upload,X } from 'lucide-react';
+import React,{ useRef,useState } from 'react';
 import { HRService } from '../../../services/hrService';
-import { X, Calendar, CalendarDays, FileText, Upload } from 'lucide-react';
+import { EmployeeLeave,LeaveType } from '../../../types';
 
 interface NewLeaveRequestModalProps {
   userId: string;

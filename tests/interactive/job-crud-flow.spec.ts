@@ -9,8 +9,8 @@
  * - Add notes and parts
  */
 
-import { test, expect } from '@playwright/test';
-import { isLoggedIn, loginAs } from '../utilities/auth';
+import { expect,test } from '@playwright/test';
+import { isLoggedIn,loginAs } from '../utilities/auth';
 
 // ===========================================
 // CONFIGURATION

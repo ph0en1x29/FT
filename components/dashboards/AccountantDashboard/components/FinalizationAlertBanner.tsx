@@ -1,9 +1,9 @@
 /**
  * Alert banner showing jobs needing attention
  */
+import { AlertCircle,FileText } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, FileText } from 'lucide-react';
 
 interface FinalizationAlertBannerProps {
   jobCount: number;

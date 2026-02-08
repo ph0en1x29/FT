@@ -1,10 +1,13 @@
+import {
+CheckCircle,
+ChevronRight,
+Clock,FileText,
+RefreshCw,
+TrendingUp
+} from 'lucide-react';
 import React from 'react';
 import { Job } from '../../../../types';
-import {
-  CheckCircle, Clock, FileText, TrendingUp,
-  RefreshCw, ChevronRight
-} from 'lucide-react';
-import { colors, KPICard } from './DashboardWidgets';
+import { colors,KPICard } from './DashboardWidgets';
 
 interface AccountantDashboardProps {
   jobs: Job[];

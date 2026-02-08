@@ -1,11 +1,10 @@
-import React from 'react';
 import {
-  Gauge,
-  AlertTriangle,
-  ArrowRight,
-  CheckCircle,
-  XCircle,
-  X,
+AlertTriangle,
+ArrowRight,
+CheckCircle,
+Gauge,
+X,
+XCircle,
 } from 'lucide-react';
 import { HourmeterAmendment } from '../../types';
 import { FLAG_REASON_LABELS } from './constants';

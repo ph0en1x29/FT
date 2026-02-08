@@ -1,7 +1,7 @@
+import { Box,CheckCircle,Clock,ShieldCheck,Wrench } from 'lucide-react';
 import React from 'react';
 import { Job } from '../../../types';
-import { RoleFlags, StatusFlags } from '../types';
-import { ShieldCheck, Box, Wrench, Clock, CheckCircle } from 'lucide-react';
+import { RoleFlags,StatusFlags } from '../types';
 
 interface ConfirmationStatusCardProps {
   job: Job;

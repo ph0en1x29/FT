@@ -1,7 +1,6 @@
 /**
  * Delete/Deactivate confirmation modal
  */
-import React from 'react';
 import { VanStock } from '../../../../types';
 
 interface DeleteConfirmModalProps {

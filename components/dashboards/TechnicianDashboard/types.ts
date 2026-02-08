@@ -1,4 +1,4 @@
-import { User, Job, JobStatus, JobType } from '../../../types';
+import { Job,JobStatus,JobType,User } from '../../../types';
 
 export interface TechnicianDashboardProps {
   currentUser: User;
@@ -18,5 +18,5 @@ export interface StatusColor {
   text: string;
 }
 
-export { JobStatus, JobType };
-export type { User, Job };
+export { JobStatus,JobType };
+export type { Job,User };
