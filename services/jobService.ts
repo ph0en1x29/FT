@@ -16,11 +16,8 @@ JobPartUsed,
 JobStatus,
 User,
 } from '../types';
-import { ForkliftStatus,JobPriority as JobPriorityEnum,JobStatus as JobStatusEnum,JobType as JobTypeEnum,UserRole } from '../types';
-import {
-notifyJobAssignment,
-notifyPendingFinalization
-} from './notificationService';
+import { JobPriority as JobPriorityEnum,JobStatus as JobStatusEnum,JobType as JobTypeEnum,UserRole } from '../types';
+import { notifyJobAssignment } from './notificationService';
 import { isNetworkError,JOB_SELECT,logDebug,logError,supabase,wait } from './supabaseClient';
 
 // =====================
@@ -32,34 +29,13 @@ interface ForkliftHourmeterRow {
   hourmeter: number | null;
 }
 
-/** Row type for deleted jobs query with relations (Supabase returns arrays for relations) */
-interface DeletedJobRow {
-  job_id: string;
-  title: string;
-  description?: string;
-  status: string;
-  job_type: string;
-  priority: string;
-  deleted_at: string;
-  deleted_by?: string;
-  deleted_by_name?: string;
-  deletion_reason?: string;
-  hourmeter_before_delete?: number;
-  forklift_id?: string;
-  customer_id?: string;
-  assigned_technician_name?: string;
-  created_at: string;
-  customer?: { name: string }[] | null;
-  forklift?: { serial_number: string; make: string; model: string }[] | null;
-}
-
 // =====================
 // RE-EXPORTS FOR BACKWARD COMPATIBILITY
 // =====================
 
 // Assignment Service
 export {
-acceptJobAssignment,assignHelper,checkExpiredJobResponses,endHelperWork,getActiveHelper,getHelperJobs,getJobAssignments,getJobsPendingResponse,getUserAssignmentType,isUserHelperOnJob,reassignJob,rejectJobAssignment,removeHelper,
+acceptJobAssignment,assignHelper,assignJob,checkExpiredJobResponses,endHelperWork,getActiveHelper,getHelperJobs,getJobAssignments,getJobsPendingResponse,getUserAssignmentType,isUserHelperOnJob,reassignJob,rejectJobAssignment,removeHelper,
 startHelperWork
 } from './jobAssignmentService';
 
@@ -91,6 +67,29 @@ export {
 acquireJobLock,checkJobLock,
 cleanupExpiredLocks,releaseJobLock
 } from './jobLockingService';
+
+// Status Service
+export {
+  markJobContinueTomorrow,
+  resumeMultiDayJob,
+  updateJobStatus
+} from './jobStatusService';
+
+// CRUD Service (delete/restore)
+export {
+  deleteJob,
+  getRecentlyDeletedJobs,
+  hardDeleteJob
+} from './jobCrudService';
+
+// AutoCount Service
+export {
+  cancelAutoCountExport,
+  createAutoCountExport,
+  getAutoCountExports,
+  getJobsPendingExport,
+  retryAutoCountExport
+} from './jobAutoCountService';
 
 // =====================
 // JOB CRUD
@@ -432,185 +431,6 @@ export const updateJob = async (jobId: string, updates: Partial<Job>): Promise<J
   return data as Job;
 };
 
-export const assignJob = async (jobId: string, technicianId: string, technicianName: string, assignedById?: string, assignedByName?: string): Promise<Job> => {
-  const now = new Date();
-  const responseDeadline = new Date(now.getTime() + 15 * 60 * 1000);
-  
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({
-      assigned_technician_id: technicianId,
-      assigned_technician_name: technicianName,
-      status: JobStatusEnum.ASSIGNED,
-      assigned_at: now.toISOString(),
-      assigned_by_id: assignedById || null,
-      assigned_by_name: assignedByName || null,
-      technician_response_deadline: responseDeadline.toISOString(),
-      technician_accepted_at: null,
-      technician_rejected_at: null,
-      technician_rejection_reason: null,
-      no_response_alerted_at: null,
-    })
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-  
-  const job = data as Job;
-  await notifyJobAssignment(technicianId, job);
-  
-  return job;
-};
-
-export const updateJobStatus = async (jobId: string, status: JobStatus, completedById?: string, completedByName?: string): Promise<Job> => {
-  const { data: currentJob, error: fetchError } = await supabase
-    .from('jobs')
-    .select('status, arrival_time, started_at, completion_time, repair_end_time, completed_at, assigned_technician_id, forklift_id, hourmeter_reading, technician_signature, customer_signature')
-    .eq('job_id', jobId)
-    .single();
-  
-  if (fetchError) throw new Error(fetchError.message);
-  
-  const previousStatus = currentJob?.status;
-  
-  // Validation for status transitions
-  if (status === JobStatusEnum.IN_PROGRESS && previousStatus !== JobStatusEnum.IN_PROGRESS) {
-    if (!currentJob?.assigned_technician_id) {
-      throw new Error('Cannot start job: No technician assigned');
-    }
-    if (!currentJob?.forklift_id) {
-      throw new Error('Cannot start job: No forklift assigned');
-    }
-  }
-  
-  if (status === JobStatusEnum.AWAITING_FINALIZATION) {
-    if (!currentJob?.hourmeter_reading) {
-      throw new Error('Cannot complete job: Hourmeter reading is required');
-    }
-    const hasTechSignature = !!currentJob?.technician_signature;
-    const hasCustomerSignature = !!currentJob?.customer_signature;
-    if (!hasTechSignature || !hasCustomerSignature) {
-      throw new Error('Cannot complete job: Both technician and customer signatures are required');
-    }
-  }
-  
-  const updates: Partial<Job> = { status };
-  const now = new Date().toISOString();
-
-  // Set timestamps based on status
-  if (status === JobStatusEnum.IN_PROGRESS) {
-    if (!currentJob?.arrival_time) updates.arrival_time = now;
-    if (!currentJob?.started_at) updates.started_at = now;
-  }
-  
-  if (status === JobStatusEnum.AWAITING_FINALIZATION) {
-    if (!currentJob?.completion_time) updates.completion_time = now;
-    if (!currentJob?.repair_end_time) updates.repair_end_time = now;
-    if (!currentJob?.completed_at) {
-      updates.completed_at = now;
-      updates.completed_by_id = completedById || null;
-      updates.completed_by_name = completedByName || null;
-    }
-  }
-  
-  // Reset timestamps on status rollback
-  if (status === JobStatusEnum.ASSIGNED && previousStatus === JobStatusEnum.IN_PROGRESS) {
-    updates.arrival_time = null;
-    updates.started_at = null;
-  }
-  
-  if (status === JobStatusEnum.IN_PROGRESS && 
-      (previousStatus === JobStatusEnum.AWAITING_FINALIZATION || previousStatus === JobStatusEnum.COMPLETED)) {
-    updates.completion_time = null;
-    updates.repair_end_time = null;
-    updates.completed_at = null;
-    updates.completed_by_id = null;
-    updates.completed_by_name = null;
-  }
-
-  const { data, error } = await supabase
-    .from('jobs')
-    .update(updates)
-    .eq('job_id', jobId)
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media(*),
-      extra_charges:extra_charges(*)
-    `)
-    .single();
-
-  if (error) throw new Error(error.message);
-
-  const job = data as Job;
-
-  // Sync started_at to job_service_records when moving to IN_PROGRESS
-  if (status === JobStatusEnum.IN_PROGRESS && previousStatus !== JobStatusEnum.IN_PROGRESS) {
-    const now = new Date().toISOString();
-    await supabase
-      .from('job_service_records')
-      .update({
-        started_at: now,
-        repair_start_time: job.repair_start_time || now,
-        updated_at: now,
-      })
-      .eq('job_id', jobId)
-      .is('started_at', null); // Only update if not already set
-  }
-
-  // Update forklift status
-  if (currentJob?.forklift_id) {
-    if (status === JobStatusEnum.IN_PROGRESS && previousStatus !== JobStatusEnum.IN_PROGRESS) {
-      await supabase
-        .from('forklifts')
-        .update({ status: ForkliftStatus.IN_SERVICE, updated_at: new Date().toISOString() })
-        .eq('forklift_id', currentJob.forklift_id);
-    }
-
-    if (status === JobStatusEnum.COMPLETED || status === JobStatusEnum.AWAITING_FINALIZATION) {
-      const { data: forklift } = await supabase
-        .from('forklifts')
-        .select('hourmeter, next_service_due, next_service_hourmeter')
-        .eq('forklift_id', currentJob.forklift_id)
-        .single();
-
-      if (forklift) {
-        const now = new Date();
-        const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        const isServiceDueByDate = forklift.next_service_due && new Date(forklift.next_service_due) <= sevenDaysFromNow;
-        const hoursUntilService = forklift.next_service_hourmeter ? forklift.next_service_hourmeter - (forklift.hourmeter || 0) : null;
-        const isServiceDueByHours = hoursUntilService !== null && hoursUntilService <= 50;
-
-        const newStatus = (isServiceDueByDate || isServiceDueByHours)
-          ? ForkliftStatus.SERVICE_DUE
-          : ForkliftStatus.AVAILABLE;
-
-        await supabase
-          .from('forklifts')
-          .update({ status: newStatus, updated_at: new Date().toISOString() })
-          .eq('forklift_id', currentJob.forklift_id);
-      }
-    }
-  }
-
-  // Notify on awaiting finalization
-  if (status === JobStatusEnum.AWAITING_FINALIZATION) {
-    await notifyPendingFinalization(job);
-  }
-
-  return job;
-};
-
 // =====================
 // JOB OPERATIONS
 // =====================
@@ -680,245 +500,8 @@ export const addNote = async (jobId: string, note: string): Promise<Job> => {
 // =====================
 // JOB DELETE
 // =====================
-
-export const deleteJob = async (
-  jobId: string, 
-  deletedById?: string, 
-  deletedByName?: string,
-  deletionReason?: string
-): Promise<void> => {
-  const now = new Date().toISOString();
-  
-  const { data: job } = await supabase
-    .from('jobs')
-    .select('forklift_id, hourmeter_reading')
-    .eq('job_id', jobId)
-    .single();
-
-  // Rollback forklift hourmeter if needed
-  if (job?.forklift_id && job?.hourmeter_reading) {
-    const { data: forklift } = await supabase
-      .from('forklifts')
-      .select('hourmeter')
-      .eq('forklift_id', job.forklift_id)
-      .single();
-
-    if (forklift?.hourmeter === job.hourmeter_reading) {
-      const { data: prevJob } = await supabase
-        .from('jobs')
-        .select('hourmeter_reading')
-        .eq('forklift_id', job.forklift_id)
-        .neq('job_id', jobId)
-        .is('deleted_at', null)
-        .not('hourmeter_reading', 'is', null)
-        .in('status', ['Completed', 'Awaiting Finalization'])
-        .order('completed_at', { ascending: false, nullsFirst: false })
-        .limit(1)
-        .single();
-
-      if (prevJob?.hourmeter_reading) {
-        await supabase
-          .from('forklifts')
-          .update({ hourmeter: prevJob.hourmeter_reading, updated_at: now })
-          .eq('forklift_id', job.forklift_id);
-      }
-    }
-  }
-
-  const { error } = await supabase
-    .from('jobs')
-    .update({
-      deleted_at: now,
-      deleted_by: deletedById || null,
-      deleted_by_name: deletedByName || null,
-      deletion_reason: deletionReason || null,
-      hourmeter_before_delete: job?.hourmeter_reading || null,
-    })
-    .eq('job_id', jobId);
-
-  if (error) throw new Error(error.message);
-};
-
-export const getRecentlyDeletedJobs = async (): Promise<any[]> => {
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const { data, error } = await supabase
-    .from('jobs')
-    .select(`
-      job_id, title, description, status, job_type, priority,
-      deleted_at, deleted_by, deleted_by_name, deletion_reason, hourmeter_before_delete,
-      forklift_id, customer_id, assigned_technician_name, created_at,
-      customer:customers(name),
-      forklift:forklifts!forklift_id(serial_number, make, model)
-    `)
-    .not('deleted_at', 'is', null)
-    .gte('deleted_at', thirtyDaysAgo.toISOString())
-    .order('deleted_at', { ascending: false });
-
-  if (error) {
-    console.error('Error fetching recently deleted jobs:', error);
-    return [];
-  }
-
-  return (data || []).map((job) => {
-    const row = job as DeletedJobRow;
-    const customer = Array.isArray(row.customer) ? row.customer[0] : row.customer;
-    const forklift = Array.isArray(row.forklift) ? row.forklift[0] : row.forklift;
-    return {
-      ...row,
-      customer_name: customer?.name || 'Unknown',
-      forklift_serial: forklift?.serial_number,
-      forklift_make: forklift?.make,
-      forklift_model: forklift?.model,
-    };
-  });
-};
-
-export const hardDeleteJob = async (jobId: string): Promise<void> => {
-  // Delete all related records first
-  await supabase.from('job_inventory_usage').delete().eq('job_id', jobId);
-  await supabase.from('job_invoice_extra_charges').delete().eq('job_id', jobId);
-  await supabase.from('job_invoices').delete().eq('job_id', jobId);
-  await supabase.from('job_service_records').delete().eq('job_id', jobId);
-  await supabase.from('job_status_history').delete().eq('job_id', jobId);
-  await supabase.from('job_audit_log').delete().eq('job_id', jobId);
-  await supabase.from('job_parts').delete().eq('job_id', jobId);
-  await supabase.from('job_media').delete().eq('job_id', jobId);
-  await supabase.from('extra_charges').delete().eq('job_id', jobId);
-  
-  const { error } = await supabase.from('jobs').delete().eq('job_id', jobId);
-  if (error) throw new Error(error.message);
-};
-
+// STUB IMPLEMENTATIONS
 // =====================
-// MULTI-DAY JOB SUPPORT
-// =====================
-
-/**
- * Mark job to continue tomorrow (multi-day job support)
- */
-export const markJobContinueTomorrow = async (
-  jobId: string,
-  hourmeter: number | undefined,
-  _userId: string,
-  _userName: string
-): Promise<Job> => {
-  logDebug('[JobService] markJobContinueTomorrow called for job:', jobId);
-  
-  const updateData: Record<string, unknown> = {
-    status: 'continue_tomorrow',
-    updated_at: new Date().toISOString()
-  };
-  
-  if (hourmeter !== undefined) {
-    updateData.hourmeter_reading = hourmeter;
-  }
-  
-  const { data, error } = await supabase
-    .from('jobs')
-    .update(updateData)
-    .eq('job_id', jobId)
-    .select()
-    .single();
-  
-  if (error) throw new Error(error.message);
-  return data as Job;
-};
-
-/**
- * Resume a multi-day job
- */
-export const resumeMultiDayJob = async (
-  jobId: string,
-  _userId: string,
-  _userName: string
-): Promise<Job> => {
-  logDebug('[JobService] resumeMultiDayJob called for job:', jobId);
-  
-  const { data, error } = await supabase
-    .from('jobs')
-    .update({
-      status: 'in_progress',
-      updated_at: new Date().toISOString()
-    })
-    .eq('job_id', jobId)
-    .select()
-    .single();
-  
-  if (error) throw new Error(error.message);
-  return data as Job;
-};
-
-// =====================
-// STUB IMPLEMENTATIONS (TODO: Implement properly)
-// =====================
-
-// =====================
-// AUTOCOUNT INTEGRATION (TODO: Implement properly)
-// =====================
-
-interface AutoCountExport {
-  export_id: string;
-  job_id: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  created_at: string;
-  error_message?: string;
-}
-
-/**
- * Create an AutoCount export for a job
- * @stub Not yet implemented
- */
-export const createAutoCountExport = async (
-  jobId: string,
-  _userId: string,
-  _userName: string
-): Promise<void> => {
-  logDebug('[JobService] createAutoCountExport called for job:', jobId);
-  // TODO: Implement AutoCount integration
-  throw new Error('AutoCount export not yet implemented');
-};
-
-/**
- * Get all AutoCount exports
- * @stub Returns empty array
- */
-export const getAutoCountExports = async (): Promise<AutoCountExport[]> => {
-  logDebug('[JobService] getAutoCountExports called');
-  // TODO: Implement - query autocount_exports table
-  return [];
-};
-
-/**
- * Get jobs pending AutoCount export
- * @stub Returns empty array
- */
-export const getJobsPendingExport = async (): Promise<Job[]> => {
-  logDebug('[JobService] getJobsPendingExport called');
-  // TODO: Implement - query jobs where invoice is finalized but not exported
-  return [];
-};
-
-/**
- * Retry a failed AutoCount export
- * @stub Not yet implemented
- */
-export const retryAutoCountExport = async (exportId: string): Promise<void> => {
-  logDebug('[JobService] retryAutoCountExport called for:', exportId);
-  // TODO: Implement retry logic
-  throw new Error('AutoCount retry not yet implemented');
-};
-
-/**
- * Cancel an AutoCount export
- * @stub Not yet implemented
- */
-export const cancelAutoCountExport = async (exportId: string): Promise<void> => {
-  logDebug('[JobService] cancelAutoCountExport called for:', exportId);
-  // TODO: Implement cancel logic
-  throw new Error('AutoCount cancel not yet implemented');
-};
 
 /**
  * Confirm parts used on a job
