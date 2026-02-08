@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { approveSparePartRequest,createJobRequest,rejectRequest,updateJobRequest } from '../../../services/jobRequestService';
 import { checkServiceUpgradeNeeded,declineServiceUpgrade,upgradeToFullService } from '../../../services/serviceTrackingService';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { ForkliftConditionChecklist,Job,JobRequestType,JobStatus,User,UserRole } from '../../../types';
+import { ForkliftConditionChecklist,Job,JobStatus,User,UserRole } from '../../../types';
 import { getMissingMandatoryItems } from '../utils';
 import { JobDetailState } from './useJobDetailState';
+import { useJobExportActions } from './useJobExportActions';
+import { useJobRequestActions } from './useJobRequestActions';
 
 interface UseJobActionsParams {
   state: JobDetailState;
@@ -51,6 +52,22 @@ export const useJobActions = ({
     setShowTechSigPad,
     setShowCustSigPad,
   } = state;
+
+  // Compose sub-hooks for export and request actions
+  const exportActions = useJobExportActions({
+    job,
+    state,
+    currentUserId,
+    currentUserName,
+  });
+
+  const requestActions = useJobRequestActions({
+    job,
+    state,
+    currentUserId,
+    currentUserName,
+    loadJob,
+  });
 
   // Accept/Reject job handlers
   const handleAcceptJob = useCallback(async () => {
@@ -441,31 +458,6 @@ export const useJobActions = ({
     }
   }, [job, state, currentUserId, currentUserName, setJob]);
 
-  // PDF handlers (lazy loaded)
-  const handlePrintServiceReport = useCallback(async () => {
-    if (!job) return;
-    const { printServiceReport } = await import('../../../components/ServiceReportPDF');
-    printServiceReport(job);
-  }, [job]);
-
-  const handleExportPDF = useCallback(async () => {
-    if (!job) return;
-    const { printInvoice } = await import('../../../components/InvoicePDF');
-    printInvoice(job);
-  }, [job]);
-
-  const handleExportToAutoCount = useCallback(async () => {
-    if (!job) return;
-    state.setExportingToAutoCount(true);
-    try {
-      await MockDb.createAutoCountExport(job.job_id, currentUserId, currentUserName);
-      showToast.success('Export created', 'Invoice queued for AutoCount export');
-    } catch (e) {
-      showToast.error('Export failed', e instanceof Error ? e.message : 'Unknown error');
-    }
-    state.setExportingToAutoCount(false);
-  }, [job, state, currentUserId, currentUserName]);
-
   // Delete job handler
   const handleDeleteJob = useCallback(async () => {
     if (!job) return;
@@ -498,115 +490,6 @@ export const useJobActions = ({
     setJob({ ...updated } as Job);
     setShowCustSigPad(false);
   }, [job, setJob, setShowRejectJobModal, setRejectJobReason]);
-
-  // Job Request handlers
-  const handleCreateRequest = useCallback(async (
-    type: JobRequestType,
-    description: string,
-    photoUrl?: string
-  ) => {
-    if (!job) return;
-    state.setSubmittingRequest(true);
-    try {
-      const result = await createJobRequest(job.job_id, type, currentUserId, description, photoUrl);
-      if (result) {
-        showToast.success('Request submitted', 'Admin will review your request');
-        state.setShowRequestModal(false);
-      } else {
-        showToast.error('Failed to submit request');
-      }
-    } catch (e) {
-      showToast.error('Error submitting request', (e as Error).message);
-    } finally {
-      state.setSubmittingRequest(false);
-    }
-  }, [job, currentUserId, state]);
-
-  const handleApproveRequest = useCallback(async (
-    partId: string,
-    quantity: number,
-    notes?: string
-  ) => {
-    const request = state.approvalRequest;
-    if (!request) return;
-    
-    state.setSubmittingApproval(true);
-    try {
-      const success = await approveSparePartRequest(
-        request.request_id,
-        currentUserId,
-        partId,
-        quantity,
-        notes,
-        currentUserName
-      );
-      if (success) {
-        showToast.success('Request approved', 'Part added to job');
-        state.setShowApprovalModal(false);
-        state.setApprovalRequest(null);
-        loadJob(); // Refresh job data to show new parts
-      } else {
-        showToast.error('Failed to approve request', 'Check part availability');
-      }
-    } catch (e) {
-      showToast.error('Error approving request', (e as Error).message);
-    } finally {
-      state.setSubmittingApproval(false);
-    }
-  }, [state, currentUserId, loadJob]);
-
-  const handleRejectRequest = useCallback(async (notes: string) => {
-    const request = state.approvalRequest;
-    if (!request) return;
-    
-    state.setSubmittingApproval(true);
-    try {
-      const success = await rejectRequest(request.request_id, currentUserId, notes);
-      if (success) {
-        showToast.success('Request rejected', 'Technician has been notified');
-        state.setShowApprovalModal(false);
-        state.setApprovalRequest(null);
-      } else {
-        showToast.error('Failed to reject request');
-      }
-    } catch (e) {
-      showToast.error('Error rejecting request', (e as Error).message);
-    } finally {
-      state.setSubmittingApproval(false);
-    }
-  }, [state, currentUserId]);
-
-  const handleEditRequest = useCallback((request: any) => {
-    state.setEditingRequest(request);
-    state.setShowRequestModal(true);
-  }, [state]);
-
-  const handleUpdateRequest = useCallback(async (
-    requestId: string,
-    type: JobRequestType,
-    description: string,
-    photoUrl?: string
-  ) => {
-    state.setSubmittingRequest(true);
-    try {
-      const success = await updateJobRequest(requestId, currentUserId, {
-        request_type: type,
-        description,
-        photo_url: photoUrl || null,
-      });
-      if (success) {
-        showToast.success('Request updated');
-        state.setShowRequestModal(false);
-        state.setEditingRequest(null);
-      } else {
-        showToast.error('Failed to update request', 'You can only edit your own pending requests');
-      }
-    } catch (e) {
-      showToast.error('Error updating request', (e as Error).message);
-    } finally {
-      state.setSubmittingRequest(false);
-    }
-  }, [currentUserId, state]);
 
   // Condition Checklist handlers
   const handleStartEditChecklist = useCallback(() => {
@@ -922,10 +805,8 @@ export const useJobActions = ({
     // Finalize
     handleFinalizeInvoice,
     
-    // Export
-    handlePrintServiceReport,
-    handleExportPDF,
-    handleExportToAutoCount,
+    // Export (from useJobExportActions)
+    ...exportActions,
     
     // Delete
     handleDeleteJob,
@@ -936,12 +817,8 @@ export const useJobActions = ({
     
     // AI
     
-    // Requests
-    handleCreateRequest,
-    handleApproveRequest,
-    handleRejectRequest,
-    handleEditRequest,
-    handleUpdateRequest,
+    // Requests (from useJobRequestActions)
+    ...requestActions,
     
     // Checklist
     handleStartEditChecklist,
