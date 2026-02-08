@@ -200,6 +200,7 @@ export const NotificationPermissionPrompt: React.FC = () => {
         showToast.success('Notifications enabled!');
       }
     } catch (error) {
+      /* Silently ignore */
     } finally {
       setRequesting(false);
     }

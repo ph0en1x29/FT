@@ -51,6 +51,7 @@ export const NotificationProvider = ({ currentUser, children }: NotificationProv
       setPushPermission(result.permission);
       
       if (result.supported && result.permission === 'granted') {
+        /* Silently ignore */
       }
     };
     

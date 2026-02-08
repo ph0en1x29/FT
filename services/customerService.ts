@@ -111,6 +111,7 @@ export const getCustomerFinancialSummary = async (customerId: string): Promise<a
       .eq('customer_id', customerId);
     
     if (rentalsError) {
+      /* Silently ignore */
     }
     
     // Get all jobs for customer

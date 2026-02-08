@@ -155,6 +155,7 @@ export const LeaveService = {
         });
       }
     } catch (notifError) {
+      /* Silently ignore */
     }
 
     return leaveRequest;
@@ -206,6 +207,7 @@ export const LeaveService = {
         priority: 'normal',
       });
     } catch (notifError) {
+      /* Silently ignore */
     }
 
     return leaveRequest;
@@ -259,6 +261,7 @@ export const LeaveService = {
         priority: 'high',
       });
     } catch (notifError) {
+      /* Silently ignore */
     }
 
     return leaveRequest;

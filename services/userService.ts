@@ -165,6 +165,7 @@ export const updateUser = async (userId: string, updates: Partial<User> & { pass
       });
       
       if (authError) {
+        /* Silently ignore */
       }
     }
   }

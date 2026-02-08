@@ -58,6 +58,7 @@ const loadStoredState = (): StoredDevMode | null => {
       return JSON.parse(stored);
     }
   } catch (e) {
+    /* Silently ignore */
   }
   return null;
 };
@@ -70,6 +71,7 @@ const loadPermissionOverrides = (): PermissionOverrides => {
       return JSON.parse(stored);
     }
   } catch (e) {
+    /* Silently ignore */
   }
   return {};
 };
@@ -83,6 +85,7 @@ const savePermissionOverrides = (overrides: PermissionOverrides) => {
       localStorage.setItem(OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
     }
   } catch (e) {
+    /* Silently ignore */
   }
 };
 

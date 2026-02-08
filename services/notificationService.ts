@@ -96,6 +96,7 @@ export const markNotificationRead = async (notificationId: string): Promise<void
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('notification_id', notificationId);
   } catch (e) {
+    /* Silently ignore */
   }
 };
 
@@ -107,6 +108,7 @@ export const markAllNotificationsRead = async (userId: string): Promise<void> =>
       .eq('user_id', userId)
       .eq('is_read', false);
   } catch (e) {
+    /* Silently ignore */
   }
 };
 
@@ -183,6 +185,7 @@ export const notifyPendingFinalization = async (job: Job): Promise<void> => {
       });
     }
   } catch (e) {
+    /* Silently ignore */
   }
 };
 
@@ -215,6 +218,7 @@ export const notifyAdminsOfRequest = async (
       });
     }
   } catch (e) {
+    /* Silently ignore */
   }
 };
 
@@ -235,6 +239,7 @@ export const notifyRequestApproved = async (
       priority: 'high',
     });
   } catch (e) {
+    /* Silently ignore */
   }
 };
 
@@ -255,6 +260,7 @@ export const notifyRequestRejected = async (
       priority: 'high',
     });
   } catch (e) {
+    /* Silently ignore */
   }
 };
 
@@ -275,6 +281,7 @@ export const notifyJobReassigned = async (
       priority: 'high',
     });
   } catch (e) {
+    /* Silently ignore */
   }
 };
 
@@ -299,6 +306,7 @@ export const notifyJobRejectedByTech = async (
       });
     }
   } catch (e) {
+    /* Silently ignore */
   }
 };
 
@@ -322,5 +330,6 @@ export const notifyNoResponseFromTech = async (
       });
     }
   } catch (e) {
+    /* Silently ignore */
   }
 };

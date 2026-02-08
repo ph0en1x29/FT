@@ -36,6 +36,7 @@ const ServiceAutomationWidget: React.FC<Props> = ({ onViewAll }) => {
         withOpenJobs: dueForklifts.filter(f => f.has_open_job).length,
       });
     } catch (e) {
+      /* Silently ignore */
     } finally {
       setLoading(false);
     }

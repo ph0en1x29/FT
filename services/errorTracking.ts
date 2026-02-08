@@ -18,6 +18,7 @@ export const initErrorTracking = () => {
   
   if (!dsn) {
     if (!isDev) {
+      /* Silently ignore */
     }
     return;
   }

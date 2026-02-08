@@ -60,6 +60,7 @@ const loadStoredFlags = (): Partial<FeatureFlags> | null => {
       return JSON.parse(stored);
     }
   } catch (e) {
+    /* Silently ignore */
   }
   return null;
 };
@@ -69,6 +70,7 @@ const saveFlags = (flags: FeatureFlags) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(flags));
   } catch (e) {
+    /* Silently ignore */
   }
 };
 
@@ -122,6 +124,7 @@ export const FeatureFlagProvider = ({ children, enabled = true }: FeatureFlagPro
   // Debug mode logging
   useEffect(() => {
     if (flags.debugMode) {
+      /* Silently ignore */
     }
   }, [flags]);
 

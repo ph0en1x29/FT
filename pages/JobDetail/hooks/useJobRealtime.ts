@@ -87,6 +87,7 @@ export function useJobRealtime({
       .subscribe((status) => {
         setIsConnected(status === 'SUBSCRIBED');
         if (status === 'SUBSCRIBED') {
+          /* Silently ignore */
         }
       });
 

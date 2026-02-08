@@ -34,6 +34,7 @@ const Customers: React.FC = () => {
       const data = await MockDb.getCustomers();
       setCustomers(data);
     } catch (error) {
+      /* Silently ignore */
     } finally {
       setLoading(false);
     }

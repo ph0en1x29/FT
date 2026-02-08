@@ -40,6 +40,7 @@ const initAudio = async () => {
     const arrayBuffer = await response.arrayBuffer();
     notificationBuffer = await audioContext.decodeAudioData(arrayBuffer);
   } catch (e) {
+    /* Silently ignore */
   }
 };
 
@@ -56,6 +57,7 @@ export const playNotificationSound = () => {
     source.connect(audioContext.destination);
     source.start(0);
   } catch (e) {
+    /* Silently ignore */
   }
 };
 
@@ -101,6 +103,7 @@ export const showBrowserNotification = async (
       } as NotificationOptions & { vibrate?: number[] });
       return;
     } catch (e) {
+      /* Silently ignore */
     }
   }
   
@@ -132,6 +135,7 @@ export const showBrowserNotification = async (
       setTimeout(() => notification.close(), 5000);
     }
   } catch (e) {
+    /* Silently ignore */
   }
 };
 
@@ -404,6 +408,7 @@ export const useRealtimeNotifications = (
           setUnreadCount(data.filter((n: AppNotification) => !n.is_read).length);
         }
       } catch (e) {
+        /* Silently ignore */
       }
     };
     
