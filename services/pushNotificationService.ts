@@ -286,6 +286,6 @@ export interface PushNotificationPayload {
   tag?: string;
   priority?: 'low' | 'normal' | 'high' | 'urgent';
   url?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   actions?: { action: string; title: string }[];
 }

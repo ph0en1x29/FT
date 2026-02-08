@@ -102,6 +102,7 @@ export const deleteCustomer = async (customerId: string): Promise<void> => {
 /**
  * Get customer financial summary
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getCustomerFinancialSummary = async (customerId: string): Promise<any> => {
   try {
     // Get all rentals for customer

@@ -101,6 +101,7 @@ export const updateJobRequest = async (
   }
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getJobRequests = async (jobId: string): Promise<any[]> => {
   try {
     const { data, error } = await supabase
@@ -123,6 +124,7 @@ export const getJobRequests = async (jobId: string): Promise<any[]> => {
   }
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getPendingRequests = async (): Promise<any[]> => {
   try {
     const { data, error } = await supabase

@@ -65,7 +65,7 @@ export const initErrorTracking = () => {
  */
 export const captureError = (
   error: Error,
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ) => {
   
   if (!isDev && import.meta.env.VITE_SENTRY_DSN) {
@@ -81,7 +81,7 @@ export const captureError = (
 export const captureMessage = (
   message: string,
   level: 'info' | 'warning' | 'error' = 'info',
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ) => {
   
   if (!isDev && import.meta.env.VITE_SENTRY_DSN) {
@@ -108,7 +108,7 @@ export const addBreadcrumb = (breadcrumb: {
   category: string;
   message: string;
   level?: 'info' | 'warning' | 'error';
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }) => {
   if (!isDev && import.meta.env.VITE_SENTRY_DSN) {
     Sentry.addBreadcrumb({

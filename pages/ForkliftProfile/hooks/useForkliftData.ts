@@ -7,6 +7,7 @@ export interface ForkliftData {
   rentals: ForkliftRental[];
   serviceHistory: ForkliftServiceEntry[];
   scheduledServices: ScheduledService[];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   hourmeterHistory: any[];
   customers: Customer[];
   technicians: User[];
@@ -18,6 +19,7 @@ export function useForkliftData(forkliftId: string | undefined) {
   const [rentals, setRentals] = useState<ForkliftRental[]>([]);
   const [serviceHistory, setServiceHistory] = useState<ForkliftServiceEntry[]>([]);
   const [scheduledServices, setScheduledServices] = useState<ScheduledService[]>([]);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [hourmeterHistory, setHourmeterHistory] = useState<any[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [technicians, setTechnicians] = useState<User[]>([]);

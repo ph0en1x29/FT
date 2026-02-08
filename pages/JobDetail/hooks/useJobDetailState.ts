@@ -143,6 +143,7 @@ export const useJobDetailState = () => {
 
   // Other data states
   const [activeRental, setActiveRental] = useState<{ rental_id: string; customer_name: string; rental_location: string; start_date: string; } | null>(null);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [jobAcknowledgement, setJobAcknowledgement] = useState<any>(null);
   const [hourmeterFlagReasons, setHourmeterFlagReasons] = useState<HourmeterFlagReason[]>([]);
   const [exportingToAutoCount, setExportingToAutoCount] = useState(false);

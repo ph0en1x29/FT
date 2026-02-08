@@ -98,6 +98,7 @@ export const useJobRequestActions = ({
     }
   }, [state, currentUserId]);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleEditRequest = useCallback((request: any) => {
     state.setEditingRequest(request);
     state.setShowRequestModal(true);

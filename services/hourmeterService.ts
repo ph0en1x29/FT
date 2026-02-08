@@ -22,6 +22,7 @@ import { logDebug,logError,supabase } from './supabaseClient';
 // HOURMETER HISTORY (existing)
 // =============================================
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getForkliftHourmeterHistory = async (forkliftId: string): Promise<any[]> => {
   try {
     const { data, error } = await supabase
@@ -571,6 +572,7 @@ export function getUrgencyColor(urgency: string): string {
  * Get forklifts due for service within specified days
  */
 export async function getForkliftsDueForService(withinDays: number = 7): Promise<any[]> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   try {
     const { data, error } = await supabase
       .from('v_forklift_service_predictions')

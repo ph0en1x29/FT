@@ -163,7 +163,9 @@ export interface JobAuditLog {
   
   event_type: AuditEventType;
   event_description: string;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   old_value?: Record<string, any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   new_value?: Record<string, any>;
   
   performed_by?: string;

@@ -103,6 +103,7 @@ export const setNoPartsUsed = async (jobId: string, noPartsUsed: boolean): Promi
   if (error) throw new Error(error.message);
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getJobServiceRecord = async (jobId: string): Promise<any> => {
   const { data, error } = await supabase
     .from('job_service_records')
