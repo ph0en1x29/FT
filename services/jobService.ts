@@ -411,7 +411,7 @@ export const createJob = async (jobData: Partial<Job>, createdById?: string, cre
 
 export const updateJob = async (jobId: string, updates: Partial<Job>): Promise<Job> => {
   // Destructure to remove relations that shouldn't be sent to database
-  const { customer, forklift, parts_used, media, extra_charges, ...safeUpdates } = updates;
+  const { customer: _customer, forklift: _forklift, parts_used: _parts_used, media: _media, extra_charges: _extra_charges, ...safeUpdates } = updates;
 
   const { data, error } = await supabase
     .from('jobs')

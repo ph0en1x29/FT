@@ -154,7 +154,7 @@ export const LeaveService = {
           priority: 'normal',
         });
       }
-    } catch (notifError) {
+    } catch (_notifError) {
       /* Silently ignore */
     }
 
@@ -206,7 +206,7 @@ export const LeaveService = {
         reference_id: leaveRequest.leave_id,
         priority: 'normal',
       });
-    } catch (notifError) {
+    } catch (_notifError) {
       /* Silently ignore */
     }
 
@@ -260,7 +260,7 @@ export const LeaveService = {
         reference_id: leaveRequest.leave_id,
         priority: 'high',
       });
-    } catch (notifError) {
+    } catch (_notifError) {
       /* Silently ignore */
     }
 

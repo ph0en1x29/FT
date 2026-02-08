@@ -699,7 +699,7 @@ export const useJobActions = ({
     const helper = technicians.find(t => t.user_id === state.selectedHelperId);
     if (!helper) return;
     try {
-      const assignment = await MockDb.assignHelper(job.job_id, helper.user_id, currentUserId, state.helperNotes);
+      const _assignment = await MockDb.assignHelper(job.job_id, helper.user_id, currentUserId, state.helperNotes);
       // Refresh job to get updated state
       const refreshedJob = await MockDb.getJobById(job.job_id);
       if (refreshedJob) setJob(refreshedJob);

@@ -196,7 +196,7 @@ export const HRService = {
     updatedById?: string,
     updatedByName?: string
   ): Promise<Employee> => {
-    const { user_id, ...safeUpdates } = updates;
+    const { user_id: _user_id, ...safeUpdates } = updates;
 
     const { data, error } = await supabase
       .from('users')
@@ -292,7 +292,7 @@ export const HRService = {
         expiringPermits: expiringPermits?.length || 0,
         pendingLeaveRequests: pendingLeaves?.length || 0,
       };
-    } catch (e) {
+    } catch (_e) {
       return {
         totalEmployees: 0,
         activeEmployees: 0,
@@ -332,7 +332,7 @@ export const HRService = {
       ) as User[];
 
       return { available, onLeave };
-    } catch (e) {
+    } catch (_e) {
       return { available: [], onLeave: [] };
     }
   },

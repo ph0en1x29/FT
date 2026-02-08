@@ -232,7 +232,7 @@ const TopHeader = ({ currentUser, isDark, onToggleTheme, devModeActive }: { curr
   </div>
 );
 
-const MobileNav = ({ currentUser, onOpenDrawer, navRole }: { currentUser: User; onOpenDrawer: () => void; navRole: UserRole }) => {
+const MobileNav = ({ currentUser: _currentUser, onOpenDrawer, navRole: _navRole }: { currentUser: User; onOpenDrawer: () => void; navRole: UserRole }) => {
   const location = useLocation();
   const { hasPermission } = useDevModeContext();
   const isActive = (path: string) => path === '/' ? location.pathname === '/' : location.pathname === path || location.pathname.startsWith(path + '/');
@@ -379,7 +379,7 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
   const devMode = useDevModeContext();
   const navRole = devMode.permissionRole;
 
-  const canViewDashboard = devMode.hasPermission('canViewDashboard');
+  const _canViewDashboard = devMode.hasPermission('canViewDashboard');
   const canViewForklifts = devMode.hasPermission('canViewForklifts');
   const canViewCustomers = devMode.hasPermission('canViewCustomers');
   const canManageInventory = devMode.hasPermission('canManageInventory');

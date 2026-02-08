@@ -11,7 +11,7 @@ interface EmployeesTabProps {
   onFilterChange?: (status: string) => void;
 }
 
-const EmployeesTab: React.FC<EmployeesTabProps> = ({ currentUser, initialStatus, onFilterChange }) => {
+const EmployeesTab: React.FC<EmployeesTabProps> = ({ _currentUser, initialStatus, onFilterChange }) => {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);

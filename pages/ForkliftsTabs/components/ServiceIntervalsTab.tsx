@@ -20,7 +20,7 @@ const PRIORITIES = ['Low', 'Medium', 'High', 'Emergency'];
 
 const inputClassName = "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/25 placeholder-slate-400";
 
-const ServiceIntervalsTab: React.FC<TabProps> = ({ currentUser }) => {
+const ServiceIntervalsTab: React.FC<TabProps> = ({ _currentUser }) => {
   const [intervals, setIntervals] = useState<ServiceInterval[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<string>('all');

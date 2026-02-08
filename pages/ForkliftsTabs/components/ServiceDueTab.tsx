@@ -19,7 +19,7 @@ import { showToast } from '../../../services/toastService';
 import { DailyUsageResult,FleetServiceOverview,UserRole } from '../../../types';
 import { ForkliftDue,TabProps } from '../types';
 
-const ServiceDueTab: React.FC<TabProps> = ({ currentUser }) => {
+const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [dueForklifts, setDueForklifts] = useState<ForkliftDue[]>([]);

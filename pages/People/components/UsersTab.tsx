@@ -22,7 +22,7 @@ interface UsersTabProps {
   currentUser: User;
 }
 
-const UsersTab: React.FC<UsersTabProps> = ({ currentUser }) => {
+const UsersTab: React.FC<UsersTabProps> = ({ _currentUser }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');

@@ -49,7 +49,7 @@ export function HourmeterReadingForm({
     setIsSubmitting(true);
     setError(null);
     
-    const { data, error: submitError } = await recordHourmeterReading({
+    const { data: _data, error: submitError } = await recordHourmeterReading({
       forklift_id: forklift.forklift_id,
       hourmeter_value: enteredValue,
       recorded_by_id: userId,

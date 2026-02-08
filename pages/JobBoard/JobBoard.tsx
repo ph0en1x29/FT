@@ -43,7 +43,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     statusFilter,
     setStatusFilter,
     specialFilter,
-    setSpecialFilter,
+    setSpecialFilter: _setSpecialFilter,
     customDateFrom,
     setCustomDateFrom,
     customDateTo,

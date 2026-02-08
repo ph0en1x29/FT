@@ -25,7 +25,7 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
   
   // Core data
   const customerData = useCustomerData(id);
-  const { customer, jobs, availableForklifts, loading, stats, loadCustomerData, loadAvailableForklifts } = customerData;
+  const { customer, jobs: _jobs, availableForklifts, loading, stats, loadCustomerData, loadAvailableForklifts } = customerData;
   const { activeRentals, pastRentals, activeJobs, cancelledJobs, openJobs, completedJobs } = customerData;
 
   // Tab states

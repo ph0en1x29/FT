@@ -11,7 +11,7 @@ ServiceIntervalsHeader,
 import { INITIAL_FORM_DATA } from './constants';
 import { ServiceInterval,ServiceIntervalFormData,ServiceIntervalsConfigProps } from './types';
 
-const ServiceIntervalsConfig: React.FC<ServiceIntervalsConfigProps> = ({ currentUser }) => {
+const ServiceIntervalsConfig: React.FC<ServiceIntervalsConfigProps> = ({ _currentUser }) => {
   const [intervals, setIntervals] = useState<ServiceInterval[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);

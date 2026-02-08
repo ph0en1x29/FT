@@ -111,7 +111,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
       const timestamp = Date.now();
       const fileName = `${jobId}/${timestamp}.jpg`;
       
-      const { data, error } = await supabase.storage
+      const { data: _data, error } = await supabase.storage
         .from('job-photos')
         .upload(fileName, blob, {
           contentType: mime,

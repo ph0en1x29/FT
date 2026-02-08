@@ -55,7 +55,7 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
     await navigator.serviceWorker.ready;
     
     return registration;
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 };
@@ -71,7 +71,7 @@ export const requestPushPermission = async (): Promise<PushPermissionState> => {
   try {
     const permission = await Notification.requestPermission();
     return permission as PushPermissionState;
-  } catch (error) {
+  } catch (_error) {
     return 'denied';
   }
 };
@@ -111,7 +111,7 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
     subscription = await swRegistration.pushManager.subscribe(subscribeOptions);
     
     return subscription;
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 };
@@ -129,7 +129,7 @@ export const unsubscribeFromPush = async (): Promise<boolean> => {
       return true;
     }
     return false;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 };
@@ -145,7 +145,7 @@ export const getCurrentSubscription = async (): Promise<PushSubscription | null>
 
   try {
     return await swRegistration.pushManager.getSubscription();
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 };
@@ -183,7 +183,7 @@ export const sendLocalNotification = (
     };
 
     return notification;
-  } catch (error) {
+  } catch (_error) {
     // Fallback for browsers that require SW for notifications
     
     if (swRegistration) {

@@ -45,7 +45,7 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   onEditingPriceChange,
   onToggleNoPartsUsed,
 }) => {
-  const { isTechnician, isAdmin, isSupervisor, isAccountant, canViewPricing, canEditPrices, canAddParts, isHelperOnly } = roleFlags;
+  const { isTechnician, _isAdmin, _isSupervisor, _isAccountant, canViewPricing, canEditPrices, canAddParts, isHelperOnly } = roleFlags;
   const { isNew, isAssigned, isInProgress, isAwaitingFinalization } = statusFlags;
 
   return (

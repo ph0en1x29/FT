@@ -76,7 +76,7 @@ const generateConnectToken = (userId: string): string => {
  * Validate a connect token (client-side pre-check).
  * Server MUST also validate independently.
  */
-const isTokenValid = (token: string): boolean => {
+const _isTokenValid = (token: string): boolean => {
   try {
     const payload = JSON.parse(atob(token));
     if (!payload.expires_at || !payload.user_id || !payload.nonce) {
