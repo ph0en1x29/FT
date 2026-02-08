@@ -4,6 +4,13 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-07] - Security Fixes & Code Cleanup
+
+### Code Cleanup (Phase 1)
+- **Import organization** — Removed unused imports across 372 files
+- **ESLint fixes** — Reduced issues from 450 to 385 (65 fixed)
+- **Type safety** — Fixed `var` to `let/const`, prefixed unused params with `_`
+
 ## [2026-02-07] - Security Fixes: XSS & Storage Hardening
 
 ### Security Fixes
