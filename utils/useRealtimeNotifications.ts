@@ -87,7 +87,7 @@ export const showBrowserNotification = async (
   
   const notificationTag = options?.tag || `fieldpro-${Date.now()}`;
   const requireInteraction = options?.priority === 'urgent' || options?.priority === 'high';
-  const vibrate = options?.priority === 'urgent' ? [200, 100, 200, 100, 200] : [200, 100, 200];
+  const _vibrate = options?.priority === 'urgent' ? [200, 100, 200, 100, 200] : [200, 100, 200];
   
   // Try service worker notification first (works better on mobile and when page is in background)
   if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -365,7 +365,7 @@ export const useRealtimeNotifications = (
     }
     
     // Subscribe and track connection status
-    channel.subscribe((status, error) => {
+    channel.subscribe((status, _error) => {
       if (!mountedRef.current) return;
       
       

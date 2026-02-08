@@ -53,7 +53,7 @@ const TeamStatusTab: React.FC<TeamStatusTabProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [technicians, setTechnicians] = useState<TechnicianWithStatus[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [_jobs, setJobs] = useState<Job[]>([]);
   const [expandedTech, setExpandedTech] = useState<string | null>(null);
 
   useEffect(() => {

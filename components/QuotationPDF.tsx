@@ -49,7 +49,7 @@ export const generateQuotationFromJob = (job: Job): Partial<Quotation> => {
 
   // Add extra charges
   if (job.extra_charges) {
-    job.extra_charges.forEach((charge, idx) => {
+    job.extra_charges.forEach((charge, _idx) => {
       items.push({
         item_number: items.length + 1,
         description: `${charge.name}${charge.description ? ` - ${charge.description}` : ''}`,
