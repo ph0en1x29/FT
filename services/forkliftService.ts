@@ -158,6 +158,9 @@ export const createForklift = async (forkliftData: Partial<Forklift>): Promise<F
       model: forkliftData.model,
       type: forkliftData.type,
       hourmeter: forkliftData.hourmeter || 0,
+      last_service_hourmeter: forkliftData.last_service_hourmeter || forkliftData.hourmeter || 0,
+      last_serviced_hourmeter: forkliftData.last_service_hourmeter || forkliftData.hourmeter || 0,
+      next_target_service_hour: (forkliftData.last_service_hourmeter || forkliftData.hourmeter || 0) + (forkliftData.service_interval_hours || 500),
       year: forkliftData.year,
       capacity_kg: forkliftData.capacity_kg,
       location: forkliftData.location,
@@ -186,10 +189,16 @@ export const updateForklift = async (
     previousHourmeter = current?.hourmeter ?? null;
   }
 
+  // Keep both hourmeter columns in sync
+  const syncedUpdates = { ...updates };
+  if (syncedUpdates.last_service_hourmeter !== undefined) {
+    (syncedUpdates as Record<string, unknown>).last_serviced_hourmeter = syncedUpdates.last_service_hourmeter;
+  }
+
   const { data, error } = await supabase
     .from('forklifts')
     .update({
-      ...updates,
+      ...syncedUpdates,
       updated_at: new Date().toISOString(),
     })
     .eq('forklift_id', forkliftId)

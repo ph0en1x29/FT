@@ -57,6 +57,7 @@ export const ServiceTrackingCard: React.FC<ServiceTrackingCardProps> = ({ forkli
 
       const updates: Record<string, unknown> = {
         last_service_hourmeter: newHm,
+        last_serviced_hourmeter: newHm,
         next_target_service_hour: newHm + interval,
         updated_at: new Date().toISOString(),
       };
