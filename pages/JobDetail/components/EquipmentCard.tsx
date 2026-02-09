@@ -91,6 +91,11 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
                 <span className={`font-semibold ${job.hourmeter_flagged ? 'text-[var(--error)]' : 'text-[var(--text)]'}`}>
                   {(job.hourmeter_reading || job.forklift.hourmeter).toLocaleString()} hrs
                 </span>
+                {job.forklift.last_service_hourmeter != null && job.forklift.last_service_hourmeter > 0 && (
+                  <span className="text-[10px] text-[var(--text-muted)] ml-1">
+                    (Last svc: {job.forklift.last_service_hourmeter.toLocaleString()})
+                  </span>
+                )}
                 {job.hourmeter_flagged && (
                   <AlertTriangle className="w-3.5 h-3.5 text-[var(--error)]" />
                 )}

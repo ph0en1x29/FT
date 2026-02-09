@@ -8,6 +8,7 @@ interface FormData {
   model: string;
   type: ForkliftType;
   hourmeter: number;
+  last_service_hourmeter: number;
   year: number;
   capacity_kg: number;
   location: string;
@@ -109,7 +110,7 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Hourmeter (hrs)</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Current Hourmeter (hrs)</label>
               <input 
                 type="number" 
                 className={inputClassName} 
@@ -118,6 +119,20 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
                 min="0" 
               />
             </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service Hourmeter (hrs)</label>
+              <input 
+                type="number" 
+                className={inputClassName} 
+                value={formData.last_service_hourmeter} 
+                onChange={e => setFormData({...formData, last_service_hourmeter: parseInt(e.target.value) || 0})} 
+                min="0" 
+                placeholder="Set to current if unknown"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Year</label>
               <input 
