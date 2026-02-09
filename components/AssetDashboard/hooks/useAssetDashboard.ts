@@ -1,4 +1,5 @@
 import { useEffect,useMemo,useState } from 'react';
+import { getForkliftsDueForService } from '../../../services/servicePredictionService';
 import { SupabaseDb,supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { User } from '../../../types';
@@ -67,19 +68,19 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
         if (j.forklift_id) openJobLookup.set(j.forklift_id, j.job_id);
       });
 
+      // Get service-due forklifts from unified source (same as Service Due tab)
+      const serviceDueList = await getForkliftsDueForService(7);
+      const serviceDueIds = new Set(serviceDueList.map(f => f.forklift_id));
+
       // Process forklifts
       const now = new Date();
-      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
       const processedForklifts: ForkliftWithStatus[] = (forkliftData as ForkliftDbRow[]).map((f) => {
         const rental = rentalLookup.get(f.forklift_id);
         const openJobId = openJobLookup.get(f.forklift_id);
         const hasOpenJob = !!openJobId;
 
-        const isServiceDueByDate = f.next_service_due && new Date(f.next_service_due) <= sevenDaysFromNow;
-        const hoursUntilService = f.next_service_hourmeter ? f.next_service_hourmeter - f.hourmeter : null;
-        const isServiceDueByHours = hoursUntilService !== null && hoursUntilService <= 50;
-        const isServiceDue = isServiceDueByDate || isServiceDueByHours;
+        const isServiceDue = serviceDueIds.has(f.forklift_id);
 
         let operationalStatus: OperationalStatus;
         const secondaryBadges: string[] = [];
