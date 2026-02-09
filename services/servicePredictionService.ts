@@ -341,20 +341,85 @@ export function getUrgencyColor(urgency: string): string {
 export async function getForkliftsDueForService(withinDays: number = 7): Promise<any[]> {
  
   try {
-    const { data, error } = await supabase
+    // 1. Get hourmeter-based forklifts from prediction view
+    const { data: predictionData, error: predError } = await supabase
       .from('v_forklift_service_predictions')
       .select('*')
       .or(`service_urgency.eq.overdue,service_urgency.eq.due_soon,days_remaining.lte.${withinDays}`)
       .order('days_remaining', { ascending: true });
     
-    if (error) throw error;
+    if (predError) throw predError;
+
+    const predictionIds = new Set((predictionData || []).map(f => f.forklift_id));
     
-    // Add computed fields for widget compatibility
-    return (data || []).map(f => ({
+    // 2. Get ALL forklifts not in predictions (catches Electric + any missing units)
+    const { data: allForklifts, error: allError } = await supabase
+      .from('forklifts')
+      .select('forklift_id, serial_number, make, model, type, hourmeter, last_service_date, next_service_due, next_service_hourmeter, status')
+      .not('status', 'in', '("Inactive","Out of Service")');
+
+    if (allError) throw allError;
+
+    const CALENDAR_INTERVAL_DAYS = 90;
+    const today = new Date();
+
+    // Map prediction-based forklifts
+    const hourmeterResults = (predictionData || []).map(f => ({
       ...f,
       is_overdue: f.service_urgency === 'overdue' || (f.days_remaining !== null && f.days_remaining <= 0),
-      has_open_job: false, // TODO: Check if forklift has open service job
+      has_open_job: false,
     }));
+
+    // Map fallback forklifts (not in predictions view)
+    const fallbackResults = (allForklifts || [])
+      .filter(f => !predictionIds.has(f.forklift_id))
+      .map(f => {
+        const isElectric = f.type === 'Electric';
+        let daysRemaining: number | null = null;
+        let hoursUntil: number | null = null;
+
+        if (isElectric && f.last_service_date) {
+          const nextDate = new Date(new Date(f.last_service_date).getTime() + CALENDAR_INTERVAL_DAYS * 86400000);
+          daysRemaining = Math.ceil((nextDate.getTime() - today.getTime()) / 86400000);
+        } else if (f.next_service_due) {
+          daysRemaining = Math.ceil((new Date(f.next_service_due).getTime() - today.getTime()) / 86400000);
+        }
+
+        if (f.next_service_hourmeter && f.hourmeter) {
+          hoursUntil = f.next_service_hourmeter - f.hourmeter;
+        }
+
+        const isOverdueByDate = daysRemaining !== null && daysRemaining <= 0;
+        const isOverdueByHours = hoursUntil !== null && hoursUntil <= 0;
+        const isOverdue = isOverdueByDate || isOverdueByHours;
+        const isDueSoon = !isOverdue && (
+          (daysRemaining !== null && daysRemaining <= withinDays) ||
+          (hoursUntil !== null && hoursUntil <= 50)
+        );
+
+        // Only include if overdue or due soon
+        if (!isOverdue && !isDueSoon) return null;
+
+        return {
+          forklift_id: f.forklift_id,
+          serial_number: f.serial_number,
+          make: f.make,
+          model: f.model,
+          type: f.type,
+          hourmeter: f.hourmeter || 0,
+          current_hourmeter: f.hourmeter,
+          last_service_date: f.last_service_date,
+          next_service_hourmeter: f.next_service_hourmeter,
+          hours_until_service: hoursUntil,
+          days_remaining: daysRemaining,
+          service_urgency: isOverdue ? 'overdue' : 'due_soon',
+          is_overdue: isOverdue,
+          has_open_job: false,
+        };
+      })
+      .filter(Boolean);
+
+    return [...hourmeterResults, ...fallbackResults];
   } catch (err) {
     logError('[HourmeterService] Error getting forklifts due for service:', err);
     return [];
