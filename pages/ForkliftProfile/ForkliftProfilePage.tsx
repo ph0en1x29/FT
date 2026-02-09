@@ -12,6 +12,7 @@ ForkliftInfoCard,
 HourmeterHistorySection,
 NextServiceAlert,
 RentalHistorySection,
+ServiceTrackingCard,
 ScheduledServicesSection,
 ScheduleServiceModal,
 ServiceHistorySection,
@@ -105,6 +106,7 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
         stats={stats}
       />
 
+      <ServiceTrackingCard forklift={forklift} />
       <NextServiceAlert forklift={forklift} />
 
       {activeRental && (
