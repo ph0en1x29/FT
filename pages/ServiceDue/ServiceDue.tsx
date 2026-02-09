@@ -62,18 +62,24 @@ const ServiceDue: React.FC = () => {
 
       if (hmError) throw hmError;
 
-      // 2. Get electric forklifts for calendar-based tracking
-      const { data: electricData, error: elError } = await supabase
+      // 2. Get ALL forklifts not already in predictions view (fallback)
+      // This catches electric (calendar-based) AND any forklift missing from predictions
+      const predictionIds = new Set((hourmeterData || []).map(f => f.forklift_id));
+      
+      const { data: fallbackData, error: fbError } = await supabase
         .from('forklifts')
-        .select('forklift_id, serial_number, make, model, type, hourmeter, last_service_date, status')
-        .in('type', ['Electric']);
+        .select('forklift_id, serial_number, make, model, type, hourmeter, last_service_date, next_service_due, next_service_hourmeter, status')
+        .not('status', 'in', '("Inactive","Out of Service")');
 
-      if (elError) throw elError;
+      if (fbError) throw fbError;
+
+      // Filter to only forklifts NOT already covered by predictions view
+      const electricData = (fallbackData || []).filter(f => !predictionIds.has(f.forklift_id));
 
       // 3. Check for open service jobs
       const allForkliftIds = [
         ...(hourmeterData || []).map(f => f.forklift_id),
-        ...(electricData || []).map(f => f.forklift_id),
+        ...electricData.map(f => f.forklift_id),
       ];
 
       const { data: openJobs } = await supabase
@@ -114,20 +120,42 @@ const ServiceDue: React.FC = () => {
         };
       });
 
-      // 5. Map electric forklifts (calendar-based)
-      const electricForklifts: ForkliftDue[] = (electricData || []).map(f => {
-        const lastService = f.last_service_date ? new Date(f.last_service_date) : null;
-        const nextServiceDate = lastService
-          ? new Date(lastService.getTime() + CALENDAR_INTERVAL_DAYS * 24 * 60 * 60 * 1000)
-          : null;
+      // 5. Map fallback forklifts (calendar-based OR hourmeter from forklifts table)
+      const electricForklifts: ForkliftDue[] = electricData.map(f => {
+        const isElectric = f.type === 'Electric';
         const today = new Date();
-        const daysRem = nextServiceDate
-          ? Math.ceil((nextServiceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-          : null;
-        const isOverdue = daysRem !== null && daysRem <= 0;
+        
+        let daysRem: number | null = null;
+        let nextServiceDate: Date | null = null;
+        let hoursUntil: number | null = null;
+        
+        if (isElectric) {
+          // Calendar-based: 90-day interval
+          const lastService = f.last_service_date ? new Date(f.last_service_date) : null;
+          nextServiceDate = lastService
+            ? new Date(lastService.getTime() + CALENDAR_INTERVAL_DAYS * 24 * 60 * 60 * 1000)
+            : null;
+          daysRem = nextServiceDate
+            ? Math.ceil((nextServiceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+            : null;
+        } else if (f.next_service_due) {
+          // Fallback: use next_service_due date from forklifts table
+          nextServiceDate = new Date(f.next_service_due);
+          daysRem = Math.ceil((nextServiceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        }
+        
+        // Check hourmeter-based overdue from forklifts table
+        if (f.next_service_hourmeter && f.hourmeter) {
+          hoursUntil = f.next_service_hourmeter - f.hourmeter;
+        }
+
+        const isOverdueByDate = daysRem !== null && daysRem <= 0;
+        const isOverdueByHours = hoursUntil !== null && hoursUntil <= 0;
+        const isOverdue = isOverdueByDate || isOverdueByHours;
+        
         const urgency = isOverdue ? 'overdue'
-          : daysRem !== null && daysRem <= 7 ? 'due_soon'
-          : daysRem !== null && daysRem <= 14 ? 'upcoming'
+          : (daysRem !== null && daysRem <= 7) || (hoursUntil !== null && hoursUntil <= 50) ? 'due_soon'
+          : (daysRem !== null && daysRem <= 14) || (hoursUntil !== null && hoursUntil <= 100) ? 'upcoming'
           : 'ok';
 
         return {
@@ -137,11 +165,11 @@ const ServiceDue: React.FC = () => {
           model: f.model,
           type: f.type,
           hourmeter: f.hourmeter || 0,
-          tracking_type: 'calendar' as const,
-          current_hourmeter: null,
+          tracking_type: isElectric ? 'calendar' as const : 'hourmeter' as const,
+          current_hourmeter: !isElectric ? f.hourmeter : null,
           last_service_hourmeter: null,
-          next_service_hourmeter: null,
-          hours_until_service: null,
+          next_service_hourmeter: f.next_service_hourmeter ? Number(f.next_service_hourmeter) : null,
+          hours_until_service: hoursUntil,
           avg_daily_hours: null,
           confidence: null,
           last_service_date: f.last_service_date,
@@ -188,7 +216,7 @@ const ServiceDue: React.FC = () => {
   // Filter
   const filteredForklifts = dueForklifts.filter(f => {
     if (filter === 'overdue') return f.is_overdue;
-    if (filter === 'due_soon') return !f.is_overdue && !f.has_open_job;
+    if (filter === 'due_soon') return !f.is_overdue && !f.has_open_job && ['due_soon', 'upcoming'].includes(f.service_urgency);
     if (filter === 'job_created') return f.has_open_job;
     return true;
   });
