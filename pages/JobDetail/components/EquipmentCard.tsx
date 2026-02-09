@@ -91,11 +91,7 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
                 <span className={`font-semibold ${job.hourmeter_flagged ? 'text-[var(--error)]' : 'text-[var(--text)]'}`}>
                   {(job.hourmeter_reading || job.forklift.hourmeter).toLocaleString()} hrs
                 </span>
-                {job.forklift.last_service_hourmeter != null && job.forklift.last_service_hourmeter > 0 && (
-                  <span className="text-[10px] text-[var(--text-muted)] ml-1">
-                    (Last svc: {job.forklift.last_service_hourmeter.toLocaleString()})
-                  </span>
-                )}
+{/* Last service hourmeter moved to its own field below */}
                 {job.hourmeter_flagged && (
                   <AlertTriangle className="w-3.5 h-3.5 text-[var(--error)]" />
                 )}
@@ -145,6 +141,21 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
           )}
         </div>
         
+        {job.forklift.last_service_hourmeter != null && job.forklift.last_service_hourmeter > 0 && (
+          <div>
+            <p className="label-premium mb-1 flex items-center gap-1">
+              <Gauge className="w-3 h-3" /> Last Serviced Hour
+            </p>
+            <p className="font-semibold text-[var(--text)]">
+              {job.forklift.last_service_hourmeter.toLocaleString()} hrs
+            </p>
+            {job.forklift.last_service_date && (
+              <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                {new Date(job.forklift.last_service_date).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+        )}
         {activeRental && (
           <div>
             <p className="label-premium mb-1">Location</p>
