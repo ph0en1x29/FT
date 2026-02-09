@@ -197,11 +197,16 @@ export const endRental = async (
   endedById?: string,
   endedByName?: string
 ): Promise<ForkliftRental> => {
-  const { data: rental } = await supabase
+  // Get forklift_id FIRST — must succeed before we end the rental
+  const { data: rental, error: rentalError } = await supabase
     .from('forklift_rentals')
     .select('forklift_id')
     .eq('rental_id', rentalId)
     .single();
+
+  if (rentalError || !rental?.forklift_id) {
+    throw new Error('Could not find rental record or forklift association');
+  }
 
   const { data, error } = await supabase
     .from('forklift_rentals')
@@ -219,16 +224,15 @@ export const endRental = async (
 
   if (error) throw new Error(error.message);
 
-  if (rental?.forklift_id) {
-    await supabase
-      .from('forklifts')
-      .update({
-        current_customer_id: null,
-        status: 'Available',  // Reset status when rental ends
-        updated_at: new Date().toISOString(),
-      })
-      .eq('forklift_id', rental.forklift_id);
-  }
+  // Always reset forklift status — guaranteed to have forklift_id from above
+  await supabase
+    .from('forklifts')
+    .update({
+      current_customer_id: null,
+      status: 'Available',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('forklift_id', rental.forklift_id);
 
   return data as ForkliftRental;
 };
