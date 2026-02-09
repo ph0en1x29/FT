@@ -28,6 +28,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
   const [fleetOverview, setFleetOverview] = useState<FleetServiceOverview[]>([]);
   const [dailyUsage, setDailyUsage] = useState<Record<string, DailyUsageResult>>({});
   const [filter, setFilter] = useState<'all' | 'overdue' | 'due_soon' | 'job_created' | 'stale'>('all');
+  const [timeWindow, setTimeWindow] = useState<number>(30);
   const [running, setRunning] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'urgency' | 'name' | 'hours'>('urgency');
@@ -44,13 +45,13 @@ const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
   useEffect(() => {
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [timeWindow]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       const [forklifts, overview] = await Promise.all([
-        MockDb.getForkliftsDueForService(30),
+        MockDb.getForkliftsDueForService(timeWindow),
         getFleetServiceOverview()
       ]);
       setDueForklifts(forklifts);
@@ -248,6 +249,19 @@ const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
           >
             Show All ({dueForklifts.length})
           </button>
+          <span className="text-slate-300">|</span>
+          <div className="flex items-center gap-1 text-xs text-slate-500">
+            <span>Window:</span>
+            {([7, 14, 30, 90] as const).map(d => (
+              <button
+                key={d}
+                onClick={() => setTimeWindow(d)}
+                className={`px-2 py-1 rounded ${timeWindow === d ? 'bg-blue-100 text-blue-700 font-medium' : 'hover:bg-slate-100'}`}
+              >
+                {d}d
+              </button>
+            ))}
+          </div>
           <span className="text-slate-300">|</span>
           <div className="flex items-center gap-1 text-xs text-slate-500">
             <span>Sort:</span>
