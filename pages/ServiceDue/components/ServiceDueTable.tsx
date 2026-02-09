@@ -1,29 +1,12 @@
 import {
-AlertTriangle,Calendar,CheckCircle,
-ChevronRight,
-Clock,
-Wrench
+  AlertTriangle, Calendar, CheckCircle,
+  ChevronRight, Clock, Gauge, Wrench
 } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { ForkliftDue } from '../ServiceDue';
 
 type FilterType = 'all' | 'overdue' | 'due_soon' | 'job_created';
-
-interface ForkliftDue {
-  forklift_id: string;
-  serial_number: string;
-  make: string;
-  model: string;
-  type: string;
-  hourmeter: number;
-  next_service_due: string | null;
-  next_service_hourmeter: number | null;
-  days_until_due: number | null;
-  hours_until_due: number | null;
-  is_overdue: boolean;
-  has_open_job: boolean;
-  current_customer_id?: string;
-}
 
 interface ServiceDueTableProps {
   forklifts: ForkliftDue[];
@@ -39,8 +22,49 @@ const ServiceDueTable: React.FC<ServiceDueTableProps> = ({ forklifts, filter, se
       case 'overdue': return 'Overdue Forklifts';
       case 'due_soon': return 'Due Soon (No Job Yet)';
       case 'job_created': return 'With Service Job Created';
-      default: return 'All Forklifts Due';
+      default: return 'All Forklifts';
     }
+  };
+
+  const getStatusBadge = (f: ForkliftDue) => {
+    if (f.has_open_job) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-600 rounded text-xs font-medium">
+          <CheckCircle className="w-3 h-3" />
+          Job Created
+        </span>
+      );
+    }
+    if (f.is_overdue) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-600 rounded text-xs font-medium">
+          <AlertTriangle className="w-3 h-3" />
+          Overdue
+        </span>
+      );
+    }
+    if (f.days_remaining !== null && f.days_remaining <= 7) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-500/20 text-orange-600 rounded text-xs font-medium">
+          <Clock className="w-3 h-3" />
+          Due Soon
+        </span>
+      );
+    }
+    if (f.days_remaining !== null && f.days_remaining <= 14) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-500/20 text-yellow-600 rounded text-xs font-medium">
+          <Calendar className="w-3 h-3" />
+          Upcoming
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-600 rounded text-xs font-medium">
+        <CheckCircle className="w-3 h-3" />
+        OK
+      </span>
+    );
   };
 
   return (
@@ -73,61 +97,89 @@ const ServiceDueTable: React.FC<ServiceDueTableProps> = ({ forklifts, filter, se
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Serial Number</th>
                 <th className="px-4 py-3 font-medium">Make / Model</th>
-                <th className="px-4 py-3 font-medium">Type</th>
-                <th className="px-4 py-3 font-medium">Hourmeter</th>
+                <th className="px-4 py-3 font-medium">Tracking</th>
+                <th className="px-4 py-3 font-medium">Current</th>
+                <th className="px-4 py-3 font-medium">Last Service</th>
                 <th className="px-4 py-3 font-medium">Next Service</th>
-                <th className="px-4 py-3 font-medium">Time Until Due</th>
+                <th className="px-4 py-3 font-medium">Remaining</th>
                 <th className="px-4 py-3 font-medium"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-theme">
               {forklifts.map(f => (
-                <tr 
-                  key={f.forklift_id} 
+                <tr
+                  key={f.forklift_id}
                   className="hover:bg-theme-surface-2 transition-colors cursor-pointer"
                   onClick={() => navigate(`/forklifts/${f.forklift_id}`)}
                 >
-                  <td className="px-4 py-3">
-                    {f.has_open_job ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-600 rounded text-xs font-medium">
-                        <CheckCircle className="w-3 h-3" />
-                        Job Created
-                      </span>
-                    ) : f.is_overdue ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-600 rounded text-xs font-medium">
-                        <AlertTriangle className="w-3 h-3" />
-                        Overdue
-                      </span>
-                    ) : f.days_until_due !== null && f.days_until_due <= 3 ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-500/20 text-yellow-600 rounded text-xs font-medium">
-                        <Clock className="w-3 h-3" />
-                        Urgent
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-600 rounded text-xs font-medium">
-                        <Calendar className="w-3 h-3" />
-                        Upcoming
-                      </span>
-                    )}
-                  </td>
+                  <td className="px-4 py-3">{getStatusBadge(f)}</td>
                   <td className="px-4 py-3 font-mono text-theme">{f.serial_number}</td>
                   <td className="px-4 py-3 text-theme">{f.make} {f.model}</td>
-                  <td className="px-4 py-3 text-theme-muted">{f.type}</td>
-                  <td className="px-4 py-3 text-theme">{f.hourmeter?.toLocaleString()} hrs</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center gap-1 text-xs ${
+                      f.tracking_type === 'hourmeter' ? 'text-blue-600' : 'text-purple-600'
+                    }`}>
+                      {f.tracking_type === 'hourmeter' 
+                        ? <><Gauge className="w-3 h-3" /> {f.type}</>
+                        : <><Calendar className="w-3 h-3" /> {f.type} (90d)</>
+                      }
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-theme">
-                    {f.next_service_due 
-                      ? new Date(f.next_service_due).toLocaleDateString()
-                      : <span className="text-theme-muted">Not set</span>}
+                    {f.tracking_type === 'hourmeter'
+                      ? `${(f.current_hourmeter || 0).toLocaleString()} hrs`
+                      : `${(f.hourmeter || 0).toLocaleString()} hrs`
+                    }
+                  </td>
+                  <td className="px-4 py-3 text-theme-muted">
+                    {f.tracking_type === 'hourmeter' ? (
+                      <div>
+                        <span>{f.last_service_hourmeter ? `${f.last_service_hourmeter.toLocaleString()} hrs` : '—'}</span>
+                        {f.last_service_date && (
+                          <div className="text-xs">{new Date(f.last_service_date).toLocaleDateString()}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span>{f.last_service_date ? new Date(f.last_service_date).toLocaleDateString() : 'No record'}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-theme">
+                    {f.tracking_type === 'hourmeter' ? (
+                      <div>
+                        <span>{f.next_service_hourmeter ? `${f.next_service_hourmeter.toLocaleString()} hrs` : '—'}</span>
+                        {f.predicted_date && !f.is_overdue && (
+                          <div className="text-xs text-theme-muted">{new Date(f.predicted_date).toLocaleDateString()}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span>{f.predicted_date ? new Date(f.predicted_date).toLocaleDateString() : '—'}</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
-                    {f.days_until_due !== null && (
-                      <span className={f.days_until_due < 0 ? 'text-red-500 font-medium' : 'text-theme'}>
-                        {f.days_until_due < 0 ? `${Math.abs(f.days_until_due)} days ago` : `${f.days_until_due} days`}
-                      </span>
-                    )}
-                    {f.hours_until_due !== null && (
-                      <span className={`ml-2 text-xs ${f.hours_until_due <= 0 ? 'text-red-400' : 'text-theme-muted'}`}>
-                        ({f.hours_until_due} hrs)
+                    {f.tracking_type === 'hourmeter' ? (
+                      <div>
+                        {f.hours_until_service !== null && (
+                          <span className={`font-medium ${f.hours_until_service <= 0 ? 'text-red-500' : 'text-theme'}`}>
+                            {f.hours_until_service <= 0 
+                              ? `${Math.abs(f.hours_until_service)} hrs over`
+                              : `${f.hours_until_service} hrs`
+                            }
+                          </span>
+                        )}
+                        {f.days_remaining !== null && (
+                          <div className="text-xs text-theme-muted">
+                            {f.is_overdue ? 'Overdue' : `${f.days_remaining}d`}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className={`font-medium ${f.is_overdue ? 'text-red-500' : 'text-theme'}`}>
+                        {f.days_remaining !== null
+                          ? f.is_overdue
+                            ? `${Math.abs(f.days_remaining)}d overdue`
+                            : `${f.days_remaining} days`
+                          : '—'
+                        }
                       </span>
                     )}
                   </td>
