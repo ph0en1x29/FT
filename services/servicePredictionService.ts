@@ -341,7 +341,15 @@ export function getUrgencyColor(urgency: string): string {
 export async function getForkliftsDueForService(withinDays: number = 7): Promise<any[]> {
  
   try {
-    // 1. Get hourmeter-based forklifts from prediction view
+    // 1a. Get ALL forklift IDs in predictions view (to exclude from fallback)
+    const { data: allPredictions, error: allPredError } = await supabase
+      .from('v_forklift_service_predictions')
+      .select('forklift_id');
+    
+    if (allPredError) throw allPredError;
+    const allPredictionIds = new Set((allPredictions || []).map(f => f.forklift_id));
+
+    // 1b. Get due/overdue forklifts from prediction view
     const { data: predictionData, error: predError } = await supabase
       .from('v_forklift_service_predictions')
       .select('*')
@@ -349,8 +357,6 @@ export async function getForkliftsDueForService(withinDays: number = 7): Promise
       .order('days_remaining', { ascending: true });
     
     if (predError) throw predError;
-
-    const predictionIds = new Set((predictionData || []).map(f => f.forklift_id));
     
     // 2. Get ALL forklifts not in predictions (catches Electric + any missing units)
     const { data: allForklifts, error: allError } = await supabase
@@ -370,9 +376,9 @@ export async function getForkliftsDueForService(withinDays: number = 7): Promise
       has_open_job: false,
     }));
 
-    // Map fallback forklifts (not in predictions view)
+    // Map fallback forklifts (not in predictions view AT ALL)
     const fallbackResults = (allForklifts || [])
-      .filter(f => !predictionIds.has(f.forklift_id))
+      .filter(f => !allPredictionIds.has(f.forklift_id))
       .map(f => {
         const isElectric = f.type === 'Electric';
         let daysRemaining: number | null = null;
