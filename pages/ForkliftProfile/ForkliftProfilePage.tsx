@@ -106,7 +106,7 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
         stats={stats}
       />
 
-      <ServiceTrackingCard forklift={forklift} />
+      <ServiceTrackingCard forklift={forklift} canEdit={isAdmin || isSupervisor} onUpdate={reload} />
       <NextServiceAlert forklift={forklift} />
 
       {activeRental && (
