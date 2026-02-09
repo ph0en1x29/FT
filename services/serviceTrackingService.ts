@@ -37,7 +37,7 @@ export const getFleetServiceOverview = async (): Promise<FleetServiceOverview[]>
  */
 export const getForkliftDailyUsage = async (
   forkliftId: string, 
-  days: number = 14
+  days: number = 365
 ): Promise<DailyUsageResult> => {
   const { data, error } = await supabase
     .rpc('get_forklift_daily_usage', {

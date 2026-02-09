@@ -70,7 +70,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
     for (let i = 0; i < forkliftIds.length; i += 5) {
       const batch = forkliftIds.slice(i, i + 5);
       const results = await Promise.all(
-        batch.map(id => getForkliftDailyUsage(id).catch(() => null))
+        batch.map(id => getForkliftDailyUsage(id, 365).catch(() => null))
       );
       batch.forEach((id, idx) => {
         if (results[idx]) usageMap[id] = results[idx]!;
