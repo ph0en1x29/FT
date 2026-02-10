@@ -162,7 +162,8 @@ export const JOB_SELECT = {
     created_at,
     scheduled_date,
     technician_accepted_at,
-    technician_rejected_at
+    technician_rejected_at,
+    acknowledged_at
   `,
   
   // For job board (with timing info)
@@ -186,6 +187,7 @@ export const JOB_SELECT = {
     completed_at,
     technician_accepted_at,
     technician_rejected_at,
+    acknowledged_at,
     created_at,
     scheduled_date
   `,
@@ -206,6 +208,7 @@ export const JOB_SELECT = {
     technician_accepted_at,
     technician_rejected_at,
     technician_response_deadline,
+    acknowledged_at,
     created_at,
     scheduled_date,
     arrival_time,
