@@ -126,6 +126,239 @@ export const approveSparePartRequest = async (
 };
 
 
+/**
+ * Mark request as out of stock — sets job to "Pending Parts" and creates supplier order
+ */
+export const markOutOfStock = async (
+  requestId: string,
+  adminUserId: string,
+  partId: string,
+  supplierNotes?: string
+): Promise<boolean> => {
+  try {
+    const { data: request, error: reqError } = await supabase
+      .from('job_requests')
+      .select('job_id, requested_by, request_type')
+      .eq('request_id', requestId)
+      .single();
+
+    if (reqError || !request) return false;
+
+    const { data: part } = await supabase
+      .from('parts')
+      .select('part_name')
+      .eq('part_id', partId)
+      .single();
+
+    // Update request to out_of_stock → part_ordered
+    const { error: updateError } = await supabase
+      .from('job_requests')
+      .update({
+        status: 'part_ordered',
+        admin_response_part_id: partId,
+        admin_response_notes: supplierNotes || `${part?.part_name || 'Part'} out of stock — ordered from supplier`,
+        responded_by: adminUserId,
+        responded_at: new Date().toISOString(),
+        supplier_order_notes: supplierNotes || null,
+        supplier_order_date: new Date().toISOString(),
+      })
+      .eq('request_id', requestId);
+
+    if (updateError) return false;
+
+    // Set job to "Pending Parts"
+    await supabase
+      .from('jobs')
+      .update({ status: 'Pending Parts' })
+      .eq('job_id', request.job_id);
+
+    // Notify technician
+    await notifyRequestRejected(
+      request.requested_by,
+      request.request_type,
+      request.job_id,
+      `Part out of stock — ordered from supplier. Job on hold until parts arrive.`
+    );
+
+    return true;
+  } catch (_e) {
+    return false;
+  }
+};
+
+/**
+ * Mark ordered part as received — updates request status and notifies tech
+ */
+export const markPartReceived = async (
+  requestId: string,
+  adminUserId: string,
+  notes?: string
+): Promise<boolean> => {
+  try {
+    const { data: request, error: reqError } = await supabase
+      .from('job_requests')
+      .select('job_id, requested_by, admin_response_part_id, admin_response_quantity')
+      .eq('request_id', requestId)
+      .single();
+
+    if (reqError || !request) return false;
+
+    // Update request
+    const { error } = await supabase
+      .from('job_requests')
+      .update({
+        status: 'approved',
+        part_received_at: new Date().toISOString(),
+        admin_response_notes: notes || 'Part received from supplier — ready for issuance',
+      })
+      .eq('request_id', requestId);
+
+    if (error) return false;
+
+    // Notify tech
+    await notifyRequestApproved(
+      request.requested_by,
+      'spare_part',
+      request.job_id,
+      'Ordered part has arrived! Ready for collection.'
+    );
+
+    return true;
+  } catch (_e) {
+    return false;
+  }
+};
+
+/**
+ * Issue approved parts to technician — confirms physical handover
+ */
+export const issuePartToTechnician = async (
+  requestId: string,
+  adminUserId: string,
+  adminUserName: string
+): Promise<boolean> => {
+  try {
+    const { data: request, error: reqError } = await supabase
+      .from('job_requests')
+      .select('job_id, requested_by, admin_response_part_id, admin_response_quantity')
+      .eq('request_id', requestId)
+      .single();
+
+    if (reqError || !request) return false;
+
+    const partId = request.admin_response_part_id;
+    const quantity = request.admin_response_quantity || 1;
+
+    if (!partId) return false;
+
+    // Get part details
+    const { data: part } = await supabase
+      .from('parts')
+      .select('part_name, sell_price, stock_quantity')
+      .eq('part_id', partId)
+      .single();
+
+    if (!part) return false;
+
+    // Reserve stock atomically
+    const { data: stockReserved, error: stockError } = await supabase
+      .rpc('reserve_part_stock', { p_part_id: partId, p_quantity: quantity });
+
+    if (stockError || !stockReserved) return false;
+
+    // Mark as issued
+    const { error: updateError } = await supabase
+      .from('job_requests')
+      .update({
+        status: 'issued',
+        issued_by: adminUserId,
+        issued_at: new Date().toISOString(),
+      })
+      .eq('request_id', requestId);
+
+    if (updateError) {
+      // Rollback stock
+      await supabase.rpc('rollback_part_stock', { p_part_id: partId, p_quantity: quantity });
+      return false;
+    }
+
+    // Add parts to job
+    const { error: insertError } = await supabase
+      .from('job_parts')
+      .insert({
+        job_id: request.job_id,
+        part_id: partId,
+        part_name: part.part_name,
+        quantity,
+        sell_price_at_time: part.sell_price,
+      });
+
+    if (insertError) {
+      await supabase.rpc('rollback_part_stock', { p_part_id: partId, p_quantity: quantity });
+      await supabase.from('job_requests').update({ status: 'approved', issued_by: null, issued_at: null }).eq('request_id', requestId);
+      return false;
+    }
+
+    // Auto-confirm parts
+    await supabase
+      .from('jobs')
+      .update({
+        parts_confirmed_at: new Date().toISOString(),
+        parts_confirmed_by_id: adminUserId,
+        parts_confirmed_by_name: adminUserName,
+      })
+      .eq('job_id', request.job_id);
+
+    // If job was on Pending Parts, move back to In Progress
+    const { data: job } = await supabase
+      .from('jobs')
+      .select('status')
+      .eq('job_id', request.job_id)
+      .single();
+
+    if (job?.status === 'Pending Parts') {
+      await supabase
+        .from('jobs')
+        .update({ status: 'In Progress' })
+        .eq('job_id', request.job_id);
+    }
+
+    // Notify tech
+    await notifyRequestApproved(
+      request.requested_by,
+      'spare_part',
+      request.job_id,
+      `${quantity}x ${part.part_name} issued — ready for collection`
+    );
+
+    return true;
+  } catch (_e) {
+    return false;
+  }
+};
+
+/**
+ * Technician confirms part collection
+ */
+export const confirmPartCollection = async (
+  requestId: string,
+  technicianId: string
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('job_requests')
+      .update({
+        collected_at: new Date().toISOString(),
+      })
+      .eq('request_id', requestId)
+      .eq('requested_by', technicianId);
+
+    return !error;
+  } catch (_e) {
+    return false;
+  }
+};
+
 export const rejectRequest = async (
   requestId: string,
   adminUserId: string,

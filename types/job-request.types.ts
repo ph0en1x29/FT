@@ -7,7 +7,7 @@ import type { User } from './user.types';
 
 // Job Request Types (for In-Job Request System)
 export type JobRequestType = 'assistance' | 'spare_part' | 'skillful_technician';
-export type JobRequestStatus = 'pending' | 'approved' | 'rejected';
+export type JobRequestStatus = 'pending' | 'approved' | 'issued' | 'out_of_stock' | 'part_ordered' | 'rejected';
 
 export interface JobRequest {
   request_id: string;
@@ -25,6 +25,15 @@ export interface JobRequest {
   responded_by?: string;
   responded_by_user?: User; // Populated on fetch
   responded_at?: string;
+  // Issuance tracking (Phase 1)
+  issued_by?: string;
+  issued_by_user?: User;
+  issued_at?: string;
+  collected_at?: string; // When tech confirms pickup
+  // Out of stock / Part ordered
+  supplier_order_notes?: string;
+  supplier_order_date?: string;
+  part_received_at?: string;
   created_at: string;
   updated_at: string;
 }

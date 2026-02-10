@@ -147,6 +147,10 @@ export {
   rejectRequest,
   acknowledgeSkillfulTechRequest,
   approveAssistanceRequest,
+  markOutOfStock,
+  markPartReceived,
+  issuePartToTechnician,
+  confirmPartCollection,
 } from './jobRequestApprovalService';
 
 export const getRequestCounts = async (): Promise<{ pending: number; total: number }> => {

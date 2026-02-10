@@ -21,6 +21,7 @@ export enum JobStatus {
   INCOMPLETE_CONTINUING = 'Incomplete - Continuing',
   INCOMPLETE_REASSIGNED = 'Incomplete - Reassigned',
   DISPUTED = 'Disputed',
+  PENDING_PARTS = 'Pending Parts',
 }
 
 export enum JobPriority {
