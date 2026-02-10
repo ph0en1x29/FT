@@ -1,7 +1,7 @@
-import { Box,CheckCircle,Edit2,Info,Plus,Save,Trash2,X } from 'lucide-react';
+import { Box,CheckCircle,Edit2,Info,Plus,Save,Trash2,Truck,X } from 'lucide-react';
 import React from 'react';
 import { Combobox,ComboboxOption } from '../../../components/Combobox';
-import { Job } from '../../../types';
+import { Job,VanStock } from '../../../types';
 import { RoleFlags,StatusFlags } from '../types';
 
 interface PartsSectionProps {
@@ -23,6 +23,13 @@ interface PartsSectionProps {
   onRemovePart: (partId: string) => void;
   onEditingPriceChange: (price: string) => void;
   onToggleNoPartsUsed: () => void;
+  // Van stock props (technician)
+  vanStock?: VanStock | null;
+  useFromVanStock?: boolean;
+  onToggleVanStock?: () => void;
+  selectedVanStockItemId?: string;
+  onSelectedVanStockItemIdChange?: (id: string) => void;
+  onUseVanStockPart?: () => void;
 }
 
 export const PartsSection: React.FC<PartsSectionProps> = ({
@@ -44,6 +51,12 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   onRemovePart,
   onEditingPriceChange,
   onToggleNoPartsUsed,
+  vanStock,
+  useFromVanStock,
+  onToggleVanStock,
+  selectedVanStockItemId,
+  onSelectedVanStockItemIdChange,
+  onUseVanStockPart,
 }) => {
   const { isTechnician, _isAdmin, _isSupervisor, _isAccountant, canViewPricing, canEditPrices, canAddParts, isHelperOnly } = roleFlags;
   const { isNew, isAssigned, isInProgress, isAwaitingFinalization } = statusFlags;
@@ -135,12 +148,64 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
         </div>
       )}
 
-      {/* Technician hint: Use Spare Part Request */}
+      {/* Technician: Van Stock usage + hint */}
       {isTechnician && !canAddParts && (isInProgress || isAwaitingFinalization) && (
-        <div className="border-t border-[var(--border-subtle)] pt-4">
+        <div className="border-t border-[var(--border-subtle)] pt-4 space-y-3">
+          {/* Van Stock usage */}
+          {vanStock && vanStock.items && vanStock.items.length > 0 && onToggleVanStock && (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5" /> Use from Van Stock
+                </p>
+                <button
+                  onClick={onToggleVanStock}
+                  className={`text-xs px-2.5 py-1 rounded-lg transition-colors ${
+                    useFromVanStock
+                      ? 'bg-blue-100 text-blue-700 font-medium'
+                      : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  {useFromVanStock ? 'Van Stock ✓' : 'Use Van Stock'}
+                </button>
+              </div>
+              {useFromVanStock && (
+                <div className="flex gap-2 items-start">
+                  <div className="flex-1">
+                    <select
+                      value={selectedVanStockItemId || ''}
+                      onChange={(e) => onSelectedVanStockItemIdChange?.(e.target.value)}
+                      className="input-premium text-sm w-full"
+                    >
+                      <option value="">Select part from van...</option>
+                      {vanStock.items
+                        .filter(i => i.quantity > 0)
+                        .map(i => (
+                          <option key={i.item_id} value={i.item_id}>
+                            {i.part?.part_name || 'Unknown'} — Qty: {i.quantity}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={onUseVanStockPart}
+                    disabled={!selectedVanStockItemId}
+                    className="btn-premium btn-premium-primary disabled:opacity-50"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
           <div className="p-3 bg-[var(--info-bg)] rounded-xl text-xs text-[var(--info)] flex items-center gap-2">
             <Info className="w-4 h-4 flex-shrink-0" />
-            <span>Need additional parts? Use <strong>Request Part</strong> in the Part Requests section.</span>
+            <span>
+              {vanStock && vanStock.items && vanStock.items.length > 0
+                ? <>Use parts from your van stock above, or <strong>Request Part</strong> in Part Requests for parts not in your van.</>
+                : <>Need parts? Use <strong>Request Part</strong> in the Part Requests section.</>
+              }
+            </span>
           </div>
         </div>
       )}

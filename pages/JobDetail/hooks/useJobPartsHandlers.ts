@@ -1,4 +1,6 @@
 import { useCallback } from 'react';
+import { useVanStockPart } from '../../../services/inventoryService';
+import { createReplenishmentRequest } from '../../../services/replenishmentService';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { Job, UserRole } from '../../../types';
@@ -18,6 +20,7 @@ export const useJobPartsHandlers = ({
   state,
   currentUserId,
   currentUserName,
+  loadJob,
   setJob,
 }: UseJobPartsHandlersParams) => {
   const handleAddPart = useCallback(async () => {
@@ -96,6 +99,65 @@ export const useJobPartsHandlers = ({
     }
   }, [job, currentUserId, currentUserName, setJob]);
 
+  const handleUseVanStockPart = useCallback(async () => {
+    if (!job || !state.selectedVanStockItemId || !state.vanStock) return;
+    const item = state.vanStock.items?.find(i => i.item_id === state.selectedVanStockItemId);
+    if (!item) { showToast.error('Van stock item not found'); return; }
+    if (item.quantity < 1) { showToast.error('No stock available', `${item.part?.part_name} is out of stock in your van`); return; }
+
+    try {
+      await useVanStockPart(
+        item.item_id,
+        job.job_id,
+        1,
+        currentUserId,
+        currentUserName,
+        false // no approval needed for own van stock
+      );
+
+      // Also add to job parts for invoicing
+      if (item.part) {
+        await MockDb.addPartToJob(job.job_id, item.part_id, 1, item.part.sell_price || 0, UserRole.TECHNICIAN, currentUserId, currentUserName);
+      }
+
+      // Check if low stock — auto-create replenishment alert
+      const newQty = item.quantity - 1;
+      if (newQty <= item.min_quantity && state.vanStock) {
+        const lowItems = (state.vanStock.items || []).filter(i => {
+          const qty = i.item_id === item.item_id ? newQty : i.quantity;
+          return qty <= i.min_quantity;
+        });
+        if (lowItems.length > 0) {
+          try {
+            await createReplenishmentRequest(
+              state.vanStock.van_stock_id,
+              currentUserId,
+              currentUserName,
+              lowItems.map(i => ({
+                vanStockItemId: i.item_id,
+                partId: i.part_id,
+                partName: i.part?.part_name || 'Unknown',
+                partCode: i.part?.part_code || '',
+                quantityRequested: i.max_quantity - (i.item_id === item.item_id ? newQty : i.quantity),
+              })),
+              'low_stock',
+              job.job_id,
+              `Auto-triggered: low stock after job usage`
+            );
+            showToast.info('Low stock alert', 'Replenishment request sent to store');
+          } catch { /* non-critical */ }
+        }
+      }
+
+      state.setSelectedVanStockItemId('');
+      showToast.success('Part used from van stock', `${item.part?.part_name} added to job`);
+      // Reload job + van stock
+      loadJob();
+    } catch (e) {
+      showToast.error('Failed to use van stock part', (e as Error).message);
+    }
+  }, [job, state, currentUserId, currentUserName, loadJob]);
+
   return {
     handleAddPart,
     handleStartEditPartPrice,
@@ -104,5 +166,6 @@ export const useJobPartsHandlers = ({
     handleRemovePart,
     handleToggleNoPartsUsed,
     handleConfirmParts,
+    handleUseVanStockPart,
   };
 };
