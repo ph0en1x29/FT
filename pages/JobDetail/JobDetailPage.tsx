@@ -150,7 +150,11 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             currentUserId={currentUserId}
             onCreateRequest={() => { state.setEditingRequest(null); state.setShowRequestModal(true); }}
             onApproveRequest={(request) => { state.setApprovalRequest(request); state.setShowApprovalModal(true); }}
-            onEditRequest={actions.handleEditRequest} />
+            onEditRequest={actions.handleEditRequest}
+            onIssuePartToTechnician={actions.handleIssuePartToTechnician}
+            onMarkOutOfStock={actions.handleMarkOutOfStock}
+            onMarkPartReceived={actions.handleMarkPartReceived}
+            onConfirmPartCollection={actions.handleConfirmPartCollection} />
           <JobPhotosSection job={job} currentUserId={currentUserId} currentUserName={currentUserName}
             roleFlags={roleFlags} statusFlags={statusFlags} isCurrentUserHelper={state.isCurrentUserHelper} onJobUpdate={setJob} />
         </div>

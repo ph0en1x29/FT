@@ -1,4 +1,4 @@
-import { CheckCircle,Clock,Edit3,Package,Plus,XCircle } from 'lucide-react';
+import { AlertTriangle,CheckCircle,Clock,Edit3,Package,PackageCheck,Plus,Truck,XCircle } from 'lucide-react';
 import React,{ useEffect,useState } from 'react';
 import { getJobRequests } from '../../../services/jobRequestService';
 import { Job,JobRequest,JobRequestStatus,JobRequestType } from '../../../types';
@@ -12,6 +12,10 @@ interface JobRequestsSectionProps {
   onCreateRequest: () => void;
   onApproveRequest: (request: JobRequest) => void;
   onEditRequest?: (request: JobRequest) => void;
+  onIssuePartToTechnician?: (requestId: string) => void;
+  onMarkOutOfStock?: (requestId: string, partId: string, notes?: string) => void;
+  onMarkPartReceived?: (requestId: string, notes?: string) => void;
+  onConfirmPartCollection?: (requestId: string) => void;
 }
 
 export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
@@ -22,6 +26,10 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
   onCreateRequest,
   onApproveRequest,
   onEditRequest,
+  onIssuePartToTechnician,
+  onMarkOutOfStock,
+  onMarkPartReceived,
+  onConfirmPartCollection,
 }) => {
   const [requests, setRequests] = useState<JobRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +58,24 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
             <CheckCircle className="w-3 h-3" /> Approved
+          </span>
+        );
+      case 'issued':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+            <PackageCheck className="w-3 h-3" /> Issued
+          </span>
+        );
+      case 'out_of_stock':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+            <AlertTriangle className="w-3 h-3" /> Out of Stock
+          </span>
+        );
+      case 'part_ordered':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+            <Truck className="w-3 h-3" /> Part Ordered
           </span>
         );
       case 'rejected':
@@ -136,7 +162,7 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
                   {new Date(request.created_at).toLocaleString()}
                 </span>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                   {/* Edit button - only for technician's own pending requests */}
                   {request.status === 'pending' && 
                    request.requested_by === currentUserId && 
@@ -144,19 +170,62 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
                    onEditRequest && (
                     <button
                       onClick={() => onEditRequest(request)}
-                      className="text-blue-600 hover:underline font-medium flex items-center gap-1"
+                      className="text-blue-600 hover:underline font-medium flex items-center gap-1 text-xs"
                     >
                       <Edit3 className="w-3 h-3" /> Edit
                     </button>
                   )}
                   
-                  {/* Review button - for admins/supervisors */}
+                  {/* Review button - for admins/supervisors on pending requests */}
                   {request.status === 'pending' && canApproveRequest && (
                     <button
                       onClick={() => onApproveRequest(request)}
-                      className="text-[var(--accent)] hover:underline font-medium"
+                      className="text-[var(--accent)] hover:underline font-medium text-xs"
                     >
                       Review
+                    </button>
+                  )}
+
+                  {/* Issue button - Store admin issues approved part to tech */}
+                  {request.status === 'approved' && !request.issued_at && (roleFlags.isAdmin || roleFlags.isAdminStore) && onIssuePartToTechnician && (
+                    <button
+                      onClick={() => onIssuePartToTechnician(request.request_id)}
+                      className="text-blue-600 hover:underline font-medium flex items-center gap-1 text-xs"
+                    >
+                      <PackageCheck className="w-3 h-3" /> Issue Part
+                    </button>
+                  )}
+
+                  {/* Out of Stock button - Store admin marks part unavailable */}
+                  {request.status === 'pending' && request.request_type === 'spare_part' && (roleFlags.isAdmin || roleFlags.isAdminStore) && onMarkOutOfStock && (
+                    <button
+                      onClick={() => {
+                        const notes = prompt('Supplier order notes (optional):');
+                        onMarkOutOfStock(request.request_id, request.admin_response_part_id || '', notes || undefined);
+                      }}
+                      className="text-orange-600 hover:underline font-medium flex items-center gap-1 text-xs"
+                    >
+                      <AlertTriangle className="w-3 h-3" /> Out of Stock
+                    </button>
+                  )}
+
+                  {/* Mark Received - Store admin marks ordered part as arrived */}
+                  {request.status === 'part_ordered' && (roleFlags.isAdmin || roleFlags.isAdminStore) && onMarkPartReceived && (
+                    <button
+                      onClick={() => onMarkPartReceived(request.request_id)}
+                      className="text-green-600 hover:underline font-medium flex items-center gap-1 text-xs"
+                    >
+                      <Package className="w-3 h-3" /> Mark Received
+                    </button>
+                  )}
+
+                  {/* Confirm Collection - Technician confirms they picked up the part */}
+                  {request.status === 'issued' && !request.collected_at && request.requested_by === currentUserId && onConfirmPartCollection && (
+                    <button
+                      onClick={() => onConfirmPartCollection(request.request_id)}
+                      className="text-green-600 hover:underline font-medium flex items-center gap-1 text-xs"
+                    >
+                      <CheckCircle className="w-3 h-3" /> Confirm Collection
                     </button>
                   )}
                 </div>
@@ -169,6 +238,28 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
                   </span>
                   {request.admin_response_notes && (
                     <p className="text-[var(--text-muted)] mt-1">{request.admin_response_notes}</p>
+                  )}
+                </div>
+              )}
+
+              {request.status === 'issued' && (
+                <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] text-xs">
+                  <span className="text-blue-600 font-medium">
+                    ✓ Part issued{request.issued_at ? ` on ${new Date(request.issued_at).toLocaleString()}` : ''}
+                  </span>
+                  {request.collected_at && (
+                    <span className="text-green-600 ml-2">· Collected {new Date(request.collected_at).toLocaleString()}</span>
+                  )}
+                </div>
+              )}
+
+              {request.status === 'part_ordered' && (
+                <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] text-xs">
+                  <span className="text-purple-600 font-medium">
+                    ⏳ Ordered from supplier{request.supplier_order_date ? ` on ${new Date(request.supplier_order_date).toLocaleString()}` : ''}
+                  </span>
+                  {request.supplier_order_notes && (
+                    <p className="text-[var(--text-muted)] mt-1">{request.supplier_order_notes}</p>
                   )}
                 </div>
               )}

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { approveSparePartRequest, createJobRequest, rejectRequest, updateJobRequest } from '../../../services/jobRequestService';
+import { approveSparePartRequest, createJobRequest, rejectRequest, updateJobRequest, issuePartToTechnician, markOutOfStock, markPartReceived, confirmPartCollection } from '../../../services/jobRequestService';
 import { showToast } from '../../../services/toastService';
 import { Job, JobRequestType } from '../../../types';
 import { JobDetailState } from './useJobDetailState';
@@ -131,11 +131,71 @@ export const useJobRequestActions = ({
     }
   }, [currentUserId, state]);
 
+  const handleIssuePartToTechnician = useCallback(async (requestId: string) => {
+    try {
+      const success = await issuePartToTechnician(requestId, currentUserId, currentUserName);
+      if (success) {
+        showToast.success('Part issued', 'Technician has been notified for collection');
+        loadJob();
+      } else {
+        showToast.error('Failed to issue part', 'Check stock availability');
+      }
+    } catch (e) {
+      showToast.error('Error issuing part', (e as Error).message);
+    }
+  }, [currentUserId, currentUserName, loadJob]);
+
+  const handleMarkOutOfStock = useCallback(async (requestId: string, partId: string, supplierNotes?: string) => {
+    try {
+      const success = await markOutOfStock(requestId, currentUserId, partId, supplierNotes);
+      if (success) {
+        showToast.success('Marked out of stock', 'Job set to Pending Parts. Supplier order recorded.');
+        loadJob();
+      } else {
+        showToast.error('Failed to mark out of stock');
+      }
+    } catch (e) {
+      showToast.error('Error', (e as Error).message);
+    }
+  }, [currentUserId, loadJob]);
+
+  const handleMarkPartReceived = useCallback(async (requestId: string, notes?: string) => {
+    try {
+      const success = await markPartReceived(requestId, currentUserId, notes);
+      if (success) {
+        showToast.success('Part received', 'Ready for issuance to technician');
+        loadJob();
+      } else {
+        showToast.error('Failed to mark as received');
+      }
+    } catch (e) {
+      showToast.error('Error', (e as Error).message);
+    }
+  }, [currentUserId, loadJob]);
+
+  const handleConfirmPartCollection = useCallback(async (requestId: string) => {
+    try {
+      const success = await confirmPartCollection(requestId, currentUserId);
+      if (success) {
+        showToast.success('Collection confirmed', 'Part marked as collected');
+        loadJob();
+      } else {
+        showToast.error('Failed to confirm collection');
+      }
+    } catch (e) {
+      showToast.error('Error', (e as Error).message);
+    }
+  }, [currentUserId, loadJob]);
+
   return {
     handleCreateRequest,
     handleApproveRequest,
     handleRejectRequest,
     handleEditRequest,
     handleUpdateRequest,
+    handleIssuePartToTechnician,
+    handleMarkOutOfStock,
+    handleMarkPartReceived,
+    handleConfirmPartCollection,
   };
 };
