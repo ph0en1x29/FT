@@ -14,6 +14,7 @@
 
 import {
   AlertTriangle,
+  Bell,
   CheckCircle,
   ChevronDown,
   ChevronRight,
@@ -184,27 +185,67 @@ const PipelineColumn: React.FC<{
       <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: `${color}20`, color }}>{count}</span>
     </button>
     <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-      {children}
+      {count === 0 ? (
+        <div className="py-4 text-center rounded-lg" style={{ background: 'var(--surface-2)', border: '1px dashed var(--border)' }}>
+          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>No jobs</p>
+        </div>
+      ) : children}
     </div>
   </div>
 );
 
-// Mini job card for pipeline
+// Mini job card for pipeline with inline assignment
 const PipelineCard: React.FC<{
   job: Job;
   techName?: string;
   onClick: () => void;
   accent: string;
-}> = ({ job, techName, onClick, accent }) => (
-  <button
-    onClick={onClick}
-    className="w-full text-left p-2 rounded-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
-    style={{ background: 'var(--surface-2)', borderLeft: `3px solid ${accent}` }}
-  >
-    <p className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>{job.job_number || job.title}</p>
-    <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>{techName || 'Unassigned'} • {job.customer?.name || ''}</p>
-  </button>
-);
+  technicians?: { user_id: string; name: string }[];
+  onAssign?: (jobId: string, techId: string) => void;
+}> = ({ job, techName, onClick, accent, technicians, onAssign }) => {
+  const [showAssign, setShowAssign] = useState(false);
+  const isUnassigned = !job.assigned_technician_id;
+  
+  return (
+    <div className="relative">
+      <button
+        onClick={onClick}
+        className="w-full text-left p-2 rounded-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+        style={{ background: 'var(--surface-2)', borderLeft: `3px solid ${accent}` }}
+      >
+        <p className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>{job.job_number || job.title}</p>
+        <div className="flex items-center gap-1">
+          {isUnassigned && onAssign ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowAssign(!showAssign); }}
+              className="text-[10px] font-medium px-1 rounded hover:opacity-80"
+              style={{ color: colors.orange.text, background: colors.orange.bg }}
+            >
+              + Assign
+            </button>
+          ) : (
+            <span className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>{techName || 'Unassigned'}</span>
+          )}
+          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>• {job.customer?.name || ''}</span>
+        </div>
+      </button>
+      {showAssign && technicians && onAssign && (
+        <div className="absolute top-full left-0 right-0 z-30 mt-1 rounded-lg shadow-lg py-1" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          {technicians.map(t => (
+            <button
+              key={t.user_id}
+              onClick={() => { onAssign(job.job_id, t.user_id); setShowAssign(false); }}
+              className="w-full text-left px-3 py-1.5 text-xs hover:opacity-80 transition-colors"
+              style={{ color: 'var(--text)' }}
+            >
+              {t.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Stat pill for summary bar
 const StatPill: React.FC<{
@@ -235,9 +276,28 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
   const [selectedApprovalIds, setSelectedApprovalIds] = useState<Set<string>>(new Set());
   const [processing, setProcessing] = useState(false);
   const [lowStockCount, setLowStockCount] = useState(0);
+  const [lowStockItems, setLowStockItems] = useState<{ name: string; quantity: number; min: number }[]>([]);
+
+  // Fetch notifications
+  const { data: notifications = [] } = useNotifications(currentUser.user_id, true);
+  const unreadCount = notifications.length;
 
   useEffect(() => {
     getGlobalLowStockCount().then(setLowStockCount).catch(() => {});
+    // Fetch top low stock items
+    import('../../../../services/supabaseService').then(({ supabase }) => {
+      supabase.from('van_stock_items').select('quantity, min_quantity, part:parts(part_name)')
+        .then(({ data }) => {
+          if (data) {
+            const low = data
+              .filter((i: Record<string, unknown>) => (i.quantity as number) <= (i.min_quantity as number))
+              .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.quantity as number) - (b.quantity as number))
+              .slice(0, 3)
+              .map((i: Record<string, unknown>) => ({ name: (i.part as Record<string, string>)?.part_name || 'Unknown', quantity: i.quantity as number, min: i.min_quantity as number }));
+            setLowStockItems(low);
+          }
+        });
+    }).catch(() => {});
   }, []);
 
   // ---- Data categorization ----
@@ -433,6 +493,39 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
     }
   }, [jobs, selectedApprovalIds, currentUser, onRefresh]);
 
+  // Inline assign handler
+  const handleInlineAssign = useCallback(async (jobId: string, techId: string) => {
+    try {
+      const tech = users.find(u => u.user_id === techId);
+      await SupabaseDb.updateJob(jobId, { assigned_technician_id: techId, assigned_technician_name: tech?.name || '', status: JobStatus.ASSIGNED });
+      showToast.success(`Assigned to ${tech?.name?.split(' ')[0]}`);
+      onRefresh();
+    } catch {
+      showToast.error('Failed to assign');
+    }
+  }, [users, onRefresh]);
+
+  // Recent activity (last 5 completed/status-changed jobs)
+  const recentActivity = useMemo(() => {
+    return jobs
+      .filter(j => j.completed_at || j.updated_at)
+      .sort((a, b) => {
+        const aTime = a.completed_at || a.updated_at;
+        const bTime = b.completed_at || b.updated_at;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      })
+      .slice(0, 5)
+      .map(j => {
+        const time = j.completed_at || j.updated_at;
+        const ago = Math.round((Date.now() - new Date(time).getTime()) / 60000);
+        const agoText = ago < 60 ? `${ago}m ago` : ago < 1440 ? `${Math.round(ago / 60)}h ago` : `${Math.round(ago / 1440)}d ago`;
+        return { job: j, status: j.status, agoText, techName: j.assigned_technician_id ? techNameMap.get(j.assigned_technician_id) : undefined };
+      });
+  }, [jobs, techNameMap]);
+
+  // Technician list for inline assignment
+  const techList = useMemo(() => technicians.map(t => ({ user_id: t.user_id, name: t.name })), [technicians]);
+
   // ---- Greeting ----
   const greeting = useMemo(() => {
     const hour = today.getHours();
@@ -472,6 +565,14 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
           <span className="px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-indigo-600 to-cyan-500 text-white">
             ⚡ V7.1
           </span>
+          <button onClick={() => navigate('/notifications')} className="relative p-2 rounded-xl transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <Bell className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center" style={{ background: colors.red.text, color: 'white' }}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
           <button onClick={onRefresh} className="p-2 rounded-xl transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <RefreshCw className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           </button>
@@ -607,7 +708,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
         <div className="flex gap-3 overflow-x-auto pb-2">
           <PipelineColumn title="New" count={jobsByStatus.newJobs.length} color={colors.blue.text} onClick={() => navigate('/jobs?filter=new')}>
             {jobsByStatus.newJobs.slice(0, 4).map(j => (
-              <PipelineCard key={j.job_id} job={j} techName={j.assigned_technician_id ? techNameMap.get(j.assigned_technician_id) : undefined} onClick={() => navigate(`/jobs/${j.job_id}`)} accent={colors.blue.text} />
+              <PipelineCard key={j.job_id} job={j} techName={j.assigned_technician_id ? techNameMap.get(j.assigned_technician_id) : undefined} onClick={() => navigate(`/jobs/${j.job_id}`)} accent={colors.blue.text} technicians={techList} onAssign={handleInlineAssign} />
             ))}
             {jobsByStatus.newJobs.length > 4 && <p className="text-[10px] text-center py-1" style={{ color: 'var(--text-muted)' }}>+{jobsByStatus.newJobs.length - 4} more</p>}
           </PipelineColumn>
@@ -785,6 +886,72 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
             </div>
           </Section>
         </div>
+      </div>
+
+      {/* ===== TWO COLUMN: LOW STOCK + RECENT ACTIVITY ===== */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Low Stock Alert */}
+        <Section
+          title="Low Stock"
+          icon={<Package className="w-4 h-4" style={{ color: colors.orange.text }} />}
+          badge={lowStockCount}
+          defaultOpen={lowStockCount > 0}
+          actions={
+            <button onClick={() => navigate('/inventory?filter=low-stock')} className="text-xs font-medium hover:opacity-70 flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+              All items <ChevronRight className="w-3 h-3" />
+            </button>
+          }
+        >
+          {lowStockItems.length === 0 ? (
+            <div className="py-3 text-center">
+              <Package className="w-8 h-8 mx-auto mb-1 opacity-30" style={{ color: 'var(--text-muted)' }} />
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Stock levels OK</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {lowStockItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-2 px-2.5 py-2 rounded-lg" style={{ background: colors.orange.bg }}>
+                  <span className="text-xs font-medium flex-1 truncate" style={{ color: 'var(--text)' }}>{item.name}</span>
+                  <span className="text-xs font-bold" style={{ color: item.quantity === 0 ? colors.red.text : colors.orange.text }}>
+                    {item.quantity}/{item.min}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        {/* Recent Activity */}
+        <Section
+          title="Recent Activity"
+          icon={<Clock className="w-4 h-4" style={{ color: colors.blue.text }} />}
+        >
+          {recentActivity.length === 0 ? (
+            <div className="py-3 text-center">
+              <Clock className="w-8 h-8 mx-auto mb-1 opacity-30" style={{ color: 'var(--text-muted)' }} />
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No recent activity</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {recentActivity.map(({ job, status, agoText, techName: tech }) => {
+                const statusColor = status === 'Completed' ? colors.green.text : status === 'In Progress' ? colors.blue.text : 'var(--text-muted)';
+                return (
+                  <button
+                    key={job.job_id}
+                    onClick={() => navigate(`/jobs/${job.job_id}`)}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-all hover:opacity-80"
+                    style={{ background: 'var(--surface-2)' }}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: statusColor }} />
+                    <span className="text-xs font-medium truncate flex-1" style={{ color: 'var(--text)' }}>{job.job_number || job.title}</span>
+                    <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{tech}</span>
+                    <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{agoText}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </Section>
       </div>
 
       {/* ===== BULK ACTION BAR (floating) ===== */}
