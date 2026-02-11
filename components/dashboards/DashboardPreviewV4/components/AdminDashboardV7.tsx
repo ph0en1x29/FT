@@ -471,8 +471,8 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
               <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>All clear</p>
             </div>
           ) : (
-            <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
-              {approvalQueue.slice(0, 5).map(item => {
+            <div className="space-y-1.5 max-h-[270px] overflow-y-auto pr-1">
+              {approvalQueue.map(item => {
                 const badge = getApprovalBadge(item.type);
                 return (
                   <SelectableJobRow
@@ -511,11 +511,6 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
                   />
                 );
               })}
-              {approvalQueue.length > 5 && (
-                <button onClick={() => navigate('/inventory?tab=confirmations')} className="w-full text-center py-1.5 text-xs font-medium hover:opacity-70" style={{ color: 'var(--accent)' }}>
-                  +{approvalQueue.length - 5} more →
-                </button>
-              )}
             </div>
           )}
         </Section>
@@ -532,12 +527,12 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
               <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>No urgent items</p>
             </div>
           ) : (
-            <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-[270px] overflow-y-auto pr-1">
               {[
                 ...jobsByStatus.escalated.map(j => ({ job: j, label: '🔥 Escalated', color: colors.red.text, bg: colors.red.bg })),
                 ...jobsByStatus.overdue.map(j => ({ job: j, label: '⏰ Overdue', color: colors.orange.text, bg: colors.orange.bg })),
                 ...jobsByStatus.disputed.map(j => ({ job: j, label: '⚠️ Disputed', color: '#9333ea', bg: '#f3e8ff' })),
-              ].slice(0, 5).map(({ job, label, color, bg }) => (
+              ].map(({ job, label, color, bg }) => (
                 <button
                   key={job.job_id}
                   onClick={() => navigate(`/jobs/${job.job_id}`)}
@@ -556,11 +551,6 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
                   <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                 </button>
               ))}
-              {urgentCount > 5 && (
-                <button onClick={() => navigate('/jobs?filter=action-required')} className="w-full text-center py-1.5 text-xs font-medium hover:opacity-70" style={{ color: 'var(--accent)' }}>
-                  +{urgentCount - 5} more →
-                </button>
-              )}
             </div>
           )}
         </Section>
@@ -622,39 +612,35 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
             </button>
           }
         >
-          <div className="flex flex-wrap gap-2">
+          <div className="max-h-[200px] overflow-y-auto pr-1">
             {teamStatus.length === 0 ? (
-              <p className="text-sm py-2" style={{ color: 'var(--text-muted)' }}>No technicians</p>
+              <p className="text-sm text-center py-2" style={{ color: 'var(--text-muted)' }}>No technicians</p>
             ) : (
-              <>
-                {teamStatus
-                  .sort((a, b) => {
-                    const order = { overloaded: 0, busy: 1, available: 2 };
-                    return order[a.status] - order[b.status];
-                  })
-                  .slice(0, 5)
-                  .map(({ tech, activeCount, status }) => {
-                    const statusColor = status === 'overloaded' ? colors.red.text : status === 'busy' ? colors.blue.text : colors.green.text;
-                    return (
-                      <div
-                        key={tech.user_id}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-                        style={{ background: `${statusColor}10`, border: `1px solid ${statusColor}30` }}
-                      >
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: statusColor }} />
-                        <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{tech.name?.split(' ')[0]}</span>
-                        {activeCount > 0 && (
-                          <span className="px-1.5 py-0.5 rounded text-xs font-bold" style={{ background: statusColor, color: 'white' }}>{activeCount}</span>
-                        )}
+              teamStatus
+                .sort((a, b) => {
+                  const order = { overloaded: 0, busy: 1, available: 2 };
+                  return order[a.status] - order[b.status];
+                })
+                .map(({ tech, activeCount, status }) => {
+                  const statusConfig = {
+                    available: { color: colors.green.text, bg: colors.green.bg, label: 'Available' },
+                    busy: { color: colors.blue.text, bg: colors.blue.bg, label: `${activeCount} jobs` },
+                    overloaded: { color: colors.red.text, bg: colors.red.bg, label: `${activeCount} jobs` },
+                  };
+                  const config = statusConfig[status];
+                  return (
+                    <div key={tech.user_id} className="flex items-center gap-3 py-2">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium" style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}>
+                        {tech.name?.charAt(0) || '?'}
                       </div>
-                    );
-                  })}
-                {teamStatus.length > 5 && (
-                  <button onClick={() => navigate('/people?tab=employees')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
-                    +{teamStatus.length - 5} more
-                  </button>
-                )}
-              </>
+                      <span className="flex-1 text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{tech.name}</span>
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full" style={{ background: config.bg }}>
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: config.color }} />
+                        <span className="text-[10px] font-medium" style={{ color: config.color }}>{config.label}</span>
+                      </div>
+                    </div>
+                  );
+                })
             )}
           </div>
         </Section>
