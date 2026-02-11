@@ -661,8 +661,11 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
                             e.stopPropagation();
                             try {
                               await SupabaseDb.confirmParts(item.job.job_id, currentUser.user_id, currentUser.name);
+                              showToast.success('Parts verified');
                               onRefresh();
-                            } catch { /* toast error */ }
+                            } catch (err) {
+                              showToast.error('Could not verify parts', (err as Error).message);
+                            }
                           }}
                           className="px-3 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
                           style={{ background: colors.green.text, color: 'white' }}

@@ -40,6 +40,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNotifications } from '../../../../hooks/useQueryHooks';
 import { getGlobalLowStockCount } from '../../../../services/inventoryService';
 import { SupabaseDb } from '../../../../services/supabaseService';
+import { showToast } from '../../../../services/toastService';
 import { Job, User, UserRole, JobStatus } from '../../../../types';
 import { colors, EscalationBanner } from './DashboardWidgets';
 
@@ -495,7 +496,7 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
                             try {
                               await SupabaseDb.confirmParts(item.job.job_id, currentUser.user_id, currentUser.name);
                               onRefresh();
-                            } catch { /* toast error */ }
+                            } catch (err) { showToast.error('Could not verify parts', (err as Error).message); }
                           }}
                           className="px-3 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
                           style={{ background: colors.green.text, color: 'white' }}
