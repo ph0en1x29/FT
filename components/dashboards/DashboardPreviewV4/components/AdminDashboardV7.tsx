@@ -449,70 +449,122 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
         )}
       </div>
 
-      {/* ===== APPROVAL QUEUE (Bulk Actions) ===== */}
-      <Section
-        title="Approval Queue"
-        icon={<Zap className="w-4 h-4" style={{ color: colors.orange.text }} />}
-        badge={approvalQueue.length}
-        badgeColor={colors.orange.bg}
-        actions={
-          approvalQueue.length > 0 ? (
-            <button onClick={selectAll} className="text-xs font-medium px-2 py-1 rounded-lg hover:opacity-80" style={{ color: 'var(--accent)', background: 'var(--accent-bg, rgba(59,130,246,0.08))' }}>
-              {selectedApprovalIds.size === approvalQueue.length ? 'Deselect All' : 'Select All'}
-            </button>
-          ) : undefined
-        }
-      >
-        {approvalQueue.length === 0 ? (
-          <div className="py-6 text-center">
-            <CheckCircle className="w-10 h-10 mx-auto mb-2" style={{ color: colors.green.text, opacity: 0.4 }} />
-            <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>All clear — nothing pending</p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>New items will appear here automatically</p>
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            {approvalQueue.map(item => {
-              const badge = getApprovalBadge(item.type);
-              return (
-                <SelectableJobRow
-                  key={`${item.type}-${item.job.job_id}`}
-                  job={item.job}
-                  selected={selectedApprovalIds.has(item.job.job_id)}
-                  onToggle={() => toggleSelection(item.job.job_id)}
-                  onClick={() => navigate(`/jobs/${item.job.job_id}`)}
-                  badge={badge}
-                  techName={item.job.assigned_technician_id ? techNameMap.get(item.job.assigned_technician_id) : undefined}
-                  showActions={
-                    item.type === 'parts' ? (
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            await SupabaseDb.confirmParts(item.job.job_id, currentUser.user_id, currentUser.name);
-                            onRefresh();
-                          } catch { /* toast error */ }
-                        }}
-                        className="px-3 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
-                        style={{ background: colors.green.text, color: 'white' }}
-                      >
-                        Verify
-                      </button>
-                    ) : item.type === 'escalation' ? (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${item.job.job_id}`); }}
-                        className="px-3 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
-                        style={{ background: colors.red.text, color: 'white' }}
-                      >
-                        Review
-                      </button>
-                    ) : undefined
-                  }
-                />
-              );
-            })}
-          </div>
-        )}
-      </Section>
+      {/* ===== TWO COLUMN: APPROVAL QUEUE + ACTION REQUIRED ===== */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Approval Queue */}
+        <Section
+          title="Approval Queue"
+          icon={<Zap className="w-4 h-4" style={{ color: colors.orange.text }} />}
+          badge={approvalQueue.length}
+          badgeColor={colors.orange.bg}
+          actions={
+            approvalQueue.length > 0 ? (
+              <button onClick={selectAll} className="text-xs font-medium px-2 py-1 rounded-lg hover:opacity-80" style={{ color: 'var(--accent)', background: 'var(--accent-bg, rgba(59,130,246,0.08))' }}>
+                {selectedApprovalIds.size === approvalQueue.length ? 'Deselect All' : 'Select All'}
+              </button>
+            ) : undefined
+          }
+        >
+          {approvalQueue.length === 0 ? (
+            <div className="py-4 text-center">
+              <CheckCircle className="w-8 h-8 mx-auto mb-1" style={{ color: colors.green.text, opacity: 0.4 }} />
+              <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>All clear</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+              {approvalQueue.slice(0, 5).map(item => {
+                const badge = getApprovalBadge(item.type);
+                return (
+                  <SelectableJobRow
+                    key={`${item.type}-${item.job.job_id}`}
+                    job={item.job}
+                    selected={selectedApprovalIds.has(item.job.job_id)}
+                    onToggle={() => toggleSelection(item.job.job_id)}
+                    onClick={() => navigate(`/jobs/${item.job.job_id}`)}
+                    badge={badge}
+                    techName={item.job.assigned_technician_id ? techNameMap.get(item.job.assigned_technician_id) : undefined}
+                    showActions={
+                      item.type === 'parts' ? (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await SupabaseDb.confirmParts(item.job.job_id, currentUser.user_id, currentUser.name);
+                              onRefresh();
+                            } catch { /* toast error */ }
+                          }}
+                          className="px-3 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
+                          style={{ background: colors.green.text, color: 'white' }}
+                        >
+                          Verify
+                        </button>
+                      ) : item.type === 'escalation' ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${item.job.job_id}`); }}
+                          className="px-3 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
+                          style={{ background: colors.red.text, color: 'white' }}
+                        >
+                          Review
+                        </button>
+                      ) : undefined
+                    }
+                  />
+                );
+              })}
+              {approvalQueue.length > 5 && (
+                <button onClick={() => navigate('/inventory?tab=confirmations')} className="w-full text-center py-1.5 text-xs font-medium hover:opacity-70" style={{ color: 'var(--accent)' }}>
+                  +{approvalQueue.length - 5} more →
+                </button>
+              )}
+            </div>
+          )}
+        </Section>
+
+        {/* Action Required (Escalations, Overdue, Disputed) */}
+        <Section
+          title="Action Required"
+          icon={<AlertTriangle className="w-4 h-4" style={{ color: colors.red.text }} />}
+          badge={urgentCount}
+        >
+          {urgentCount === 0 ? (
+            <div className="py-4 text-center">
+              <CheckCircle className="w-8 h-8 mx-auto mb-1" style={{ color: colors.green.text, opacity: 0.4 }} />
+              <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>No urgent items</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+              {[
+                ...jobsByStatus.escalated.map(j => ({ job: j, label: '🔥 Escalated', color: colors.red.text, bg: colors.red.bg })),
+                ...jobsByStatus.overdue.map(j => ({ job: j, label: '⏰ Overdue', color: colors.orange.text, bg: colors.orange.bg })),
+                ...jobsByStatus.disputed.map(j => ({ job: j, label: '⚠️ Disputed', color: '#9333ea', bg: '#f3e8ff' })),
+              ].slice(0, 5).map(({ job, label, color, bg }) => (
+                <button
+                  key={job.job_id}
+                  onClick={() => navigate(`/jobs/${job.job_id}`)}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all hover:scale-[1.005]"
+                  style={{ border: '1px solid var(--border-subtle)' }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{job.job_number || job.title}</span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0" style={{ background: bg, color }}>{label}</span>
+                    </div>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {job.customer?.name || 'Unknown'} • {job.assigned_technician_id ? techNameMap.get(job.assigned_technician_id) : 'Unassigned'}
+                    </span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                </button>
+              ))}
+              {urgentCount > 5 && (
+                <button onClick={() => navigate('/jobs?filter=action-required')} className="w-full text-center py-1.5 text-xs font-medium hover:opacity-70" style={{ color: 'var(--accent)' }}>
+                  +{urgentCount - 5} more →
+                </button>
+              )}
+            </div>
+          )}
+        </Section>
+      </div>
 
       {/* ===== JOB PIPELINE ===== */}
       <Section
@@ -570,31 +622,39 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
             </button>
           }
         >
-          <div className="space-y-1.5">
+          <div className="flex flex-wrap gap-2">
             {teamStatus.length === 0 ? (
-              <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>No technicians</p>
+              <p className="text-sm py-2" style={{ color: 'var(--text-muted)' }}>No technicians</p>
             ) : (
-              teamStatus
-                .sort((a, b) => {
-                  const order = { overloaded: 0, busy: 1, available: 2 };
-                  return order[a.status] - order[b.status];
-                })
-                .map(({ tech, activeCount, status }) => {
-                  const statusColor = status === 'overloaded' ? colors.red.text : status === 'busy' ? colors.blue.text : colors.green.text;
-                  return (
-                    <div
-                      key={tech.user_id}
-                      className="flex items-center gap-3 p-2 rounded-lg"
-                      style={{ background: 'var(--surface-2)' }}
-                    >
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: statusColor }} />
-                      <span className="text-sm font-medium flex-1" style={{ color: 'var(--text)' }}>{tech.name?.split(' ')[0]}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: `${statusColor}15`, color: statusColor }}>
-                        {activeCount === 0 ? 'Available' : `${activeCount} job${activeCount > 1 ? 's' : ''}`}
-                      </span>
-                    </div>
-                  );
-                })
+              <>
+                {teamStatus
+                  .sort((a, b) => {
+                    const order = { overloaded: 0, busy: 1, available: 2 };
+                    return order[a.status] - order[b.status];
+                  })
+                  .slice(0, 5)
+                  .map(({ tech, activeCount, status }) => {
+                    const statusColor = status === 'overloaded' ? colors.red.text : status === 'busy' ? colors.blue.text : colors.green.text;
+                    return (
+                      <div
+                        key={tech.user_id}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+                        style={{ background: `${statusColor}10`, border: `1px solid ${statusColor}30` }}
+                      >
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: statusColor }} />
+                        <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>{tech.name?.split(' ')[0]}</span>
+                        {activeCount > 0 && (
+                          <span className="px-1.5 py-0.5 rounded text-xs font-bold" style={{ background: statusColor, color: 'white' }}>{activeCount}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                {teamStatus.length > 5 && (
+                  <button onClick={() => navigate('/people?tab=employees')} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
+                    +{teamStatus.length - 5} more
+                  </button>
+                )}
+              </>
             )}
           </div>
         </Section>
