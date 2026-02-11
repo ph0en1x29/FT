@@ -22,9 +22,20 @@ interface SLAState {
 
 function formatTime(ms: number): string {
   const totalSeconds = Math.floor(Math.abs(ms) / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
   const seconds = totalSeconds % 60;
   const sign = ms < 0 ? '-' : '';
+
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    const remHours = hours % 24;
+    return `${sign}${days}d ${remHours}h`;
+  }
+  if (hours > 0) {
+    return `${sign}${hours}h ${minutes}m`;
+  }
   return `${sign}${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
@@ -163,10 +174,15 @@ export default function SlotInSLABadge({
     // Update immediately
     setSlaState(calculateSLAState(createdAt, acknowledgedAt, slaTargetMinutes));
 
-    // Set up interval for live countdown
+    // Live countdown: every second if within SLA window, every minute if breached <1h, stop if >1h overdue
+    const currentState = calculateSLAState(createdAt, acknowledgedAt, slaTargetMinutes);
+    const isStaleOverdue = currentState.status === 'breached' && Math.abs(currentState.remainingMs) > 60 * 60 * 1000;
+    if (isStaleOverdue) return; // No need to tick for stale overdue jobs
+
+    const tickMs = currentState.status === 'breached' ? 60000 : 1000;
     const interval = setInterval(() => {
       setSlaState(calculateSLAState(createdAt, acknowledgedAt, slaTargetMinutes));
-    }, 1000);
+    }, tickMs);
 
     return () => clearInterval(interval);
   }, [createdAt, acknowledgedAt, slaTargetMinutes]);
