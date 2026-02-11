@@ -107,7 +107,7 @@ const AdminDashboardV5: React.FC<AdminDashboardV5Props> = ({ currentUser, jobs, 
   });
   const unassignedJobs = jobs.filter(j => !j.assigned_technician_id && !['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(j.status));
   const inProgressJobs = jobs.filter(j => j.status === 'In Progress');
-  const escalatedJobs = jobs.filter(j => j.is_escalated && !j.escalation_acknowledged_at);
+  const escalatedJobs = jobs.filter(j => (j.is_escalated || j.escalation_triggered_at) && !j.escalation_acknowledged_at);
   const awaitingAckJobs = jobs.filter(j => j.status === 'Completed Awaiting Ack');
   const disputedJobs = jobs.filter(j => j.status === 'Disputed');
   const dueTodayJobs = jobs.filter(j => {

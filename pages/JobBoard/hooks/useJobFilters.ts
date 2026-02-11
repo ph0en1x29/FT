@@ -146,7 +146,7 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
           );
           break;
         case 'escalated':
-          result = result.filter(job => job.is_escalated && !job.escalation_acknowledged_at);
+          result = result.filter(job => (job.is_escalated || job.escalation_triggered_at) && !job.escalation_acknowledged_at);
           break;
         case 'awaiting-ack':
           result = result.filter(job => job.status === JobStatus.COMPLETED_AWAITING_ACK);

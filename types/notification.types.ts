@@ -23,6 +23,8 @@ export enum NotificationType {
   // Job type change notifications
   JOB_TYPE_CHANGE_REQUESTED = 'job_type_change_requested',
   JOB_TYPE_CHANGE_APPROVED = 'job_type_change_approved',
+  // Escalation
+  ESCALATION = 'escalation',
   JOB_TYPE_CHANGE_REJECTED = 'job_type_change_rejected',
   // Slot-In SLA notifications
   SLOT_IN_SLA_WARNING = 'slot_in_sla_warning', // Approaching 15-min deadline

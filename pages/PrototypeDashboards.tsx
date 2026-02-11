@@ -1,9 +1,10 @@
 import { AlertCircle,RefreshCw } from 'lucide-react';
-import React,{ useEffect,useState } from 'react';
+import React,{ useEffect,useRef,useState } from 'react';
 import DashboardPreviewV4 from '../components/dashboards/DashboardPreviewV4';
 import { useDevModeContext } from '../contexts/DevModeContext';
+import { runEscalationChecks } from '../services/escalationService';
 import { SupabaseDb } from '../services/supabaseService';
-import { Job,User } from '../types';
+import { Job,User,UserRole } from '../types';
 
 // =========================================
 // MAIN DASHBOARD (V4)
@@ -21,6 +22,17 @@ const DashboardV4: React.FC<DashboardV4Props> = ({ currentUser }) => {
 
   // Dev mode from context - shared with header DevModeSelector
   const devMode = useDevModeContext();
+  const escalationChecked = useRef(false);
+
+  // Run escalation checks once on dashboard load (admin/supervisor only)
+  useEffect(() => {
+    const role = devMode.displayRole || currentUser.role;
+    const isAdmin = [UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR].includes(role as UserRole);
+    if (isAdmin && !escalationChecked.current) {
+      escalationChecked.current = true;
+      runEscalationChecks().catch(() => {});
+    }
+  }, [currentUser.role, devMode.displayRole]);
 
   // Load data for ALL users
   useEffect(() => {
