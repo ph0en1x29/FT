@@ -62,6 +62,20 @@ export function useVanStock({ userId }: UseVanStockParams) {
     return vanStock.items.filter(item => item.quantity <= item.min_quantity);
   }, [vanStock?.items]);
 
+  // Confirm receipt of fulfilled replenishment
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const confirmReceipt = useCallback(async (replenishmentId: string) => {
+    setConfirmingId(replenishmentId);
+    try {
+      await MockDb.confirmReplenishmentReceipt(replenishmentId);
+      showToast.success('Receipt confirmed');
+      await loadData();
+    } catch (_error) {
+      showToast.error('Failed to confirm receipt');
+    }
+    setConfirmingId(null);
+  }, [userId, loadData]);
+
   // Pending replenishments count
   const pendingReplenishmentsCount = useMemo(() => {
     return replenishments.filter(r => 
@@ -77,6 +91,8 @@ export function useVanStock({ userId }: UseVanStockParams) {
     stats,
     lowStockItems,
     pendingReplenishmentsCount,
+    confirmReceipt,
+    confirmingId,
     loadData,
   };
 }

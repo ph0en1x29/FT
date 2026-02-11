@@ -58,35 +58,6 @@ export const getForkliftDailyUsage = async (
   };
 };
 
-/**
- * Get daily usage period setting
- */
-export const getDailyUsagePeriod = async (): Promise<number> => {
-  const { data, error } = await supabase
-    .from('app_settings')
-    .select('value')
-    .eq('key', 'daily_usage_period_days')
-    .single();
-
-  if (error || !data) return 14; // Default to 14 days
-  return parseInt(data.value, 10) || 14;
-};
-
-/**
- * Update daily usage period setting
- */
-export const updateDailyUsagePeriod = async (days: number): Promise<void> => {
-  const { error } = await supabase
-    .from('app_settings')
-    .upsert({
-      key: 'daily_usage_period_days',
-      value: days.toString(),
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
-
-  if (error) throw new Error(`Failed to update setting: ${error.message}`);
-};
-
 // =============================================
 // SERVICE UPGRADE LOGIC
 // =============================================
@@ -227,29 +198,6 @@ export const declineServiceUpgrade = async (
 // FULL SERVICE COMPLETION
 // =============================================
 
-/**
- * Complete a Full Service job and reset the hourmeter baseline
- */
-export const completeFullService = async (
-  jobId: string,
-  hourmeterReading: number
-): Promise<void> => {
-  // Validate input
-  if (!jobId) throw new Error('Job ID is required');
-  if (hourmeterReading < 0) throw new Error('Hourmeter reading cannot be negative');
-  if (!Number.isInteger(hourmeterReading)) {
-    hourmeterReading = Math.round(hourmeterReading);
-  }
-
-  const { error } = await supabase
-    .rpc('complete_full_service', {
-      p_job_id: jobId,
-      p_hourmeter_reading: hourmeterReading
-    });
-
-  if (error) throw new Error(`Failed to complete Full Service: ${error.message}`);
-};
-
 // =============================================
 // STALE DATA DETECTION
 // =============================================
@@ -281,63 +229,6 @@ export const getServiceIntervals = async () => {
 
   if (error) throw new Error(`Failed to fetch service intervals: ${error.message}`);
   return data || [];
-};
-
-// =============================================
-// STALE DATA NOTIFICATIONS
-// =============================================
-
-/**
- * Send notifications about stale hourmeter data to admins and supervisors
- */
-export const notifyStaleHourmeterData = async (): Promise<{ notified: number; staleCount: number }> => {
-  // Get stale forklifts
-  const staleForklifts = await getStaleForklifts();
-  
-  if (staleForklifts.length === 0) {
-    return { notified: 0, staleCount: 0 };
-  }
-  
-  // Get admin and supervisor users
-  const { data: adminUsers, error: userError } = await supabase
-    .from('users')
-    .select('user_id, name, role')
-    .in('role', ['Admin', 'Admin (Service)', 'Admin (Store)', 'Supervisor'])
-    .eq('is_active', true);
-  
-  if (userError || !adminUsers?.length) {
-    return { notified: 0, staleCount: staleForklifts.length };
-  }
-  
-  // Create notification message
-  const staleSerials = staleForklifts.slice(0, 5).map(f => f.serial_number).join(', ');
-  const message = staleForklifts.length > 5
-    ? `${staleForklifts.length} units have stale hourmeter data (60+ days): ${staleSerials}, and ${staleForklifts.length - 5} more.`
-    : `${staleForklifts.length} unit(s) have stale hourmeter data (60+ days): ${staleSerials}.`;
-  
-  // Create notifications for each admin/supervisor
-  const notifications = adminUsers.map(user => ({
-    user_id: user.user_id,
-    type: 'alert',
-    title: 'Stale Hourmeter Data Alert',
-    message,
-    reference_type: 'fleet',
-    reference_id: null,
-    is_read: false,
-    priority: 'medium',
-    created_at: new Date().toISOString()
-  }));
-  
-  const { error: insertError } = await supabase
-    .from('notifications')
-    .insert(notifications);
-  
-  if (insertError) {
-    console.error('Failed to create stale data notifications:', insertError);
-    return { notified: 0, staleCount: staleForklifts.length };
-  }
-  
-  return { notified: adminUsers.length, staleCount: staleForklifts.length };
 };
 
 /**

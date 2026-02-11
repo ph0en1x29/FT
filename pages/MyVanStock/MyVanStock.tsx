@@ -25,6 +25,8 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
     stats,
     lowStockItems,
     pendingReplenishmentsCount,
+    confirmReceipt,
+    confirmingId,
     loadData,
   } = useVanStock({ userId: currentUser.user_id });
 
@@ -159,7 +161,7 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
       )}
 
       {activeTab === 'history' && (
-        <UsageHistoryTab usageHistory={usageHistory} replenishments={replenishments} />
+        <UsageHistoryTab usageHistory={usageHistory} replenishments={replenishments} onConfirmReceipt={confirmReceipt} confirmingId={confirmingId} />
       )}
 
       {/* Replenishment Modal */}

@@ -34,8 +34,9 @@ TrendingUp,
 Users,
 UserX
 } from 'lucide-react';
-import React,{ useMemo,useState } from 'react';
+import React,{ useEffect,useMemo,useState } from 'react';
 import { useNotifications } from '../../../../hooks/useQueryHooks';
+import { getGlobalLowStockCount } from '../../../../services/inventoryService';
 import { Job,User,UserRole } from '../../../../types';
 import { colors,EscalationBanner } from './DashboardWidgets';
 
@@ -316,8 +317,11 @@ const AdminDashboardV6: React.FC<AdminDashboardV6Props> = ({ currentUser, jobs, 
     }
   };
 
-  // Placeholder: Low stock would come from inventory service
-  const lowStockCount = 0; // TODO: Integrate with inventory service
+  // Low stock count from inventory service
+  const [lowStockCount, setLowStockCount] = useState(0);
+  useEffect(() => {
+    getGlobalLowStockCount().then(setLowStockCount).catch(() => {});
+  }, []);
 
   return (
     <div className="space-y-4">

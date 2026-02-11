@@ -4,6 +4,8 @@ import { VanStockReplenishment,VanStockUsage } from '../../../types';
 interface UsageHistoryTabProps {
   usageHistory: VanStockUsage[];
   replenishments: VanStockReplenishment[];
+  onConfirmReceipt?: (replenishmentId: string) => void;
+  confirmingId?: string | null;
 }
 
 function getApprovalBadge(status: string) {
@@ -43,7 +45,7 @@ function getReplenishmentStatusClass(status: string) {
   }
 }
 
-export function UsageHistoryTab({ usageHistory, replenishments }: UsageHistoryTabProps) {
+export function UsageHistoryTab({ usageHistory, replenishments, onConfirmReceipt, confirmingId }: UsageHistoryTabProps) {
   return (
     <div className="space-y-4">
       {usageHistory.length === 0 ? (
@@ -112,6 +114,15 @@ export function UsageHistoryTab({ usageHistory, replenishments }: UsageHistoryTa
                   Requested: {new Date(rep.requested_at).toLocaleDateString()}
                   {rep.fulfilled_at && ` • Fulfilled: ${new Date(rep.fulfilled_at).toLocaleDateString()}`}
                 </div>
+                {rep.status === 'in_progress' && onConfirmReceipt && (
+                  <button
+                    onClick={() => onConfirmReceipt(rep.replenishment_id)}
+                    disabled={confirmingId === rep.replenishment_id}
+                    className="mt-2 w-full px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--success)] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  >
+                    {confirmingId === rep.replenishment_id ? 'Confirming...' : '✓ Confirm Receipt'}
+                  </button>
+                )}
               </div>
             ))}
           </div>

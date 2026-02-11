@@ -385,6 +385,20 @@ export const getLowStockItems = async (technicianId: string): Promise<VanStockIt
   }
 };
 
+/**
+ * Get count of all low-stock van stock items across all technicians (for admin dashboard)
+ */
+export const getGlobalLowStockCount = async (): Promise<number> => {
+  try {
+    const { data } = await supabase
+      .from('van_stock_items')
+      .select('quantity, min_quantity');
+    return (data || []).filter(i => i.quantity <= i.min_quantity).length;
+  } catch {
+    return 0;
+  }
+};
+
 export const scheduleVanStockAudit = async (
   vanStockId: string,
   technicianId: string,
