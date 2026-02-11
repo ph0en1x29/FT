@@ -449,8 +449,8 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
         )}
       </div>
 
-      {/* ===== TWO COLUMN: APPROVAL QUEUE + ACTION REQUIRED ===== */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* ===== TWO COLUMN: APPROVAL QUEUE (wider) + ACTION REQUIRED (narrower) ===== */}
+      <div className="grid gap-4" style={{ gridTemplateColumns: '3fr 2fr' }}>
         {/* Approval Queue */}
         <Section
           title="Approval Queue"
