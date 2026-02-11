@@ -74,7 +74,7 @@ const StoreManagerPage: React.FC<StoreManagerPageProps> = ({ currentUser }) => {
   }, [mainTab, loadRequests, loadReplenishments]);
 
   const handleIssuePart = async (requestId: string) => {
-    const success = await issuePartToTechnician(requestId, currentUser.user_id, currentUser.name);
+    const success = await issuePartToTechnician(requestId, currentUser.user_id, currentUser.name, currentUser.role);
     if (success) { showToast.success('Part issued'); loadRequests(); }
     else showToast.error('Failed to issue part');
   };

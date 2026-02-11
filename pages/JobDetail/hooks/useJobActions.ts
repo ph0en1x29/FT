@@ -70,6 +70,7 @@ export const useJobActions = ({
     state,
     currentUserId,
     currentUserName,
+    currentUserRole,
     loadJob,
   });
 

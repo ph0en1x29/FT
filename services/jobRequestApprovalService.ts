@@ -20,7 +20,8 @@ export const approveSparePartRequest = async (
   partId: string,
   quantity: number,
   notes?: string,
-  adminUserName?: string
+  adminUserName?: string,
+  adminRole?: string
 ): Promise<boolean> => {
   try {
     const { data: request, error: reqError } = await supabase
@@ -97,15 +98,23 @@ export const approveSparePartRequest = async (
       return false;
     }
 
-    // Auto-confirm parts when admin approves request (unified admin workflow)
+    // Auto-confirm parts (and job for unified admin) when admin approves request
     if (adminUserName) {
+      const now = new Date().toISOString();
+      const confirmUpdates: Record<string, string> = {
+        parts_confirmed_at: now,
+        parts_confirmed_by_id: adminUserId,
+        parts_confirmed_by_name: adminUserName,
+      };
+      // Unified admin: also auto-confirm job
+      if (adminRole === 'admin') {
+        confirmUpdates.job_confirmed_at = now;
+        confirmUpdates.job_confirmed_by_id = adminUserId;
+        confirmUpdates.job_confirmed_by_name = adminUserName;
+      }
       const { error: confirmError } = await supabase
         .from('jobs')
-        .update({
-          parts_confirmed_at: new Date().toISOString(),
-          parts_confirmed_by_id: adminUserId,
-          parts_confirmed_by_name: adminUserName,
-        })
+        .update(confirmUpdates)
         .eq('job_id', request.job_id);
       if (confirmError) {
         console.warn('Part added, but auto-confirm failed:', confirmError.message);
@@ -235,7 +244,8 @@ export const markPartReceived = async (
 export const issuePartToTechnician = async (
   requestId: string,
   adminUserId: string,
-  adminUserName: string
+  adminUserName: string,
+  adminRole?: string
 ): Promise<boolean> => {
   try {
     const { data: request, error: reqError } = await supabase
@@ -299,14 +309,21 @@ export const issuePartToTechnician = async (
       return false;
     }
 
-    // Auto-confirm parts
+    // Auto-confirm parts (and job for unified admin)
+    const now2 = new Date().toISOString();
+    const confirmUpdates2: Record<string, string> = {
+      parts_confirmed_at: now2,
+      parts_confirmed_by_id: adminUserId,
+      parts_confirmed_by_name: adminUserName,
+    };
+    if (adminRole === 'admin') {
+      confirmUpdates2.job_confirmed_at = now2;
+      confirmUpdates2.job_confirmed_by_id = adminUserId;
+      confirmUpdates2.job_confirmed_by_name = adminUserName;
+    }
     await supabase
       .from('jobs')
-      .update({
-        parts_confirmed_at: new Date().toISOString(),
-        parts_confirmed_by_id: adminUserId,
-        parts_confirmed_by_name: adminUserName,
-      })
+      .update(confirmUpdates2)
       .eq('job_id', request.job_id);
 
     // If job was on Pending Parts, move back to In Progress

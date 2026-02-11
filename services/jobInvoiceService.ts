@@ -77,14 +77,18 @@ export const addPartToJob = async (
     }
   }
 
-  // Auto-confirm parts when admin adds them (unified admin workflow)
+  // Auto-confirm parts (and job for unified admin) when admin adds them
   if (actorRole === UserRole.ADMIN && actorId && actorName) {
+    const now = new Date().toISOString();
     const { error: confirmError } = await supabase
       .from('jobs')
       .update({
-        parts_confirmed_at: new Date().toISOString(),
+        parts_confirmed_at: now,
         parts_confirmed_by_id: actorId,
         parts_confirmed_by_name: actorName,
+        job_confirmed_at: now,
+        job_confirmed_by_id: actorId,
+        job_confirmed_by_name: actorName,
       })
       .eq('job_id', jobId);
     if (confirmError) {

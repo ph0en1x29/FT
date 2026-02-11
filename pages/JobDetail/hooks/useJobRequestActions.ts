@@ -9,6 +9,7 @@ interface UseJobRequestActionsParams {
   state: JobDetailState;
   currentUserId: string;
   currentUserName: string;
+  currentUserRole: string;
   loadJob: () => Promise<void>;
 }
 
@@ -20,6 +21,7 @@ export const useJobRequestActions = ({
   state,
   currentUserId,
   currentUserName,
+  currentUserRole,
   loadJob,
 }: UseJobRequestActionsParams) => {
   const handleCreateRequest = useCallback(async (
@@ -60,7 +62,8 @@ export const useJobRequestActions = ({
         partId,
         quantity,
         notes,
-        currentUserName
+        currentUserName,
+        currentUserRole
       );
       if (success) {
         showToast.success('Request approved', 'Part added to job');
@@ -133,7 +136,7 @@ export const useJobRequestActions = ({
 
   const handleIssuePartToTechnician = useCallback(async (requestId: string) => {
     try {
-      const success = await issuePartToTechnician(requestId, currentUserId, currentUserName);
+      const success = await issuePartToTechnician(requestId, currentUserId, currentUserName, currentUserRole);
       if (success) {
         showToast.success('Part issued', 'Technician has been notified for collection');
         loadJob();
