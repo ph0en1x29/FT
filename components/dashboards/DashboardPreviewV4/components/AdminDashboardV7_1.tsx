@@ -479,6 +479,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
     }
     setProcessing(false);
     setSelectedApprovalIds(new Set());
+    await new Promise(r => setTimeout(r, 300));
     onRefresh();
     if (failed === 0) {
       showToast.success(`${success} job${success > 1 ? 's' : ''} parts confirmed`);
@@ -662,6 +663,8 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
                             try {
                               await SupabaseDb.confirmParts(item.job.job_id, currentUser.user_id, currentUser.name, currentUser.role);
                               showToast.success('Parts verified');
+                              // Small delay to ensure Supabase commit propagates before re-fetch
+                              await new Promise(r => setTimeout(r, 300));
                               onRefresh();
                             } catch (err) {
                               showToast.error('Could not verify parts', (err as Error).message);
