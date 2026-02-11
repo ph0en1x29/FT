@@ -505,19 +505,36 @@ export const addNote = async (jobId: string, note: string): Promise<Job> => {
 // =====================
 
 /**
- * Confirm parts used on a job
- * @stub Returns job unchanged for now
+ * Confirm parts used on a job (Admin 2 / Store verification)
  */
 export const confirmParts = async (
   jobId: string,
-  _userId: string,
-  _userName: string
+  userId: string,
+  userName: string
 ): Promise<Job> => {
   logDebug('[JobService] confirmParts called for job:', jobId);
-  // For now, just return the job unchanged
-  const job = await getJobById(jobId);
-  if (!job) throw new Error('Job not found');
-  return job;
+  
+  const { data, error } = await supabase
+    .from('jobs')
+    .update({
+      parts_confirmed_at: new Date().toISOString(),
+      parts_confirmed_by_id: userId,
+      parts_confirmed_by_name: userName,
+      updated_at: new Date().toISOString()
+    })
+    .eq('job_id', jobId)
+    .select(`
+      *,
+      customer:customers(*),
+      forklift:forklifts!forklift_id(*),
+      parts_used:job_parts(*),
+      media:job_media(*),
+      extra_charges:extra_charges(*)
+    `)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as Job;
 };
 
 /**
