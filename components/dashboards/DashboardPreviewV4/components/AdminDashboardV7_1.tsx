@@ -350,30 +350,38 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
   }, [jobs, todayStr]);
 
   // Approval queue: jobs needing parts confirmation or job confirmation
+  // Approval queue: one entry per job, highest priority type wins
   const approvalQueue = useMemo(() => {
-    const items: { job: Job; type: 'parts' | 'job' | 'escalation' | 'dispute' | 'ack'; priority: number }[] = [];
+    const jobMap = new Map<string, { job: Job; type: 'parts' | 'job' | 'escalation' | 'dispute' | 'ack'; priority: number }>();
     
-    jobs.forEach(j => {
-      // Parts needing verification
-      if (j.parts_used?.length > 0 && !j.parts_confirmed_at && !j.parts_confirmation_skipped &&
-          ['Awaiting Finalization', 'Completed', 'Completed Awaiting Ack'].includes(j.status)) {
-        items.push({ job: j, type: 'parts', priority: 2 });
+    const addOrUpgrade = (job: Job, type: 'parts' | 'job' | 'escalation' | 'dispute' | 'ack', priority: number) => {
+      const existing = jobMap.get(job.job_id);
+      if (!existing || priority < existing.priority) {
+        jobMap.set(job.job_id, { job, type, priority });
       }
-      // Escalations
+    };
+
+    jobs.forEach(j => {
+      // Escalations (highest priority)
       if ((j.is_escalated || j.escalation_triggered_at) && !j.escalation_acknowledged_at) {
-        items.push({ job: j, type: 'escalation', priority: 0 });
+        addOrUpgrade(j, 'escalation', 0);
       }
       // Disputes
       if (j.status === 'Disputed') {
-        items.push({ job: j, type: 'dispute', priority: 1 });
+        addOrUpgrade(j, 'dispute', 1);
+      }
+      // Parts needing verification
+      if (j.parts_used?.length > 0 && !j.parts_confirmed_at && !j.parts_confirmation_skipped &&
+          ['Awaiting Finalization', 'Completed', 'Completed Awaiting Ack'].includes(j.status)) {
+        addOrUpgrade(j, 'parts', 2);
       }
       // Awaiting acknowledgement
       if (j.status === 'Completed Awaiting Ack') {
-        items.push({ job: j, type: 'ack', priority: 3 });
+        addOrUpgrade(j, 'ack', 3);
       }
     });
 
-    return items.sort((a, b) => a.priority - b.priority);
+    return Array.from(jobMap.values()).sort((a, b) => a.priority - b.priority);
   }, [jobs]);
 
   // SLA metrics
