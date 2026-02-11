@@ -67,7 +67,7 @@ const Section: React.FC<{
 }> = ({ title, icon, badge, badgeColor, defaultOpen = true, actions, children }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+    <div className="rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
       <button
         onClick={() => setOpen(!open)}
         className="w-full px-4 py-3 flex items-center justify-between transition-colors hover:opacity-90"
@@ -527,7 +527,7 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
               <p className="font-medium text-sm" style={{ color: 'var(--text)' }}>No urgent items</p>
             </div>
           ) : (
-            <div className="space-y-1.5 max-h-[270px] overflow-y-auto pr-1">
+            <div className="space-y-1 max-h-[270px] overflow-y-auto pr-1">
               {[
                 ...jobsByStatus.escalated.map(j => ({ job: j, label: '🔥 Escalated', color: colors.red.text, bg: colors.red.bg })),
                 ...jobsByStatus.overdue.map(j => ({ job: j, label: '⏰ Overdue', color: colors.orange.text, bg: colors.orange.bg })),
@@ -536,19 +536,13 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
                 <button
                   key={job.job_id}
                   onClick={() => navigate(`/jobs/${job.job_id}`)}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all hover:scale-[1.005]"
-                  style={{ border: '1px solid var(--border-subtle)' }}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-all hover:opacity-80"
+                  style={{ background: `${bg}` }}
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{job.job_number || job.title}</span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0" style={{ background: bg, color }}>{label}</span>
-                    </div>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {job.customer?.name || 'Unknown'} • {job.assigned_technician_id ? techNameMap.get(job.assigned_technician_id) : 'Unassigned'}
-                    </span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0" style={{ color }}>{label}</span>
+                  <span className="text-xs font-medium truncate flex-1" style={{ color: 'var(--text)' }}>{job.job_number || job.title}</span>
+                  <span className="text-[10px] truncate max-w-[80px]" style={{ color: 'var(--text-muted)' }}>{job.customer?.name || ''}</span>
+                  <ChevronRight className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                 </button>
               ))}
             </div>
