@@ -519,8 +519,7 @@ export const confirmParts = async (
     .update({
       parts_confirmed_at: new Date().toISOString(),
       parts_confirmed_by_id: userId,
-      parts_confirmed_by_name: userName,
-      updated_at: new Date().toISOString()
+      parts_confirmed_by_name: userName
     })
     .eq('job_id', jobId)
     .select(`
