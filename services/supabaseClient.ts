@@ -190,6 +190,9 @@ export const JOB_SELECT = {
     acknowledged_at,
     escalation_triggered_at,
     escalation_acknowledged_at,
+    parts_confirmed_at,
+    parts_confirmation_skipped,
+    job_confirmed_at,
     created_at,
     scheduled_date
   `,
