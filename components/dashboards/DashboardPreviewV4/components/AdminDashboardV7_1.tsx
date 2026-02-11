@@ -41,6 +41,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNotifications } from '../../../../hooks/useQueryHooks';
 import { getGlobalLowStockCount } from '../../../../services/inventoryService';
 import { SupabaseDb } from '../../../../services/supabaseService';
+import { supabase } from '../../../../services/supabaseClient';
 import { Job, User, UserRole, JobStatus } from '../../../../types';
 import { showToast } from '../../../../services/toastService';
 import { colors, EscalationBanner } from './DashboardWidgets';
@@ -204,10 +205,23 @@ const PipelineCard: React.FC<{
   onAssign?: (jobId: string, techId: string) => void;
 }> = ({ job, techName, onClick, accent, technicians, onAssign }) => {
   const [showAssign, setShowAssign] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
   const isUnassigned = !job.assigned_technician_id;
+
+  // Click outside to close dropdown
+  React.useEffect(() => {
+    if (!showAssign) return;
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowAssign(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showAssign]);
   
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
         onClick={onClick}
         className="w-full text-left p-2 rounded-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -218,7 +232,7 @@ const PipelineCard: React.FC<{
           {isUnassigned && onAssign ? (
             <button
               onClick={(e) => { e.stopPropagation(); setShowAssign(!showAssign); }}
-              className="text-[10px] font-medium px-1 rounded hover:opacity-80"
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded hover:opacity-80 transition-colors"
               style={{ color: colors.orange.text, background: colors.orange.bg }}
             >
               + Assign
@@ -226,17 +240,19 @@ const PipelineCard: React.FC<{
           ) : (
             <span className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>{techName || 'Unassigned'}</span>
           )}
-          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>• {job.customer?.name || ''}</span>
+          <span className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>• {job.customer?.name || ''}</span>
         </div>
       </button>
       {showAssign && technicians && onAssign && (
-        <div className="absolute top-full left-0 right-0 z-30 mt-1 rounded-lg shadow-lg py-1" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div className="absolute top-full left-0 right-0 z-30 mt-1 rounded-lg shadow-xl py-1 max-h-[150px] overflow-y-auto" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
           {technicians.map(t => (
             <button
               key={t.user_id}
               onClick={() => { onAssign(job.job_id, t.user_id); setShowAssign(false); }}
-              className="w-full text-left px-3 py-1.5 text-xs hover:opacity-80 transition-colors"
+              className="w-full text-left px-3 py-1.5 text-xs transition-colors"
               style={{ color: 'var(--text)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               {t.name}
             </button>
@@ -285,19 +301,17 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
   useEffect(() => {
     getGlobalLowStockCount().then(setLowStockCount).catch(() => {});
     // Fetch top low stock items
-    import('../../../../services/supabaseService').then(({ supabase }) => {
-      supabase.from('van_stock_items').select('quantity, min_quantity, part:parts(part_name)')
-        .then(({ data }) => {
-          if (data) {
-            const low = data
-              .filter((i: Record<string, unknown>) => (i.quantity as number) <= (i.min_quantity as number))
-              .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.quantity as number) - (b.quantity as number))
-              .slice(0, 3)
-              .map((i: Record<string, unknown>) => ({ name: (i.part as Record<string, string>)?.part_name || 'Unknown', quantity: i.quantity as number, min: i.min_quantity as number }));
-            setLowStockItems(low);
-          }
-        });
-    }).catch(() => {});
+    Promise.resolve(supabase.from('van_stock_items').select('quantity, min_quantity, part:parts(part_name)'))
+      .then(({ data }) => {
+        if (data) {
+          const low = data
+            .filter((i: Record<string, unknown>) => (i.quantity as number) <= (i.min_quantity as number))
+            .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.quantity as number) - (b.quantity as number))
+            .slice(0, 3)
+            .map((i: Record<string, unknown>) => ({ name: (i.part as Record<string, string>)?.part_name || 'Unknown', quantity: i.quantity as number, min: i.min_quantity as number }));
+          setLowStockItems(low);
+        }
+      }).catch(() => {});
   }, []);
 
   // ---- Data categorization ----
@@ -587,7 +601,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
 
       {/* ===== SUMMARY BAR ===== */}
       <div className="flex items-center gap-2 flex-wrap">
-        <StatPill label="Overdue" value={jobsByStatus.overdue.length} color={colors.red.text} pulse={jobsByStatus.overdue.length > 0} onClick={() => navigate('/jobs?filter=overdue')} />
+        <StatPill label="Overdue" value={jobsByStatus.overdue.length} color={colors.red.text} pulse={jobsByStatus.overdue.length > 2} onClick={() => navigate('/jobs?filter=overdue')} />
         <StatPill label="Unassigned" value={jobsByStatus.unassigned.length} color={colors.orange.text} onClick={() => navigate('/jobs?filter=unassigned')} />
         <StatPill label="In Progress" value={jobsByStatus.inProgress.length} color={colors.blue.text} onClick={() => navigate('/jobs?filter=in-progress')} />
         <StatPill label="To Finalize" value={jobsByStatus.awaitingFinalization.length} color="#9333ea" onClick={() => navigate('/jobs?filter=awaiting-finalization')} />
@@ -599,7 +613,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
       </div>
 
       {/* ===== TWO COLUMN: APPROVAL QUEUE (wider) + ACTION REQUIRED (narrower) ===== */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: '3fr 2fr' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4">
         {/* Approval Queue */}
         <Section
           title="Approval Queue"
@@ -790,7 +804,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
       </Section>
 
       {/* ===== TWO COLUMN: TEAM + TODAY'S PROGRESS ===== */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Team Status */}
         <Section
           title="Team"
@@ -889,7 +903,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
       </div>
 
       {/* ===== TWO COLUMN: LOW STOCK + RECENT ACTIVITY ===== */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Low Stock Alert */}
         <Section
           title="Low Stock"
