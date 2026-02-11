@@ -18,6 +18,7 @@ X
 import React,{ useEffect,useRef,useState } from 'react';
 import { Job,User,UserRole } from '../../../../types';
 import AdminDashboardV7 from './AdminDashboardV7';
+import AdminDashboardV7_1 from './AdminDashboardV7_1';
 import { colors,EscalationBanner,KPICard,QueueItem,QueueItemType,QuickChip,TeamRow } from './DashboardWidgets';
 
 interface AdminDashboardProps {
@@ -38,7 +39,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, user
   
   // Prototype toggle - only for dev@test.com (and not hidden by parent)
   const isDevUser = currentUser.email === 'dev@test.com' && !hideV5Toggle;
-  const [protoVersion, setProtoVersion] = useState<'v4' | 'v7'>('v4');
+  const [protoVersion, setProtoVersion] = useState<'v4' | 'v7' | 'v7.1'>('v4');
 
   // Click outside handler for notification dropdown (MUST be before any early return)
   useEffect(() => {
@@ -126,9 +127,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, user
             <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Prototype:</span>
             <button
               onClick={() => setProtoVersion('v7')}
-              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${protoVersion === 'v7' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white' : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'}`}
             >
               ⚡ V7
+            </button>
+            <button
+              onClick={() => setProtoVersion('v7.1')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${protoVersion === 'v7.1' ? 'bg-gradient-to-r from-indigo-600 to-cyan-500 text-white' : 'bg-cyan-100 text-cyan-600 hover:bg-cyan-200'}`}
+            >
+              ⚡ V7.1
             </button>
           </div>
           <button
@@ -138,7 +145,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, user
             ← Back to V4
           </button>
         </div>
-        <AdminDashboardV7 currentUser={currentUser} jobs={jobs} users={users} onRefresh={onRefresh} navigate={navigate} />
+        {protoVersion === 'v7' && (
+          <AdminDashboardV7 currentUser={currentUser} jobs={jobs} users={users} onRefresh={onRefresh} navigate={navigate} />
+        )}
+        {protoVersion === 'v7.1' && (
+          <AdminDashboardV7_1 currentUser={currentUser} jobs={jobs} users={users} onRefresh={onRefresh} navigate={navigate} />
+        )}
       </div>
     );
   }
@@ -331,13 +343,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, jobs, user
           </div>
           {/* Prototype Toggle - only for dev user */}
           {isDevUser && (
-            <button
-              onClick={() => setProtoVersion('v7')}
-              className="px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:opacity-90"
-              title="Try Dashboard V7 (Command Center)"
-            >
-              ⚡ V7
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setProtoVersion('v7')}
+                className="px-3 py-2 rounded-l-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:opacity-90"
+              >
+                ⚡ V7
+              </button>
+              <button
+                onClick={() => setProtoVersion('v7.1')}
+                className="px-3 py-2 rounded-r-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-indigo-600 to-cyan-500 text-white hover:opacity-90"
+              >
+                ⚡ V7.1
+              </button>
+            </div>
           )}
           <button onClick={onRefresh} className="p-2 rounded-xl transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <RefreshCw className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
