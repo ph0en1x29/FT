@@ -510,17 +510,28 @@ export const addNote = async (jobId: string, note: string): Promise<Job> => {
 export const confirmParts = async (
   jobId: string,
   userId: string,
-  userName: string
+  userName: string,
+  userRole?: string
 ): Promise<Job> => {
-  logDebug('[JobService] confirmParts called for job:', jobId);
+  logDebug('[JobService] confirmParts called for job:', jobId, 'role:', userRole);
   
+  const now = new Date().toISOString();
+  const updates: Record<string, unknown> = {
+    parts_confirmed_at: now,
+    parts_confirmed_by_id: userId,
+    parts_confirmed_by_name: userName
+  };
+
+  // Unified admin: auto-confirm job as well (skip the two-step process)
+  if (userRole === 'admin') {
+    updates.job_confirmed_at = now;
+    updates.job_confirmed_by_id = userId;
+    updates.job_confirmed_by_name = userName;
+  }
+
   const { data, error } = await supabase
     .from('jobs')
-    .update({
-      parts_confirmed_at: new Date().toISOString(),
-      parts_confirmed_by_id: userId,
-      parts_confirmed_by_name: userName
-    })
+    .update(updates)
     .eq('job_id', jobId)
     .select(`
       *,

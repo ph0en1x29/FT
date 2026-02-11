@@ -11,6 +11,7 @@ interface UseJobPartsHandlersParams {
   state: JobDetailState;
   currentUserId: string;
   currentUserName: string;
+  currentUserRole: string;
   loadJob: () => Promise<void>;
   setJob: (j: Job | null | ((prev: Job | null) => Job | null)) => void;
 }
@@ -20,6 +21,7 @@ export const useJobPartsHandlers = ({
   state,
   currentUserId,
   currentUserName,
+  currentUserRole,
   loadJob,
   setJob,
 }: UseJobPartsHandlersParams) => {
@@ -91,7 +93,7 @@ export const useJobPartsHandlers = ({
   const handleConfirmParts = useCallback(async () => {
     if (!job) return;
     try {
-      const updated = await MockDb.confirmParts(job.job_id, currentUserId, currentUserName);
+      const updated = await MockDb.confirmParts(job.job_id, currentUserId, currentUserName, currentUserRole);
       setJob({ ...updated } as Job);
       showToast.success('Parts confirmed');
     } catch (e) {

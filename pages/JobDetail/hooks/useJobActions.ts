@@ -15,6 +15,7 @@ interface UseJobActionsParams {
   state: JobDetailState;
   currentUserId: string;
   currentUserName: string;
+  currentUserRole: string;
   technicians: User[];
   loadJob: () => Promise<void>;
 }
@@ -27,6 +28,7 @@ export const useJobActions = ({
   state,
   currentUserId,
   currentUserName,
+  currentUserRole,
   technicians,
   loadJob,
 }: UseJobActionsParams) => {
@@ -76,6 +78,7 @@ export const useJobActions = ({
     state,
     currentUserId,
     currentUserName,
+    currentUserRole,
     loadJob,
     setJob,
   });

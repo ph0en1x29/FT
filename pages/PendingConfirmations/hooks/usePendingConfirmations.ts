@@ -83,13 +83,21 @@ export function usePendingConfirmations(currentUser: User) {
         return;
       }
 
-      const updated = await MockDb.updateJob(jobId, {
-        parts_confirmed_at: new Date().toISOString(),
+      const now = new Date().toISOString();
+      const confirmUpdates: Record<string, unknown> = {
+        parts_confirmed_at: now,
         parts_confirmed_by_id: currentUser.user_id,
         parts_confirmed_by_name: currentUser.name,
-      });
+      };
+      // Unified admin: auto-confirm job as well
+      if (currentUser.role === UserRole.ADMIN) {
+        confirmUpdates.job_confirmed_at = now;
+        confirmUpdates.job_confirmed_by_id = currentUser.user_id;
+        confirmUpdates.job_confirmed_by_name = currentUser.name;
+      }
+      const updated = await MockDb.updateJob(jobId, confirmUpdates);
       setJobs(prev => prev.map(j => j.job_id === jobId ? { ...j, ...updated } : j));
-      showToast.success('Parts confirmed', 'Job moved to service confirmation queue');
+      showToast.success('Parts confirmed', currentUser.role === UserRole.ADMIN ? 'Job also auto-confirmed' : 'Job moved to service confirmation queue');
 
       await MockDb.releaseJobLock(jobId, currentUser.user_id);
       loadJobs();

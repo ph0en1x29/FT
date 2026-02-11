@@ -66,7 +66,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const { loadJob } = useJobData({ jobId: id, currentUserId, currentUserRole, state });
 
   // All actions
-  const actions = useJobActions({ state, currentUserId, currentUserName, technicians, loadJob });
+  const actions = useJobActions({ state, currentUserId, currentUserName, currentUserRole, technicians, loadJob });
 
   // Derived flags
   const statusFlags = getStatusFlags(job, currentUserId, currentUserRole);

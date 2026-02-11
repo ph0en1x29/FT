@@ -377,7 +377,7 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
     let failed = 0;
     for (const item of partsItems) {
       try {
-        await SupabaseDb.confirmParts(item.job.job_id, currentUser.user_id, currentUser.name);
+        await SupabaseDb.confirmParts(item.job.job_id, currentUser.user_id, currentUser.name, currentUser.role);
         success++;
       } catch {
         failed++;
@@ -494,7 +494,7 @@ const AdminDashboardV7: React.FC<AdminDashboardV7Props> = ({ currentUser, jobs, 
                           onClick={async (e) => {
                             e.stopPropagation();
                             try {
-                              await SupabaseDb.confirmParts(item.job.job_id, currentUser.user_id, currentUser.name);
+                              await SupabaseDb.confirmParts(item.job.job_id, currentUser.user_id, currentUser.name, currentUser.role);
                               onRefresh();
                             } catch (err) { showToast.error('Could not verify parts', (err as Error).message); }
                           }}
