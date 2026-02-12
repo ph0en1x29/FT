@@ -148,8 +148,17 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
         </div>
         <div className="flex gap-3 justify-end border-t border-[var(--border)] pt-4">
           <button onClick={onClose} className="btn-premium btn-premium-secondary">Cancel</button>
-          <button onClick={onStartJob} className="btn-premium btn-premium-primary">
+          <button
+            onClick={onStartJob}
+            disabled={!startJobHourmeter || !allChecked}
+            className={`btn-premium ${startJobHourmeter && allChecked ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
+          >
             <Play className="w-4 h-4" /> Start Job
+            {(!startJobHourmeter || !allChecked) && (
+              <span className="text-xs ml-1 opacity-70">
+                ({!startJobHourmeter ? 'hourmeter required' : `${checkedItems}/${totalItems} checked`})
+              </span>
+            )}
           </button>
         </div>
       </div>
