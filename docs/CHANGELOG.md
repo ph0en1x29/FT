@@ -6,6 +6,12 @@ All notable changes to the FieldPro Field Service Management System.
 
 ## [2026-02-12] - Van Selection for Job Parts
 
+### Van Stock Bug Fixes (4 issues)
+- **Fix: "Unknown" van cards** — `technician_name` wasn't mapped from joined `technician` object in `getAllVanStocks`, `getVanStockById`, and `getVanStockByTechnician`
+- **Fix: Replenishment blocked for existing items** — Parts with qty 0 / "Out" status can now be restocked via Add Item (increments qty instead of blocking)
+- **Fix: Edit Van Details save** — Changed empty notes from `undefined` to empty string to prevent Supabase rejection
+- **Fix: Data mapping consistency** — All van stock fetch functions now consistently resolve `technician_name` from the joined user relation
+
 ### Van Selection Feature
 - **New:** Technicians can select which van they're using at the start of each job
 - Parts list filters to show only parts available in the selected van

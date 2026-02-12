@@ -159,8 +159,13 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
   const handleOpenAddItemModal = async () => {
     try {
       const parts = await MockDb.getParts();
-      const existingPartIds = new Set(selectedVanStock?.items?.map(i => i.part_id) || []);
-      const available = parts.filter(p => !existingPartIds.has(p.part_id));
+      // Only exclude parts that already exist in van with qty > 0
+      const existingPartIdsWithStock = new Set(
+        (selectedVanStock?.items || [])
+          .filter(i => i.quantity > 0)
+          .map(i => i.part_id)
+      );
+      const available = parts.filter(p => !existingPartIdsWithStock.has(p.part_id));
       setAvailableParts(available);
       setSelectedPartId('');
       setItemQuantity(1);
@@ -179,16 +184,26 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
     }
     setSubmitting(true);
     try {
-      await MockDb.addVanStockItem(
-        selectedVanStock.van_stock_id,
-        selectedPartId,
-        itemQuantity,
-        itemMinQty,
-        itemMaxQty,
-        true
-      );
-      const part = availableParts.find(p => p.part_id === selectedPartId);
-      showToast.success('Item added', `Added ${part?.part_name}`);
+      // Check if item already exists in van (qty 0 / out of stock)
+      const existingItem = selectedVanStock.items?.find(i => i.part_id === selectedPartId);
+      if (existingItem) {
+        // Restock: update quantity on existing item
+        await MockDb.updateVanStockItemQuantity(existingItem.item_id, existingItem.quantity + itemQuantity);
+        const part = availableParts.find(p => p.part_id === selectedPartId);
+        showToast.success('Item restocked', `${part?.part_name} qty updated to ${existingItem.quantity + itemQuantity}`);
+      } else {
+        // New item: insert
+        await MockDb.addVanStockItem(
+          selectedVanStock.van_stock_id,
+          selectedPartId,
+          itemQuantity,
+          itemMinQty,
+          itemMaxQty,
+          true
+        );
+        const part = availableParts.find(p => p.part_id === selectedPartId);
+        showToast.success('Item added', `Added ${part?.part_name}`);
+      }
       setShowAddItemModal(false);
       setShowDetailModal(false);
       loadData();
@@ -223,9 +238,9 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
     }
     setSubmitting(true);
     try {
-      const updates: { van_code: string; notes?: string; max_items: number; technician_id?: string } = {
+      const updates: { van_code?: string; notes?: string; max_items?: number; technician_id?: string } = {
         van_code: editVanCode.trim(),
-        notes: editVanNotes.trim() || undefined,
+        notes: editVanNotes.trim() || '',
         max_items: editMaxItems,
       };
       if (editTechnicianId !== selectedVanStock.technician_id) {
