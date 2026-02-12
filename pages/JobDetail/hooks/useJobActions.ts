@@ -235,6 +235,18 @@ export const useJobActions = ({
         showToast.error('Hourmeter reading required', 'Please record the hourmeter reading before completing the job');
         return;
       }
+      // Hourmeter must be updated from the start reading (end-of-job reading)
+      const startReading = job.forklift?.hourmeter || 0;
+      if (job.hourmeter_reading <= startReading && startReading > 0) {
+        showToast.error('Update hourmeter reading', 'Please update the hourmeter to the current end-of-job reading before completing');
+        return;
+      }
+      // "After" photo is mandatory
+      const hasAfterPhoto = job.media?.some(m => m.category === 'after');
+      if (!hasAfterPhoto) {
+        showToast.error('After photo required', 'Please upload at least one "After" photo of the forklift before completing');
+        return;
+      }
       // Signatures are mandatory
       if (!job.technician_signature || !job.customer_signature) {
         showToast.error('Signatures required', 'Both technician and customer signatures are required');

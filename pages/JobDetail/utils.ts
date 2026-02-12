@@ -139,6 +139,7 @@ export function getStatusFlags(job: Job | null, currentUserId: string, currentUs
       isDeferred: false,
       hasBothSignatures: false,
       hasHourmeter: false,
+      hasAfterPhoto: false,
       isSlotIn: false,
       isSlotInPendingAck: false,
       isAssignedToCurrentUser: false,
@@ -165,6 +166,7 @@ export function getStatusFlags(job: Job | null, currentUserId: string, currentUs
   const isDeferred = job.verification_type === 'deferred' || job.verification_type === 'auto_completed';
   const hasBothSignatures = !!(job.technician_signature && job.customer_signature);
   const hasHourmeter = !!job.hourmeter_reading;
+  const hasAfterPhoto = !!job.media?.some(m => m.category === 'after');
   
   // Slot-In SLA tracking
   const isSlotIn = job.job_type === JobType.SLOT_IN;
@@ -190,6 +192,7 @@ export function getStatusFlags(job: Job | null, currentUserId: string, currentUs
     isDeferred,
     hasBothSignatures,
     hasHourmeter,
+    hasAfterPhoto,
     isSlotIn,
     isSlotInPendingAck,
     isAssignedToCurrentUser,

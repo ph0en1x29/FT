@@ -36,6 +36,7 @@ export interface StatusFlags {
   isDeferred: boolean;
   hasBothSignatures: boolean;
   hasHourmeter: boolean;
+  hasAfterPhoto: boolean;
   isSlotIn: boolean;
   isSlotInPendingAck: boolean;
   isAssignedToCurrentUser: boolean;
