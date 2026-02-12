@@ -6,6 +6,12 @@ All notable changes to the FieldPro Field Service Management System.
 
 ## [2026-02-12] - Van Selection for Job Parts
 
+### Van Stock Hardening (Codex Review Findings)
+- **Fix: Stale quantity race condition** — Restock now uses atomic SQL `quantity = quantity + N` via `increment_van_stock_quantity()` RPC instead of read-then-write
+- **Fix: Van lock enforced server-side** — DB trigger `prevent_van_change_after_parts` blocks van change if `from_van_stock` parts exist on job. No longer UI-only.
+- **Fix: Lightweight van dropdown** — New `getActiveVansList()` returns only van metadata (no items) for technician dropdown. Reduces data leakage + payload size.
+- DB migration: `20260212_van_stock_hardening.sql`
+
 ### Van Stock Bug Fixes (4 issues)
 - **Fix: "Unknown" van cards** — `technician_name` wasn't mapped from joined `technician` object in `getAllVanStocks`, `getVanStockById`, and `getVanStockByTechnician`
 - **Fix: Replenishment blocked for existing items** — Parts with qty 0 / "Out" status can now be restocked via Add Item (increments qty instead of blocking)

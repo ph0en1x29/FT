@@ -187,10 +187,10 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       // Check if item already exists in van (qty 0 / out of stock)
       const existingItem = selectedVanStock.items?.find(i => i.part_id === selectedPartId);
       if (existingItem) {
-        // Restock: update quantity on existing item
-        await MockDb.updateVanStockItemQuantity(existingItem.item_id, existingItem.quantity + itemQuantity);
+        // Restock: atomic increment to avoid stale read race condition
+        await MockDb.incrementVanStockItemQuantity(existingItem.item_id, itemQuantity);
         const part = availableParts.find(p => p.part_id === selectedPartId);
-        showToast.success('Item restocked', `${part?.part_name} qty updated to ${existingItem.quantity + itemQuantity}`);
+        showToast.success('Item restocked', `${part?.part_name} qty increased by ${itemQuantity}`);
       } else {
         // New item: insert
         await MockDb.addVanStockItem(

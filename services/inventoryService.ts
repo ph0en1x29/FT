@@ -90,6 +90,26 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
   }
 };
 
+/** Lightweight list of active vans (no items loaded) for dropdowns */
+export const getActiveVansList = async (): Promise<VanStock[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('van_stocks')
+      .select(`*, technician:users!technician_id(name)`)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) return [];
+    return (data || []).map((vs: VanStockRow) => ({
+      ...vs,
+      technician_name: vs.technician?.name || vs.technician_name || 'Unknown',
+      // No items loaded — lightweight for dropdown use
+    })) as VanStock[];
+  } catch (_e) {
+    return [];
+  }
+};
+
 export const getVanStockById = async (vanStockId: string): Promise<VanStock | null> => {
   try {
     const { data, error } = await supabase
@@ -228,6 +248,24 @@ export const updateVanStockItemQuantity = async (itemId: string, quantity: numbe
 
   if (error) throw new Error(error.message);
   return data as VanStockItem;
+};
+
+/** Atomically increment van stock item quantity (avoids stale read race condition) */
+export const incrementVanStockItemQuantity = async (itemId: string, incrementBy: number): Promise<VanStockItem> => {
+  const { data, error } = await supabase.rpc('increment_van_stock_quantity', {
+    p_item_id: itemId,
+    p_increment: incrementBy,
+  });
+  if (error) throw new Error(error.message);
+
+  // Re-fetch with part join since RPC doesn't return joined data
+  const { data: item, error: fetchError } = await supabase
+    .from('van_stock_items')
+    .select(`*, part:parts(*)`)
+    .eq('item_id', itemId)
+    .single();
+  if (fetchError) throw new Error(fetchError.message);
+  return item as VanStockItem;
 };
 
 export const useVanStockPart = async (

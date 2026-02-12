@@ -94,7 +94,7 @@ createReplenishmentRequest,createVanStock,deletePart,deleteVanStock,fulfillReple
 getAllVanStocks,getLowStockItems,
 // Parts
 getParts,
-getPartsForList,getPendingVanStockApprovals,getReplenishmentRequests,getVanStockById,getVanStockByTechnician,getVanStockUsageHistory,rejectVanStockUsage,scheduleVanStockAudit,transferVanStockItems,updatePart,updateVanStock,updateVanStockItemQuantity,
+getActiveVansList,getPartsForList,getPendingVanStockApprovals,getReplenishmentRequests,getVanStockById,getVanStockByTechnician,getVanStockUsageHistory,incrementVanStockItemQuantity,rejectVanStockUsage,scheduleVanStockAudit,transferVanStockItems,updatePart,updateVanStock,updateVanStockItemQuantity,
 useVanStockPart
 } from './inventoryService';
 
@@ -233,6 +233,7 @@ export const SupabaseDb = {
   updatePart: inventory.updatePart,
   deletePart: inventory.deletePart,
   getAllVanStocks: inventory.getAllVanStocks,
+  getActiveVansList: inventory.getActiveVansList,
   getVanStockByTechnician: inventory.getVanStockByTechnician,
   getVanStockById: inventory.getVanStockById,
   createVanStock: inventory.createVanStock,
@@ -241,6 +242,7 @@ export const SupabaseDb = {
   transferVanStockItems: inventory.transferVanStockItems,
   addVanStockItem: inventory.addVanStockItem,
   updateVanStockItemQuantity: inventory.updateVanStockItemQuantity,
+  incrementVanStockItemQuantity: inventory.incrementVanStockItemQuantity,
   useVanStockPart: inventory.useVanStockPart,
   getPendingVanStockApprovals: inventory.getPendingVanStockApprovals,
   approveVanStockUsage: inventory.approveVanStockUsage,

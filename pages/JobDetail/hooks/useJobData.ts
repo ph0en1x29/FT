@@ -56,14 +56,14 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
         // Load van stock for the selected van (or tech's default) + available vans list
         if (currentUserRole === UserRole.TECHNICIAN) {
           try {
-            const [vanData, allVans] = await Promise.all([
+            const [vanData, activeVans] = await Promise.all([
               data.job_van_stock_id
                 ? MockDb.getVanStockById(data.job_van_stock_id)
                 : MockDb.getVanStockByTechnician(currentUserId),
-              MockDb.getAllVanStocks(),
+              MockDb.getActiveVansList(), // Lightweight: no items loaded, just van info for dropdown
             ]);
             setVanStock(vanData);
-            setAvailableVans(allVans.filter(v => v.is_active));
+            setAvailableVans(activeVans);
           } catch { /* ignore */ }
         }
       }
