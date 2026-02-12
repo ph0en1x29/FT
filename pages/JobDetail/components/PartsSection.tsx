@@ -1,7 +1,7 @@
-import { Box,CheckCircle,Edit2,Info,Plus,Save,Trash2,Truck,X } from 'lucide-react';
+import { Box,CheckCircle,Edit2,Info,Lock,Plus,Save,Trash2,Truck,X } from 'lucide-react';
 import React from 'react';
 import { Combobox,ComboboxOption } from '../../../components/Combobox';
-import { Job,VanStock } from '../../../types';
+import { Job, VanStock } from '../../../types';
 import { RoleFlags,StatusFlags } from '../types';
 
 interface PartsSectionProps {
@@ -30,6 +30,9 @@ interface PartsSectionProps {
   selectedVanStockItemId?: string;
   onSelectedVanStockItemIdChange?: (id: string) => void;
   onUseVanStockPart?: () => void;
+  // Van selection props
+  availableVans?: VanStock[];
+  onSelectJobVan?: (vanStockId: string) => void;
 }
 
 export const PartsSection: React.FC<PartsSectionProps> = ({
@@ -57,6 +60,8 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   selectedVanStockItemId,
   onSelectedVanStockItemIdChange,
   onUseVanStockPart,
+  availableVans,
+  onSelectJobVan,
 }) => {
   const { isTechnician, _isAdmin, _isSupervisor, _isAccountant, canViewPricing, canEditPrices, canAddParts, isHelperOnly } = roleFlags;
   const { isNew, isAssigned, isInProgress, isAwaitingFinalization } = statusFlags;
@@ -148,9 +153,36 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
         </div>
       )}
 
-      {/* Technician: Van Stock usage + hint */}
+      {/* Technician: Van Selection + Van Stock usage + hint */}
       {isTechnician && !canAddParts && (isInProgress || isAwaitingFinalization) && (
         <div className="border-t border-[var(--border-subtle)] pt-4 space-y-3">
+          {/* Van Selection Dropdown */}
+          {availableVans && availableVans.length > 1 && onSelectJobVan && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1.5">
+                <Truck className="w-3.5 h-3.5" /> Select Van
+                {job.parts_used.some(p => p.from_van_stock) && (
+                  <span className="inline-flex items-center gap-1 text-[var(--warning)] ml-1">
+                    <Lock className="w-3 h-3" /> Locked
+                  </span>
+                )}
+              </p>
+              <select
+                value={job.job_van_stock_id || vanStock?.van_stock_id || ''}
+                onChange={(e) => onSelectJobVan(e.target.value)}
+                disabled={job.parts_used.some(p => p.from_van_stock)}
+                className="input-premium text-sm w-full disabled:opacity-50"
+              >
+                {availableVans.map(v => (
+                  <option key={v.van_stock_id} value={v.van_stock_id}>
+                    {v.van_code || 'Van'} — {v.technician_name || 'Unassigned'}
+                    {v.technician_id === job.assigned_technician_id ? ' (Your van)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Van Stock usage */}
           {vanStock && vanStock.items && vanStock.items.length > 0 && onToggleVanStock && (
             <>

@@ -147,7 +147,9 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onToggleVanStock={() => state.setUseFromVanStock(!state.useFromVanStock)}
             selectedVanStockItemId={state.selectedVanStockItemId}
             onSelectedVanStockItemIdChange={state.setSelectedVanStockItemId}
-            onUseVanStockPart={actions.handleUseVanStockPart} />
+            onUseVanStockPart={actions.handleUseVanStockPart}
+            availableVans={state.availableVans}
+            onSelectJobVan={actions.handleSelectJobVan} />
           <ExtraChargesSection job={job} roleFlags={roleFlags} showAddCharge={state.showAddCharge}
             chargeName={state.chargeName} chargeDescription={state.chargeDescription} chargeAmount={state.chargeAmount}
             onShowAddChargeChange={state.setShowAddCharge} onChargeNameChange={state.setChargeName}

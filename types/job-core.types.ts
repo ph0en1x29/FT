@@ -230,6 +230,9 @@ export interface Job {
   helper_assignment?: JobAssignment; // Active helper if any
   assignments?: JobAssignment[]; // All assignments (for history)
 
+  // Van selection for parts (overrides technician's default van)
+  job_van_stock_id?: string;
+
   parts_used: JobPartUsed[];
   media: JobMedia[];
 

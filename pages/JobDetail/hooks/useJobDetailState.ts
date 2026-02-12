@@ -138,6 +138,7 @@ export const useJobDetailState = () => {
   const [useFromVanStock, setUseFromVanStock] = useState(false);
   const [vanStock, setVanStock] = useState<VanStock | null>(null);
   const [selectedVanStockItemId, setSelectedVanStockItemId] = useState('');
+  const [availableVans, setAvailableVans] = useState<VanStock[]>([]);
 
   // Checklist states
   const [missingChecklistItems, setMissingChecklistItems] = useState<string[]>([]);
@@ -256,6 +257,7 @@ export const useJobDetailState = () => {
     useFromVanStock, setUseFromVanStock,
     vanStock, setVanStock,
     selectedVanStockItemId, setSelectedVanStockItemId,
+    availableVans, setAvailableVans,
 
     // Checklist
     missingChecklistItems, setMissingChecklistItems,

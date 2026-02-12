@@ -160,6 +160,25 @@ export const useJobPartsHandlers = ({
     }
   }, [job, state, currentUserId, currentUserName, loadJob]);
 
+  const handleSelectJobVan = useCallback(async (vanStockId: string) => {
+    if (!job) return;
+    // Prevent changing van after parts have been used from van stock
+    const hasVanStockParts = job.parts_used.some(p => p.from_van_stock);
+    if (hasVanStockParts) {
+      showToast.error('Cannot change van', 'Parts have already been used from the current van');
+      return;
+    }
+    try {
+      const updated = await MockDb.updateJob(job.job_id, { job_van_stock_id: vanStockId || undefined });
+      setJob({ ...updated } as Job);
+      // Reload van stock for the newly selected van
+      loadJob();
+      showToast.success('Van updated');
+    } catch (e) {
+      showToast.error('Could not update van', (e as Error).message);
+    }
+  }, [job, setJob, loadJob]);
+
   return {
     handleAddPart,
     handleStartEditPartPrice,
@@ -169,5 +188,6 @@ export const useJobPartsHandlers = ({
     handleToggleNoPartsUsed,
     handleConfirmParts,
     handleUseVanStockPart,
+    handleSelectJobVan,
   };
 };

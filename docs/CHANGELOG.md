@@ -4,6 +4,27 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-12] - Van Selection for Job Parts
+
+### Van Selection Feature
+- **New:** Technicians can select which van they're using at the start of each job
+- Parts list filters to show only parts available in the selected van
+- Parts deductions go to the correct van's inventory
+- Pre-selects technician's default assigned van (no extra clicks for normal flow)
+- Van selection locks after first part is used from van stock (prevents inventory inconsistency)
+- No impact on warehouse stock flow
+
+### Files Changed
+- `types/job-core.types.ts` — Added `job_van_stock_id` field to Job type
+- `pages/JobDetail/hooks/useJobData.ts` — Fetch van stock by job's selected van
+- `pages/JobDetail/hooks/useJobDetailState.ts` — Added `availableVans` state
+- `pages/JobDetail/hooks/useJobPartsHandlers.ts` — Added `handleSelectJobVan` handler
+- `pages/JobDetail/components/PartsSection.tsx` — Van selector dropdown UI
+- `pages/JobDetail/JobDetailPage.tsx` — Wired new props
+- `database/migrations/20260212_job_van_selection.sql` — DB migration
+
+---
+
 ## [2026-02-07] - Security Fixes & Code Cleanup
 
 ### ESLint Zero Warnings (Phase 3 Complete)

@@ -28,7 +28,8 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
     setIsCurrentUserHelper, 
     setHelperAssignmentId,
     setJobRequests,
-    setVanStock 
+    setVanStock,
+    setAvailableVans 
   } = state;
 
   const loadJob = useCallback(async () => {
@@ -52,6 +53,19 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
           setIsCurrentUserHelper(false);
           setHelperAssignmentId(null);
         }
+        // Load van stock for the selected van (or tech's default) + available vans list
+        if (currentUserRole === UserRole.TECHNICIAN) {
+          try {
+            const [vanData, allVans] = await Promise.all([
+              data.job_van_stock_id
+                ? MockDb.getVanStockById(data.job_van_stock_id)
+                : MockDb.getVanStockByTechnician(currentUserId),
+              MockDb.getAllVanStocks(),
+            ]);
+            setVanStock(vanData);
+            setAvailableVans(allVans.filter(v => v.is_active));
+          } catch { /* ignore */ }
+        }
       }
     } catch {
       showToast.error('Failed to load job');
@@ -71,10 +85,13 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
     }
   }, [jobId, setJobRequests]);
 
-  const loadVanStock = useCallback(async () => {
+  const loadVanStock = useCallback(async (jobVanStockId?: string) => {
     if (currentUserRole !== UserRole.TECHNICIAN) return;
     try {
-      const data = await MockDb.getVanStockByTechnician(currentUserId);
+      // Use job's selected van if set, otherwise fall back to tech's default
+      const data = jobVanStockId
+        ? await MockDb.getVanStockById(jobVanStockId)
+        : await MockDb.getVanStockByTechnician(currentUserId);
       setVanStock(data);
     } catch { /* ignore */ }
   }, [currentUserId, currentUserRole, setVanStock]);
