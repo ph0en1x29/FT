@@ -65,7 +65,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
   
   const {
     isAssigned, isInProgress, isAwaitingFinalization, isCompleted,
-    isIncompleteContinuing, hasBothSignatures, isSlotIn, isSlotInPendingAck,
+    isIncompleteContinuing, hasBothSignatures, hasHourmeter, isSlotIn, isSlotInPendingAck,
     isAssignedToCurrentUser, needsAcceptance, hasAccepted, isAwaitingAck, isDisputed
   } = statusFlags;
 
@@ -162,14 +162,14 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
             <div className="relative group">
               <button 
                 onClick={onCompleteJob} 
-                disabled={!hasBothSignatures}
-                className={`btn-premium ${hasBothSignatures ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
+                disabled={!hasBothSignatures || !hasHourmeter}
+                className={`btn-premium ${hasBothSignatures && hasHourmeter ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
               >
                 <CheckCircle className="w-4 h-4" /> Complete
               </button>
-              {!hasBothSignatures && (
+              {(!hasBothSignatures || !hasHourmeter) && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[var(--text)] text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                  Both signatures required
+                  {!hasHourmeter ? 'Hourmeter reading required' : 'Both signatures required'}
                 </div>
               )}
             </div>

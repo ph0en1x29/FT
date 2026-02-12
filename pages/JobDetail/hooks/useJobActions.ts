@@ -236,6 +236,16 @@ export const useJobActions = ({
   const handleStatusChange = useCallback(async (newStatus: JobStatus) => {
     if (!job) return;
     if (newStatus === JobStatus.AWAITING_FINALIZATION) {
+      // Hourmeter is mandatory before completion
+      if (!job.hourmeter_reading) {
+        showToast.error('Hourmeter reading required', 'Please record the hourmeter reading before completing the job');
+        return;
+      }
+      // Signatures are mandatory
+      if (!job.technician_signature || !job.customer_signature) {
+        showToast.error('Signatures required', 'Both technician and customer signatures are required');
+        return;
+      }
       const missing = getMissingMandatoryItems(job);
       if (missing.length > 0) {
         setMissingChecklistItems(missing);

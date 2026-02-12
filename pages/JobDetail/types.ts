@@ -35,6 +35,7 @@ export interface StatusFlags {
   isDisputed: boolean;
   isDeferred: boolean;
   hasBothSignatures: boolean;
+  hasHourmeter: boolean;
   isSlotIn: boolean;
   isSlotInPendingAck: boolean;
   isAssignedToCurrentUser: boolean;
