@@ -1,4 +1,4 @@
-import { AlertTriangle,CheckCircle,Clock,Edit3,Package,PackageCheck,Plus,Truck,XCircle } from 'lucide-react';
+import { AlertTriangle,CheckCircle,CheckSquare,Clock,Edit3,Package,PackageCheck,Plus,Truck,XCircle } from 'lucide-react';
 import React,{ useEffect,useState } from 'react';
 import { getJobRequests } from '../../../services/jobRequestService';
 import { Job,JobRequest,JobRequestStatus,JobRequestType } from '../../../types';
@@ -11,6 +11,7 @@ interface JobRequestsSectionProps {
   currentUserId: string;
   onCreateRequest: () => void;
   onApproveRequest: (request: JobRequest) => void;
+  onApproveAllRequests?: (requests: JobRequest[]) => void;
   onEditRequest?: (request: JobRequest) => void;
   onIssuePartToTechnician?: (requestId: string) => void;
   onMarkOutOfStock?: (requestId: string, partId: string, notes?: string) => void;
@@ -25,6 +26,7 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
   currentUserId,
   onCreateRequest,
   onApproveRequest,
+  onApproveAllRequests,
   onEditRequest,
   onIssuePartToTechnician,
   onMarkOutOfStock,
@@ -118,14 +120,24 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
             </span>
           )}
         </h3>
-        {canCreateRequest && (
-          <button
-            onClick={onCreateRequest}
-            className="btn-premium btn-premium-primary text-sm"
-          >
-            <Plus className="w-4 h-4" /> Request Part
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {canApproveRequest && pendingCount >= 2 && onApproveAllRequests && (
+            <button
+              onClick={() => onApproveAllRequests(requests.filter(r => r.status === 'pending'))}
+              className="btn-premium btn-premium-ghost text-xs flex items-center gap-1"
+            >
+              <CheckSquare className="w-3.5 h-3.5" /> Approve All ({pendingCount})
+            </button>
+          )}
+          {canCreateRequest && (
+            <button
+              onClick={onCreateRequest}
+              className="btn-premium btn-premium-primary text-sm"
+            >
+              <Plus className="w-4 h-4" /> Request Part
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (

@@ -6,12 +6,13 @@ import ServiceUpgradeModal from '../../components/ServiceUpgradeModal';
 import { SkeletonJobDetail } from '../../components/Skeleton';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { usePartsForList,useTechnicians } from '../../hooks/useQueryHooks';
-import { JobStatus,Part,User } from '../../types';
+import { JobRequest,JobStatus,Part,User } from '../../types';
 
 // Extracted components
 import {
 ApproveRequestModal,
 ChecklistWarningModal,
+BulkApproveRequestsModal,
 ConditionChecklistCard,
 ConfirmationStatusCard,
 ContinueTomorrowModal,
@@ -156,6 +157,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             currentUserId={currentUserId}
             onCreateRequest={() => { state.setEditingRequest(null); state.setShowRequestModal(true); }}
             onApproveRequest={(request) => { state.setApprovalRequest(request); state.setShowApprovalModal(true); }}
+            onApproveAllRequests={(reqs) => { state.setBulkApproveRequests(reqs); state.setShowBulkApproveModal(true); }}
             onEditRequest={actions.handleEditRequest}
             onIssuePartToTechnician={actions.handleIssuePartToTechnician}
             onMarkOutOfStock={actions.handleMarkOutOfStock}
@@ -221,6 +223,13 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         onApprove={actions.handleApproveRequest}
         onReject={actions.handleRejectRequest}
         onClose={() => { state.setShowApprovalModal(false); state.setApprovalRequest(null); }}
+      />
+      <BulkApproveRequestsModal
+        show={state.showBulkApproveModal}
+        requests={state.bulkApproveRequests as JobRequest[]}
+        submitting={state.submittingApproval}
+        onApproveAll={actions.handleBulkApproveRequests}
+        onClose={() => { state.setShowBulkApproveModal(false); state.setBulkApproveRequests([]); }}
       />
       <HelperModal
         show={state.showAssignHelperModal}

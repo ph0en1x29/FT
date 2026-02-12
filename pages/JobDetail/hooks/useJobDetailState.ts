@@ -49,6 +49,8 @@ export const useJobDetailState = () => {
   const [showCheckAllConfirmModal, setShowCheckAllConfirmModal] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showBulkApproveModal, setShowBulkApproveModal] = useState(false);
+  const [bulkApproveRequests, setBulkApproveRequests] = useState<unknown[]>([]);
   const [showContinueTomorrowModal, setShowContinueTomorrowModal] = useState(false);
   const [showDeferredModal, setShowDeferredModal] = useState(false);
   const [showHourmeterAmendmentModal, setShowHourmeterAmendmentModal] = useState(false);
@@ -173,6 +175,8 @@ export const useJobDetailState = () => {
     showCheckAllConfirmModal, setShowCheckAllConfirmModal,
     showRequestModal, setShowRequestModal,
     showApprovalModal, setShowApprovalModal,
+    showBulkApproveModal, setShowBulkApproveModal,
+    bulkApproveRequests, setBulkApproveRequests,
     showContinueTomorrowModal, setShowContinueTomorrowModal,
     showDeferredModal, setShowDeferredModal,
     showHourmeterAmendmentModal, setShowHourmeterAmendmentModal,

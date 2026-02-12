@@ -190,12 +190,47 @@ export const useJobRequestActions = ({
     }
   }, [currentUserId, loadJob]);
 
+  const handleBulkApproveRequests = useCallback(async (
+    items: { requestId: string; partId: string; quantity: number; notes?: string }[]
+  ) => {
+    state.setSubmittingApproval(true);
+    let success = 0;
+    let failed = 0;
+    for (const item of items) {
+      try {
+        const ok = await approveSparePartRequest(
+          item.requestId,
+          currentUserId,
+          item.partId,
+          item.quantity,
+          item.notes,
+          currentUserName,
+          currentUserRole
+        );
+        if (ok) success++;
+        else failed++;
+      } catch {
+        failed++;
+      }
+    }
+    state.setSubmittingApproval(false);
+    state.setShowBulkApproveModal(false);
+    state.setBulkApproveRequests([]);
+    loadJob();
+    if (failed === 0) {
+      showToast.success(`${success} request${success > 1 ? 's' : ''} approved`, 'Parts added to job');
+    } else {
+      showToast.error(`${success} approved, ${failed} failed`);
+    }
+  }, [currentUserId, currentUserName, currentUserRole, loadJob, state]);
+
   return {
     handleCreateRequest,
     handleApproveRequest,
     handleRejectRequest,
     handleEditRequest,
     handleUpdateRequest,
+    handleBulkApproveRequests,
     handleIssuePartToTechnician,
     handleMarkOutOfStock,
     handleMarkPartReceived,

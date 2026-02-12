@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import { Camera,Download } from 'lucide-react';
-import React,{ useState } from 'react';
+import React,{ useMemo,useState } from 'react';
+import PhotoLightbox from '../../../components/ui/PhotoLightbox';
 import { SupabaseDb as MockDb,supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { Job,JobMedia,JobStatus,MediaCategory } from '../../../types';
@@ -34,6 +35,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
   const [downloadingPhotos, setDownloadingPhotos] = useState(false);
   const [isPhotoDragActive, setIsPhotoDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const { isTechnician, isAdmin, isSupervisor } = roleFlags;
   const { isNew, isAssigned, isInProgress, isAwaitingFinalization, isIncompleteContinuing, isIncompleteReassigned } = statusFlags;
@@ -321,6 +323,20 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
     }
   };
 
+  const filteredMedia = useMemo(() =>
+    job.media.filter(m => photoCategoryFilter === 'all' || m.category === photoCategoryFilter),
+    [job.media, photoCategoryFilter]
+  );
+
+  const lightboxImages = useMemo(() =>
+    filteredMedia.map(m => ({
+      url: m.url,
+      label: PHOTO_CATEGORIES.find(c => c.value === m.category)?.label || 'Other',
+      timestamp: new Date(m.created_at).toLocaleString(),
+    })),
+    [filteredMedia]
+  );
+
   if (!(isTechnician || isAdmin || isSupervisor)) return null;
 
   return (
@@ -422,14 +438,19 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
 
           {/* Photo Grid */}
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {job.media.filter(m => photoCategoryFilter === 'all' || m.category === photoCategoryFilter).map(m => {
+            {filteredMedia.map((m, idx) => {
               const catInfo = PHOTO_CATEGORIES.find(c => c.value === m.category) || PHOTO_CATEGORIES.find(c => c.value === 'other');
               return (
-                <div key={m.media_id} className="relative group aspect-square">
-                  <img src={m.url} loading="lazy" decoding="async" alt="Job" className="w-full h-full object-cover rounded-xl border border-[var(--border)]" />
+                <div
+                  key={m.media_id}
+                  className="relative group aspect-square cursor-pointer"
+                  onClick={() => setLightboxIndex(idx)}
+                >
+                  <img src={m.url} loading="lazy" decoding="async" alt="Job" className="w-full h-full object-cover rounded-xl border border-[var(--border)] transition-transform group-hover:scale-[1.02]" />
                   <span className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 text-[9px] font-medium text-white rounded ${catInfo?.color || 'bg-slate-500'}`}>
                     {catInfo?.label || 'Other'}
                   </span>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-xl transition-colors" />
                   <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[9px] px-2 py-1.5 rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="truncate">{new Date(m.created_at).toLocaleString()}</div>
                   </div>
@@ -460,6 +481,15 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
             )}
           </div>
         </>
+      )}
+
+      {/* Lightbox */}
+      {lightboxIndex !== null && (
+        <PhotoLightbox
+          images={lightboxImages}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
       )}
     </div>
   );
