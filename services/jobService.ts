@@ -50,6 +50,7 @@ getPendingRequests,getRequestCounts,rejectRequest,updateJobRequest
 // Media Service
 export {
 addMedia,
+deleteMedia,
 signJob
 } from './jobMediaService';
 

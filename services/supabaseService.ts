@@ -118,7 +118,7 @@ export {
 // Job Accept/Reject
 acceptJobAssignment,acknowledgeSkillfulTechRequest,
 // Job Locking
-acquireJobLock,addExtraCharge,addMedia,addNote,
+acquireJobLock,addExtraCharge,addMedia,deleteMedia,addNote,
 addPartToJob,approveAssistanceRequest,approveSparePartRequest,assignHelper,assignJob,checkExpiredJobResponses,checkJobLock,
 cleanupExpiredLocks,createJob,
 // Job Requests
@@ -289,6 +289,7 @@ export const SupabaseDb = {
   addNote: jobs.addNote,
   addPartToJob: jobs.addPartToJob,
   addMedia: jobs.addMedia,
+  deleteMedia: jobs.deleteMedia,
   signJob: jobs.signJob,
   updatePartPrice: jobs.updatePartPrice,
   removePartFromJob: jobs.removePartFromJob,

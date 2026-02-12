@@ -126,3 +126,31 @@ export const signJob = async (
 
   return data as Job;
 };
+
+export const deleteMedia = async (jobId: string, mediaId: string): Promise<Job> => {
+  // Get media URL to delete from storage
+  const { data: media } = await supabase
+    .from('job_media')
+    .select('url')
+    .eq('media_id', mediaId)
+    .single();
+
+  // Delete from job_media table
+  const { error } = await supabase
+    .from('job_media')
+    .delete()
+    .eq('media_id', mediaId)
+    .eq('job_id', jobId);
+
+  if (error) throw new Error(error.message);
+
+  // Try to delete from storage (non-blocking)
+  if (media?.url?.includes('job-photos/')) {
+    try {
+      const path = media.url.split('job-photos/')[1];
+      if (path) await supabase.storage.from('job-photos').remove([path]);
+    } catch { /* storage cleanup is best-effort */ }
+  }
+
+  return getJobById(jobId) as Promise<Job>;
+};

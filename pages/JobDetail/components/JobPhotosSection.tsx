@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Camera,Download } from 'lucide-react';
+import { Camera,Download,Trash2 } from 'lucide-react';
 import React,{ useMemo,useState } from 'react';
 import PhotoLightbox from '../../../components/ui/PhotoLightbox';
 import { SupabaseDb as MockDb,supabase } from '../../../services/supabaseService';
@@ -36,6 +36,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
   const [isPhotoDragActive, setIsPhotoDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
 
   const { isTechnician, isAdmin, isSupervisor } = roleFlags;
   const { isNew, isAssigned, isInProgress, isAwaitingFinalization, isIncompleteContinuing, isIncompleteReassigned } = statusFlags;
@@ -282,6 +283,20 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
     await uploadPhotoFile(file);
   };
 
+  const handleDeletePhoto = async (mediaId: string) => {
+    if (!confirm('Delete this photo? This cannot be undone.')) return;
+    setDeletingMediaId(mediaId);
+    try {
+      const updated = await MockDb.deleteMedia(job.job_id, mediaId);
+      onJobUpdate({ ...updated } as Job);
+      showToast.success('Photo deleted');
+    } catch (e) {
+      showToast.error('Failed to delete photo', (e as Error).message);
+    } finally {
+      setDeletingMediaId(null);
+    }
+  };
+
   const handleDownloadPhotos = async () => {
     if (!job || job.media.length === 0) {
       showToast.error('No photos to download');
@@ -451,6 +466,21 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
                     {catInfo?.label || 'Other'}
                   </span>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-xl transition-colors" />
+                  {/* Delete button */}
+                  {canUploadPhotos && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeletePhoto(m.media_id); }}
+                      disabled={deletingMediaId === m.media_id}
+                      className="absolute top-1.5 right-1.5 p-1 bg-red-500/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      title="Delete photo"
+                    >
+                      {deletingMediaId === m.media_id ? (
+                        <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3 h-3" />
+                      )}
+                    </button>
+                  )}
                   <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[9px] px-2 py-1.5 rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="truncate">{new Date(m.created_at).toLocaleString()}</div>
                   </div>
