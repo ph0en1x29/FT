@@ -19,9 +19,11 @@ export function useVanStock({ userId }: UseVanStockParams) {
   const [usageHistory, setUsageHistory] = useState<VanStockUsage[]>([]);
   const [replenishments, setReplenishments] = useState<VanStockReplenishment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const [stockData, historyData, replenishmentData] = await Promise.all([
         MockDb.getVanStockByTechnician(userId),
@@ -32,9 +34,11 @@ export function useVanStock({ userId }: UseVanStockParams) {
       setUsageHistory(historyData);
       setReplenishments(replenishmentData);
     } catch (_error) {
+      setError(true);
       showToast.error('Failed to load Van Stock data');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [userId]);
 
   useEffect(() => {
@@ -88,6 +92,7 @@ export function useVanStock({ userId }: UseVanStockParams) {
     usageHistory,
     replenishments,
     loading,
+    error,
     stats,
     lowStockItems,
     pendingReplenishmentsCount,

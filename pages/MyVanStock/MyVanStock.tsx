@@ -24,6 +24,7 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
     usageHistory,
     replenishments,
     loading,
+    error,
     stats,
     lowStockItems,
     pendingReplenishmentsCount,
@@ -36,7 +37,11 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
     items: { vanStockItemId: string; partId: string; partName: string; partCode: string; quantityRequested: number }[],
     notes?: string
   ) => {
-    if (!vanStock) return;
+    if (!vanStock) {
+      showToast.error('Van stock unavailable', 'Please refresh and try again');
+      setShowReplenishmentModal(false);
+      return;
+    }
 
     try {
       await MockDb.createReplenishmentRequest(
@@ -50,7 +55,7 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
       );
       showToast.success('Replenishment requested', 'Admin will process your request');
       setShowReplenishmentModal(false);
-      loadData();
+      await loadData();
     } catch (error) {
       showToast.error('Failed to submit request', (error as Error).message);
     }
@@ -64,13 +69,32 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <AlertTriangle className="w-12 h-12 text-red-300 mb-4" />
+        <h3 className="text-lg font-medium text-red-700 dark:text-red-400 mb-2">Failed to Load Van Stock</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-4">
+          Something went wrong loading your data. Please try again.
+        </p>
+        <button
+          onClick={loadData}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Retry
+        </button>
+      </div>
+    );
+  }
+
   if (!vanStock) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <Truck className="w-12 h-12 text-slate-300 mb-4" />
-        <h3 className="text-lg font-medium text-slate-700 mb-2">No Van Stock Assigned</h3>
-        <p className="text-sm text-slate-500 max-w-md">
-          You don't have a Van Stock assigned yet. Please contact your supervisor to set up your Van Stock inventory.
+        <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">No Van Stock Assigned</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+          You don&apos;t have a Van Stock assigned yet. Please contact your supervisor to set up your Van Stock inventory.
         </p>
       </div>
     );
@@ -103,9 +127,10 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
           </button>
           <button
             onClick={loadData}
-            className="flex items-center gap-2 px-4 py-2 border border-theme rounded-lg hover:bg-theme-surface-2 text-sm text-theme-muted theme-transition"
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 border border-theme rounded-lg hover:bg-theme-surface-2 text-sm text-theme-muted theme-transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <RefreshCw className="w-4 h-4" /> Refresh
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>
           {lowStockItems.length > 0 && (
             <button
