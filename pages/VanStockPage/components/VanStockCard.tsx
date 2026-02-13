@@ -42,7 +42,7 @@ export function VanStockCard({
 }: VanStockCardProps) {
   const lowItems = getLowStockItems(vanStock.items);
   const vanIdentifier = vanStock.van_plate || vanStock.van_code || 'No Plate';
-  const canChangeStatus = userRole === 'admin' || userRole === 'supervisor';
+  const canChangeStatus = userRole === 'admin' || userRole === 'admin_service' || userRole === 'admin_store' || userRole === 'supervisor';
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
