@@ -528,7 +528,7 @@ export const getVanFleetOverview = async (): Promise<VanFleetItem[]> => {
         van_stock_id, van_code, van_plate, van_status, technician_id,
         temporary_tech_id, temporary_tech_name, is_active,
         technician:users!technician_id(name),
-        items:van_stock_items(van_stock_item_id)
+        items:van_stock_items(item_id)
       `)
       .eq('is_active', true)
       .order('created_at', { ascending: true });
