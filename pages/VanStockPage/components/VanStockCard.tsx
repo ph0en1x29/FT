@@ -6,9 +6,9 @@ import { VanStatus, VanStock,VanStockReplenishment } from '../../../types';
 import { getLowStockItems } from '../hooks/useVanStockData';
 
 const STATUS_CONFIG: Record<VanStatus, { label: string; dotClass: string; badgeClass: string }> = {
-  active: { label: 'Active', dotClass: 'bg-emerald-500', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  in_service: { label: 'In Service', dotClass: 'bg-red-500', badgeClass: 'bg-red-50 text-red-700 border-red-200' },
-  decommissioned: { label: 'Retired', dotClass: 'bg-gray-400', badgeClass: 'bg-gray-50 text-gray-600 border-gray-200' },
+  active: { label: 'Active', dotClass: 'bg-emerald-500', badgeClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
+  in_service: { label: 'In Service', dotClass: 'bg-red-500', badgeClass: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800' },
+  decommissioned: { label: 'Retired', dotClass: 'bg-gray-400', badgeClass: 'bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
 };
 
 interface VanStockCardProps {
