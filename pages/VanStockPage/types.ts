@@ -18,6 +18,9 @@ export interface VanStockStats {
   lowStockCount: number;
   pendingAudits: number;
   pendingReplenishments: number;
+  activeVans: number;
+  inServiceVans: number;
+  decommissionedVans: number;
 }
 
 export interface VanStockDataState {

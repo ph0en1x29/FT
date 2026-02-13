@@ -2,8 +2,14 @@
  * Individual van stock card component
  */
 import { AlertTriangle,Calendar,ChevronRight,Clock } from 'lucide-react';
-import { VanStock,VanStockReplenishment } from '../../../types';
+import { VanStatus, VanStock,VanStockReplenishment } from '../../../types';
 import { getLowStockItems } from '../hooks/useVanStockData';
+
+const STATUS_CONFIG: Record<VanStatus, { label: string; dotClass: string; badgeClass: string }> = {
+  active: { label: 'Active', dotClass: 'bg-emerald-500', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  in_service: { label: 'In Service', dotClass: 'bg-red-500', badgeClass: 'bg-red-50 text-red-700 border-red-200' },
+  decommissioned: { label: 'Retired', dotClass: 'bg-gray-400', badgeClass: 'bg-gray-50 text-gray-600 border-gray-200' },
+};
 
 interface VanStockCardProps {
   vanStock: VanStock;
@@ -36,7 +42,18 @@ export function VanStockCard({
               </span>
             </div>
             <div>
-              <h3 className="font-semibold text-theme">{vanIdentifier}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-theme">{vanIdentifier}</h3>
+                {(() => {
+                  const cfg = STATUS_CONFIG[vanStock.van_status] || STATUS_CONFIG.active;
+                  return (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-medium ${cfg.badgeClass}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dotClass}`} />
+                      {cfg.label}
+                    </span>
+                  );
+                })()}
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-theme-muted">{vanStock.technician_name || 'Unknown'}</span>
                 {vanStock.van_code && vanStock.van_plate && (

@@ -59,6 +59,9 @@ export function useVanStockData({ currentUser }: UseVanStockDataProps) {
       return new Date(vs.next_audit_due) <= new Date();
     }).length;
     const pendingReplenishments = replenishments.length;
+    const activeVans = vanStocks.filter(vs => vs.van_status === 'active').length;
+    const inServiceVans = vanStocks.filter(vs => vs.van_status === 'in_service').length;
+    const decommissionedVans = vanStocks.filter(vs => vs.van_status === 'decommissioned').length;
 
     return {
       totalTechnicians,
@@ -67,6 +70,9 @@ export function useVanStockData({ currentUser }: UseVanStockDataProps) {
       lowStockCount,
       pendingAudits,
       pendingReplenishments,
+      activeVans,
+      inServiceVans,
+      decommissionedVans,
     };
   }, [vanStocks, replenishments]);
 

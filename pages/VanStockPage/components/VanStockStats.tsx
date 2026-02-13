@@ -1,7 +1,7 @@
 /**
  * Statistics cards component for VanStockPage
  */
-import { Package,Users } from 'lucide-react';
+import { Package, Truck, Users } from 'lucide-react';
 import { FilterType,VanStockStats } from '../types';
 
 interface VanStockStatsCardsProps {
@@ -16,7 +16,21 @@ export function VanStockStatsCards({ stats, filterType, onFilterChange }: VanSto
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+      {/* Active Vans */}
+      <div className="card-theme rounded-xl p-4 theme-transition">
+        <div className="flex items-center gap-2 mb-2">
+          <Truck className="w-5 h-5 text-emerald-500" />
+        </div>
+        <div className="text-2xl font-bold text-emerald-600">{stats.activeVans}</div>
+        <div className="text-xs text-theme-muted">
+          Active Vans
+          {stats.inServiceVans > 0 && (
+            <span className="text-red-500 ml-1">• {stats.inServiceVans} In Service</span>
+          )}
+        </div>
+      </div>
+
       {/* Technicians */}
       <div className="card-theme rounded-xl p-4 theme-transition">
         <div className="flex items-center gap-2 mb-2">
