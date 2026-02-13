@@ -385,6 +385,8 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
         hasFilters={!!searchQuery || filterType !== 'all'}
         onViewDetails={handleViewDetails}
         onScheduleAudit={handleScheduleAudit}
+        currentUser={currentUser}
+        onStatusChange={loadData}
       />
 
       {/* Modals */}

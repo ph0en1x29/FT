@@ -2,7 +2,8 @@
  * Grid component for displaying van stock cards
  */
 import { Truck } from 'lucide-react';
-import { VanStock,VanStockReplenishment } from '../../../types';
+import type { User } from '../../../types';
+import { VanStock, VanStockReplenishment } from '../../../types';
 import { VanStockCard } from './VanStockCard';
 
 interface VanStockGridProps {
@@ -11,6 +12,8 @@ interface VanStockGridProps {
   hasFilters: boolean;
   onViewDetails: (vanStock: VanStock) => void;
   onScheduleAudit: (vanStock: VanStock) => void;
+  currentUser?: User;
+  onStatusChange?: () => void;
 }
 
 export function VanStockGrid({
@@ -19,6 +22,8 @@ export function VanStockGrid({
   hasFilters,
   onViewDetails,
   onScheduleAudit,
+  currentUser,
+  onStatusChange,
 }: VanStockGridProps) {
   // Empty state
   if (vanStocks.length === 0) {
@@ -46,6 +51,10 @@ export function VanStockGrid({
               pendingRequest={pendingRequest}
               onViewDetails={onViewDetails}
               onScheduleAudit={onScheduleAudit}
+              userRole={currentUser?.role}
+              currentUserId={currentUser?.user_id}
+              currentUserName={currentUser?.name}
+              onStatusChange={onStatusChange}
             />
           </div>
         );
