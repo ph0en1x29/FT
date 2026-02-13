@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && npm run typecheck 2>&1 | tail -5",
+            "statusMessage": "Running TypeScript check...",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

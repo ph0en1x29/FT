@@ -78,58 +78,92 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
 
   useEffect(() => { loadData(); }, []);
 
+  // Track per-item pending state to prevent double-clicks
+  const [pendingActions, setPendingActions] = useState<Set<string>>(new Set());
+  const addPending = (id: string) => setPendingActions(prev => new Set(prev).add(id));
+  const removePending = (id: string) => setPendingActions(prev => { const s = new Set(prev); s.delete(id); return s; });
+
   const handleStatusToggle = async (van: VanFleetItem) => {
-    const newStatus: VanStatus = van.van_status === 'active' ? 'in_service' : 'active';
-    const ok = await updateVanStatus(van.van_stock_id, newStatus, { id: currentUser.user_id, name: currentUser.name });
-    if (ok) {
-      showToast.success(`Van ${van.van_plate || van.van_code || ''} → ${STATUS_CONFIG[newStatus].label}`);
-      loadData();
-      onRefresh();
-    } else {
+    if (pendingActions.has(van.van_stock_id)) return;
+    addPending(van.van_stock_id);
+    try {
+      const newStatus: VanStatus = van.van_status === 'active' ? 'in_service' : 'active';
+      const ok = await updateVanStatus(van.van_stock_id, newStatus, { id: currentUser.user_id, name: currentUser.name });
+      if (ok) {
+        showToast.success(`Van ${van.van_plate || van.van_code || ''} → ${STATUS_CONFIG[newStatus].label}`);
+        loadData();
+        onRefresh();
+      } else {
+        showToast.error('Failed to update van status');
+      }
+    } catch {
       showToast.error('Failed to update van status');
+    } finally {
+      removePending(van.van_stock_id);
     }
   };
 
   const handleRemoveTemp = async (van: VanFleetItem) => {
-    const ok = await removeTempTech(van.van_stock_id, { id: currentUser.user_id, name: currentUser.name });
-    if (ok) {
-      showToast.success(`Removed ${van.temporary_tech_name} from van`);
-      loadData();
-      onRefresh();
-    } else {
+    if (pendingActions.has(van.van_stock_id)) return;
+    addPending(van.van_stock_id);
+    try {
+      const ok = await removeTempTech(van.van_stock_id, { id: currentUser.user_id, name: currentUser.name });
+      if (ok) {
+        showToast.success(`Removed ${van.temporary_tech_name} from van`);
+        loadData();
+        onRefresh();
+      } else {
+        showToast.error('Failed to remove temp assignment');
+      }
+    } catch {
       showToast.error('Failed to remove temp assignment');
+    } finally {
+      removePending(van.van_stock_id);
     }
   };
 
   const handleAssign = async () => {
-    if (!assignModal || !selectedTechId) return;
+    if (!assignModal || !selectedTechId || submitting) return;
     setSubmitting(true);
-    const tech = technicians.find(t => t.user_id === selectedTechId);
-    const ok = await assignTempTech(
-      assignModal.vanId, selectedTechId, tech?.name || 'Unknown',
-      { id: currentUser.user_id, name: currentUser.name }, assignReason
-    );
-    setSubmitting(false);
-    if (ok) {
-      showToast.success(`${tech?.name} assigned to ${assignModal.vanLabel}`);
-      setAssignModal(null);
-      setSelectedTechId('');
-      setAssignReason('');
-      loadData();
-      onRefresh();
-    } else {
+    try {
+      const tech = technicians.find(t => t.user_id === selectedTechId);
+      const ok = await assignTempTech(
+        assignModal.vanId, selectedTechId, tech?.name || 'Unknown',
+        { id: currentUser.user_id, name: currentUser.name }, assignReason
+      );
+      if (ok) {
+        showToast.success(`${tech?.name} assigned to ${assignModal.vanLabel}`);
+        setAssignModal(null);
+        setSelectedTechId('');
+        setAssignReason('');
+        loadData();
+        onRefresh();
+      } else {
+        showToast.error('Failed to assign technician');
+      }
+    } catch {
       showToast.error('Failed to assign technician');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleReviewRequest = async (requestId: string, approved: boolean) => {
-    const ok = await reviewVanAccessRequest(requestId, approved, { id: currentUser.user_id, name: currentUser.name });
-    if (ok) {
-      showToast.success(approved ? 'Request approved — tech assigned' : 'Request rejected');
-      loadData();
-      onRefresh();
-    } else {
+    if (pendingActions.has(requestId)) return;
+    addPending(requestId);
+    try {
+      const ok = await reviewVanAccessRequest(requestId, approved, { id: currentUser.user_id, name: currentUser.name });
+      if (ok) {
+        showToast.success(approved ? 'Request approved — tech assigned' : 'Request rejected');
+        loadData();
+        onRefresh();
+      } else {
+        showToast.error('Failed to process request');
+      }
+    } catch {
       showToast.error('Failed to process request');
+    } finally {
+      removePending(requestId);
     }
   };
 
@@ -140,20 +174,25 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
   };
 
   const handleSaveIdentification = async () => {
-    if (!editModal) return;
+    if (!editModal || submitting) return;
     setSubmitting(true);
-    const ok = await updateVanIdentification(
-      editModal.van_stock_id,
-      { van_plate: editPlate || undefined, van_code: editCode || undefined },
-      { id: currentUser.user_id, name: currentUser.name }
-    );
-    setSubmitting(false);
-    if (ok) {
-      showToast.success('Van details updated');
-      setEditModal(null);
-      loadData();
-    } else {
+    try {
+      const ok = await updateVanIdentification(
+        editModal.van_stock_id,
+        { van_plate: editPlate || undefined, van_code: editCode || undefined },
+        { id: currentUser.user_id, name: currentUser.name }
+      );
+      if (ok) {
+        showToast.success('Van details updated');
+        setEditModal(null);
+        loadData();
+      } else {
+        showToast.error('Failed to update van details');
+      }
+    } catch {
       showToast.error('Failed to update van details');
+    } finally {
+      setSubmitting(false);
     }
   };
 

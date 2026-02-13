@@ -49,7 +49,7 @@ export default function VanRequestFlow({ currentUser, onClose, onRequestSubmitte
   }, [currentUser.user_id]);
 
   const handleSearch = async () => {
-    if (!searchTerm.trim()) return;
+    if (!searchTerm.trim() || searching) return;
     setSearching(true);
     try {
       const results = await searchPartAcrossVans(searchTerm.trim());
@@ -62,21 +62,26 @@ export default function VanRequestFlow({ currentUser, onClose, onRequestSubmitte
   };
 
   const handleSubmitRequest = async () => {
-    if (!requestModal || !reason.trim()) return;
+    if (!requestModal || !reason.trim() || submitting) return;
     setSubmitting(true);
-    const ok = await submitVanAccessRequest(
-      requestModal.van_stock_id,
-      { id: currentUser.user_id, name: currentUser.name },
-      reason.trim()
-    );
-    setSubmitting(false);
-    if (ok) {
-      showToast.success('Request submitted — waiting for supervisor approval');
-      setRequestModal(null);
-      setReason('');
-      onRequestSubmitted();
-    } else {
+    try {
+      const ok = await submitVanAccessRequest(
+        requestModal.van_stock_id,
+        { id: currentUser.user_id, name: currentUser.name },
+        reason.trim()
+      );
+      if (ok) {
+        showToast.success('Request submitted — waiting for supervisor approval');
+        setRequestModal(null);
+        setReason('');
+        onRequestSubmitted();
+      } else {
+        showToast.error('Failed to submit request');
+      }
+    } catch {
       showToast.error('Failed to submit request');
+    } finally {
+      setSubmitting(false);
     }
   };
 

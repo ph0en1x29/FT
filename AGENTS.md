@@ -23,19 +23,25 @@ npm run test:smoke   # Quick smoke tests only
 
 ## Project Structure
 
-- `/src/components/` - React components
-- `/src/pages/` - Page-level components
-- `/src/hooks/` - Custom React hooks
-- `/src/lib/` - Utilities, Supabase client, types
-- `/src/lib/types.ts` - TypeScript types
-- `/tests/` - Playwright E2E tests
-- `/docs/` - Documentation
+**No `src/` directory — everything at project root!**
+
+- `/pages/` — Page-level components (each feature = subfolder)
+- `/components/` — Shared React components
+- `/services/` — Supabase service layer (inventoryService.ts, jobService.ts, etc.)
+- `/types/` — TypeScript types (job-core.types.ts, user.types.ts, etc.)
+- `/hooks/` — Shared custom React hooks
+- `/utils/` — Utility functions
+- `/tests/` — Playwright E2E tests
+- `/docs/` — Documentation
+- `/database/migrations/` — SQL migration files
+- `/.claude/skills/` — Claude Code skills (/ft-review, /ft-deploy, /ft-test)
+- `/.claude/agents/` — Claude Code subagents (ft-reviewer, ft-planner)
 
 ## Database
 
 - **Supabase** hosted PostgreSQL
-- Types in `/src/lib/types.ts`
-- Client in `/src/lib/supabase.ts`
+- Types in `/types/*.types.ts`
+- Client in `/services/supabaseClient.ts`
 - **DO NOT** use raw SQL in components - use typed queries
 - RPC functions defined in Supabase dashboard
 
@@ -44,7 +50,7 @@ npm run test:smoke   # Quick smoke tests only
 1. **Don't skip build verification** - Always run `npm run build` after changes
 2. **Don't forget RLS policies** - Every table needs policies when RLS enabled
 3. **Don't use `any` type** - Use proper TypeScript types
-4. **Don't create duplicate utilities** - Check `/src/lib/` first
+4. **Don't create duplicate utilities** - Check `/utils/` and `/services/` first
 5. **Don't hardcode IDs** - Use constants or fetch from DB
 6. **Don't modify DB schema without migration docs** - Update `docs/DB_SCHEMA.md`
 
@@ -54,6 +60,16 @@ npm run test:smoke   # Quick smoke tests only
 - `docs/USER_GUIDE.md` - Feature documentation
 - `docs/DB_SCHEMA.md` - Database structure
 - `docs/PROJECT_STRUCTURE.md` - Architecture overview
+
+## UI Patterns
+
+- **Theme classes:** `text-theme`, `bg-theme-card`, `border-theme`, `text-theme-muted`, `bg-theme-surface-2`
+- **Dark mode:** Always use theme classes, never hardcode colors
+- **Toasts:** `showToast.success(title, message)`, `showToast.error(title, message)`
+- **Icons:** Lucide React (`lucide-react`)
+- **Modals:** Fixed inset-0 with bg-black/50 backdrop
+- **Loading states:** Always reset in `finally` block
+- **Error handling:** try/catch/finally on ALL async Supabase calls
 
 ## Test Accounts
 
