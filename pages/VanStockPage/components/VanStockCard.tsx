@@ -19,6 +19,7 @@ export function VanStockCard({
   onScheduleAudit,
 }: VanStockCardProps) {
   const lowItems = getLowStockItems(vanStock.items);
+  const vanIdentifier = vanStock.van_plate || vanStock.van_code || 'No Plate';
 
   return (
     <div
@@ -35,9 +36,10 @@ export function VanStockCard({
               </span>
             </div>
             <div>
-              <h3 className="font-semibold text-theme">{vanStock.technician_name || 'Unknown'}</h3>
+              <h3 className="font-semibold text-theme">{vanIdentifier}</h3>
               <div className="flex items-center gap-2">
-                {vanStock.van_code && (
+                <span className="text-xs text-theme-muted">{vanStock.technician_name || 'Unknown'}</span>
+                {vanStock.van_code && vanStock.van_plate && (
                   <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
                     {vanStock.van_code}
                   </span>

@@ -57,6 +57,7 @@ export function VanStockDetailModal({
   if (!isOpen || !vanStock) return null;
 
   const lowItems = getLowStockItems(vanStock.items);
+  const vanIdentifier = vanStock.van_plate || vanStock.van_code || 'No Plate';
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -71,15 +72,18 @@ export function VanStockDetailModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-lg">{vanStock.technician_name}</h2>
-                {vanStock.van_code && (
-                  <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-                    {vanStock.van_code}
-                  </span>
-                )}
+                <h2 className="font-semibold text-lg">{vanIdentifier}</h2>
                 {!vanStock.is_active && (
                   <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded">
                     Inactive
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-sm text-slate-600">{vanStock.technician_name}</span>
+                {vanStock.van_code && vanStock.van_plate && (
+                  <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                    {vanStock.van_code}
                   </span>
                 )}
               </div>

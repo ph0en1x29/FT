@@ -168,6 +168,7 @@ export const createVanStock = async (
   technicianId: string,
   technicianName: string,
   vanCode: string,
+  vanPlate?: string,
   createdById?: string,
   createdByName?: string,
   notes?: string
@@ -177,6 +178,7 @@ export const createVanStock = async (
     .insert({
       technician_id: technicianId,
       van_code: vanCode,
+      van_plate: vanPlate || null,
       notes: notes || null,
       max_items: 50,
       is_active: true,
@@ -198,7 +200,7 @@ export const createVanStock = async (
 
 export const updateVanStock = async (
   vanStockId: string,
-  updates: { van_code?: string; notes?: string; max_items?: number; is_active?: boolean; technician_id?: string }
+  updates: { van_plate?: string; van_code?: string; notes?: string; max_items?: number; is_active?: boolean; technician_id?: string }
 ): Promise<VanStock> => {
   const { data, error } = await supabase
     .from('van_stocks')

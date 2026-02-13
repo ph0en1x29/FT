@@ -7,6 +7,7 @@ import { User,VanStock } from '../../../../types';
 interface EditVanStockModalProps {
   isOpen: boolean;
   vanStock: VanStock | null;
+  editVanPlate: string;
   editVanCode: string;
   editVanNotes: string;
   editMaxItems: number;
@@ -14,6 +15,7 @@ interface EditVanStockModalProps {
   allTechnicians: User[];
   submitting: boolean;
   onClose: () => void;
+  onVanPlateChange: (plate: string) => void;
   onVanCodeChange: (code: string) => void;
   onNotesChange: (notes: string) => void;
   onMaxItemsChange: (max: number) => void;
@@ -24,6 +26,7 @@ interface EditVanStockModalProps {
 export function EditVanStockModal({
   isOpen,
   vanStock,
+  editVanPlate,
   editVanCode,
   editVanNotes,
   editMaxItems,
@@ -31,6 +34,7 @@ export function EditVanStockModal({
   allTechnicians,
   submitting,
   onClose,
+  onVanPlateChange,
   onVanCodeChange,
   onNotesChange,
   onMaxItemsChange,
@@ -75,6 +79,19 @@ export function EditVanStockModal({
                 Warning: Changing technician will reassign the van and all its items
               </p>
             )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Van Plate (License Plate)
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., WKL 4521"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={editVanPlate}
+              onChange={(e) => onVanPlateChange(e.target.value.toUpperCase())}
+            />
           </div>
 
           <div>

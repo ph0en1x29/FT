@@ -8,11 +8,13 @@ interface AssignVanStockModalProps {
   isOpen: boolean;
   availableTechnicians: User[];
   selectedTechnicianId: string;
+  vanPlate: string;
   vanCode: string;
   vanNotes: string;
   submitting: boolean;
   onClose: () => void;
   onTechnicianChange: (id: string) => void;
+  onVanPlateChange: (plate: string) => void;
   onVanCodeChange: (code: string) => void;
   onNotesChange: (notes: string) => void;
   onSubmit: () => void;
@@ -22,11 +24,13 @@ export function AssignVanStockModal({
   isOpen,
   availableTechnicians,
   selectedTechnicianId,
+  vanPlate,
   vanCode,
   vanNotes,
   submitting,
   onClose,
   onTechnicianChange,
+  onVanPlateChange,
   onVanCodeChange,
   onNotesChange,
   onSubmit,
@@ -72,6 +76,19 @@ export function AssignVanStockModal({
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
+              Van Plate (License Plate) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., WKL 4521"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={vanPlate}
+              onChange={(e) => onVanPlateChange(e.target.value.toUpperCase())}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Van Code <span className="text-red-500">*</span>
             </label>
             <input
@@ -108,7 +125,7 @@ export function AssignVanStockModal({
           </button>
           <button
             onClick={onSubmit}
-            disabled={!selectedTechnicianId || !vanCode.trim() || submitting}
+            disabled={!selectedTechnicianId || !vanPlate.trim() || !vanCode.trim() || submitting}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? 'Assigning...' : 'Assign'}

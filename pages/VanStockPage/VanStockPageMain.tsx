@@ -52,6 +52,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
   // Form state for Assign modal
   const [availableTechnicians, setAvailableTechnicians] = useState<User[]>([]);
   const [selectedTechnicianId, setSelectedTechnicianId] = useState('');
+  const [vanPlate, setVanPlate] = useState('');
   const [vanCode, setVanCode] = useState('');
   const [vanNotes, setVanNotes] = useState('');
 
@@ -63,6 +64,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
   const [itemMaxQty, setItemMaxQty] = useState(5);
 
   // Form state for Edit modal
+  const [editVanPlate, setEditVanPlate] = useState('');
   const [editVanCode, setEditVanCode] = useState('');
   const [editVanNotes, setEditVanNotes] = useState('');
   const [editMaxItems, setEditMaxItems] = useState(50);
@@ -123,6 +125,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       const available = technicians.filter(t => !existingTechIds.has(t.user_id));
       setAvailableTechnicians(available);
       setSelectedTechnicianId('');
+      setVanPlate('');
       setVanCode('');
       setVanNotes('');
       setShowAssignModal(true);
@@ -132,7 +135,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
   };
 
   const handleAssignVanStock = async () => {
-    if (!selectedTechnicianId || !vanCode.trim()) {
+    if (!selectedTechnicianId || !vanPlate.trim() || !vanCode.trim()) {
       showToast.error('Please fill all required fields');
       return;
     }
@@ -143,11 +146,12 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
         selectedTechnicianId,
         technician?.name || 'Unknown',
         vanCode.trim(),
+        vanPlate.trim(),
         currentUser.user_id,
         currentUser.name,
         vanNotes.trim() || undefined
       );
-      showToast.success('Van Stock assigned', `Assigned to ${technician?.name} (${vanCode})`);
+      showToast.success('Van Stock assigned', `Assigned to ${technician?.name} (${vanPlate})`);
       setShowAssignModal(false);
       loadData();
     } catch (error) {
@@ -225,6 +229,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
         setAllTechnicians([selectedVanStock.technician]);
       }
     }
+    setEditVanPlate(selectedVanStock.van_plate || '');
     setEditVanCode(selectedVanStock.van_code || '');
     setEditVanNotes(selectedVanStock.notes || '');
     setEditMaxItems(selectedVanStock.max_items || 50);
@@ -239,7 +244,8 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
     }
     setSubmitting(true);
     try {
-      const updates: { van_code?: string; notes?: string; max_items?: number; technician_id?: string } = {
+      const updates: { van_plate?: string; van_code?: string; notes?: string; max_items?: number; technician_id?: string } = {
+        van_plate: editVanPlate.trim() || undefined,
         van_code: editVanCode.trim(),
         notes: editVanNotes.trim() || '',
         max_items: editMaxItems,
@@ -399,11 +405,13 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
         isOpen={showAssignModal}
         availableTechnicians={availableTechnicians}
         selectedTechnicianId={selectedTechnicianId}
+        vanPlate={vanPlate}
         vanCode={vanCode}
         vanNotes={vanNotes}
         submitting={submitting}
         onClose={() => setShowAssignModal(false)}
         onTechnicianChange={setSelectedTechnicianId}
+        onVanPlateChange={setVanPlate}
         onVanCodeChange={setVanCode}
         onNotesChange={setVanNotes}
         onSubmit={handleAssignVanStock}
@@ -428,6 +436,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       <EditVanStockModal
         isOpen={showEditModal}
         vanStock={selectedVanStock}
+        editVanPlate={editVanPlate}
         editVanCode={editVanCode}
         editVanNotes={editVanNotes}
         editMaxItems={editMaxItems}
@@ -435,6 +444,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
         allTechnicians={allTechnicians}
         submitting={submitting}
         onClose={() => setShowEditModal(false)}
+        onVanPlateChange={setEditVanPlate}
         onVanCodeChange={setEditVanCode}
         onNotesChange={setEditVanNotes}
         onMaxItemsChange={setEditMaxItems}

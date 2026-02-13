@@ -76,6 +76,8 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
     );
   }
 
+  const headerVanIdentifier = vanStock.van_plate || vanStock.van_code || 'No Plate';
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -84,6 +86,9 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
           <h1 className="text-2xl font-bold text-theme flex items-center gap-2">
             <Truck className="w-7 h-7" />
             My Van Stock
+            <span className="text-sm font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">
+              {headerVanIdentifier}
+            </span>
           </h1>
           <p className="text-sm text-theme-muted mt-1">
             Manage your mobile inventory
