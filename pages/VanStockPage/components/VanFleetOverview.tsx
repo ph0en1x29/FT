@@ -1,7 +1,9 @@
 /**
  * VanFleetOverview — Admin/Supervisor collapsible panel showing all vans,
  * status, temp assignments, and pending access requests.
+ * Uses Tailwind theme classes for proper light/dark mode support.
  */
+import { ChevronDown, ChevronRight, Edit2, FileText, UserMinus, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { showToast } from '../../../services/toastService';
 import {
@@ -14,18 +16,29 @@ import {
   updateVanIdentification,
   updateVanStatus,
 } from '../../../services/inventoryService';
-import type { User, VanAccessRequest, VanAuditLogEntry, VanFleetItem, VanStatus } from '../../../types';
 import { getUsers } from '../../../services/userService';
+import type { User, VanAccessRequest, VanAuditLogEntry, VanFleetItem, VanStatus } from '../../../types';
 
 interface Props {
   currentUser: User;
   onRefresh: () => void;
 }
 
-const STATUS_CONFIG: Record<VanStatus, { label: string; color: string; bg: string; icon: string }> = {
-  active: { label: 'Active', color: '#10B981', bg: '#10B98120', icon: '🟢' },
-  in_service: { label: 'In Service', color: '#F59E0B', bg: '#F59E0B20', icon: '🔴' },
-  decommissioned: { label: 'Decommissioned', color: '#6B7280', bg: '#6B728020', icon: '⚫' },
+const STATUS_CONFIG: Record<VanStatus, { label: string; dotClass: string; badgeClass: string }> = {
+  active: { label: 'Active', dotClass: 'bg-emerald-500', badgeClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
+  in_service: { label: 'In Service', dotClass: 'bg-red-500', badgeClass: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800' },
+  decommissioned: { label: 'Retired', dotClass: 'bg-gray-400', badgeClass: 'bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
+};
+
+const AUDIT_LABELS: Record<string, string> = {
+  status_change: '🔄 Status Changed',
+  temp_assigned: '👤 Temp Assigned',
+  temp_removed: '🚫 Temp Removed',
+  request_submitted: '📝 Access Requested',
+  request_approved: '✅ Request Approved',
+  request_rejected: '❌ Request Rejected',
+  van_created: '🆕 Van Created',
+  van_updated: '✏️ Van Updated',
 };
 
 export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
@@ -35,7 +48,6 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
   const [loading, setLoading] = useState(true);
   const [technicians, setTechnicians] = useState<User[]>([]);
 
-  // Modal states
   const [assignModal, setAssignModal] = useState<{ vanId: string; vanLabel: string } | null>(null);
   const [selectedTechId, setSelectedTechId] = useState('');
   const [assignReason, setAssignReason] = useState('');
@@ -54,11 +66,8 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
     ]);
     setFleet(fleetData);
     setRequests(requestData);
-
-    // Load technicians for assign modal
     const users = await getUsers();
     if (users) setTechnicians(users.filter((u: User) => u.role === 'technician'));
-
     setLoading(false);
   };
 
@@ -68,7 +77,7 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
     const newStatus: VanStatus = van.van_status === 'active' ? 'in_service' : 'active';
     const ok = await updateVanStatus(van.van_stock_id, newStatus, { id: currentUser.user_id, name: currentUser.name });
     if (ok) {
-      showToast.success(`Van ${van.van_plate || van.van_code || ''} set to ${STATUS_CONFIG[newStatus].label}`);
+      showToast.success(`Van ${van.van_plate || van.van_code || ''} → ${STATUS_CONFIG[newStatus].label}`);
       loadData();
       onRefresh();
     } else {
@@ -79,7 +88,7 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
   const handleRemoveTemp = async (van: VanFleetItem) => {
     const ok = await removeTempTech(van.van_stock_id, { id: currentUser.user_id, name: currentUser.name });
     if (ok) {
-      showToast.success(`Removed ${van.temporary_tech_name} from ${van.van_plate || van.van_code || 'van'}`);
+      showToast.success(`Removed ${van.temporary_tech_name} from van`);
       loadData();
       onRefresh();
     }
@@ -137,61 +146,52 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
     }
   };
 
-  const formatDate = (d: string) => new Date(d).toLocaleString('en-MY', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const formatDate = (d: string) => new Date(d).toLocaleString('en-MY', {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
 
-  const AUDIT_LABELS: Record<string, string> = {
-    status_change: '🔄 Status Changed',
-    temp_assigned: '👤 Temp Assigned',
-    temp_removed: '🚫 Temp Removed',
-    request_submitted: '📝 Access Requested',
-    request_approved: '✅ Request Approved',
-    request_rejected: '❌ Request Rejected',
-    van_created: '🆕 Van Created',
-    van_updated: '✏️ Van Updated',
-  };
-
-  if (loading) return <div style={{ padding: 16, color: '#9CA3AF' }}>Loading fleet...</div>;
+  if (loading) return <div className="p-4 text-theme-muted text-sm">Loading fleet...</div>;
 
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div className="mb-4">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        style={{
-          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '12px 16px', background: '#1F2937', border: '1px solid #374151',
-          borderRadius: expanded ? '8px 8px 0 0' : 8, cursor: 'pointer', color: '#F9FAFB',
-        }}
+        className={`w-full flex items-center justify-between px-4 py-3 bg-theme-surface border border-theme cursor-pointer hover:bg-theme-surface-2 transition-colors ${
+          expanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'
+        }`}
       >
-        <span style={{ fontWeight: 600, fontSize: 15 }}>
+        <span className="font-semibold text-theme text-sm flex items-center gap-2">
           🚐 Fleet Overview
           {requests.length > 0 && (
-            <span style={{ marginLeft: 8, background: '#EF4444', color: '#fff', borderRadius: 10, padding: '2px 8px', fontSize: 12 }}>
+            <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
               {requests.length} pending
             </span>
           )}
         </span>
-        <span style={{ fontSize: 18 }}>{expanded ? '▾' : '▸'}</span>
+        {expanded ? <ChevronDown className="w-4 h-4 text-theme-muted" /> : <ChevronRight className="w-4 h-4 text-theme-muted" />}
       </button>
 
       {expanded && (
-        <div style={{ border: '1px solid #374151', borderTop: 'none', borderRadius: '0 0 8px 8px', background: '#111827' }}>
+        <div className="border border-theme border-t-0 rounded-b-xl bg-theme-surface overflow-hidden">
           {/* Pending requests */}
           {requests.length > 0 && (
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #374151', background: '#7C2D1220' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#F59E0B', marginBottom: 8 }}>⚠️ Pending Requests</div>
+            <div className="px-4 py-3 border-b border-theme bg-amber-50/50 dark:bg-amber-900/10">
+              <div className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-2">⚠️ Pending Requests</div>
               {requests.map(req => (
-                <div key={req.request_id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 13, color: '#D1D5DB', flex: 1 }}>
-                    <strong>{req.requester_name}</strong> → Van {fleet.find(v => v.van_stock_id === req.van_stock_id)?.van_plate || '?'}
-                    {' — '}<em>"{req.reason}"</em>
+                <div key={req.request_id} className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className="text-sm text-theme flex-1">
+                    <strong>{req.requester_name}</strong>
+                    {' → '}
+                    {fleet.find(v => v.van_stock_id === req.van_stock_id)?.van_plate || 'Van'}
+                    <span className="text-theme-muted italic"> — "{req.reason}"</span>
                   </span>
                   <button onClick={() => handleReviewRequest(req.request_id, true)}
-                    style={{ padding: '4px 12px', background: '#10B981', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+                    className="px-3 py-1 bg-emerald-600 text-white text-xs rounded hover:bg-emerald-700 font-medium">
                     Approve
                   </button>
                   <button onClick={() => handleReviewRequest(req.request_id, false)}
-                    style={{ padding: '4px 12px', background: '#EF4444', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+                    className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 font-medium">
                     Reject
                   </button>
                 </div>
@@ -200,88 +200,88 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
           )}
 
           {/* Van list */}
-          <div style={{ padding: '8px 12px' }}>
+          <div className="divide-y divide-theme">
             {fleet.map(van => {
               const cfg = STATUS_CONFIG[van.van_status] || STATUS_CONFIG.active;
               return (
-                <div key={van.van_stock_id} style={{
-                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px',
-                  borderBottom: '1px solid #1F2937', flexWrap: 'wrap',
-                }}>
-                  {/* Status + plate */}
+                <div key={van.van_stock_id} className="flex items-center gap-3 px-4 py-3 hover:bg-theme-surface-2 transition-colors flex-wrap">
+                  {/* Status badge */}
                   <button
                     onClick={() => handleStatusToggle(van)}
                     title={`Click to ${van.van_status === 'active' ? 'set In Service' : 'set Active'}`}
-                    style={{
-                      padding: '3px 10px', borderRadius: 12, border: 'none', cursor: 'pointer',
-                      background: cfg.bg, color: cfg.color, fontSize: 11, fontWeight: 600,
-                    }}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${cfg.badgeClass}`}
                   >
-                    {cfg.icon} {cfg.label}
+                    <span className={`w-2 h-2 rounded-full ${cfg.dotClass}`} />
+                    {cfg.label}
                   </button>
 
                   {/* Van info */}
-                  <div style={{ flex: 1, minWidth: 120 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: '#F9FAFB' }}>
+                  <div className="flex-1 min-w-[120px]">
+                    <div className="font-semibold text-theme text-sm">
                       {van.van_plate || van.van_code || 'No plate'}
-                      {van.van_code && van.van_plate && <span style={{ color: '#6B7280', fontWeight: 400 }}> ({van.van_code})</span>}
+                      {van.van_code && van.van_plate && (
+                        <span className="text-theme-muted font-normal text-xs ml-1">({van.van_code})</span>
+                      )}
                     </div>
-                    <div style={{ fontSize: 12, color: '#9CA3AF' }}>
+                    <div className="text-xs text-theme-muted">
                       {van.technician_name} • {van.item_count} items
                       {van.temporary_tech_name && (
-                        <span style={{ color: '#F59E0B' }}> • Temp: {van.temporary_tech_name}</span>
+                        <span className="text-amber-600 dark:text-amber-400"> • Temp: {van.temporary_tech_name}</span>
                       )}
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div style={{ display: 'flex', gap: 4 }}>
+                  <div className="flex gap-1.5">
                     {van.temporary_tech_id ? (
-                      <button onClick={() => handleRemoveTemp(van)}
-                        style={{ padding: '4px 8px', background: '#EF444420', color: '#EF4444', border: '1px solid #EF444440', borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>
-                        Remove Temp
+                      <button onClick={() => handleRemoveTemp(van)} title="Remove temp tech"
+                        className="p-1.5 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                        <UserMinus className="w-3.5 h-3.5" />
                       </button>
                     ) : (
                       <button onClick={() => { setAssignModal({ vanId: van.van_stock_id, vanLabel: van.van_plate || van.van_code || 'Van' }); setSelectedTechId(''); setAssignReason(''); }}
-                        style={{ padding: '4px 8px', background: '#3B82F620', color: '#3B82F6', border: '1px solid #3B82F640', borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>
-                        Assign Temp
+                        title="Assign temp tech"
+                        className="p-1.5 rounded-lg border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                        <UserPlus className="w-3.5 h-3.5" />
                       </button>
                     )}
                     <button onClick={() => { setEditModal(van); setEditPlate(van.van_plate || ''); setEditCode(van.van_code || ''); }}
-                      style={{ padding: '4px 8px', background: '#6B728020', color: '#9CA3AF', border: '1px solid #6B728040', borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>
-                      ✏️
+                      title="Edit van details"
+                      className="p-1.5 rounded-lg border border-theme text-theme-muted hover:bg-theme-surface-2 transition-colors">
+                      <Edit2 className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={() => handleViewAudit(van)}
-                      style={{ padding: '4px 8px', background: '#6B728020', color: '#9CA3AF', border: '1px solid #6B728040', borderRadius: 4, cursor: 'pointer', fontSize: 11 }}>
-                      📋
+                    <button onClick={() => handleViewAudit(van)} title="View audit trail"
+                      className="p-1.5 rounded-lg border border-theme text-theme-muted hover:bg-theme-surface-2 transition-colors">
+                      <FileText className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
               );
             })}
-            {fleet.length === 0 && <div style={{ padding: 16, color: '#6B7280', textAlign: 'center' }}>No active vans</div>}
+            {fleet.length === 0 && (
+              <div className="px-4 py-8 text-center text-theme-muted text-sm">No active vans</div>
+            )}
           </div>
         </div>
       )}
 
       {/* Assign Temp Modal */}
       {assignModal && (
-        <div style={{ position: 'fixed', inset: 0, background: '#00000080', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onClick={() => setAssignModal(null)}>
-          <div style={{ background: '#1F2937', borderRadius: 12, padding: 24, width: 340, maxWidth: '90vw' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 16px', color: '#F9FAFB', fontSize: 16 }}>Assign Temp Tech → {assignModal.vanLabel}</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setAssignModal(null)}>
+          <div className="bg-theme-surface rounded-xl shadow-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-theme mb-4">Assign Temp Tech → {assignModal.vanLabel}</h3>
             <select value={selectedTechId} onChange={e => setSelectedTechId(e.target.value)}
-              style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #374151', background: '#111827', color: '#F9FAFB', marginBottom: 12 }}>
+              className="w-full px-3 py-2.5 border border-theme rounded-lg bg-theme-surface text-theme text-sm mb-3 focus:ring-2 focus:ring-blue-500">
               <option value="">Select technician...</option>
               {technicians.map(t => <option key={t.user_id} value={t.user_id}>{t.name}</option>)}
             </select>
             <input placeholder="Reason (optional)" value={assignReason} onChange={e => setAssignReason(e.target.value)}
-              style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #374151', background: '#111827', color: '#F9FAFB', marginBottom: 16, boxSizing: 'border-box' }} />
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              className="w-full px-3 py-2.5 border border-theme rounded-lg bg-theme-surface text-theme text-sm mb-4 focus:ring-2 focus:ring-blue-500" />
+            <div className="flex gap-2 justify-end">
               <button onClick={() => setAssignModal(null)}
-                style={{ padding: '8px 16px', background: '#374151', color: '#D1D5DB', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
+                className="px-4 py-2 border border-theme rounded-lg text-sm text-theme-muted hover:bg-theme-surface-2">Cancel</button>
               <button onClick={handleAssign} disabled={!selectedTechId || submitting}
-                style={{ padding: '8px 16px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', opacity: !selectedTechId || submitting ? 0.5 : 1 }}>
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
                 {submitting ? 'Assigning...' : 'Assign'}
               </button>
             </div>
@@ -291,21 +291,20 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
 
       {/* Edit Van Modal */}
       {editModal && (
-        <div style={{ position: 'fixed', inset: 0, background: '#00000080', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onClick={() => setEditModal(null)}>
-          <div style={{ background: '#1F2937', borderRadius: 12, padding: 24, width: 340, maxWidth: '90vw' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 16px', color: '#F9FAFB', fontSize: 16 }}>Edit Van Details</h3>
-            <label style={{ display: 'block', fontSize: 12, color: '#9CA3AF', marginBottom: 4 }}>Plate Number</label>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEditModal(null)}>
+          <div className="bg-theme-surface rounded-xl shadow-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-theme mb-4">Edit Van Details</h3>
+            <label className="block text-xs font-medium text-theme-muted mb-1">Plate Number</label>
             <input value={editPlate} onChange={e => setEditPlate(e.target.value)} placeholder="e.g., WKL 4521"
-              style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #374151', background: '#111827', color: '#F9FAFB', marginBottom: 12, boxSizing: 'border-box' }} />
-            <label style={{ display: 'block', fontSize: 12, color: '#9CA3AF', marginBottom: 4 }}>Van Code / Name</label>
+              className="w-full px-3 py-2.5 border border-theme rounded-lg bg-theme-surface text-theme text-sm mb-3 focus:ring-2 focus:ring-blue-500" />
+            <label className="block text-xs font-medium text-theme-muted mb-1">Van Code / Name</label>
             <input value={editCode} onChange={e => setEditCode(e.target.value)} placeholder="e.g., Van A"
-              style={{ width: '100%', padding: 10, borderRadius: 6, border: '1px solid #374151', background: '#111827', color: '#F9FAFB', marginBottom: 16, boxSizing: 'border-box' }} />
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              className="w-full px-3 py-2.5 border border-theme rounded-lg bg-theme-surface text-theme text-sm mb-4 focus:ring-2 focus:ring-blue-500" />
+            <div className="flex gap-2 justify-end">
               <button onClick={() => setEditModal(null)}
-                style={{ padding: '8px 16px', background: '#374151', color: '#D1D5DB', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
+                className="px-4 py-2 border border-theme rounded-lg text-sm text-theme-muted hover:bg-theme-surface-2">Cancel</button>
               <button onClick={handleSaveIdentification} disabled={submitting}
-                style={{ padding: '8px 16px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
                 {submitting ? 'Saving...' : 'Save'}
               </button>
             </div>
@@ -315,35 +314,36 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
 
       {/* Audit Log Modal */}
       {auditModal && (
-        <div style={{ position: 'fixed', inset: 0, background: '#00000080', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onClick={() => setAuditModal(null)}>
-          <div style={{ background: '#1F2937', borderRadius: 12, padding: 24, width: 400, maxWidth: '90vw', maxHeight: '70vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 16px', color: '#F9FAFB', fontSize: 16 }}>📋 Audit Trail — {auditModal.vanLabel}</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setAuditModal(null)}>
+          <div className="bg-theme-surface rounded-xl shadow-xl p-6 w-full max-w-md max-h-[70vh] overflow-auto" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-theme mb-4">📋 Audit Trail — {auditModal.vanLabel}</h3>
             {auditLog.length === 0 ? (
-              <div style={{ color: '#6B7280', textAlign: 'center', padding: 24 }}>No audit entries yet</div>
+              <div className="text-center text-theme-muted py-8 text-sm">No audit entries yet</div>
             ) : (
-              auditLog.map(entry => (
-                <div key={entry.id} style={{ padding: '10px 0', borderBottom: '1px solid #374151' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#F9FAFB' }}>
-                    {AUDIT_LABELS[entry.action] || entry.action}
+              <div className="divide-y divide-theme">
+                {auditLog.map(entry => (
+                  <div key={entry.id} className="py-3">
+                    <div className="text-sm font-medium text-theme">
+                      {AUDIT_LABELS[entry.action] || entry.action}
+                    </div>
+                    <div className="text-xs text-theme-muted mt-0.5">
+                      by {entry.performed_by_name} • {formatDate(entry.created_at)}
+                    </div>
+                    {entry.target_tech_name && (
+                      <div className="text-xs text-theme mt-1">Tech: {entry.target_tech_name}</div>
+                    )}
+                    {entry.reason && (
+                      <div className="text-xs text-theme-muted mt-1 italic">"{entry.reason}"</div>
+                    )}
+                    {entry.old_value && entry.new_value && (
+                      <div className="text-xs text-theme mt-1">{entry.old_value} → {entry.new_value}</div>
+                    )}
                   </div>
-                  <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
-                    by {entry.performed_by_name} • {formatDate(entry.created_at)}
-                  </div>
-                  {entry.target_tech_name && (
-                    <div style={{ fontSize: 12, color: '#D1D5DB', marginTop: 2 }}>Tech: {entry.target_tech_name}</div>
-                  )}
-                  {entry.reason && (
-                    <div style={{ fontSize: 12, color: '#D1D5DB', marginTop: 2, fontStyle: 'italic' }}>"{entry.reason}"</div>
-                  )}
-                  {entry.old_value && entry.new_value && (
-                    <div style={{ fontSize: 12, color: '#D1D5DB', marginTop: 2 }}>{entry.old_value} → {entry.new_value}</div>
-                  )}
-                </div>
-              ))
+                ))}
+              </div>
             )}
             <button onClick={() => setAuditModal(null)}
-              style={{ marginTop: 16, width: '100%', padding: '10px', background: '#374151', color: '#D1D5DB', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+              className="mt-4 w-full py-2.5 border border-theme rounded-lg text-sm text-theme-muted hover:bg-theme-surface-2 transition-colors">
               Close
             </button>
           </div>

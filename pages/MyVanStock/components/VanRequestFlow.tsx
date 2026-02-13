@@ -33,27 +33,32 @@ export default function VanRequestFlow({ currentUser, onClose, onRequestSubmitte
 
   useEffect(() => {
     (async () => {
-      const data = await getVanFleetOverview();
-      // Show only active vans that aren't the tech's own and don't already have a temp tech
-      setVans(data.filter(v =>
-        v.van_status === 'active' &&
-        v.technician_id !== currentUser.user_id &&
-        !v.temporary_tech_id
-      ));
-      setLoading(false);
+      try {
+        const data = await getVanFleetOverview();
+        setVans(data.filter(v =>
+          v.van_status === 'active' &&
+          v.technician_id !== currentUser.user_id &&
+          !v.temporary_tech_id
+        ));
+      } catch {
+        showToast.error('Failed to load available vans');
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [currentUser.user_id]);
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
     setSearching(true);
-    const results = await searchPartAcrossVans(searchTerm.trim());
-    // Filter out tech's own van
-    setSearchResults(results.filter(r => {
-      const van = vans.find(v => v.van_stock_id === r.van_stock_id);
-      return van || true; // show all active results
-    }));
-    setSearching(false);
+    try {
+      const results = await searchPartAcrossVans(searchTerm.trim());
+      setSearchResults(results);
+    } catch {
+      showToast.error('Search failed');
+    } finally {
+      setSearching(false);
+    }
   };
 
   const handleSubmitRequest = async () => {
@@ -115,8 +120,8 @@ export default function VanRequestFlow({ currentUser, onClose, onRequestSubmitte
           {searchResults.length > 0 && (
             <div className="mt-3 space-y-2">
               <div className="text-xs font-medium text-theme-muted">{searchResults.length} result(s)</div>
-              {searchResults.map((r, i) => (
-                <div key={i} className="flex items-center justify-between p-2 bg-theme-surface-2 rounded-lg text-sm">
+              {searchResults.map((r) => (
+                <div key={`${r.van_stock_id}-${r.part_name}`} className="flex items-center justify-between p-2 bg-theme-surface-2 rounded-lg text-sm">
                   <div>
                     <span className="font-medium text-theme">{r.part_name}</span>
                     <span className="text-theme-muted"> × {r.quantity}</span>
@@ -178,7 +183,7 @@ export default function VanRequestFlow({ currentUser, onClose, onRequestSubmitte
 
       {/* Request Modal */}
       {requestModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4" onClick={() => setRequestModal(null)}>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4" onClick={e => { e.stopPropagation(); setRequestModal(null); }}>
           <div className="bg-theme-surface rounded-xl shadow-xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-theme mb-1">Request Access</h3>
             <p className="text-xs text-theme-muted mb-4">
