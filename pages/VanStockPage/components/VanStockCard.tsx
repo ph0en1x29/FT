@@ -6,9 +6,9 @@ import { VanStatus, VanStock,VanStockReplenishment } from '../../../types';
 import { getLowStockItems } from '../hooks/useVanStockData';
 
 const STATUS_CONFIG: Record<VanStatus, { label: string; dotClass: string; badgeClass: string }> = {
-  active: { label: 'Active', dotClass: 'bg-emerald-500', badgeClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
-  in_service: { label: 'In Service', dotClass: 'bg-red-500', badgeClass: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800' },
-  decommissioned: { label: 'Retired', dotClass: 'bg-gray-400', badgeClass: 'bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
+  active: { label: 'Active', dotClass: 'bg-emerald-500', badgeClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 font-semibold' },
+  in_service: { label: 'In Service', dotClass: 'bg-red-500', badgeClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800 font-semibold' },
+  decommissioned: { label: 'Retired', dotClass: 'bg-gray-400', badgeClass: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700 font-semibold' },
 };
 
 interface VanStockCardProps {
@@ -48,7 +48,7 @@ export function VanStockCard({
                   const cfg = STATUS_CONFIG[vanStock.van_status] || STATUS_CONFIG.active;
                   return (
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium leading-none cursor-default select-none ${cfg.badgeClass}`}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs leading-none cursor-default select-none ${cfg.badgeClass}`}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <span className={`w-2 h-2 rounded-full ${cfg.dotClass}`} />
