@@ -583,27 +583,16 @@ export const assignTempTech = async (
   performedBy: { id: string; name: string }, reason?: string
 ): Promise<boolean> => {
   try {
-    // Remove any existing temp assignment for this tech
-    await supabase.from('van_stocks')
-      .update({ temporary_tech_id: null, temporary_tech_name: null, temp_assigned_at: null })
-      .eq('temporary_tech_id', techId);
-
-    const { error } = await supabase.from('van_stocks')
-      .update({
-        temporary_tech_id: techId, temporary_tech_name: techName,
-        temp_assigned_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-      })
-      .eq('van_stock_id', vanStockId);
-
-    if (error) return false;
-
-    await supabase.from('van_audit_log').insert({
-      van_stock_id: vanStockId, action: 'temp_assigned',
-      performed_by_id: performedBy.id, performed_by_name: performedBy.name,
-      target_tech_id: techId, target_tech_name: techName,
-      reason: reason || undefined,
+    // Atomic RPC: clears old assignment + assigns new + audit log in one transaction
+    const { error } = await supabase.rpc('assign_temp_tech', {
+      p_van_stock_id: vanStockId,
+      p_tech_id: techId,
+      p_tech_name: techName,
+      p_performed_by_id: performedBy.id,
+      p_performed_by_name: performedBy.name,
+      p_reason: reason || null,
     });
-    return true;
+    return !error;
   } catch (_e) {
     return false;
   }
@@ -663,33 +652,15 @@ export const reviewVanAccessRequest = async (
   requestId: string, approved: boolean, reviewer: { id: string; name: string }
 ): Promise<boolean> => {
   try {
-    const { data: request, error: fetchErr } = await supabase
-      .from('van_access_requests').select('*').eq('request_id', requestId).single();
-    if (fetchErr || !request) return false;
-
-    const { error } = await supabase.from('van_access_requests')
-      .update({
-        status: approved ? 'approved' : 'rejected',
-        reviewed_by_id: reviewer.id, reviewed_by_name: reviewer.name,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq('request_id', requestId);
-    if (error) return false;
-
-    await supabase.from('van_audit_log').insert({
-      van_stock_id: request.van_stock_id,
-      action: approved ? 'request_approved' : 'request_rejected',
-      performed_by_id: reviewer.id, performed_by_name: reviewer.name,
-      target_tech_id: request.requester_id, target_tech_name: request.requester_name,
-      reason: request.reason,
+    // Atomic RPC: locks row, checks status=pending, updates, auto-assigns if approved
+    const { data, error } = await supabase.rpc('review_van_access_request', {
+      p_request_id: requestId,
+      p_approved: approved,
+      p_reviewer_id: reviewer.id,
+      p_reviewer_name: reviewer.name,
     });
-
-    // Auto-assign on approval
-    if (approved) {
-      await assignTempTech(request.van_stock_id, request.requester_id, request.requester_name,
-        reviewer, `Approved request: ${request.reason}`);
-    }
-    return true;
+    if (error) return false;
+    return data === true;
   } catch (_e) {
     return false;
   }

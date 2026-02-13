@@ -60,15 +60,20 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
 
   const loadData = async () => {
     setLoading(true);
-    const [fleetData, requestData] = await Promise.all([
-      getVanFleetOverview(),
-      getPendingVanRequests(),
-    ]);
-    setFleet(fleetData);
-    setRequests(requestData);
-    const users = await getUsers();
-    if (users) setTechnicians(users.filter((u: User) => u.role === 'technician'));
-    setLoading(false);
+    try {
+      const [fleetData, requestData] = await Promise.all([
+        getVanFleetOverview(),
+        getPendingVanRequests(),
+      ]);
+      setFleet(fleetData);
+      setRequests(requestData);
+      const users = await getUsers();
+      if (users) setTechnicians(users.filter((u: User) => u.role === 'technician'));
+    } catch {
+      showToast.error('Failed to load fleet data');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { loadData(); }, []);
@@ -91,6 +96,8 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
       showToast.success(`Removed ${van.temporary_tech_name} from van`);
       loadData();
       onRefresh();
+    } else {
+      showToast.error('Failed to remove temp assignment');
     }
   };
 
@@ -121,6 +128,8 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
       showToast.success(approved ? 'Request approved — tech assigned' : 'Request rejected');
       loadData();
       onRefresh();
+    } else {
+      showToast.error('Failed to process request');
     }
   };
 
@@ -143,6 +152,8 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
       showToast.success('Van details updated');
       setEditModal(null);
       loadData();
+    } else {
+      showToast.error('Failed to update van details');
     }
   };
 
