@@ -47,8 +47,11 @@ export function VanStockCard({
                 {(() => {
                   const cfg = STATUS_CONFIG[vanStock.van_status] || STATUS_CONFIG.active;
                   return (
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-medium ${cfg.badgeClass}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dotClass}`} />
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium leading-none cursor-default select-none ${cfg.badgeClass}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${cfg.dotClass}`} />
                       {cfg.label}
                     </span>
                   );
