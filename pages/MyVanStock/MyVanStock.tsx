@@ -1,10 +1,11 @@
-import { Clock,History,Package,Plus,RefreshCw,Truck } from 'lucide-react';
+import { AlertTriangle,Clock,History,Package,Plus,RefreshCw,Search,Truck } from 'lucide-react';
 import { useState } from 'react';
 import ReplenishmentRequestModal from '../../components/ReplenishmentRequestModal';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
 import { User,VanStockItem } from '../../types';
 import { StatsCards,StockItemsList,UsageHistoryTab } from './components';
+import VanRequestFlow from './components/VanRequestFlow';
 import { useVanStock } from './hooks/useVanStock';
 
 interface MyVanStockProps {
@@ -16,6 +17,7 @@ type TabType = 'stock' | 'history';
 export default function MyVanStock({ currentUser }: MyVanStockProps) {
   const [activeTab, setActiveTab] = useState<TabType>('stock');
   const [showReplenishmentModal, setShowReplenishmentModal] = useState(false);
+  const [showVanRequest, setShowVanRequest] = useState(false);
 
   const {
     vanStock,
@@ -89,6 +91,12 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
         </div>
         <div className="flex gap-2">
           <button
+            onClick={() => setShowVanRequest(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-theme rounded-lg hover:bg-theme-surface-2 text-sm text-theme-muted theme-transition"
+          >
+            <Search className="w-4 h-4" /> Find Van
+          </button>
+          <button
             onClick={loadData}
             className="flex items-center gap-2 px-4 py-2 border border-theme rounded-lg hover:bg-theme-surface-2 text-sm text-theme-muted theme-transition"
           >
@@ -104,6 +112,46 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
           )}
         </div>
       </div>
+
+      {/* Van In Service Banner */}
+      {vanStock.van_status === 'in_service' && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-amber-900 dark:text-amber-200">
+                  Your van ({vanStock.van_plate || vanStock.van_code || 'Van'}) is in service
+                </h4>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Find an available van to continue your jobs
+                </p>
+              </div>
+            </div>
+            <button onClick={() => setShowVanRequest(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 whitespace-nowrap">
+              <Search className="w-4 h-4" /> Find Van
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Temp Van Notice */}
+      {vanStock.temporary_tech_id === currentUser.user_id && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <Truck className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <div>
+              <h4 className="font-medium text-blue-900 dark:text-blue-200">
+                Using temporary van: {vanStock.van_plate || vanStock.van_code || 'Van'}
+              </h4>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                Assigned by supervisor • Original owner: {vanStock.technician_name}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <StatsCards
@@ -171,6 +219,15 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
           lowStockItems={lowStockItems as VanStockItem[]}
           onClose={() => setShowReplenishmentModal(false)}
           onSubmit={handleReplenishmentSubmit}
+        />
+      )}
+
+      {/* Van Request Flow */}
+      {showVanRequest && (
+        <VanRequestFlow
+          currentUser={currentUser}
+          onClose={() => setShowVanRequest(false)}
+          onRequestSubmitted={() => { setShowVanRequest(false); loadData(); }}
         />
       )}
     </div>
