@@ -7,5 +7,8 @@ export { VanStockGrid } from './VanStockGrid';
 export { VanStockHeader } from './VanStockHeader';
 export { VanStockStatsCards } from './VanStockStats';
 
+// Fleet management
+export { default as VanFleetOverview } from './VanFleetOverview';
+
 // Modal exports
 export * from './modals';

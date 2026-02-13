@@ -4,6 +4,23 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-12] - Van Fleet Management
+
+### Fleet Management System
+- **Fleet Overview panel** — Admin/Supervisor collapsible panel at top of Van Stock tab showing all vans with status, plate number, tech, item count, and temp assignments
+- **Van status tracking** — Toggle vans between Active / In Service / Decommissioned with one click
+- **Temp tech assignment** — Assign/remove temporary technicians to vans (e.g., when their van is in service)
+- **Tech van requests** — Technicians can request access to available vans with reason; supervisors approve/reject
+- **Auto-assignment on approval** — Approving a request automatically assigns the temp tech to the van
+- **Audit trail** — Full timeline of all status changes, temp assignments, and requests per van
+- **Van identification** — Edit plate numbers and van codes inline from fleet overview
+- **Smart van resolution** — `getVanStockByTechnician` now checks temp assignments first, falls back to own van
+- DB tables: `van_access_requests`, `van_audit_log`
+- DB columns: `van_status`, `van_plate`, `temporary_tech_id/name`, `temp_assigned_at` on `van_stocks`
+- Migration: `20260212_van_fleet_management.sql`
+
+---
+
 ## [2026-02-12] - Van Selection for Job Parts
 
 ### Van Stock Hardening (Codex Review Findings)

@@ -13,6 +13,7 @@ AssignVanStockModal,
 DeleteConfirmModal,
 EditVanStockModal,
 TransferItemsModal,
+VanFleetOverview,
 VanStockDetailModal,
 VanStockFilters,
 VanStockGrid,
@@ -345,6 +346,14 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
           isAdmin={isAdmin}
           onRefresh={loadData}
           onAssign={handleOpenAssignModal}
+        />
+      )}
+
+      {/* Fleet Overview — Admin/Supervisor only */}
+      {isAdmin && (
+        <VanFleetOverview
+          currentUser={currentUser}
+          onRefresh={loadData}
         />
       )}
 

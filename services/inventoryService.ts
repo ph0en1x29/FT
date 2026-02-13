@@ -62,29 +62,55 @@ export const getAllVanStocks = async (): Promise<VanStock[]> => {
 
 export const getVanStockByTechnician = async (technicianId: string): Promise<VanStock | null> => {
   try {
-    const { data, error } = await supabase
+    // First check if tech is temporarily assigned to another van
+    const { data: tempVan } = await supabase
       .from('van_stocks')
       .select(`
         *,
         technician:users!technician_id(*),
         items:van_stock_items(*, part:parts(*))
       `)
-      .eq('technician_id', technicianId)
+      .eq('temporary_tech_id', technicianId)
       .eq('is_active', true)
       .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      return null;
+    // If temp-assigned, use that van
+    const vanData = tempVan;
+
+    // Otherwise fall back to their own van
+    if (!vanData) {
+      const { data, error } = await supabase
+        .from('van_stocks')
+        .select(`
+          *,
+          technician:users!technician_id(*),
+          items:van_stock_items(*, part:parts(*))
+        `)
+        .eq('technician_id', technicianId)
+        .eq('is_active', true)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null;
+        return null;
+      }
+
+      const items = (data.items || []) as VanStockItemRow[];
+      const total_value = items.reduce((sum: number, item: VanStockItemRow) => {
+        const partCost = item.part?.cost_price || 0;
+        return sum + (partCost * item.quantity);
+      }, 0);
+
+      return { ...data, technician_name: data.technician?.name || data.technician_name || 'Unknown', total_value } as VanStock;
     }
 
-    const items = (data.items || []) as VanStockItemRow[];
+    const items = (vanData.items || []) as VanStockItemRow[];
     const total_value = items.reduce((sum: number, item: VanStockItemRow) => {
       const partCost = item.part?.cost_price || 0;
       return sum + (partCost * item.quantity);
     }, 0);
 
-    return { ...data, technician_name: data.technician?.name || data.technician_name || 'Unknown', total_value } as VanStock;
+    return { ...vanData, technician_name: vanData.technician?.name || vanData.technician_name || 'Unknown', total_value } as VanStock;
   } catch (_e) {
     return null;
   }
@@ -482,5 +508,276 @@ export const getVanStockUsageHistory = async (
     return data as VanStockUsage[];
   } catch (_e) {
     return [];
+  }
+};
+
+// =====================
+// VAN FLEET MANAGEMENT
+// =====================
+
+import type { VanAccessRequest, VanAuditLogEntry, VanFleetItem, VanStatus } from '../types';
+
+/** Get fleet overview for admin/supervisor */
+export const getVanFleetOverview = async (): Promise<VanFleetItem[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('van_stocks')
+      .select(`
+        van_stock_id, van_code, van_plate, van_status, technician_id,
+        temporary_tech_id, temporary_tech_name, is_active,
+        technician:users!technician_id(name),
+        items:van_stock_items(van_stock_item_id)
+      `)
+      .eq('is_active', true)
+      .order('created_at', { ascending: true });
+
+    if (error) return [];
+
+    return (data || []).map((vs: Record<string, unknown>) => ({
+      van_stock_id: vs.van_stock_id as string,
+      van_code: vs.van_code as string | undefined,
+      van_plate: vs.van_plate as string | undefined,
+      van_status: (vs.van_status as VanStatus) || 'active',
+      technician_id: vs.technician_id as string,
+      technician_name: (vs.technician as Record<string, string>)?.name || 'Unknown',
+      temporary_tech_id: vs.temporary_tech_id as string | null,
+      temporary_tech_name: vs.temporary_tech_name as string | null,
+      item_count: Array.isArray(vs.items) ? vs.items.length : 0,
+      is_active: vs.is_active as boolean,
+    }));
+  } catch (_e) {
+    return [];
+  }
+};
+
+/** Update van status (active/in_service/decommissioned) */
+export const updateVanStatus = async (
+  vanStockId: string, newStatus: VanStatus, performedBy: { id: string; name: string }, reason?: string
+): Promise<boolean> => {
+  try {
+    const { data: current } = await supabase
+      .from('van_stocks').select('van_status').eq('van_stock_id', vanStockId).single();
+
+    const { error } = await supabase
+      .from('van_stocks')
+      .update({ van_status: newStatus, updated_at: new Date().toISOString() })
+      .eq('van_stock_id', vanStockId);
+
+    if (error) return false;
+
+    await supabase.from('van_audit_log').insert({
+      van_stock_id: vanStockId, action: 'status_change',
+      performed_by_id: performedBy.id, performed_by_name: performedBy.name,
+      old_value: current?.van_status || 'unknown', new_value: newStatus,
+      reason: reason || undefined,
+    });
+    return true;
+  } catch (_e) {
+    return false;
+  }
+};
+
+/** Assign a temporary technician to a van */
+export const assignTempTech = async (
+  vanStockId: string, techId: string, techName: string,
+  performedBy: { id: string; name: string }, reason?: string
+): Promise<boolean> => {
+  try {
+    // Remove any existing temp assignment for this tech
+    await supabase.from('van_stocks')
+      .update({ temporary_tech_id: null, temporary_tech_name: null, temp_assigned_at: null })
+      .eq('temporary_tech_id', techId);
+
+    const { error } = await supabase.from('van_stocks')
+      .update({
+        temporary_tech_id: techId, temporary_tech_name: techName,
+        temp_assigned_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      })
+      .eq('van_stock_id', vanStockId);
+
+    if (error) return false;
+
+    await supabase.from('van_audit_log').insert({
+      van_stock_id: vanStockId, action: 'temp_assigned',
+      performed_by_id: performedBy.id, performed_by_name: performedBy.name,
+      target_tech_id: techId, target_tech_name: techName,
+      reason: reason || undefined,
+    });
+    return true;
+  } catch (_e) {
+    return false;
+  }
+};
+
+/** Remove temporary tech assignment from a van */
+export const removeTempTech = async (
+  vanStockId: string, performedBy: { id: string; name: string }, reason?: string
+): Promise<boolean> => {
+  try {
+    const { data: current } = await supabase.from('van_stocks')
+      .select('temporary_tech_id, temporary_tech_name')
+      .eq('van_stock_id', vanStockId).single();
+
+    const { error } = await supabase.from('van_stocks')
+      .update({ temporary_tech_id: null, temporary_tech_name: null, temp_assigned_at: null, updated_at: new Date().toISOString() })
+      .eq('van_stock_id', vanStockId);
+
+    if (error) return false;
+
+    if (current?.temporary_tech_id) {
+      await supabase.from('van_audit_log').insert({
+        van_stock_id: vanStockId, action: 'temp_removed',
+        performed_by_id: performedBy.id, performed_by_name: performedBy.name,
+        target_tech_id: current.temporary_tech_id, target_tech_name: current.temporary_tech_name,
+        reason: reason || undefined,
+      });
+    }
+    return true;
+  } catch (_e) {
+    return false;
+  }
+};
+
+/** Submit van access request (tech requesting temp access) */
+export const submitVanAccessRequest = async (
+  vanStockId: string, requester: { id: string; name: string }, reason: string
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from('van_access_requests').insert({
+      van_stock_id: vanStockId, requester_id: requester.id, requester_name: requester.name, reason,
+    });
+    if (error) return false;
+
+    await supabase.from('van_audit_log').insert({
+      van_stock_id: vanStockId, action: 'request_submitted',
+      performed_by_id: requester.id, performed_by_name: requester.name, reason,
+    });
+    return true;
+  } catch (_e) {
+    return false;
+  }
+};
+
+/** Review (approve/reject) a van access request */
+export const reviewVanAccessRequest = async (
+  requestId: string, approved: boolean, reviewer: { id: string; name: string }
+): Promise<boolean> => {
+  try {
+    const { data: request, error: fetchErr } = await supabase
+      .from('van_access_requests').select('*').eq('request_id', requestId).single();
+    if (fetchErr || !request) return false;
+
+    const { error } = await supabase.from('van_access_requests')
+      .update({
+        status: approved ? 'approved' : 'rejected',
+        reviewed_by_id: reviewer.id, reviewed_by_name: reviewer.name,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('request_id', requestId);
+    if (error) return false;
+
+    await supabase.from('van_audit_log').insert({
+      van_stock_id: request.van_stock_id,
+      action: approved ? 'request_approved' : 'request_rejected',
+      performed_by_id: reviewer.id, performed_by_name: reviewer.name,
+      target_tech_id: request.requester_id, target_tech_name: request.requester_name,
+      reason: request.reason,
+    });
+
+    // Auto-assign on approval
+    if (approved) {
+      await assignTempTech(request.van_stock_id, request.requester_id, request.requester_name,
+        reviewer, `Approved request: ${request.reason}`);
+    }
+    return true;
+  } catch (_e) {
+    return false;
+  }
+};
+
+/** Get pending van access requests */
+export const getPendingVanRequests = async (): Promise<VanAccessRequest[]> => {
+  try {
+    const { data, error } = await supabase.from('van_access_requests')
+      .select('*').eq('status', 'pending').order('created_at', { ascending: false });
+    if (error) return [];
+    return data as VanAccessRequest[];
+  } catch (_e) {
+    return [];
+  }
+};
+
+/** Get audit log for a van */
+export const getVanAuditLog = async (vanStockId: string): Promise<VanAuditLogEntry[]> => {
+  try {
+    const { data, error } = await supabase.from('van_audit_log')
+      .select('*').eq('van_stock_id', vanStockId)
+      .order('created_at', { ascending: false }).limit(50);
+    if (error) return [];
+    return data as VanAuditLogEntry[];
+  } catch (_e) {
+    return [];
+  }
+};
+
+/** Search for a part across all active vans */
+export const searchPartAcrossVans = async (searchTerm: string): Promise<Array<{
+  van_stock_id: string; van_plate?: string; van_code?: string; technician_name: string;
+  part_name: string; quantity: number;
+}>> => {
+  try {
+    const { data, error } = await supabase
+      .from('van_stock_items')
+      .select(`
+        quantity,
+        part:parts!inner(name),
+        van_stock:van_stocks!inner(van_stock_id, van_plate, van_code, van_status, technician:users!technician_id(name))
+      `)
+      .ilike('parts.name', `%${searchTerm}%`)
+      .gt('quantity', 0);
+
+    if (error) return [];
+
+    return (data || [])
+      .filter((row: Record<string, unknown>) => {
+        const vs = row.van_stock as Record<string, unknown>;
+        return vs && vs.van_status === 'active';
+      })
+      .map((row: Record<string, unknown>) => {
+        const vs = row.van_stock as Record<string, unknown>;
+        const part = row.part as Record<string, string>;
+        return {
+          van_stock_id: vs.van_stock_id as string,
+          van_plate: vs.van_plate as string | undefined,
+          van_code: vs.van_code as string | undefined,
+          technician_name: (vs.technician as Record<string, string>)?.name || 'Unknown',
+          part_name: part?.name || searchTerm,
+          quantity: row.quantity as number,
+        };
+      });
+  } catch (_e) {
+    return [];
+  }
+};
+
+/** Update van plate number and code */
+export const updateVanIdentification = async (
+  vanStockId: string, updates: { van_plate?: string; van_code?: string },
+  performedBy: { id: string; name: string }
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from('van_stocks')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('van_stock_id', vanStockId);
+    if (error) return false;
+
+    await supabase.from('van_audit_log').insert({
+      van_stock_id: vanStockId, action: 'van_updated',
+      performed_by_id: performedBy.id, performed_by_name: performedBy.name,
+      new_value: JSON.stringify(updates),
+    });
+    return true;
+  } catch (_e) {
+    return false;
   }
 };

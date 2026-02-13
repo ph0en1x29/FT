@@ -39,6 +39,10 @@ export interface JobPartUsed {
 // =============================================
 
 // Van Stock Assignment - Links technician to their Van Stock inventory
+export type VanStatus = 'active' | 'in_service' | 'decommissioned';
+export type VanAccessRequestStatus = 'pending' | 'approved' | 'rejected';
+export type VanAuditAction = 'status_change' | 'temp_assigned' | 'temp_removed' | 'request_submitted' | 'request_approved' | 'request_rejected' | 'van_created' | 'van_updated';
+
 export interface VanStock {
   van_stock_id: string;
   technician_id: string;
@@ -46,8 +50,15 @@ export interface VanStock {
   technician?: User;
 
   // Van identification
-  van_code?: string; // Unique van identifier (license plate, van number, etc.)
+  van_code?: string; // Internal van identifier (e.g., "Van A")
+  van_plate?: string; // License plate number
   notes?: string; // Optional notes about this van
+
+  // Fleet management
+  van_status: VanStatus;
+  temporary_tech_id?: string | null;
+  temporary_tech_name?: string | null;
+  temp_assigned_at?: string | null;
 
   // Configuration
   max_items: number; // Default 50 SKUs
@@ -231,4 +242,51 @@ export interface VanStockAuditItem {
   discrepancy: number; // actual - expected
 
   notes?: string;
+}
+
+// Van access request (tech requesting temp access to another van)
+export interface VanAccessRequest {
+  request_id: string;
+  van_stock_id: string;
+  requester_id: string;
+  requester_name: string;
+  reason: string;
+  status: VanAccessRequestStatus;
+  reviewed_by_id?: string;
+  reviewed_by_name?: string;
+  reviewed_at?: string;
+  created_at: string;
+  // Joined fields
+  van_plate?: string;
+  van_code?: string;
+  van_tech_name?: string;
+}
+
+// Van audit log entry
+export interface VanAuditLogEntry {
+  id: string;
+  van_stock_id: string;
+  action: VanAuditAction;
+  performed_by_id: string;
+  performed_by_name: string;
+  target_tech_id?: string;
+  target_tech_name?: string;
+  reason?: string;
+  old_value?: string;
+  new_value?: string;
+  created_at: string;
+}
+
+// Fleet overview item (lightweight van info for admin panel)
+export interface VanFleetItem {
+  van_stock_id: string;
+  van_code?: string;
+  van_plate?: string;
+  van_status: VanStatus;
+  technician_id: string;
+  technician_name?: string;
+  temporary_tech_id?: string | null;
+  temporary_tech_name?: string | null;
+  item_count: number;
+  is_active: boolean;
 }
