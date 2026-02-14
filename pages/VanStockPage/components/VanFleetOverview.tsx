@@ -25,9 +25,9 @@ interface Props {
 }
 
 const STATUS_CONFIG: Record<VanStatus, { label: string; dotClass: string; badgeClass: string }> = {
-  active: { label: 'Active', dotClass: 'bg-emerald-500', badgeClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
-  in_service: { label: 'In Service', dotClass: 'bg-red-500', badgeClass: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800' },
-  decommissioned: { label: 'Retired', dotClass: 'bg-gray-400', badgeClass: 'bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
+  active: { label: 'Active', dotClass: 'bg-emerald-500', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  in_service: { label: 'In Service', dotClass: 'bg-red-500', badgeClass: 'bg-red-50 text-red-700 border-red-200' },
+  decommissioned: { label: 'Retired', dotClass: 'bg-gray-400', badgeClass: 'bg-gray-50 text-gray-600 border-gray-200' },
 };
 
 const AUDIT_LABELS: Record<string, string> = {
@@ -226,8 +226,8 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
         <div className="border border-theme border-t-0 rounded-b-xl bg-theme-surface overflow-hidden">
           {/* Pending requests */}
           {requests.length > 0 && (
-            <div className="px-4 py-3 border-b border-theme bg-amber-50/50 dark:bg-amber-900/10">
-              <div className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-2">⚠️ Pending Requests</div>
+            <div className="px-4 py-3 border-b border-theme bg-amber-50/50">
+              <div className="text-xs font-semibold text-amber-600 mb-2">⚠️ Pending Requests</div>
               {requests.map(req => (
                 <div key={req.request_id} className="flex items-center gap-2 mb-2 flex-wrap">
                   <span className="text-sm text-theme flex-1">
@@ -276,7 +276,7 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
                     <div className="text-xs text-theme-muted">
                       {van.technician_name} • {van.item_count} items
                       {van.temporary_tech_name && (
-                        <span className="text-amber-600 dark:text-amber-400"> • Temp: {van.temporary_tech_name}</span>
+                        <span className="text-amber-600"> • Temp: {van.temporary_tech_name}</span>
                       )}
                     </div>
                   </div>
@@ -285,13 +285,13 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
                   <div className="flex gap-1.5">
                     {van.temporary_tech_id ? (
                       <button onClick={() => handleRemoveTemp(van)} title="Remove temp tech"
-                        className="p-1.5 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                        className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
                         <UserMinus className="w-3.5 h-3.5" />
                       </button>
                     ) : (
                       <button onClick={() => { setAssignModal({ vanId: van.van_stock_id, vanLabel: van.van_plate || van.van_code || 'Van' }); setSelectedTechId(''); setAssignReason(''); }}
                         title="Assign temp tech"
-                        className="p-1.5 rounded-lg border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                        className="p-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors">
                         <UserPlus className="w-3.5 h-3.5" />
                       </button>
                     )}

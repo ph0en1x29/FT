@@ -10,9 +10,9 @@ import { VanStatus, VanStock, VanStockReplenishment } from '../../../types';
 import { getLowStockItems } from '../hooks/useVanStockData';
 
 const STATUS_OPTIONS: { value: VanStatus; label: string; dotClass: string; badgeClass: string }[] = [
-  { value: 'active', label: 'Active', dotClass: 'bg-emerald-500', badgeClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
-  { value: 'in_service', label: 'In Service', dotClass: 'bg-red-500', badgeClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800' },
-  { value: 'decommissioned', label: 'Retired', dotClass: 'bg-gray-400', badgeClass: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
+  { value: 'active', label: 'Active', dotClass: 'bg-emerald-500', badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  { value: 'in_service', label: 'In Service', dotClass: 'bg-red-500', badgeClass: 'bg-red-100 text-red-700 border-red-200' },
+  { value: 'decommissioned', label: 'Retired', dotClass: 'bg-gray-400', badgeClass: 'bg-gray-100 text-gray-600 border-gray-200' },
 ];
 
 const STATUS_MAP: Record<VanStatus, typeof STATUS_OPTIONS[0]> = Object.fromEntries(
@@ -94,8 +94,8 @@ export function VanStockCard({
       <div className="p-4 border-b border-theme">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-              <span className="text-blue-600 dark:text-blue-400 font-semibold">
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-blue-600 font-semibold">
                 {vanStock.technician_name?.charAt(0) || 'T'}
               </span>
             </div>
@@ -131,7 +131,7 @@ export function VanStockCard({
                   {/* Dropdown */}
                   {dropdownOpen && (
                     <div
-                      className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[140px]"
+                      className="absolute top-full left-0 mt-1 z-50 bg-theme-surface shadow-lg rounded-lg border border-theme py-1 min-w-[140px]"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {STATUS_OPTIONS.map((option) => (
@@ -139,8 +139,8 @@ export function VanStockCard({
                           key={option.value}
                           type="button"
                           onClick={() => handleStatusChange(option.value)}
-                          className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                            option.value === vanStock.van_status ? 'bg-gray-50 dark:bg-gray-700/50' : ''
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 transition-colors ${
+                            option.value === vanStock.van_status ? 'bg-theme-surface-2' : ''
                           }`}
                         >
                           <span className={`w-2 h-2 rounded-full ${option.dotClass}`} />
@@ -157,7 +157,7 @@ export function VanStockCard({
               <div className="flex items-center gap-2">
                 <span className="text-xs text-theme-muted">{vanStock.technician_name || 'Unknown'}</span>
                 {vanStock.van_code && vanStock.van_plate && (
-                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">
+                  <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
                     {vanStock.van_code}
                   </span>
                 )}
@@ -176,30 +176,30 @@ export function VanStockCard({
             <div className="text-lg font-bold text-theme">{vanStock.items?.length || 0}</div>
             <div className="text-xs text-theme-muted">Total Items</div>
           </div>
-          <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-            <div className="text-lg font-bold text-green-600 dark:text-green-400">
+          <div className="text-center p-2 bg-green-50 rounded-lg">
+            <div className="text-lg font-bold text-green-600">
               RM {(vanStock.total_value || 0).toLocaleString()}
             </div>
-            <div className="text-xs text-green-700 dark:text-green-500">Value</div>
+            <div className="text-xs text-green-700">Value</div>
           </div>
         </div>
 
         {/* Indicators */}
         <div className="flex flex-wrap gap-2">
           {lowItems.length > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs rounded-full">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full">
               <AlertTriangle className="w-3 h-3" />
               {lowItems.length} Low Stock
             </span>
           )}
           {pendingRequest && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs rounded-full">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
               <Clock className="w-3 h-3" />
               Request Pending
             </span>
           )}
           {vanStock.last_audit_at && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs rounded-full">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-full">
               <Calendar className="w-3 h-3" />
               Audited {new Date(vanStock.last_audit_at).toLocaleDateString()}
             </span>
@@ -214,7 +214,7 @@ export function VanStockCard({
             e.stopPropagation();
             onScheduleAudit(vanStock);
           }}
-          className="w-full py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+          className="w-full py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
         >
           Schedule Audit
         </button>
