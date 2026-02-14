@@ -42,7 +42,7 @@ const AUDIT_LABELS: Record<string, string> = {
 };
 
 export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [fleet, setFleet] = useState<VanFleetItem[]>([]);
   const [requests, setRequests] = useState<VanAccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
