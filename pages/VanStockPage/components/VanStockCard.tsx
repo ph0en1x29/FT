@@ -241,7 +241,7 @@ export function VanStockCard({
               <span className="text-xs text-theme-muted">Audited {lastAudit}</span>
             )}
             {!lastAudit && (
-              <span className="text-xs text-amber-500">No audit</span>
+              <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">⚠ No audit</span>
             )}
           </div>
         </div>
