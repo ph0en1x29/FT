@@ -166,7 +166,7 @@ export function VanStockCard({
           {dropdownOpen && createPortal(
             <div
               ref={dropdownRef}
-              className="fixed z-[9999] bg-white shadow-xl rounded-lg border border-gray-200 py-1 min-w-[140px]"
+              className="fixed z-[9999] bg-theme-surface shadow-xl rounded-lg border border-theme py-1 min-w-[140px]"
               style={{ top: dropdownPos.top, left: dropdownPos.left }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -175,12 +175,12 @@ export function VanStockCard({
                   key={option.value}
                   type="button"
                   onClick={() => handleStatusChange(option.value)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 transition-colors ${
-                    option.value === vanStock.van_status ? 'bg-gray-50' : ''
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-theme-surface-2 transition-colors ${
+                    option.value === vanStock.van_status ? 'bg-theme-surface-2' : ''
                   }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${option.dot}`} />
-                  <span className="text-gray-800 flex-1 text-left font-medium">{option.label}</span>
+                  <span className="text-theme flex-1 text-left font-medium">{option.label}</span>
                   {option.value === vanStock.van_status && <Check className="w-3.5 h-3.5 text-emerald-500" />}
                 </button>
               ))}
@@ -202,7 +202,7 @@ export function VanStockCard({
 
         {/* Row 3: Capacity bar */}
         <div className="mb-3">
-          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-theme-surface-2 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
                 capacityPct > 90 ? 'bg-red-400' : capacityPct > 70 ? 'bg-amber-400' : 'bg-blue-400'
@@ -223,7 +223,7 @@ export function VanStockCard({
 
         {/* Row 4: Alerts (only if present) */}
         {(lowItems.length > 0 || pendingRequest) && (
-          <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-gray-100">
+          <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-theme">
             {lowItems.length > 0 && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded-md border border-amber-100 font-medium">
                 <AlertTriangle className="w-3 h-3" />
