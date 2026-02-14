@@ -1,9 +1,8 @@
-import { CheckSquare,Package,Truck } from 'lucide-react';
+import { Package,Truck } from 'lucide-react';
 import React,{ useEffect,useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { ROLE_PERMISSIONS,User,UserRole } from '../../types';
-import PendingConfirmations from '../PendingConfirmations';
 import VanStockPage from '../VanStockPage';
 import AddPartModal from './components/AddPartModal';
 import InventoryFilters from './components/InventoryFilters';
@@ -33,7 +32,6 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
     UserRole.SUPERVISOR
   ].includes(displayRole);
   const canViewVanStock = isAdminOrSupervisor;
-  const canViewConfirmations = isAdminOrSupervisor;
   
   // Get pricing visibility from role permissions (hidden from technicians)
   const canViewPricing = ROLE_PERMISSIONS[displayRole]?.canViewPricing ?? false;
@@ -68,7 +66,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   // Sync tab with URL
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as TabType;
-    if (tabFromUrl && ['parts', 'vanstock', 'confirmations'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['parts', 'vanstock'].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
@@ -89,7 +87,6 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   const tabs: Tab[] = [
     { id: 'parts', label: 'Parts Catalog', icon: Package, show: true },
     { id: 'vanstock', label: 'Van Stock', icon: Truck, show: canViewVanStock },
-    { id: 'confirmations', label: 'Confirmations', icon: CheckSquare, show: canViewConfirmations },
   ];
 
   return (
@@ -99,7 +96,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
         <div>
           <h1 className="text-2xl font-bold text-theme">Inventory</h1>
           <p className="text-sm text-theme-muted mt-1">
-            Manage parts catalog, van stock, and confirmations
+            Manage parts catalog and van stock
           </p>
         </div>
       </div>
@@ -159,9 +156,6 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
         <VanStockPage currentUser={currentUser} hideHeader />
       )}
 
-      {activeTab === 'confirmations' && canViewConfirmations && (
-        <PendingConfirmations currentUser={currentUser} hideHeader />
-      )}
     </div>
   );
 };
