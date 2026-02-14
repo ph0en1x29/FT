@@ -211,14 +211,52 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
           expanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'
         }`}
       >
-        <span className="font-semibold text-theme text-sm flex items-center gap-2">
-          🚐 Fleet Overview
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="font-semibold text-theme text-sm">🚐 Fleet Overview</span>
+          {/* Inline status summary (always visible) */}
+          <div className="flex items-center gap-2.5">
+            {(() => {
+              const active = fleet.filter(v => v.van_status === 'active').length;
+              const inService = fleet.filter(v => v.van_status === 'in_service').length;
+              const retired = fleet.filter(v => v.van_status === 'decommissioned').length;
+              const tempAssigned = fleet.filter(v => v.temporary_tech_id).length;
+              return (
+                <>
+                  <span className="flex items-center gap-1 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="font-semibold text-theme">{active}</span>
+                    <span className="text-theme-muted">Active</span>
+                  </span>
+                  {inService > 0 && (
+                    <span className="flex items-center gap-1 text-xs">
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="font-semibold text-theme">{inService}</span>
+                      <span className="text-theme-muted">In Service</span>
+                    </span>
+                  )}
+                  {retired > 0 && (
+                    <span className="flex items-center gap-1 text-xs">
+                      <span className="w-2 h-2 rounded-full bg-gray-400" />
+                      <span className="font-semibold text-theme">{retired}</span>
+                      <span className="text-theme-muted">Retired</span>
+                    </span>
+                  )}
+                  {tempAssigned > 0 && (
+                    <span className="flex items-center gap-1 text-xs">
+                      <span className="text-amber-600 font-semibold">{tempAssigned}</span>
+                      <span className="text-amber-600">Temp</span>
+                    </span>
+                  )}
+                </>
+              );
+            })()}
+          </div>
           {requests.length > 0 && (
             <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
               {requests.length} pending
             </span>
           )}
-        </span>
+        </div>
         {expanded ? <ChevronDown className="w-4 h-4 text-theme-muted" /> : <ChevronRight className="w-4 h-4 text-theme-muted" />}
       </button>
 
