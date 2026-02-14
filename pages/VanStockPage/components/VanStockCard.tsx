@@ -236,12 +236,12 @@ export function VanStockCard({
             />
           </div>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-xs text-theme-muted">{capacityPct}% capacity</span>
+            <span className="text-xs font-semibold text-theme">{capacityPct}% capacity</span>
             {lastAudit && (
               <span className="text-xs text-theme-muted">Audited {lastAudit}</span>
             )}
             {!lastAudit && (
-              <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">⚠ No audit</span>
+              <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">⚠ No audit</span>
             )}
           </div>
         </div>
