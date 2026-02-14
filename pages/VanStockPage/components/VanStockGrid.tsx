@@ -77,48 +77,45 @@ export function VanStockGrid({
     <div>
       {/* Multi-select toolbar */}
       {isAdmin && (
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-end mb-3 gap-3">
           {!selectMode ? (
             <button
               onClick={() => setSelectMode(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-theme-muted hover:text-theme hover:bg-theme-surface-2 rounded-lg transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
             >
-              <CheckSquare className="w-3.5 h-3.5" />
+              <CheckSquare className="w-4 h-4" />
               Select
             </button>
           ) : (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={clearSelection}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-theme-muted hover:text-theme hover:bg-theme-surface-2 rounded-lg transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-                Cancel
-              </button>
+            <>
+              {/* Bulk actions (left side when in select mode) */}
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-2 mr-auto">
+                  <span className="text-sm text-blue-600 font-semibold">{selectedIds.size} selected</span>
+                  <button
+                    onClick={handleBulkAudit}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    Schedule Audit
+                  </button>
+                </div>
+              )}
               <button
                 onClick={selectAll}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-theme-muted hover:text-theme hover:bg-theme-surface-2 rounded-lg transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-theme-muted hover:text-theme hover:bg-theme-surface-2 rounded-lg transition-colors"
               >
-                <Square className="w-3.5 h-3.5" />
-                Select All
+                <Square className="w-4 h-4" />
+                All
               </button>
-              {selectedIds.size > 0 && (
-                <span className="text-xs text-blue-600 font-medium">{selectedIds.size} selected</span>
-              )}
-            </div>
-          )}
-
-          {/* Bulk actions */}
-          {selectMode && selectedIds.size > 0 && (
-            <div className="flex items-center gap-2">
               <button
-                onClick={handleBulkAudit}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                onClick={clearSelection}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
               >
-                <Calendar className="w-3.5 h-3.5" />
-                Schedule Audit ({selectedIds.size})
+                <X className="w-4 h-4" />
+                Cancel
               </button>
-            </div>
+            </>
           )}
         </div>
       )}
