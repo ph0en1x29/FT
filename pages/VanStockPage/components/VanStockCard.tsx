@@ -1,9 +1,10 @@
 /**
  * Van Stock Card — Clean design with essential info visible
  * Shows: van identity, technician, item count, value, capacity, last audit, alerts
- * Admin/Supervisor get status dropdown
+ * Admin/Supervisor get status dropdown + schedule audit quick action
+ * Supports multi-select mode
  */
-import { AlertTriangle, Check, ChevronDown, Clock, Package } from 'lucide-react';
+import { AlertTriangle, Calendar, Check, ChevronDown, Clock, Package } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { updateVanStatus } from '../../../services/inventoryService';
@@ -28,6 +29,9 @@ interface VanStockCardProps {
   currentUserId?: string;
   currentUserName?: string;
   onStatusChange?: () => void;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (vanStockId: string) => void;
 }
 
 export function VanStockCard({
@@ -39,10 +43,14 @@ export function VanStockCard({
   currentUserId,
   currentUserName,
   onStatusChange,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
 }: VanStockCardProps) {
   const lowItems = getLowStockItems(vanStock.items);
   const vanIdentifier = vanStock.van_plate || vanStock.van_code || 'No Plate';
   const canChangeStatus = userRole === 'admin' || userRole === 'admin_service' || userRole === 'admin_store' || userRole === 'supervisor';
+  const isAdmin = canChangeStatus;
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -50,13 +58,12 @@ export function VanStockCard({
   const badgeRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Position dropdown using portal to avoid overflow clipping
   useEffect(() => {
     if (!dropdownOpen || !badgeRef.current) return;
     const rect = badgeRef.current.getBoundingClientRect();
     setDropdownPos({
       top: rect.bottom + 4,
-      left: rect.right - 140, // align right edge
+      left: rect.right - 140,
     });
   }, [dropdownOpen]);
 
@@ -93,6 +100,14 @@ export function VanStockCard({
     }
   };
 
+  const handleCardClick = () => {
+    if (selectable) {
+      onToggleSelect?.(vanStock.van_stock_id);
+    } else {
+      onViewDetails(vanStock);
+    }
+  };
+
   const status = STATUS_MAP[vanStock.van_status] || STATUS_MAP.active;
   const itemCount = vanStock.items?.length || 0;
   const maxItems = vanStock.max_items || 50;
@@ -103,13 +118,23 @@ export function VanStockCard({
 
   return (
     <div
-      className="card-theme rounded-xl theme-transition hover:shadow-lg cursor-pointer group"
-      onClick={() => onViewDetails(vanStock)}
+      className={`card-theme rounded-xl theme-transition hover:shadow-lg cursor-pointer group relative ${
+        selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+      }`}
+      onClick={handleCardClick}
     >
       <div className="p-4">
-        {/* Row 1: Van identity + status */}
+        {/* Row 1: Checkbox (if selectable) + Van identity + status */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3 min-w-0">
+            {/* Checkbox for multi-select */}
+            {selectable && (
+              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                selected ? 'bg-blue-500 border-blue-500' : 'border-gray-300 hover:border-blue-400'
+              }`}>
+                {selected && <Check className="w-3 h-3 text-white" />}
+              </div>
+            )}
             {/* Initials avatar */}
             <div className="w-10 h-10 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
               <span className="text-blue-600 font-bold text-sm">
@@ -221,9 +246,10 @@ export function VanStockCard({
           </div>
         </div>
 
-        {/* Row 4: Alerts (only if present) */}
-        {(lowItems.length > 0 || pendingRequest) && (
-          <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-theme">
+        {/* Row 4: Alerts + Quick Actions */}
+        <div className="flex items-center justify-between pt-2 border-t border-theme">
+          {/* Left: alerts */}
+          <div className="flex items-center gap-2 flex-wrap">
             {lowItems.length > 0 && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-xs rounded-md border border-amber-100 font-medium">
                 <AlertTriangle className="w-3 h-3" />
@@ -237,7 +263,23 @@ export function VanStockCard({
               </span>
             )}
           </div>
-        )}
+
+          {/* Right: quick actions */}
+          {isAdmin && !selectable && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onScheduleAudit(vanStock);
+              }}
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs text-theme-muted hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              title="Schedule Audit"
+            >
+              <Calendar className="w-3 h-3" />
+              Audit
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Hover indicator */}
