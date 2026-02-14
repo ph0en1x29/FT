@@ -21,31 +21,46 @@ export function VanStockStatsCards({ stats, filterType, onFilterChange }: VanSto
     <div className="card-theme rounded-xl p-4 theme-transition">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         {/* Left — Key metrics */}
-        <div className="flex items-center gap-6 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Truck className="w-4 h-4 text-emerald-500" />
-            <span className="text-sm font-semibold text-theme">{stats.activeVans}</span>
-            <span className="text-xs text-theme-muted">Vans</span>
+        <div className="flex items-center gap-5 flex-wrap">
+          {/* Fleet status breakdown */}
+          <div className="flex items-center gap-3">
+            <Truck className="w-4 h-4 text-theme-muted" />
+            <span className="flex items-center gap-1 text-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="font-semibold text-theme">{stats.activeVans}</span>
+              <span className="text-theme-muted">Active</span>
+            </span>
             {stats.inServiceVans > 0 && (
-              <span className="text-xs text-red-500 font-medium">({stats.inServiceVans} in service)</span>
+              <span className="flex items-center gap-1 text-xs">
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                <span className="font-semibold text-theme">{stats.inServiceVans}</span>
+                <span className="text-theme-muted">In Service</span>
+              </span>
+            )}
+            {stats.decommissionedVans > 0 && (
+              <span className="flex items-center gap-1 text-xs">
+                <span className="w-2 h-2 rounded-full bg-gray-400" />
+                <span className="font-semibold text-theme">{stats.decommissionedVans}</span>
+                <span className="text-theme-muted">Retired</span>
+              </span>
             )}
           </div>
           <div className="w-px h-4 bg-theme-surface-2 hidden lg:block" />
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-blue-500" />
-            <span className="text-sm font-semibold text-theme">{stats.totalTechnicians}</span>
-            <span className="text-xs text-theme-muted">Technicians</span>
+          <div className="flex items-center gap-1.5 text-xs">
+            <Users className="w-3.5 h-3.5 text-blue-500" />
+            <span className="font-semibold text-theme">{stats.totalTechnicians}</span>
+            <span className="text-theme-muted">Techs</span>
           </div>
           <div className="w-px h-4 bg-theme-surface-2 hidden lg:block" />
-          <div className="flex items-center gap-2">
-            <Package className="w-4 h-4 text-indigo-500" />
-            <span className="text-sm font-semibold text-theme">{stats.totalItems}</span>
-            <span className="text-xs text-theme-muted">Items</span>
+          <div className="flex items-center gap-1.5 text-xs">
+            <Package className="w-3.5 h-3.5 text-indigo-500" />
+            <span className="font-semibold text-theme">{stats.totalItems}</span>
+            <span className="text-theme-muted">Items</span>
           </div>
           <div className="w-px h-4 bg-theme-surface-2 hidden lg:block" />
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-green-600">RM {stats.totalValue.toLocaleString()}</span>
-            <span className="text-xs text-theme-muted">Value</span>
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="font-semibold text-green-600">RM {stats.totalValue.toLocaleString()}</span>
+            <span className="text-theme-muted">Value</span>
           </div>
         </div>
 
