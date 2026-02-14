@@ -339,9 +339,11 @@ export default function AuthenticatedApp({ currentUser, onLogout }: Authenticate
   React.useEffect(() => {
     if (isDarkTheme) {
       document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.classList.add('dark');
       localStorage.setItem('fieldpro-theme', 'dark');
     } else {
       document.documentElement.removeAttribute('data-theme');
+      document.documentElement.classList.remove('dark');
       localStorage.setItem('fieldpro-theme', 'light');
     }
   }, [isDarkTheme]);
