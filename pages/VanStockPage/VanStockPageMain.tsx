@@ -19,7 +19,6 @@ VanStockFilters,
 VanStockGrid,
 VanStockHeader,
 VanStockStatsCards,
-VanStockStatsCardsLegacy,
 } from './components';
 import { useVanStockData } from './hooks/useVanStockData';
 import { VanStockPageProps } from './types';
@@ -82,18 +81,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
   // Submission state
   const [submitting, setSubmitting] = useState(false);
 
-  // Design toggle (prototype vs legacy)
-  const [useNewDesign, setUseNewDesign] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('vanstock-new-design') === 'true';
-    }
-    return false;
-  });
-  const toggleDesign = () => {
-    const next = !useNewDesign;
-    setUseNewDesign(next);
-    localStorage.setItem('vanstock-new-design', String(next));
-  };
+  // New design is now the default (legacy removed)
 
   // Check admin permissions
   const isAdmin = [
@@ -369,21 +357,6 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
         />
       )}
 
-      {/* Design toggle */}
-      <div className="flex items-center justify-end">
-        <button
-          onClick={toggleDesign}
-          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
-            useNewDesign
-              ? 'bg-blue-50 text-blue-700 border-blue-200'
-              : 'bg-theme-surface-2 text-theme-muted border-theme'
-          }`}
-        >
-          <span className={`w-2 h-2 rounded-full ${useNewDesign ? 'bg-blue-500' : 'bg-gray-300'}`} />
-          {useNewDesign ? '✨ New Design' : 'Classic Design'}
-        </button>
-      </div>
-
       {/* Fleet Overview — Admin/Supervisor only */}
       {isAdmin && (
         <VanFleetOverview
@@ -393,19 +366,11 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       )}
 
       {/* Stats Cards */}
-      {useNewDesign ? (
-        <VanStockStatsCards
-          stats={stats}
-          filterType={filterType}
-          onFilterChange={setFilterType}
-        />
-      ) : (
-        <VanStockStatsCardsLegacy
-          stats={stats}
-          filterType={filterType}
-          onFilterChange={setFilterType}
-        />
-      )}
+      <VanStockStatsCards
+        stats={stats}
+        filterType={filterType}
+        onFilterChange={setFilterType}
+      />
 
       {/* Search and Filters */}
       <VanStockFilters
@@ -424,7 +389,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
         onScheduleAudit={handleScheduleAudit}
         currentUser={currentUser}
         onStatusChange={loadData}
-        useNewDesign={useNewDesign}
+        useNewDesign
       />
 
       {/* Modals */}

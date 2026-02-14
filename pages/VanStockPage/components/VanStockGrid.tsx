@@ -4,10 +4,9 @@
  */
 import { Calendar, CheckSquare, Square, Truck, X } from 'lucide-react';
 import { useState } from 'react';
-import type { User, UserRole } from '../../../types';
+import type { User } from '../../../types';
 import { VanStock, VanStockReplenishment } from '../../../types';
 import { VanStockCard } from './VanStockCard';
-import { VanStockCardLegacy } from './VanStockCardLegacy';
 
 interface VanStockGridProps {
   vanStocks: VanStock[];
@@ -30,7 +29,6 @@ export function VanStockGrid({
   onScheduleAudit,
   currentUser,
   onStatusChange,
-  useNewDesign = false,
 }: VanStockGridProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
@@ -71,31 +69,6 @@ export function VanStockGrid({
             ? 'Try adjusting your search or filters'
             : 'No technicians have Van Stock assigned yet'}
         </p>
-      </div>
-    );
-  }
-
-  // Legacy mode — no multi-select
-  if (!useNewDesign) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {vanStocks.map((vs) => {
-          const pendingRequest = replenishments.find(r => r.technician_id === vs.technician_id);
-          return (
-            <div key={vs.van_stock_id}>
-              <VanStockCardLegacy
-                vanStock={vs}
-                pendingRequest={pendingRequest}
-                onViewDetails={onViewDetails}
-                onScheduleAudit={onScheduleAudit}
-                userRole={currentUser?.role}
-                currentUserId={currentUser?.user_id}
-                currentUserName={currentUser?.name}
-                onStatusChange={onStatusChange}
-              />
-            </div>
-          );
-        })}
       </div>
     );
   }
