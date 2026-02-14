@@ -143,7 +143,7 @@ export function VanStockCard({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-theme text-sm truncate">{vanIdentifier}</h3>
+                <h3 className="font-semibold text-theme text-base truncate">{vanIdentifier}</h3>
                 {vanStock.van_code && vanStock.van_plate && (
                   <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-medium">{vanStock.van_code}</span>
                 )}
@@ -216,13 +216,13 @@ export function VanStockCard({
 
         {/* Row 2: Key stats — items, value, capacity */}
         <div className="flex items-center gap-3 mb-3">
-          <div className="flex items-center gap-1.5 text-xs">
+          <div className="flex items-center gap-1.5 text-sm">
             <Package className="w-3.5 h-3.5 text-indigo-400" />
             <span className="font-semibold text-theme">{itemCount}</span>
             <span className="text-theme-muted">/ {maxItems} items</span>
           </div>
           <div className="w-px h-3.5 bg-gray-200" />
-          <span className="text-xs font-semibold text-green-600">RM {(vanStock.total_value || 0).toLocaleString()}</span>
+          <span className="text-sm font-semibold text-green-600">RM {(vanStock.total_value || 0).toLocaleString()}</span>
         </div>
 
         {/* Row 3: Capacity bar */}
@@ -236,12 +236,12 @@ export function VanStockCard({
             />
           </div>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-[10px] text-theme-muted">{capacityPct}% capacity</span>
+            <span className="text-xs text-theme-muted">{capacityPct}% capacity</span>
             {lastAudit && (
-              <span className="text-[10px] text-theme-muted">Audited {lastAudit}</span>
+              <span className="text-xs text-theme-muted">Audited {lastAudit}</span>
             )}
             {!lastAudit && (
-              <span className="text-[10px] text-amber-500">No audit</span>
+              <span className="text-xs text-amber-500">No audit</span>
             )}
           </div>
         </div>
@@ -272,7 +272,7 @@ export function VanStockCard({
                 e.stopPropagation();
                 onScheduleAudit(vanStock);
               }}
-              className="inline-flex items-center gap-1 px-2 py-1 text-xs text-theme-muted hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              className="inline-flex items-center gap-1 px-2 py-1 text-sm text-theme-muted hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
               title="Schedule Audit"
             >
               <Calendar className="w-3 h-3" />

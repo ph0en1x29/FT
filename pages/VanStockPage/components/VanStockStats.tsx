@@ -27,20 +27,20 @@ export function VanStockStatsCards({ stats, filterType, onFilterChange }: VanSto
             <Truck className="w-4 h-4 text-theme-muted" />
             <span className="flex items-center gap-1 text-xs">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="font-semibold text-theme">{stats.activeVans}</span>
+              <span className="font-semibold text-theme text-sm">{stats.activeVans}</span>
               <span className="text-theme-muted">Active</span>
             </span>
             {stats.inServiceVans > 0 && (
               <span className="flex items-center gap-1 text-xs">
                 <span className="w-2 h-2 rounded-full bg-red-500" />
-                <span className="font-semibold text-theme">{stats.inServiceVans}</span>
+                <span className="font-semibold text-theme text-sm">{stats.inServiceVans}</span>
                 <span className="text-theme-muted">In Service</span>
               </span>
             )}
             {stats.decommissionedVans > 0 && (
               <span className="flex items-center gap-1 text-xs">
                 <span className="w-2 h-2 rounded-full bg-gray-400" />
-                <span className="font-semibold text-theme">{stats.decommissionedVans}</span>
+                <span className="font-semibold text-theme text-sm">{stats.decommissionedVans}</span>
                 <span className="text-theme-muted">Retired</span>
               </span>
             )}
@@ -48,18 +48,18 @@ export function VanStockStatsCards({ stats, filterType, onFilterChange }: VanSto
           <div className="w-px h-4 bg-theme-surface-2 hidden lg:block" />
           <div className="flex items-center gap-1.5 text-xs">
             <Users className="w-3.5 h-3.5 text-blue-500" />
-            <span className="font-semibold text-theme">{stats.totalTechnicians}</span>
+            <span className="font-semibold text-theme text-sm">{stats.totalTechnicians}</span>
             <span className="text-theme-muted">Techs</span>
           </div>
           <div className="w-px h-4 bg-theme-surface-2 hidden lg:block" />
           <div className="flex items-center gap-1.5 text-xs">
             <Package className="w-3.5 h-3.5 text-indigo-500" />
-            <span className="font-semibold text-theme">{stats.totalItems}</span>
+            <span className="font-semibold text-theme text-sm">{stats.totalItems}</span>
             <span className="text-theme-muted">Items</span>
           </div>
           <div className="w-px h-4 bg-theme-surface-2 hidden lg:block" />
           <div className="flex items-center gap-1.5 text-xs">
-            <span className="font-semibold text-green-600">RM {stats.totalValue.toLocaleString()}</span>
+            <span className="font-semibold text-green-600 text-sm">RM {stats.totalValue.toLocaleString()}</span>
             <span className="text-theme-muted">Value</span>
           </div>
         </div>

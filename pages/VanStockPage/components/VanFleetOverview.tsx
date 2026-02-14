@@ -222,27 +222,27 @@ export default function VanFleetOverview({ currentUser, onRefresh }: Props) {
               const tempAssigned = fleet.filter(v => v.temporary_tech_id).length;
               return (
                 <>
-                  <span className="flex items-center gap-1 text-xs">
+                  <span className="flex items-center gap-1 text-sm">
                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span className="font-semibold text-theme">{active}</span>
                     <span className="text-theme-muted">Active</span>
                   </span>
                   {inService > 0 && (
-                    <span className="flex items-center gap-1 text-xs">
+                    <span className="flex items-center gap-1 text-sm">
                       <span className="w-2 h-2 rounded-full bg-red-500" />
                       <span className="font-semibold text-theme">{inService}</span>
                       <span className="text-theme-muted">In Service</span>
                     </span>
                   )}
                   {retired > 0 && (
-                    <span className="flex items-center gap-1 text-xs">
+                    <span className="flex items-center gap-1 text-sm">
                       <span className="w-2 h-2 rounded-full bg-gray-400" />
                       <span className="font-semibold text-theme">{retired}</span>
                       <span className="text-theme-muted">Retired</span>
                     </span>
                   )}
                   {tempAssigned > 0 && (
-                    <span className="flex items-center gap-1 text-xs">
+                    <span className="flex items-center gap-1 text-sm">
                       <span className="text-amber-600 font-semibold">{tempAssigned}</span>
                       <span className="text-amber-600">Temp</span>
                     </span>
