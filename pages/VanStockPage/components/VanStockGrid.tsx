@@ -14,9 +14,9 @@ interface VanStockGridProps {
   hasFilters: boolean;
   onViewDetails: (vanStock: VanStock) => void;
   onScheduleAudit: (vanStock: VanStock) => void;
+  onBulkScheduleAudit?: (vans: VanStock[]) => void;
   currentUser?: User;
   onStatusChange?: () => void;
-  useNewDesign?: boolean;
 }
 
 const ADMIN_ROLES: string[] = ['admin', 'admin_service', 'admin_store', 'supervisor'];
@@ -27,6 +27,7 @@ export function VanStockGrid({
   hasFilters,
   onViewDetails,
   onScheduleAudit,
+  onBulkScheduleAudit,
   currentUser,
   onStatusChange,
 }: VanStockGridProps) {
@@ -55,7 +56,11 @@ export function VanStockGrid({
 
   const handleBulkAudit = () => {
     const selected = vanStocks.filter(vs => selectedIds.has(vs.van_stock_id));
-    selected.forEach(vs => onScheduleAudit(vs));
+    if (onBulkScheduleAudit) {
+      onBulkScheduleAudit(selected);
+    } else {
+      selected.forEach(vs => onScheduleAudit(vs));
+    }
     clearSelection();
   };
 

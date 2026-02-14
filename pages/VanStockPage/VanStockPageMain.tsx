@@ -102,21 +102,59 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
     setShowDetailModal(true);
   };
 
-  const handleScheduleAudit = async (vs: VanStock) => {
+  // Audit scheduling with date picker
+  const [auditTargets, setAuditTargets] = useState<VanStock[]>([]);
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [auditDate, setAuditDate] = useState('');
+
+  const handleScheduleAudit = (vs: VanStock) => {
+    setAuditTargets([vs]);
+    // Default to 1 week from now
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    setAuditDate(nextWeek.toISOString().split('T')[0]);
+    setShowAuditModal(true);
+  };
+
+  const handleBulkScheduleAudit = (vans: VanStock[]) => {
+    setAuditTargets(vans);
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    setAuditDate(nextWeek.toISOString().split('T')[0]);
+    setShowAuditModal(true);
+  };
+
+  const handleConfirmAudit = async () => {
+    if (!auditDate || auditTargets.length === 0) return;
+    setSubmitting(true);
     try {
-      const nextWeek = new Date();
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      await MockDb.scheduleVanStockAudit(
-        vs.van_stock_id,
-        vs.technician_id,
-        vs.technician_name || '',
-        nextWeek.toISOString().split('T')[0]
-      );
-      showToast.success('Audit scheduled', `Scheduled for ${nextWeek.toLocaleDateString()}`);
+      for (const vs of auditTargets) {
+        await MockDb.scheduleVanStockAudit(
+          vs.van_stock_id,
+          vs.technician_id,
+          vs.technician_name || '',
+          auditDate
+        );
+      }
+      const dateStr = new Date(auditDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      if (auditTargets.length === 1) {
+        showToast.success('Audit scheduled', `${auditTargets[0].technician_name} — ${dateStr}`);
+      } else {
+        showToast.success('Audits scheduled', `${auditTargets.length} vans — ${dateStr}`);
+      }
+      setShowAuditModal(false);
+      setAuditTargets([]);
       loadData();
     } catch (error) {
       showToast.error('Failed to schedule audit', (error as Error).message);
     }
+    setSubmitting(false);
+  };
+
+  const setQuickDate = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    setAuditDate(d.toISOString().split('T')[0]);
   };
 
   // Assign modal handlers
@@ -387,9 +425,9 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
         hasFilters={!!searchQuery || filterType !== 'all'}
         onViewDetails={handleViewDetails}
         onScheduleAudit={handleScheduleAudit}
+        onBulkScheduleAudit={handleBulkScheduleAudit}
         currentUser={currentUser}
         onStatusChange={loadData}
-        useNewDesign
       />
 
       {/* Modals */}
@@ -478,6 +516,66 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
         onToggleItem={toggleItemForTransfer}
         onConfirm={handleConfirmTransfer}
       />
+
+      {/* Schedule Audit Date Picker Modal */}
+      {showAuditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowAuditModal(false)}>
+          <div className="bg-theme-surface rounded-xl shadow-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-theme mb-1">Schedule Audit</h3>
+            <p className="text-xs text-theme-muted mb-4">
+              {auditTargets.length === 1
+                ? `${auditTargets[0].technician_name} — ${auditTargets[0].van_plate || auditTargets[0].van_code}`
+                : `${auditTargets.length} vans selected`}
+            </p>
+
+            {/* Quick options */}
+            <div className="flex gap-2 mb-3">
+              <button onClick={() => setQuickDate(7)}
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                  auditDate === new Date(Date.now() + 7*86400000).toISOString().split('T')[0]
+                    ? 'bg-blue-50 text-blue-700 border-blue-200' : 'border-theme text-theme-muted hover:bg-theme-surface-2'
+                }`}>
+                1 Week
+              </button>
+              <button onClick={() => setQuickDate(14)}
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                  auditDate === new Date(Date.now() + 14*86400000).toISOString().split('T')[0]
+                    ? 'bg-blue-50 text-blue-700 border-blue-200' : 'border-theme text-theme-muted hover:bg-theme-surface-2'
+                }`}>
+                2 Weeks
+              </button>
+              <button onClick={() => setQuickDate(30)}
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                  auditDate === new Date(Date.now() + 30*86400000).toISOString().split('T')[0]
+                    ? 'bg-blue-50 text-blue-700 border-blue-200' : 'border-theme text-theme-muted hover:bg-theme-surface-2'
+                }`}>
+                1 Month
+              </button>
+            </div>
+
+            {/* Custom date */}
+            <label className="block text-xs font-medium text-theme-muted mb-1">Or pick a date</label>
+            <input
+              type="date"
+              value={auditDate}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={e => setAuditDate(e.target.value)}
+              className="w-full px-3 py-2.5 border border-theme rounded-lg bg-theme-surface text-theme text-sm mb-4 focus:ring-2 focus:ring-blue-500"
+            />
+
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowAuditModal(false)}
+                className="px-4 py-2 border border-theme rounded-lg text-sm text-theme-muted hover:bg-theme-surface-2">
+                Cancel
+              </button>
+              <button onClick={handleConfirmAudit} disabled={!auditDate || submitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+                {submitting ? 'Scheduling...' : 'Schedule'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
