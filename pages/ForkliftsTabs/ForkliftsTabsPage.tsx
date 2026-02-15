@@ -1,7 +1,7 @@
 import { AlertTriangle,ClipboardCheck,LayoutDashboard,Settings,Truck } from 'lucide-react';
 import React,{ useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import AssetDashboard from '../../components/AssetDashboard';
+import AssetDashboardToggle from '../../components/AssetDashboard/AssetDashboardToggle';
 import StaleDataBanner from '../../components/StaleDataBanner';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { UserRole } from '../../types';
@@ -101,7 +101,7 @@ const ForkliftsTabsPage: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
 
       {/* Tab Content */}
       {activeTab === 'dashboard' && isAdminOrSupervisor && (
-        <AssetDashboard currentUser={currentUser} />
+        <AssetDashboardToggle currentUser={currentUser} />
       )}
       {activeTab === 'fleet' && (
         <FleetTab currentUser={currentUser} />
