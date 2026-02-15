@@ -69,8 +69,17 @@ export const StatusCard: React.FC<StatusCardProps> = ({
           <Icon className={`w-5 h-5 ${config.color}`} />
         </div>
       </div>
-      {status === 'service_due' && (
+      {status === 'service_due' && count > 0 && (
         <p className="text-xs text-slate-500 mt-2">7 days / 50 hrs</p>
+      )}
+      {count === 0 && status === 'service_due' && (
+        <p className="text-xs text-green-600 mt-2 font-medium">✓ All clear</p>
+      )}
+      {count === 0 && status === 'out_of_service' && (
+        <p className="text-xs text-green-600 mt-2 font-medium">✓ All operational</p>
+      )}
+      {count === 0 && status === 'in_service' && (
+        <p className="text-xs text-green-600 mt-2 font-medium">✓ No active jobs</p>
       )}
     </button>
   );
