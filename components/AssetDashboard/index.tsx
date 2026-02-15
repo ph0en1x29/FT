@@ -1,15 +1,12 @@
 /**
- * AssetDashboard module - Fleet overview dashboard
- * 
- * Re-exports for backward compatibility with existing imports:
- *   import AssetDashboard from './AssetDashboard'
+ * AssetDashboard module - Fleet overview dashboard (V3.1)
  */
 
-export { default as AssetDashboard,default } from './AssetDashboard';
+export { default as AssetDashboard, default } from './AssetDashboardV3_1';
 
 // Export types for consumers
 export type {
-AssetDashboardProps,DashboardMetrics,ForkliftWithStatus,OperationalStatus,StatusCounts
+  AssetDashboardProps, DashboardMetrics, ForkliftWithStatus, OperationalStatus, StatusCounts
 } from './types';
 
 // Export hook for advanced usage
@@ -17,9 +14,10 @@ export { useAssetDashboard } from './hooks/useAssetDashboard';
 
 // Export sub-components
 export {
-ForkliftTable,MetricsBar,ResultsCount,SearchBar,StatusCard,
-StatusCardGrid
+  ForkliftTable, ResultsCount, SearchBar, StatusCard, StatusCardGrid
 } from './components';
 
+export { ForkliftTableV2 } from './components/ForkliftTableV2';
+
 // Export constants
-export { PRIMARY_STATUSES,SECONDARY_STATUSES,STATUS_CONFIG } from './constants';
+export { PRIMARY_STATUSES, SECONDARY_STATUSES, STATUS_CONFIG } from './constants';
