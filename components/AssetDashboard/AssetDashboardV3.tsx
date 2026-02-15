@@ -16,7 +16,6 @@ import {
   SearchBar,
   StatusCardGrid,
 } from './components';
-import { AttentionList } from './components/AttentionList';
 import { useAssetDashboard } from './hooks/useAssetDashboard';
 import { AssetDashboardProps, OperationalStatus } from './types';
 
@@ -27,7 +26,6 @@ const AssetDashboardV3: React.FC<AssetDashboardProps> = ({ currentUser }) => {
     forklifts,
     filteredCount,
     statusCounts,
-    attentionItems,
     activeFilter,
     searchQuery,
     displayLimit,
@@ -86,9 +84,6 @@ const AssetDashboardV3: React.FC<AssetDashboardProps> = ({ currentUser }) => {
         activeFilter={activeFilter}
         onCardClick={handleCardClick}
       />
-
-      {/* Attention List — only shows when there are items */}
-      <AttentionList items={attentionItems} />
 
       {/* Search */}
       <SearchBar
