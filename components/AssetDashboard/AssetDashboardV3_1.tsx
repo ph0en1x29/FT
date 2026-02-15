@@ -10,7 +10,6 @@
 import { Loader2, RefreshCw } from 'lucide-react';
 import React from 'react';
 import {
-  ResultsCount,
   SearchBar,
   StatusCardGrid,
 } from './components';
@@ -22,17 +21,14 @@ const AssetDashboardV3_1: React.FC<AssetDashboardProps> = ({ currentUser }) => {
   const {
     loading,
     refreshing,
-    forklifts,
+    allFilteredForklifts,
     filteredCount,
     statusCounts,
     activeFilter,
     searchQuery,
-    displayLimit,
-    hasMore,
     refresh,
     setActiveFilter,
     setSearchQuery,
-    setDisplayLimit,
     clearFilter,
   } = useAssetDashboard({ currentUser });
 
@@ -92,22 +88,10 @@ const AssetDashboardV3_1: React.FC<AssetDashboardProps> = ({ currentUser }) => {
         onClearFilter={clearFilter}
       />
 
-      {/* Results Count */}
-      <ResultsCount
-        displayedCount={forklifts.length}
-        filteredCount={filteredCount}
-        activeFilter={activeFilter}
-      />
-
-      {/* Enhanced Forklift Table with attention accents */}
+      {/* Enhanced Forklift Table — scrollable, sorted, accented */}
       <ForkliftTableV2
-        forklifts={forklifts}
+        forklifts={allFilteredForklifts}
         filteredCount={filteredCount}
-        displayLimit={displayLimit}
-        hasMore={hasMore}
-        onShowMore={() => setDisplayLimit(displayLimit + 20)}
-        onShowAll={() => setDisplayLimit(filteredCount)}
-        onCollapse={() => setDisplayLimit(5)}
       />
     </div>
   );

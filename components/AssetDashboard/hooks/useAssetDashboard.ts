@@ -311,6 +311,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
     loading,
     refreshing,
     forklifts: displayedForklifts,
+    allFilteredForklifts: filteredForklifts,
     filteredCount: filteredForklifts.length,
     totalCount: forklifts.length,
     statusCounts,

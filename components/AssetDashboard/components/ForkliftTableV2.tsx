@@ -1,27 +1,23 @@
 /**
- * ForkliftTableV2 - Enhanced table with left-border accent for attention rows
+ * ForkliftTableV2 - Scrollable table with attention sorting + left-border accents
  * 
- * Service Due / Out of Service / Awaiting Parts rows get a colored left border
- * so they stand out without a separate "attention" section.
+ * - Attention rows (service due, out of service, awaiting parts, "Due" badge) sorted to top
+ * - Left-border color accent on attention rows
+ * - Scrollable body with sticky header (no show more/show all)
  */
 
-import { ChevronDown, ChevronUp, Gauge, Plus, Truck } from 'lucide-react';
-import React from 'react';
+import { Gauge, Plus, Truck } from 'lucide-react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { STATUS_CONFIG } from '../constants';
-import { ForkliftWithStatus } from '../types';
+import { ForkliftWithStatus, OperationalStatus } from '../types';
 
 interface ForkliftTableV2Props {
   forklifts: ForkliftWithStatus[];
   filteredCount: number;
-  displayLimit: number;
-  hasMore: boolean;
-  onShowMore: () => void;
-  onShowAll: () => void;
-  onCollapse: () => void;
 }
 
-const ACCENT_STATUSES = new Set(['service_due', 'out_of_service', 'awaiting_parts']);
+const ATTENTION_STATUSES = new Set<OperationalStatus>(['service_due', 'out_of_service', 'awaiting_parts']);
 
 const ACCENT_COLORS: Record<string, string> = {
   service_due: '#f59e0b',
@@ -29,16 +25,37 @@ const ACCENT_COLORS: Record<string, string> = {
   awaiting_parts: '#a855f7',
 };
 
+// Priority for sorting (lower = higher priority / top of list)
+const STATUS_PRIORITY: Record<OperationalStatus, number> = {
+  out_of_service: 0,
+  service_due: 1,
+  awaiting_parts: 2,
+  in_service: 3,
+  rented_out: 4,
+  reserved: 5,
+  available: 6,
+};
+
 export const ForkliftTableV2: React.FC<ForkliftTableV2Props> = ({
   forklifts,
   filteredCount,
-  _displayLimit,
-  hasMore,
-  onShowMore,
-  onShowAll,
-  onCollapse,
 }) => {
   const navigate = useNavigate();
+
+  // Sort: attention rows first, then by status priority
+  const sortedForklifts = useMemo(() => {
+    return [...forklifts].sort((a, b) => {
+      const aNeeds = ATTENTION_STATUSES.has(a.operational_status) || a.secondary_badges.includes('Due');
+      const bNeeds = ATTENTION_STATUSES.has(b.operational_status) || b.secondary_badges.includes('Due');
+
+      // Attention items first
+      if (aNeeds && !bNeeds) return -1;
+      if (!aNeeds && bNeeds) return 1;
+
+      // Within same group, sort by status priority
+      return (STATUS_PRIORITY[a.operational_status] ?? 99) - (STATUS_PRIORITY[b.operational_status] ?? 99);
+    });
+  }, [forklifts]);
 
   const handleCreateJob = (forklift: ForkliftWithStatus, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -48,9 +65,10 @@ export const ForkliftTableV2: React.FC<ForkliftTableV2Props> = ({
 
   return (
     <div className="card-theme rounded-xl border border-theme overflow-hidden">
-      <div className="overflow-x-auto">
+      {/* Scrollable container — max ~8 rows visible */}
+      <div className="overflow-auto" style={{ maxHeight: '480px' }}>
         <table className="w-full">
-          <thead>
+          <thead className="sticky top-0 z-10">
             <tr className="bg-theme-surface-2 border-b border-theme">
               <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase">
                 Serial / Model
@@ -70,7 +88,7 @@ export const ForkliftTableV2: React.FC<ForkliftTableV2Props> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-theme">
-            {forklifts.length === 0 ? (
+            {sortedForklifts.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center">
                   <Truck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
@@ -78,10 +96,10 @@ export const ForkliftTableV2: React.FC<ForkliftTableV2Props> = ({
                 </td>
               </tr>
             ) : (
-              forklifts.map((forklift) => {
-                const needsAttention = ACCENT_STATUSES.has(forklift.operational_status) ||
+              sortedForklifts.map((forklift) => {
+                const needsAttention = ATTENTION_STATUSES.has(forklift.operational_status) ||
                   forklift.secondary_badges.includes('Due');
-                const accentColor = ACCENT_COLORS[forklift.operational_status] || 
+                const accentColor = ACCENT_COLORS[forklift.operational_status] ||
                   (forklift.secondary_badges.includes('Due') ? '#f59e0b' : '');
                 const statusConfig = STATUS_CONFIG[forklift.operational_status];
                 const StatusIcon = statusConfig.icon;
@@ -144,37 +162,12 @@ export const ForkliftTableV2: React.FC<ForkliftTableV2Props> = ({
         </table>
       </div>
 
-      {/* Pagination */}
-      {filteredCount > 5 && (
-        <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-center gap-4">
-          {hasMore ? (
-            <>
-              <button
-                onClick={onShowMore}
-                className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800"
-              >
-                <ChevronDown className="w-4 h-4" />
-                Show more (+20)
-              </button>
-              <span className="text-slate-300">|</span>
-              <button
-                onClick={onShowAll}
-                className="text-sm font-medium text-slate-600 hover:text-slate-800"
-              >
-                Show all ({filteredCount})
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={onCollapse}
-              className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-800"
-            >
-              <ChevronUp className="w-4 h-4" />
-              Collapse
-            </button>
-          )}
-        </div>
-      )}
+      {/* Footer with count */}
+      <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 text-center">
+        <span className="text-xs text-slate-500">
+          {filteredCount} unit{filteredCount !== 1 ? 's' : ''}
+        </span>
+      </div>
     </div>
   );
 };
