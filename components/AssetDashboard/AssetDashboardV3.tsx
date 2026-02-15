@@ -1,35 +1,31 @@
 /**
- * AssetDashboardV2 - Enhanced fleet overview prototype
+ * AssetDashboardV3 - Clean fleet overview
  * 
- * Improvements over V1:
- * - Utilization donut chart for at-a-glance fleet health
- * - Enhanced metric cards (utilization %, fleet health, jobs, avg duration)
- * - Refined status cards with percentage bars and hover effects
- * - Better zero states ("All clear" for service due = 0)
- * - Same data/hooks as V1, purely visual upgrade
+ * Philosophy: One glance = fleet state. No noise.
+ * - Inline utilization stat in header
+ * - Polished status cards with hover + zero states
+ * - Better table (the real workhorse)
+ * - No metrics bar (belongs on analytics page)
  */
 
 import { Loader2, RefreshCw } from 'lucide-react';
 import React from 'react';
 import {
-  EnhancedMetrics,
   ForkliftTable,
   ResultsCount,
   SearchBar,
-  StatusCardGridV2,
 } from './components';
-import { UtilizationRing } from './components/UtilizationRing';
+import { StatusCardGridV3 } from './components/StatusCardV3';
 import { useAssetDashboard } from './hooks/useAssetDashboard';
 import { AssetDashboardProps, OperationalStatus } from './types';
 
-const AssetDashboardV2: React.FC<AssetDashboardProps> = ({ currentUser }) => {
+const AssetDashboardV3: React.FC<AssetDashboardProps> = ({ currentUser }) => {
   const {
     loading,
     refreshing,
     forklifts,
     filteredCount,
     statusCounts,
-    metrics,
     activeFilter,
     searchQuery,
     displayLimit,
@@ -53,14 +49,23 @@ const AssetDashboardV2: React.FC<AssetDashboardProps> = ({ currentUser }) => {
     setActiveFilter(activeFilter === status ? 'all' : status);
   };
 
+  const utilizationRate = statusCounts.total > 0
+    ? Math.round((statusCounts.rented_out / statusCounts.total) * 100)
+    : 0;
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with inline utilization */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-theme">Fleet Overview</h2>
-          <p className="text-sm text-theme-muted">
-            {statusCounts.total} total units • Last updated just now
+          <div className="flex items-baseline gap-3">
+            <h2 className="text-lg font-semibold text-theme">Fleet Overview</h2>
+            <span className="text-sm font-medium text-green-600">
+              {statusCounts.rented_out}/{statusCounts.total} rented ({utilizationRate}%)
+            </span>
+          </div>
+          <p className="text-sm text-theme-muted mt-0.5">
+            {statusCounts.available} available • {statusCounts.service_due} due for service
           </p>
         </div>
         <button
@@ -73,16 +78,8 @@ const AssetDashboardV2: React.FC<AssetDashboardProps> = ({ currentUser }) => {
         </button>
       </div>
 
-      {/* Utilization Ring + Enhanced Metrics */}
-      <div className="card-theme rounded-xl border border-theme p-6">
-        <UtilizationRing statusCounts={statusCounts} />
-      </div>
-
-      {/* Metric Cards */}
-      <EnhancedMetrics metrics={metrics} statusCounts={statusCounts} />
-
       {/* Status Cards */}
-      <StatusCardGridV2
+      <StatusCardGridV3
         statusCounts={statusCounts}
         activeFilter={activeFilter}
         onCardClick={handleCardClick}
@@ -117,4 +114,4 @@ const AssetDashboardV2: React.FC<AssetDashboardProps> = ({ currentUser }) => {
   );
 };
 
-export default AssetDashboardV2;
+export default AssetDashboardV3;
