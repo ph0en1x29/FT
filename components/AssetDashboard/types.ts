@@ -20,6 +20,7 @@ export interface RentalQueryResult {
   forklift_id: string;
   customer_id: string;
   status: string;
+  end_date?: string | null;
   customers: { name: string } | null;
 }
 

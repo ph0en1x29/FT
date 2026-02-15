@@ -3,6 +3,7 @@ import { getForkliftsDueForService } from '../../../services/servicePredictionSe
 import { SupabaseDb,supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { User } from '../../../types';
+import { AttentionItem } from '../components/AttentionList';
 import {
 DashboardMetrics,
 ForkliftDbRow,
@@ -19,6 +20,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [forklifts, setForklifts] = useState<ForkliftWithStatus[]>([]);
+  const [attentionItems, setAttentionItems] = useState<AttentionItem[]>([]);
   const [metrics, setMetrics] = useState<DashboardMetrics>({ 
     jobs_completed_30d: 0, 
     avg_job_duration_hours: 0 
@@ -41,6 +43,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
           forklift_id,
           customer_id,
           status,
+          end_date,
           customers (name)
         `)
         .eq('status', 'active');
@@ -55,11 +58,12 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
       );
 
       // Build lookups
-      const rentalLookup = new Map<string, { customer_id: string; customer_name: string }>();
+      const rentalLookup = new Map<string, { customer_id: string; customer_name: string; end_date: string | null }>();
       ((rentalsData || []) as unknown as RentalQueryResult[]).forEach((r) => {
         rentalLookup.set(r.forklift_id, {
           customer_id: r.customer_id,
-          customer_name: r.customers?.name || 'Unknown'
+          customer_name: r.customers?.name || 'Unknown',
+          end_date: r.end_date || null
         });
       });
 
@@ -128,6 +132,87 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
       });
 
       setForklifts(processedForklifts);
+
+      // Build attention items
+      const attention: AttentionItem[] = [];
+      const msPerDay = 24 * 60 * 60 * 1000;
+
+      processedForklifts.forEach((f) => {
+        // Service overdue or due soon
+        if (f.next_service_due) {
+          const dueDate = new Date(f.next_service_due);
+          const daysUntil = Math.ceil((dueDate.getTime() - now.getTime()) / msPerDay);
+          if (daysUntil < 0) {
+            attention.push({
+              id: `svc-${f.forklift_id}`,
+              forkliftId: f.forklift_id,
+              serialNumber: f.serial_number,
+              makeModel: `${f.make} ${f.model}`,
+              type: 'service_overdue',
+              message: `Overdue by ${Math.abs(daysUntil)}d`,
+              urgency: daysUntil, // more negative = more urgent
+            });
+          } else if (daysUntil <= 7 && f.operational_status === 'service_due') {
+            attention.push({
+              id: `svc-${f.forklift_id}`,
+              forkliftId: f.forklift_id,
+              serialNumber: f.serial_number,
+              makeModel: `${f.make} ${f.model}`,
+              type: 'service_due_soon',
+              message: daysUntil === 0 ? 'Due today' : `Due in ${daysUntil}d`,
+              urgency: daysUntil,
+            });
+          }
+        }
+
+        // Rental expiring within 7 days
+        const rental = rentalLookup.get(f.forklift_id);
+        if (rental?.end_date) {
+          const endDate = new Date(rental.end_date);
+          const daysUntil = Math.ceil((endDate.getTime() - now.getTime()) / msPerDay);
+          if (daysUntil >= 0 && daysUntil <= 7) {
+            attention.push({
+              id: `rental-${f.forklift_id}`,
+              forkliftId: f.forklift_id,
+              serialNumber: f.serial_number,
+              makeModel: `${f.make} ${f.model}`,
+              type: 'rental_expiring',
+              message: daysUntil === 0 ? 'Expires today' : `Expires in ${daysUntil}d`,
+              urgency: daysUntil + 100, // lower priority than service
+            });
+          }
+        }
+
+        // Out of service (no time tracking available, just flag it)
+        if (f.operational_status === 'out_of_service') {
+          attention.push({
+            id: `oos-${f.forklift_id}`,
+            forkliftId: f.forklift_id,
+            serialNumber: f.serial_number,
+            makeModel: `${f.make} ${f.model}`,
+            type: 'out_of_service_long',
+            message: 'Out of service',
+            urgency: 200,
+          });
+        }
+
+        // Awaiting parts
+        if (f.operational_status === 'awaiting_parts') {
+          attention.push({
+            id: `parts-${f.forklift_id}`,
+            forkliftId: f.forklift_id,
+            serialNumber: f.serial_number,
+            makeModel: `${f.make} ${f.model}`,
+            type: 'awaiting_parts_long',
+            message: 'Awaiting parts',
+            urgency: 300,
+          });
+        }
+      });
+
+      // Sort by urgency (lowest = most urgent)
+      attention.sort((a, b) => a.urgency - b.urgency);
+      setAttentionItems(attention);
 
       // Calculate metrics
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -230,6 +315,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
     totalCount: forklifts.length,
     statusCounts,
     metrics,
+    attentionItems,
     activeFilter,
     searchQuery,
     displayLimit,
