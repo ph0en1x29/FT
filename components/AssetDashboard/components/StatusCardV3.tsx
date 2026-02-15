@@ -25,10 +25,10 @@ const StatusCardV3: React.FC<StatusCardV3Props> = ({
   return (
     <button
       onClick={onClick}
-      className={`relative p-4 rounded-xl border-2 transition-all duration-150 text-left w-full
+      className={`relative p-4 rounded-2xl transition-all duration-150 text-left w-full
         ${isActive
-          ? `${config.bgColor} ${config.borderColor} ring-2 ring-offset-2 ${config.borderColor.replace('border-', 'ring-')}`
-          : 'card-theme border-theme hover:border-slate-300 hover:shadow-sm active:scale-[0.98]'
+          ? `${config.bgColor} border ${config.borderColor} shadow-sm`
+          : 'card-theme border border-transparent shadow-sm hover:shadow-md active:scale-[0.98]'
         }`}
     >
       <div className="flex items-start justify-between">
