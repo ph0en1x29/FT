@@ -24,7 +24,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({
     return (
       <button
         onClick={onClick}
-        className={`relative p-3 rounded-xl border-2 transition-all text-left ${
+        className={`relative p-3 rounded-xl border transition-all text-left ${
           isActive
             ? `${config.bgColor} ${config.borderColor} ring-2 ring-offset-2 ${config.borderColor.replace('border-', 'ring-')}`
             : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
@@ -50,7 +50,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`relative p-4 rounded-xl border-2 transition-all text-left ${
+      className={`relative p-4 rounded-xl border transition-all text-left ${
         isActive
           ? `${config.bgColor} ${config.borderColor} ring-2 ring-offset-2 ${config.borderColor.replace('border-', 'ring-')}`
           : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
