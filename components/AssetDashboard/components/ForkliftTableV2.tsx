@@ -6,8 +6,8 @@
  * - Scrollable body with sticky header (no show more/show all)
  */
 
-import { Gauge, Plus, Truck } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { ArrowUpDown, Gauge, Plus, Truck } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { STATUS_CONFIG } from '../constants';
 import { ForkliftWithStatus, OperationalStatus } from '../types';
@@ -41,21 +41,21 @@ export const ForkliftTableV2: React.FC<ForkliftTableV2Props> = ({
   filteredCount,
 }) => {
   const navigate = useNavigate();
+  const [sortByAttention, setSortByAttention] = useState(false);
 
-  // Sort: attention rows first, then by status priority
-  const sortedForklifts = useMemo(() => {
+  const displayForklifts = useMemo(() => {
+    if (!sortByAttention) return forklifts; // default: creation order from DB
+
     return [...forklifts].sort((a, b) => {
       const aNeeds = ATTENTION_STATUSES.has(a.operational_status) || a.secondary_badges.includes('Due');
       const bNeeds = ATTENTION_STATUSES.has(b.operational_status) || b.secondary_badges.includes('Due');
 
-      // Attention items first
       if (aNeeds && !bNeeds) return -1;
       if (!aNeeds && bNeeds) return 1;
 
-      // Within same group, sort by status priority
       return (STATUS_PRIORITY[a.operational_status] ?? 99) - (STATUS_PRIORITY[b.operational_status] ?? 99);
     });
-  }, [forklifts]);
+  }, [forklifts, sortByAttention]);
 
   const handleCreateJob = (forklift: ForkliftWithStatus, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -65,6 +65,20 @@ export const ForkliftTableV2: React.FC<ForkliftTableV2Props> = ({
 
   return (
     <div className="card-theme rounded-xl border border-theme overflow-hidden">
+      {/* Sort toggle */}
+      <div className="px-4 py-2 bg-theme-surface-2 border-b border-theme flex items-center justify-end">
+        <button
+          onClick={() => setSortByAttention(!sortByAttention)}
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+            sortByAttention
+              ? 'bg-amber-100 text-amber-700 border border-amber-300'
+              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          <ArrowUpDown className="w-3.5 h-3.5" />
+          {sortByAttention ? 'Attention first' : 'Sort by attention'}
+        </button>
+      </div>
       {/* Scrollable container — max ~8 rows visible */}
       <div className="overflow-auto" style={{ maxHeight: '480px' }}>
         <table className="w-full">
@@ -88,7 +102,7 @@ export const ForkliftTableV2: React.FC<ForkliftTableV2Props> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-theme">
-            {sortedForklifts.length === 0 ? (
+            {displayForklifts.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center">
                   <Truck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
@@ -96,7 +110,7 @@ export const ForkliftTableV2: React.FC<ForkliftTableV2Props> = ({
                 </td>
               </tr>
             ) : (
-              sortedForklifts.map((forklift) => {
+              displayForklifts.map((forklift) => {
                 const needsAttention = ATTENTION_STATUSES.has(forklift.operational_status) ||
                   forklift.secondary_badges.includes('Due');
                 const accentColor = ACCENT_COLORS[forklift.operational_status] ||
