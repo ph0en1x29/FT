@@ -1,11 +1,11 @@
 /**
  * AssetDashboardV3 - Clean fleet overview
  * 
- * Philosophy: One glance = fleet state. No noise.
+ * Changes from V1:
  * - Inline utilization stat in header
- * - Polished status cards with hover + zero states
- * - Better table (the real workhorse)
+ * - Subtitle with available + service due counts
  * - No metrics bar (belongs on analytics page)
+ * - Same status cards as V1 (proven design)
  */
 
 import { Loader2, RefreshCw } from 'lucide-react';
@@ -14,8 +14,8 @@ import {
   ForkliftTable,
   ResultsCount,
   SearchBar,
+  StatusCardGrid,
 } from './components';
-import { StatusCardGridV3 } from './components/StatusCardV3';
 import { useAssetDashboard } from './hooks/useAssetDashboard';
 import { AssetDashboardProps, OperationalStatus } from './types';
 
@@ -78,8 +78,8 @@ const AssetDashboardV3: React.FC<AssetDashboardProps> = ({ currentUser }) => {
         </button>
       </div>
 
-      {/* Status Cards */}
-      <StatusCardGridV3
+      {/* Status Cards — same as V1 */}
+      <StatusCardGrid
         statusCounts={statusCounts}
         activeFilter={activeFilter}
         onCardClick={handleCardClick}
