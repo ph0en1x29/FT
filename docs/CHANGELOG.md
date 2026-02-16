@@ -4,6 +4,32 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-16] - Van History Tab + Decimal Quantities (Customer Feedback)
+
+### Van History Tab
+- **History tab** in van detail modal — shows full parts deduction log with technician, job, quantity, and timestamp
+- **Technician summary** sub-tab — which technicians used a van, how many jobs/parts, date ranges
+- Paginated log (20 per page) with part codes, units, and customer names
+- New service: `vanHistoryService.ts` with `getVanUsageHistory()` and `getVanTechnicianSummary()`
+
+### Decimal Quantity Input
+- **Manual quantity entry** replaces the "+" button for van stock parts — technicians can type exact amounts (e.g., 1.5L)
+- Supports decimal values for liquid/bulk items (hydraulic oil, lubricant, etc.)
+- Shows available quantity with unit in the van stock selector dropdown
+- Validates: must be > 0, cannot exceed available stock
+- `unit` field added to Part type (pcs, L, kg, m, etc.)
+- DB migration: quantity columns altered from INTEGER to DECIMAL(10,2) across van_stock_items, van_stock_usage, job_parts, replenishment_items
+
+### Bulk Part Request Approval
+- Already existed! "Approve All" button appears when 2+ requests are pending
+- Auto-matches request descriptions to parts inventory with fuzzy keyword matching
+- Admin can review, adjust parts/quantities, skip individual items, then approve all at once
+
+### Migration
+- `20260216_van_history_and_decimal_quantities.sql`
+
+---
+
 ## [2026-02-12] - Van Fleet Management
 
 ### Fleet Management System
