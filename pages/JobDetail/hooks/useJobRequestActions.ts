@@ -36,6 +36,7 @@ export const useJobRequestActions = ({
       if (result) {
         showToast.success('Request submitted', 'Admin will review your request');
         state.setShowRequestModal(false);
+        loadJob(); // Refresh job data to show new request
       } else {
         showToast.error('Failed to submit request');
       }
@@ -44,7 +45,7 @@ export const useJobRequestActions = ({
     } finally {
       state.setSubmittingRequest(false);
     }
-  }, [job, currentUserId, state]);
+  }, [job, currentUserId, state, loadJob]);
 
   const handleApproveRequest = useCallback(async (
     partId: string,
@@ -124,6 +125,7 @@ export const useJobRequestActions = ({
         showToast.success('Request updated');
         state.setShowRequestModal(false);
         state.setEditingRequest(null);
+        loadJob(); // Refresh job data to show updated request
       } else {
         showToast.error('Failed to update request', 'You can only edit your own pending requests');
       }
@@ -132,7 +134,7 @@ export const useJobRequestActions = ({
     } finally {
       state.setSubmittingRequest(false);
     }
-  }, [currentUserId, state]);
+  }, [currentUserId, state, loadJob]);
 
   const handleIssuePartToTechnician = useCallback(async (requestId: string) => {
     try {

@@ -4,7 +4,14 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
-## [2026-02-16] - Van History, Decimal Quantities, Parts Bug Fix
+## [2026-02-16] - Van History, Decimal Quantities, Bug Fixes
+
+### Part Request Auto-Refresh Fix
+- **Fixed:** Technician submits a part request → job doesn't refresh, request invisible until manual reload
+- **Fixed:** Same issue when editing an existing request
+- **Root cause:** `handleCreateRequest` and `handleUpdateRequest` were missing `loadJob()` call after success (every other handler had it)
+- **Also fixed:** React dependency arrays updated to include `loadJob`
+- File: `pages/JobDetail/hooks/useJobRequestActions.ts`
 
 ### Parts Inventory Bug Fix
 - **Fixed:** Parts dropdown in job detail showed "Stock: undefined" — `getPartsForList()` wasn't fetching `stock_quantity`
