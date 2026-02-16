@@ -125,6 +125,17 @@ export const useJobPartsHandlers = ({
         await MockDb.addPartToJob(job.job_id, item.part_id, qtyToUse, item.part.sell_price || 0, UserRole.TECHNICIAN, currentUserId, currentUserName);
       }
 
+      // Auto-confirm parts — van stock usage is tracked and auditable,
+      // no separate verification needed
+      try {
+        const now = new Date().toISOString();
+        await MockDb.updateJob(job.job_id, {
+          parts_confirmed_at: now,
+          parts_confirmed_by_id: currentUserId,
+          parts_confirmed_by_name: `${currentUserName} (auto: van stock)`,
+        });
+      } catch { /* non-critical */ }
+
       // Check if low stock — auto-create replenishment alert
       const newQty = item.quantity - qtyToUse;
       if (newQty <= item.min_quantity && state.vanStock) {
