@@ -14,7 +14,6 @@
 
 import {
   AlertTriangle,
-  Bell,
   CheckCircle,
   ChevronDown,
   ChevronRight,
@@ -38,7 +37,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNotifications } from '../../../../hooks/useQueryHooks';
+// Notifications handled by global header NotificationBell
 import { getGlobalLowStockCount } from '../../../../services/inventoryService';
 import { SupabaseDb } from '../../../../services/supabaseService';
 import { supabase } from '../../../../services/supabaseClient';
@@ -294,9 +293,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
   const [lowStockCount, setLowStockCount] = useState(0);
   const [lowStockItems, setLowStockItems] = useState<{ name: string; quantity: number; min: number }[]>([]);
 
-  // Fetch notifications
-  const { data: notifications = [] } = useNotifications(currentUser.user_id, true);
-  const unreadCount = notifications.length;
+  // Notifications handled by global header bell — removed duplicate fetch
 
   useEffect(() => {
     getGlobalLowStockCount().then(setLowStockCount).catch(() => {});
@@ -588,14 +585,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
           <span className="px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-indigo-600 to-cyan-500 text-white">
             ⚡ V7.1
           </span>
-          <button onClick={() => navigate('/notifications')} className="relative p-2 rounded-xl transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <Bell className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center" style={{ background: colors.red.text, color: 'white' }}>
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
-          </button>
+          {/* Notification bell is in the global header — no duplicate needed here */}
           <button onClick={onRefresh} className="p-2 rounded-xl transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <RefreshCw className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
           </button>

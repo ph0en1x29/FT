@@ -23,6 +23,12 @@ All notable changes to the FieldPro Field Service Management System.
 - **Tab switch resets** — switching tabs collapses all cards and clears selections
 - Files: `PendingConfirmations.tsx`, `JobCard.tsx`, `usePendingConfirmations.ts`
 
+### Broken Notification Bell on V7.1 Dashboard
+- **Fixed:** Bell button next to V7.1 badge navigated to `/notifications` — route doesn't exist (blank page)
+- **Removed** duplicate bell from dashboard — global header already has `NotificationBell` with working dropdown
+- **Cleaned up** unused `Bell` import, `useNotifications` fetch, and `unreadCount` variable (saves an unnecessary API call)
+- File: `components/dashboards/DashboardPreviewV4/components/AdminDashboardV7_1.tsx`
+
 ### "Failed to mark out of stock" Bug Fix
 - **Fixed:** Inline "Out of Stock" button on pending requests passed empty string as partId (no part selected yet → invalid UUID → update fails)
 - **Removed** the broken inline OOS shortcut from `JobRequestsSection.tsx`
