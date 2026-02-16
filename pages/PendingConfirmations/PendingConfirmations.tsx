@@ -46,6 +46,7 @@ export default function PendingConfirmations({ currentUser, hideHeader = false }
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const toggleSelect = (jobId: string) => {
     setSelectedIds(prev => {
@@ -63,6 +64,18 @@ export default function PendingConfirmations({ currentUser, hideHeader = false }
   const clearSelection = () => {
     setSelectedIds(new Set());
     setSelectMode(false);
+  };
+
+  const toggleExpanded = (jobId: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(jobId)) {
+        next.delete(jobId);
+      } else {
+        next.add(jobId);
+      }
+      return next;
+    });
   };
 
   const handleBulkConfirm = async () => {
@@ -103,6 +116,7 @@ export default function PendingConfirmations({ currentUser, hideHeader = false }
     setActiveTab(tab);
     setSelectedIds(new Set());
     setSelectMode(false);
+    setExpandedIds(new Set());
   };
 
   if (loading) {
@@ -221,8 +235,11 @@ export default function PendingConfirmations({ currentUser, hideHeader = false }
               <JobCard
                 job={job}
                 activeTab={activeTab}
+                isExpanded={expandedIds.has(job.job_id)}
+                isExpandable={!selectMode}
                 processing={processing}
                 canConfirm={canConfirm && !selectMode}
+                onToggleExpand={() => toggleExpanded(job.job_id)}
                 onConfirmParts={handleConfirmParts}
                 onConfirmJob={handleConfirmJob}
                 onSkipParts={handleSkipPartsConfirmation}

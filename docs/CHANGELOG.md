@@ -6,6 +6,14 @@ All notable changes to the FieldPro Field Service Management System.
 
 ## [2026-02-16] - Van History, Decimal Quantities, Bug Fixes
 
+### Approvals Page UX Overhaul
+- **Collapsed cards by default** — job cards now show compact header only (title, customer, tech, time pending, parts count)
+- **Expand/collapse accordion** — click card or chevron to see full details (parts list, SRN, completion date, confirmation status)
+- **Sort by latest** — most recently completed jobs appear first (both Parts and Jobs tabs)
+- **Always-visible actions** — Confirm/Reject buttons visible on collapsed view, no need to expand
+- **Tab switch resets** — switching tabs collapses all cards and clears selections
+- Files: `PendingConfirmations.tsx`, `JobCard.tsx`, `usePendingConfirmations.ts`, `types.ts`
+
 ### Part Request Auto-Refresh Fix
 - **Fixed:** Technician submits a part request → job doesn't refresh, request invisible until manual reload
 - **Fixed:** Same issue when editing an existing request

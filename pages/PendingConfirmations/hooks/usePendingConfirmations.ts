@@ -43,21 +43,25 @@ export function usePendingConfirmations(currentUser: User) {
 
   // Jobs pending parts confirmation (Admin 2 / Store)
   const jobsPendingPartsConfirmation = useMemo(() => {
-    return jobs.filter(job =>
-      job.status === JobStatus.AWAITING_FINALIZATION &&
-      job.parts_used.length > 0 &&
-      !job.parts_confirmed_at &&
-      !job.parts_confirmation_skipped
-    );
+    return jobs
+      .filter(job =>
+        job.status === JobStatus.AWAITING_FINALIZATION &&
+        job.parts_used.length > 0 &&
+        !job.parts_confirmed_at &&
+        !job.parts_confirmation_skipped
+      )
+      .sort((a, b) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime());
   }, [jobs]);
 
   // Jobs pending job confirmation (Admin 1 / Service)
   const jobsPendingJobConfirmation = useMemo(() => {
-    return jobs.filter(job =>
-      job.status === JobStatus.AWAITING_FINALIZATION &&
-      (job.parts_confirmed_at || job.parts_confirmation_skipped || job.parts_used.length === 0) &&
-      !job.job_confirmed_at
-    );
+    return jobs
+      .filter(job =>
+        job.status === JobStatus.AWAITING_FINALIZATION &&
+        (job.parts_confirmed_at || job.parts_confirmation_skipped || job.parts_used.length === 0) &&
+        !job.job_confirmed_at
+      )
+      .sort((a, b) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime());
   }, [jobs]);
 
   // Confirm Parts (Admin 2)
