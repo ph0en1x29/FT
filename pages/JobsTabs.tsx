@@ -1,13 +1,14 @@
-import { Briefcase,CheckSquare,FileText,Plus } from 'lucide-react';
+import { Briefcase,CheckSquare,FileText,Package,Plus } from 'lucide-react';
 import React,{ useEffect,useState } from 'react';
 import { useNavigate,useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../contexts/DevModeContext';
 import { User,UserRole } from '../types';
 import JobBoard from './JobBoard';
+import PartRequests from './PartRequests';
 import PendingConfirmations from './PendingConfirmations';
 import ServiceRecords from './ServiceRecords';
 
-type TabType = 'active' | 'history' | 'confirmations';
+type TabType = 'active' | 'history' | 'confirmations' | 'requests';
 
 interface JobsTabsProps {
   currentUser: User;
@@ -45,6 +46,7 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
   const tabs = [
     { id: 'active' as TabType, label: 'Active Jobs', icon: Briefcase },
     ...(canViewHistory ? [{ id: 'history' as TabType, label: 'Service History', icon: FileText }] : []),
+    ...(isAdminOrSupervisor ? [{ id: 'requests' as TabType, label: 'Part Requests', icon: Package }] : []),
     ...(isAdminOrSupervisor ? [{ id: 'confirmations' as TabType, label: 'Confirmations', icon: CheckSquare }] : []),
   ];
 
@@ -102,6 +104,7 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
       {/* Tab Content */}
       {effectiveTab === 'active' && <JobBoard currentUser={currentUser} hideHeader />}
       {effectiveTab === 'history' && canViewHistory && <ServiceRecords currentUser={currentUser} hideHeader />}
+      {effectiveTab === 'requests' && isAdminOrSupervisor && <PartRequests currentUser={currentUser} hideHeader />}
       {effectiveTab === 'confirmations' && isAdminOrSupervisor && <PendingConfirmations currentUser={currentUser} hideHeader />}
     </div>
   );
