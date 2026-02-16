@@ -105,13 +105,16 @@ export const useJobPartsHandlers = ({
     if (!job || !state.selectedVanStockItemId || !state.vanStock) return;
     const item = state.vanStock.items?.find(i => i.item_id === state.selectedVanStockItemId);
     if (!item) { showToast.error('Van stock item not found'); return; }
-    if (item.quantity < 1) { showToast.error('No stock available', `${item.part?.part_name} is out of stock in your van`); return; }
+
+    const qtyToUse = parseFloat(state.vanStockQuantity) || 1;
+    if (qtyToUse <= 0) { showToast.error('Invalid quantity', 'Quantity must be greater than 0'); return; }
+    if (item.quantity < qtyToUse) { showToast.error('Insufficient stock', `Only ${item.quantity} ${item.part?.unit || 'pcs'} available in van`); return; }
 
     try {
       await useVanStockPart(
         item.item_id,
         job.job_id,
-        1,
+        qtyToUse,
         currentUserId,
         currentUserName,
         false // no approval needed for own van stock
@@ -119,11 +122,11 @@ export const useJobPartsHandlers = ({
 
       // Also add to job parts for invoicing
       if (item.part) {
-        await MockDb.addPartToJob(job.job_id, item.part_id, 1, item.part.sell_price || 0, UserRole.TECHNICIAN, currentUserId, currentUserName);
+        await MockDb.addPartToJob(job.job_id, item.part_id, qtyToUse, item.part.sell_price || 0, UserRole.TECHNICIAN, currentUserId, currentUserName);
       }
 
       // Check if low stock — auto-create replenishment alert
-      const newQty = item.quantity - 1;
+      const newQty = item.quantity - qtyToUse;
       if (newQty <= item.min_quantity && state.vanStock) {
         const lowItems = (state.vanStock.items || []).filter(i => {
           const qty = i.item_id === item.item_id ? newQty : i.quantity;
@@ -152,7 +155,10 @@ export const useJobPartsHandlers = ({
       }
 
       state.setSelectedVanStockItemId('');
-      showToast.success('Part used from van stock', `${item.part?.part_name} added to job`);
+      state.setVanStockQuantity('1');
+      const unit = item.part?.unit || 'pcs';
+      const qtyDisplay = Number.isInteger(qtyToUse) ? qtyToUse.toString() : qtyToUse.toFixed(2);
+      showToast.success('Part used from van stock', `${qtyDisplay} ${unit} of ${item.part?.part_name} added to job`);
       // Reload job + van stock
       loadJob();
     } catch (e) {

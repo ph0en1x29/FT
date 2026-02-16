@@ -6,7 +6,9 @@ AlertTriangle,
 ArrowRightLeft,
 CheckCircle,
 Edit2,
+History,
 MoreVertical,
+Package,
 Plus,
 Trash2,
 TrendingDown,
@@ -15,6 +17,7 @@ X,
 import { useEffect,useState } from 'react';
 import { VanStock,VanStockItem } from '../../../../types';
 import { getLowStockItems,getStockStatusColor } from '../../hooks/useVanStockData';
+import { VanHistoryTab } from '../VanHistoryTab';
 
 interface VanStockDetailModalProps {
   isOpen: boolean;
@@ -42,6 +45,7 @@ export function VanStockDetailModal({
   onScheduleAudit,
 }: VanStockDetailModalProps) {
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'stock' | 'history'>('stock');
 
   // Close action menu when clicking outside
   useEffect(() => {
@@ -163,8 +167,37 @@ export function VanStockDetailModal({
           </div>
         </div>
 
+        {/* Tab Switcher */}
+        <div className="flex border-b border-slate-200 px-4">
+          <button
+            onClick={() => setActiveTab('stock')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition ${
+              activeTab === 'stock'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Package className="w-4 h-4" /> Stock Items
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition ${
+              activeTab === 'history'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <History className="w-4 h-4" /> History
+          </button>
+        </div>
+
         {/* Modal Content */}
         <div className="flex-1 overflow-y-auto p-4">
+          {activeTab === 'history' && vanStock && (
+            <VanHistoryTab vanStockId={vanStock.van_stock_id} />
+          )}
+
+          {activeTab === 'stock' && <>
           {/* Summary */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="text-center p-3 bg-slate-50 rounded-lg">
@@ -241,6 +274,7 @@ export function VanStockDetailModal({
               </div>
             </div>
           </div>
+          </>}
         </div>
 
         {/* Modal Footer */}

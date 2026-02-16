@@ -20,6 +20,7 @@ export interface Part {
   min_stock_level?: number;
   supplier?: string;
   location?: string;
+  unit?: string; // Display unit: "pcs", "L", "kg", "m", etc.
 }
 
 export interface JobPartUsed {

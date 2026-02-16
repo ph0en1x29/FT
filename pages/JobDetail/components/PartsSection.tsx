@@ -29,6 +29,8 @@ interface PartsSectionProps {
   onToggleVanStock?: () => void;
   selectedVanStockItemId?: string;
   onSelectedVanStockItemIdChange?: (id: string) => void;
+  vanStockQuantity?: string;
+  onVanStockQuantityChange?: (qty: string) => void;
   onUseVanStockPart?: () => void;
   // Van selection props
   availableVans?: VanStock[];
@@ -59,6 +61,8 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   onToggleVanStock,
   selectedVanStockItemId,
   onSelectedVanStockItemIdChange,
+  vanStockQuantity,
+  onVanStockQuantityChange,
   onUseVanStockPart,
   availableVans,
   onSelectJobVan,
@@ -94,7 +98,7 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
           {job.parts_used.map(p => (
             <div key={p.job_part_id} className="flex items-center justify-between p-3 bg-[var(--bg-subtle)] rounded-xl">
               <div>
-                <span className="font-medium text-[var(--text)]">{p.quantity}× {p.part_name}</span>
+                <span className="font-medium text-[var(--text)]">{Number.isInteger(p.quantity) ? p.quantity : p.quantity.toFixed(2)}× {p.part_name}</span>
               </div>
               {canViewPricing && editingPartId === p.job_part_id ? (
                 <div className="flex items-center gap-2">
@@ -202,30 +206,58 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
                 </button>
               </div>
               {useFromVanStock && (
-                <div className="flex gap-2 items-start">
-                  <div className="flex-1">
-                    <select
-                      value={selectedVanStockItemId || ''}
-                      onChange={(e) => onSelectedVanStockItemIdChange?.(e.target.value)}
-                      className="input-premium text-sm w-full"
+                <div className="space-y-2">
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1">
+                      <select
+                        value={selectedVanStockItemId || ''}
+                        onChange={(e) => onSelectedVanStockItemIdChange?.(e.target.value)}
+                        className="input-premium text-sm w-full"
+                      >
+                        <option value="">Select part from van...</option>
+                        {vanStock.items
+                          .filter(i => i.quantity > 0)
+                          .map(i => {
+                            const unit = i.part?.unit || 'pcs';
+                            const qtyDisplay = Number.isInteger(i.quantity) ? i.quantity : i.quantity.toFixed(2);
+                            return (
+                              <option key={i.item_id} value={i.item_id}>
+                                {i.part?.part_name || 'Unknown'} — {qtyDisplay} {unit} available
+                              </option>
+                            );
+                          })}
+                      </select>
+                    </div>
+                    <div className="w-20">
+                      <input
+                        type="number"
+                        min="0.1"
+                        step="any"
+                        value={vanStockQuantity || '1'}
+                        onChange={(e) => onVanStockQuantityChange?.(e.target.value)}
+                        className="input-premium text-sm w-full text-center"
+                        placeholder="Qty"
+                      />
+                    </div>
+                    <button
+                      onClick={onUseVanStockPart}
+                      disabled={!selectedVanStockItemId}
+                      className="btn-premium btn-premium-primary disabled:opacity-50"
                     >
-                      <option value="">Select part from van...</option>
-                      {vanStock.items
-                        .filter(i => i.quantity > 0)
-                        .map(i => (
-                          <option key={i.item_id} value={i.item_id}>
-                            {i.part?.part_name || 'Unknown'} — Qty: {i.quantity}
-                          </option>
-                        ))}
-                    </select>
+                      <Plus className="w-5 h-5" />
+                    </button>
                   </div>
-                  <button
-                    onClick={onUseVanStockPart}
-                    disabled={!selectedVanStockItemId}
-                    className="btn-premium btn-premium-primary disabled:opacity-50"
-                  >
-                    <Plus className="w-5 h-5" />
-                  </button>
+                  {selectedVanStockItemId && (() => {
+                    const selectedItem = vanStock.items?.find(i => i.item_id === selectedVanStockItemId);
+                    if (!selectedItem) return null;
+                    const unit = selectedItem.part?.unit || 'pcs';
+                    return (
+                      <p className="text-xs text-[var(--text-muted)]">
+                        Available: {Number.isInteger(selectedItem.quantity) ? selectedItem.quantity : selectedItem.quantity.toFixed(2)} {unit}
+                        {unit !== 'pcs' && ' · Supports decimal quantities'}
+                      </p>
+                    );
+                  })()}
                 </div>
               )}
             </>
