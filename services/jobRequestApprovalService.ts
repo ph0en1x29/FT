@@ -59,7 +59,8 @@ export const approveSparePartRequest = async (
       return false;
     }
 
-    // Stock reserved successfully, now update request and add to job
+    // Approval = intent to provide. Stock reserved but parts NOT added to job yet.
+    // Parts get added at issuance (physical handover) in issuePartToTechnician.
     const { error: updateError } = await supabase
       .from('job_requests')
       .update({
@@ -76,49 +77,6 @@ export const approveSparePartRequest = async (
       // Rollback stock reservation
       await supabase.rpc('rollback_part_stock', { p_part_id: partId, p_quantity: quantity });
       return false;
-    }
-
-    const { error: insertError } = await supabase
-      .from('job_parts')
-      .insert({
-        job_id: request.job_id,
-        part_id: partId,
-        part_name: part.part_name,
-        quantity: quantity,
-        sell_price_at_time: part.sell_price,
-      });
-
-    if (insertError) {
-      // Rollback stock and request status
-      await supabase.rpc('rollback_part_stock', { p_part_id: partId, p_quantity: quantity });
-      await supabase
-        .from('job_requests')
-        .update({ status: 'pending', responded_by: null, responded_at: null })
-        .eq('request_id', requestId);
-      return false;
-    }
-
-    // Auto-confirm parts (and job for unified admin) when admin approves request
-    if (adminUserName) {
-      const now = new Date().toISOString();
-      const confirmUpdates: Record<string, string> = {
-        parts_confirmed_at: now,
-        parts_confirmed_by_id: adminUserId,
-        parts_confirmed_by_name: adminUserName,
-      };
-      // Unified admin: also auto-confirm job
-      if (adminRole === 'admin') {
-        confirmUpdates.job_confirmed_at = now;
-        confirmUpdates.job_confirmed_by_id = adminUserId;
-        confirmUpdates.job_confirmed_by_name = adminUserName;
-      }
-      const { error: confirmError } = await supabase
-        .from('jobs')
-        .update(confirmUpdates)
-        .eq('job_id', request.job_id);
-      if (confirmError) {
-        console.warn('Part added, but auto-confirm failed:', confirmError.message);
-      }
     }
 
     await notifyRequestApproved(
@@ -270,11 +228,8 @@ export const issuePartToTechnician = async (
 
     if (!part) return false;
 
-    // Reserve stock atomically
-    const { data: stockReserved, error: stockError } = await supabase
-      .rpc('reserve_part_stock', { p_part_id: partId, p_quantity: quantity });
-
-    if (stockError || !stockReserved) return false;
+    // Stock was already reserved at approval time — no need to reserve again.
+    // Just mark as issued and add parts to job.
 
     // Mark as issued
     const { error: updateError } = await supabase
@@ -286,13 +241,9 @@ export const issuePartToTechnician = async (
       })
       .eq('request_id', requestId);
 
-    if (updateError) {
-      // Rollback stock
-      await supabase.rpc('rollback_part_stock', { p_part_id: partId, p_quantity: quantity });
-      return false;
-    }
+    if (updateError) return false;
 
-    // Add parts to job
+    // Add parts to job (only happens here, not at approval)
     const { error: insertError } = await supabase
       .from('job_parts')
       .insert({
@@ -304,12 +255,12 @@ export const issuePartToTechnician = async (
       });
 
     if (insertError) {
-      await supabase.rpc('rollback_part_stock', { p_part_id: partId, p_quantity: quantity });
+      // Rollback issuance status
       await supabase.from('job_requests').update({ status: 'approved', issued_by: null, issued_at: null }).eq('request_id', requestId);
       return false;
     }
 
-    // Auto-confirm parts (and job for unified admin)
+    // Auto-confirm parts — issuing from store IS the confirmation
     const now2 = new Date().toISOString();
     const confirmUpdates2: Record<string, string> = {
       parts_confirmed_at: now2,
