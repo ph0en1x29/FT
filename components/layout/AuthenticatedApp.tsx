@@ -178,7 +178,6 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed, navRole }
           {canViewForklifts && <NavItem to="/forklifts" icon={Truck} label="Fleet" />}
           {canViewCustomers && <NavItem to="/customers" icon={Building2} label="Customers" />}
           {canManageInventory && <NavItem to="/inventory" icon={Package} label="Inventory" />}
-          {(navRole === UserRole.ADMIN || navRole === UserRole.ADMIN_STORE) && <NavItem to="/store" icon={PackageCheck} label="Store" />}
           {canFinalizeInvoices && (
             <>
               <div className="nav-divider" />
@@ -303,7 +302,6 @@ const MobileDrawer = ({ currentUser, isOpen, onClose, onLogout, navRole }: { cur
         </div>
         <nav className="p-4 space-y-1">
           {canManageInventory && <DrawerLink to="/inventory" icon={Package} label="Inventory" />}
-          {(navRole === UserRole.ADMIN || navRole === UserRole.ADMIN_STORE) && <DrawerLink to="/store" icon={PackageCheck} label="Store" />}
           {canFinalizeInvoices && <DrawerLink to="/invoices" icon={FileText} label="Billing" />}
           {canViewTeam && <DrawerLink to="/people" icon={Users} label="Team" />}
           <div className="border-t border-slate-700/50 my-3" />
@@ -420,7 +418,7 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
                 <Route path="/people" element={canViewTeam ? <People currentUser={currentUser} /> : <Navigate to="/" />} />
                 <Route path="/people/employees/:id" element={(canViewHR || canViewOwnProfile) ? <EmployeeProfile currentUser={currentUser} /> : <Navigate to="/" />} />
                 <Route path="/my-leave" element={<MyLeaveRequests currentUser={currentUser} />} />
-                <Route path="/store" element={[UserRole.ADMIN, UserRole.ADMIN_STORE].includes(navRole) ? <StoreManager currentUser={currentUser} /> : <Navigate to="/" />} />
+                <Route path="/store" element={<Navigate to="/inventory?tab=replenishments" replace />} />
                 <Route path="/my-van-stock" element={[UserRole.TECHNICIAN, UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR].includes(navRole) ? <MyVanStock currentUser={currentUser} /> : <Navigate to="/" />} />
                 {/* Legacy redirects */}
                 <Route path="/service-records" element={<Navigate to="/jobs?tab=history" replace />} />

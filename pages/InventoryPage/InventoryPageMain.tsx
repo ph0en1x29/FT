@@ -1,4 +1,4 @@
-import { Package,Truck } from 'lucide-react';
+import { Package,RotateCcw,Truck } from 'lucide-react';
 import React,{ useEffect,useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../contexts/DevModeContext';
@@ -10,6 +10,7 @@ import InventoryStats from './components/InventoryStats';
 import PartsHeader from './components/PartsHeader';
 import PartsTable from './components/PartsTable';
 import TabNavigation,{ Tab,TabType } from './components/TabNavigation';
+import ReplenishmentsTab from './components/ReplenishmentsTab';
 import { useInventoryData } from './hooks/useInventoryData';
 
 interface InventoryPageProps {
@@ -66,7 +67,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   // Sync tab with URL
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as TabType;
-    if (tabFromUrl && ['parts', 'vanstock'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['parts', 'vanstock', 'replenishments'].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
@@ -87,6 +88,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   const tabs: Tab[] = [
     { id: 'parts', label: 'Parts Catalog', icon: Package, show: true },
     { id: 'vanstock', label: 'Van Stock', icon: Truck, show: canViewVanStock },
+    { id: 'replenishments', label: 'Replenishments', icon: RotateCcw, show: canViewVanStock },
   ];
 
   return (
@@ -154,6 +156,10 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
 
       {activeTab === 'vanstock' && canViewVanStock && (
         <VanStockPage currentUser={currentUser} hideHeader />
+      )}
+
+      {activeTab === 'replenishments' && canViewVanStock && (
+        <ReplenishmentsTab currentUser={currentUser} />
       )}
 
     </div>
