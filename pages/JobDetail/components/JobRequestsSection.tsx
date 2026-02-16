@@ -208,18 +208,8 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
                     </button>
                   )}
 
-                  {/* Out of Stock button - Store admin marks part unavailable */}
-                  {request.status === 'pending' && request.request_type === 'spare_part' && (roleFlags.isAdmin || roleFlags.isAdminStore) && onMarkOutOfStock && (
-                    <button
-                      onClick={() => {
-                        const notes = prompt('Supplier order notes (optional):');
-                        onMarkOutOfStock(request.request_id, request.admin_response_part_id || '', notes || undefined);
-                      }}
-                      className="text-orange-600 hover:underline font-medium flex items-center gap-1 text-xs"
-                    >
-                      <AlertTriangle className="w-3 h-3" /> Out of Stock
-                    </button>
-                  )}
+                  {/* Out of Stock: only available after admin has selected a part (via Approve modal) */}
+                  {/* Removed broken inline OOS button — was passing empty partId on pending requests */}
 
                   {/* Mark Received - Store admin marks ordered part as arrived */}
                   {request.status === 'part_ordered' && (roleFlags.isAdmin || roleFlags.isAdminStore) && onMarkPartReceived && (

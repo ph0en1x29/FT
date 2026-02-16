@@ -23,6 +23,12 @@ All notable changes to the FieldPro Field Service Management System.
 - **Tab switch resets** — switching tabs collapses all cards and clears selections
 - Files: `PendingConfirmations.tsx`, `JobCard.tsx`, `usePendingConfirmations.ts`
 
+### "Failed to mark out of stock" Bug Fix
+- **Fixed:** Inline "Out of Stock" button on pending requests passed empty string as partId (no part selected yet → invalid UUID → update fails)
+- **Removed** the broken inline OOS shortcut from `JobRequestsSection.tsx`
+- **OOS flow still works** via the Approve Request modal where admin selects a part first, then can mark OOS
+- File: `pages/JobDetail/components/JobRequestsSection.tsx`
+
 ### Part Request Auto-Refresh Fix
 - **Fixed:** Technician submits a part request → job doesn't refresh, request invisible until manual reload
 - **Fixed:** Same issue when editing an existing request
