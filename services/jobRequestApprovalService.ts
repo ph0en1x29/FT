@@ -59,31 +59,75 @@ export const approveSparePartRequest = async (
       return false;
     }
 
-    // Approval = intent to provide. Stock reserved but parts NOT added to job yet.
-    // Parts get added at issuance (physical handover) in issuePartToTechnician.
+    // Approve = complete action: add part to job + auto-confirm + mark as issued.
+    // No separate "issue" step needed.
+    const now = new Date().toISOString();
+
     const { error: updateError } = await supabase
       .from('job_requests')
       .update({
-        status: 'approved',
+        status: 'issued',
         admin_response_part_id: partId,
         admin_response_quantity: quantity,
         admin_response_notes: notes || null,
         responded_by: adminUserId,
-        responded_at: new Date().toISOString(),
+        responded_at: now,
+        issued_by: adminUserId,
+        issued_at: now,
       })
       .eq('request_id', requestId);
 
     if (updateError) {
-      // Rollback stock reservation
       await supabase.rpc('rollback_part_stock', { p_part_id: partId, p_quantity: quantity });
       return false;
+    }
+
+    // Add part to job
+    const { error: insertError } = await supabase
+      .from('job_parts')
+      .insert({
+        job_id: request.job_id,
+        part_id: partId,
+        part_name: part.part_name,
+        quantity,
+        sell_price_at_time: part.sell_price,
+      });
+
+    if (insertError) {
+      // Rollback
+      await supabase.rpc('rollback_part_stock', { p_part_id: partId, p_quantity: quantity });
+      await supabase.from('job_requests').update({ status: 'pending', responded_by: null, responded_at: null, issued_by: null, issued_at: null }).eq('request_id', requestId);
+      return false;
+    }
+
+    // Auto-confirm parts — admin approving IS the verification
+    const confirmUpdates: Record<string, string> = {
+      parts_confirmed_at: now,
+      parts_confirmed_by_id: adminUserId,
+      parts_confirmed_by_name: adminUserName || '',
+    };
+    if (adminRole === 'admin') {
+      confirmUpdates.job_confirmed_at = now;
+      confirmUpdates.job_confirmed_by_id = adminUserId;
+      confirmUpdates.job_confirmed_by_name = adminUserName || '';
+    }
+    await supabase.from('jobs').update(confirmUpdates).eq('job_id', request.job_id);
+
+    // If job was on Pending Parts, move back to In Progress
+    const { data: job } = await supabase
+      .from('jobs')
+      .select('status')
+      .eq('job_id', request.job_id)
+      .single();
+    if (job?.status === 'Pending Parts') {
+      await supabase.from('jobs').update({ status: 'In Progress' }).eq('job_id', request.job_id);
     }
 
     await notifyRequestApproved(
       request.requested_by,
       'spare_part',
       request.job_id,
-      notes || `${quantity}x ${part.part_name} added to your job`
+      notes || `${quantity}x ${part.part_name} approved and added to your job`
     );
 
     return true;

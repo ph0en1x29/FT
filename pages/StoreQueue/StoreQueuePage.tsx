@@ -10,7 +10,6 @@ import {
   ExternalLink,
   Filter,
   Package,
-  PackageCheck,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -26,7 +25,6 @@ import { SkeletonJobList } from '../../components/Skeleton';
 import {
   approveSparePartRequest,
   rejectRequest,
-  issuePartToTechnician,
 } from '../../services/jobRequestService';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
@@ -35,8 +33,8 @@ import { Job, JobStatus, Part, User, UserRole } from '../../types';
 
 // ─── Types ───────────────────────────────────────────────────────
 
-type QueueItemType = 'part_request' | 'ready_to_issue' | 'confirm_parts' | 'confirm_job';
-type FilterType = 'all' | 'part_request' | 'ready_to_issue' | 'confirm_parts' | 'confirm_job';
+type QueueItemType = 'part_request' | 'confirm_parts' | 'confirm_job';
+type FilterType = 'all' | 'part_request' | 'confirm_parts' | 'confirm_job';
 
 interface QueueItem {
   id: string; // unique key
@@ -77,9 +75,8 @@ function getPriority(type: QueueItemType, createdAt: string): number {
   const ageHours = (Date.now() - new Date(createdAt).getTime()) / 3600000;
   const basePriority: Record<QueueItemType, number> = {
     part_request: 0,
-    ready_to_issue: 100,
-    confirm_parts: 200,
-    confirm_job: 300,
+    confirm_parts: 100,
+    confirm_job: 200,
   };
   // Within same type, older items have lower priority number (higher urgency)
   return basePriority[type] - Math.min(ageHours, 99);
@@ -97,7 +94,6 @@ function formatTimeAgo(iso: string): string {
 function getTypeLabel(type: QueueItemType): string {
   switch (type) {
     case 'part_request': return 'Part Request';
-    case 'ready_to_issue': return 'Ready to Issue';
     case 'confirm_parts': return 'Verify Parts';
     case 'confirm_job': return 'Confirm Job';
   }
@@ -106,7 +102,6 @@ function getTypeLabel(type: QueueItemType): string {
 function getTypeColor(type: QueueItemType): string {
   switch (type) {
     case 'part_request': return 'bg-amber-100 text-amber-700 border-amber-200';
-    case 'ready_to_issue': return 'bg-blue-100 text-blue-700 border-blue-200';
     case 'confirm_parts': return 'bg-purple-100 text-purple-700 border-purple-200';
     case 'confirm_job': return 'bg-green-100 text-green-700 border-green-200';
   }
@@ -115,7 +110,6 @@ function getTypeColor(type: QueueItemType): string {
 function getTypeIcon(type: QueueItemType) {
   switch (type) {
     case 'part_request': return Package;
-    case 'ready_to_issue': return PackageCheck;
     case 'confirm_parts': return ShieldCheck;
     case 'confirm_job': return Wrench;
   }
@@ -184,7 +178,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
               forklift:forklifts!forklift_id(serial_number))
           `)
           .eq('request_type', 'spare_part')
-          .in('status', ['pending', 'approved'])
+          .eq('status', 'pending')
           .order('created_at', { ascending: true }),
         MockDb.getJobs(currentUser),
       ]);
@@ -201,12 +195,10 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
         const customer = job?.customer as Record<string, unknown> | null;
         const forklift = job?.forklift as Record<string, unknown> | null;
 
-        const itemType: QueueItemType = r.status === 'pending' ? 'part_request' : 'ready_to_issue';
-
         items.push({
           id: `req-${r.request_id}`,
-          type: itemType,
-          priority: getPriority(itemType, r.created_at as string),
+          type: 'part_request',
+          priority: getPriority('part_request', r.created_at as string),
           createdAt: r.created_at as string,
           requestId: r.request_id as string,
           requestDescription: r.description as string,
@@ -223,14 +215,12 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
           forkliftSerial: (forklift?.serial_number as string) || '',
         });
 
-        // Auto-match for pending requests
-        if (r.status === 'pending') {
-          const match = findBestPartMatch(r.description as string, parts);
-          autoMatched[r.request_id as string] = {
-            partId: match?.part_id || '',
-            quantity: '1',
-          };
-        }
+        // Auto-match requests to parts
+        const match = findBestPartMatch(r.description as string, parts);
+        autoMatched[r.request_id as string] = {
+          partId: match?.part_id || '',
+          quantity: '1',
+        };
       }
 
       setInlineState(prev => ({ ...prev, ...autoMatched }));
@@ -320,7 +310,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
   // ─── Counts per type ──────────────────────────────────────────
 
   const counts = useMemo(() => {
-    const c = { part_request: 0, ready_to_issue: 0, confirm_parts: 0, confirm_job: 0, all: 0 };
+    const c = { part_request: 0, confirm_parts: 0, confirm_job: 0, all: 0 };
     for (const item of queue) {
       c[item.type]++;
       c.all++;
@@ -348,19 +338,6 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
       );
       if (ok) { showToast.success('Request approved'); loadQueue(); }
       else showToast.error('Approval failed', 'Check stock availability');
-    } finally { clearProcessing(item.id); }
-  };
-
-  const handleIssue = async (item: QueueItem) => {
-    if (!item.requestId) return;
-    markProcessing(item.id);
-    try {
-      const ok = await issuePartToTechnician(
-        item.requestId, currentUser.user_id,
-        currentUser.full_name || currentUser.name || '', currentUser.role
-      );
-      if (ok) { showToast.success('Part issued to technician'); loadQueue(); }
-      else showToast.error('Issue failed');
     } finally { clearProcessing(item.id); }
   };
 
@@ -452,9 +429,8 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
   const filters: { id: FilterType; label: string; count: number }[] = [
     { id: 'all', label: 'All', count: counts.all },
     { id: 'part_request', label: 'Requests', count: counts.part_request },
-    { id: 'ready_to_issue', label: 'Issue', count: counts.ready_to_issue },
-    { id: 'confirm_parts', label: 'Parts', count: counts.confirm_parts },
-    { id: 'confirm_job', label: 'Jobs', count: counts.confirm_job },
+    { id: 'confirm_parts', label: 'Verify Parts', count: counts.confirm_parts },
+    { id: 'confirm_job', label: 'Confirm Jobs', count: counts.confirm_job },
   ];
 
   // ─── Render ───────────────────────────────────────────────────
@@ -529,8 +505,6 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
             const isProc = processing.has(item.id);
             const state = item.requestId ? inlineState[item.requestId] : undefined;
             const matchedPart = state ? parts.find(p => p.part_id === state.partId) : undefined;
-            const approvedPart = item.adminResponsePartId ? parts.find(p => p.part_id === item.adminResponsePartId) : undefined;
-
             return (
               <div key={item.id} className="card-theme rounded-xl p-4">
                 {/* Header row */}
@@ -615,29 +589,6 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                         Stock: {matchedPart.stock_quantity}
                       </span>
                     )}
-                  </div>
-                )}
-
-                {/* ── Ready to Issue: issue button ── */}
-                {item.type === 'ready_to_issue' && (
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border-subtle)]">
-                    <div className="flex items-center gap-2 text-sm">
-                      <PackageCheck className="w-4 h-4 text-blue-500" />
-                      <span className="text-[var(--text)]">
-                        {item.adminResponseQuantity}× {approvedPart?.part_name || 'Part'}
-                      </span>
-                      {approvedPart && (
-                        <span className="text-xs text-[var(--text-muted)]">RM{approvedPart.sell_price} ea</span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => handleIssue(item)}
-                      disabled={isProc}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
-                    >
-                      {isProc ? <Spinner /> : <PackageCheck className="w-3.5 h-3.5" />}
-                      Issue to Tech
-                    </button>
                   </div>
                 )}
 
