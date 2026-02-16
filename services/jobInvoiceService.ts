@@ -53,7 +53,11 @@ export const addPartToJob = async (
     .single();
 
   if (partError) throw new Error(partError.message);
-  if (part.stock_quantity < quantity) throw new Error('Insufficient stock');
+  // Admin can add parts regardless of stock (pre-allocation, ordering, etc.)
+  // Technicians are blocked if insufficient stock
+  if (actorRole !== UserRole.ADMIN && part.stock_quantity < quantity) {
+    throw new Error('Insufficient stock');
+  }
 
   const { error: insertError } = await supabase
     .from('job_parts')
@@ -68,9 +72,10 @@ export const addPartToJob = async (
   if (insertError) throw new Error(insertError.message);
 
   if (actorRole === UserRole.ADMIN || actorRole === UserRole.TECHNICIAN) {
+    const newStock = Math.max(0, part.stock_quantity - quantity);
     const { error: stockError } = await supabase
       .from('parts')
-      .update({ stock_quantity: part.stock_quantity - quantity })
+      .update({ stock_quantity: newStock })
       .eq('part_id', partId);
     if (stockError) {
       console.warn('Part added, but stock update failed (RLS?):', stockError.message);

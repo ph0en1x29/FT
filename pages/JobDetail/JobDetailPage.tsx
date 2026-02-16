@@ -74,10 +74,14 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const roleFlags = getRoleFlags(currentUserRole, state.isCurrentUserHelper, job, statusFlags);
 
   // Options for comboboxes
-  const partOptions: ComboboxOption[] = parts.map(p => ({
-    id: p.part_id, label: p.part_name,
-    subLabel: roleFlags.canViewPricing ? `RM${p.sell_price} | Stock: ${p.stock_quantity} | ${p.category}` : `Stock: ${p.stock_quantity} | ${p.category}`
-  }));
+  const partOptions: ComboboxOption[] = parts.map(p => {
+    const stock = p.stock_quantity ?? 0;
+    const stockLabel = stock === 0 ? '⛔ OOS' : stock <= 5 ? `⚠️ ${stock}` : `${stock}`;
+    return {
+      id: p.part_id, label: p.part_name,
+      subLabel: roleFlags.canViewPricing ? `RM${p.sell_price} | Stock: ${stockLabel} | ${p.category}` : `Stock: ${stockLabel} | ${p.category}`
+    };
+  });
   const techOptions: ComboboxOption[] = technicians.map(t => ({ id: t.user_id, label: t.name, subLabel: t.email }));
 
   if (loading) return (

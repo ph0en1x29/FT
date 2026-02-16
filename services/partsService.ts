@@ -18,15 +18,15 @@ export const getParts = async (): Promise<Part[]> => {
   return data as Part[];
 };
 
-export const getPartsForList = async (): Promise<Pick<Part, 'part_id' | 'part_name' | 'part_code' | 'category' | 'sell_price'>[]> => {
+export const getPartsForList = async (): Promise<Pick<Part, 'part_id' | 'part_name' | 'part_code' | 'category' | 'sell_price' | 'stock_quantity'>[]> => {
   const { data, error } = await supabase
     .from('parts')
-    .select('part_id, part_name, part_code, category, sell_price')
+    .select('part_id, part_name, part_code, category, sell_price, stock_quantity')
     .order('category')
     .order('part_name');
 
   if (error) throw new Error(error.message);
-  return data as Pick<Part, 'part_id' | 'part_name' | 'part_code' | 'category' | 'sell_price'>[];
+  return data as Pick<Part, 'part_id' | 'part_name' | 'part_code' | 'category' | 'sell_price' | 'stock_quantity'>[];
 };
 
 export const createPart = async (partData: Partial<Part>): Promise<Part> => {
