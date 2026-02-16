@@ -6,13 +6,22 @@ All notable changes to the FieldPro Field Service Management System.
 
 ## [2026-02-16] - Van History, Decimal Quantities, Bug Fixes
 
-### Approvals Page UX Overhaul
+### Approvals Tab (StoreQueue) — Grouped Accordion
+- **Grouped by job** — requests for the same job now collapse into one accordion card
+- **Collapsed by default** — header shows: job title, customer, technician, item count badge, time since oldest request
+- **Expand to see details** — click card to reveal individual part requests with inline approve/reject
+- **"Approve All" per job** — approves all part requests for a job in one click (only shows when all parts selected)
+- **Sorted by latest** — groups sorted by most recent item, newest first
+- **Batch-optimized** — Approve All skips per-item reload/toast, single summary toast + reload at end
+- File: `StoreQueue/StoreQueuePage.tsx`
+
+### Pending Confirmations Page (standalone) — Collapsed Cards
 - **Collapsed cards by default** — job cards now show compact header only (title, customer, tech, time pending, parts count)
 - **Expand/collapse accordion** — click card or chevron to see full details (parts list, SRN, completion date, confirmation status)
 - **Sort by latest** — most recently completed jobs appear first (both Parts and Jobs tabs)
 - **Always-visible actions** — Confirm/Reject buttons visible on collapsed view, no need to expand
 - **Tab switch resets** — switching tabs collapses all cards and clears selections
-- Files: `PendingConfirmations.tsx`, `JobCard.tsx`, `usePendingConfirmations.ts`, `types.ts`
+- Files: `PendingConfirmations.tsx`, `JobCard.tsx`, `usePendingConfirmations.ts`
 
 ### Part Request Auto-Refresh Fix
 - **Fixed:** Technician submits a part request → job doesn't refresh, request invisible until manual reload

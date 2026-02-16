@@ -6,6 +6,8 @@
 import {
   Check,
   CheckCircle,
+  ChevronDown,
+  ChevronUp,
   Clock,
   ExternalLink,
   Filter,
@@ -61,6 +63,17 @@ interface QueueItem {
   partsTotal?: number;
   partsConfirmedAt?: string;
   jobConfirmedAt?: string;
+}
+
+interface JobGroup {
+  jobId: string;
+  jobTitle: string;
+  customerName: string;
+  technicianName: string;
+  items: QueueItem[];
+  newestCreatedAt: string;
+  oldestCreatedAt: string;
+  canShowApproveAll: boolean;
 }
 
 interface StoreQueuePageProps {
@@ -140,6 +153,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
   const [processing, setProcessing] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
 
   // Inline approve state for part requests
   const [inlineState, setInlineState] = useState<Record<string, { partId: string; quantity: string }>>({});
@@ -280,6 +294,50 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
     return items;
   }, [queue, filter, searchQuery]);
 
+  const groupedQueue = useMemo(() => {
+    const grouped = new Map<string, Omit<JobGroup, 'canShowApproveAll'>>();
+
+    for (const item of filteredQueue) {
+      const existing = grouped.get(item.jobId);
+      if (existing) {
+        existing.items.push(item);
+        if (new Date(item.createdAt).getTime() > new Date(existing.newestCreatedAt).getTime()) {
+          existing.newestCreatedAt = item.createdAt;
+        }
+        if (new Date(item.createdAt).getTime() < new Date(existing.oldestCreatedAt).getTime()) {
+          existing.oldestCreatedAt = item.createdAt;
+        }
+        if (!existing.jobTitle && item.jobTitle) existing.jobTitle = item.jobTitle;
+        if (!existing.customerName && item.customerName) existing.customerName = item.customerName;
+        if (!existing.technicianName && item.technicianName) existing.technicianName = item.technicianName;
+      } else {
+        grouped.set(item.jobId, {
+          jobId: item.jobId,
+          jobTitle: item.jobTitle,
+          customerName: item.customerName,
+          technicianName: item.technicianName,
+          items: [item],
+          newestCreatedAt: item.createdAt,
+          oldestCreatedAt: item.createdAt,
+        });
+      }
+    }
+
+    return Array.from(grouped.values())
+      .map(group => {
+        const allPartRequests = group.items.every(item => item.type === 'part_request');
+        const allPartRequestsSelected = allPartRequests
+          && group.items.every(item => item.requestId && inlineState[item.requestId]?.partId);
+        const singleConfirmJob = group.items.length === 1 && group.items[0].type === 'confirm_job';
+
+        return {
+          ...group,
+          canShowApproveAll: allPartRequestsSelected || singleConfirmJob,
+        };
+      })
+      .sort((a, b) => new Date(b.newestCreatedAt).getTime() - new Date(a.newestCreatedAt).getTime());
+  }, [filteredQueue, inlineState]);
+
   // ─── Counts per type ──────────────────────────────────────────
 
   const counts = useMemo(() => {
@@ -296,12 +354,24 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
   const markProcessing = (id: string) => setProcessing(prev => new Set(prev).add(id));
   const clearProcessing = (id: string) => setProcessing(prev => { const n = new Set(prev); n.delete(id); return n; });
 
-  const handleApproveRequest = async (item: QueueItem) => {
-    if (!item.requestId) return;
+  const toggleJob = (jobId: string) => {
+    setExpandedJobs(prev => {
+      const next = new Set(prev);
+      if (next.has(jobId)) next.delete(jobId);
+      else next.add(jobId);
+      return next;
+    });
+  };
+
+  const handleApproveRequest = async (
+    item: QueueItem,
+    options?: { skipReload?: boolean; suppressSuccessToast?: boolean }
+  ): Promise<boolean> => {
+    if (!item.requestId) return false;
     const state = inlineState[item.requestId];
-    if (!state?.partId) { showToast.error('Select a part first'); return; }
+    if (!state?.partId) { showToast.error('Select a part first'); return false; }
     const qty = parseFloat(state.quantity) || 1;
-    if (qty <= 0) { showToast.error('Invalid quantity'); return; }
+    if (qty <= 0) { showToast.error('Invalid quantity'); return false; }
 
     markProcessing(item.id);
     try {
@@ -309,18 +379,29 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
         item.requestId, currentUser.user_id, state.partId, qty,
         undefined, currentUser.full_name || currentUser.name, currentUser.role
       );
-      if (ok) { showToast.success('Request approved'); loadQueue(); }
-      else showToast.error('Approval failed', 'Check stock availability');
+      if (ok) {
+        if (!options?.suppressSuccessToast) showToast.success('Request approved');
+        if (!options?.skipReload) await loadQueue();
+        return true;
+      }
+      showToast.error('Approval failed', 'Check stock availability');
+      return false;
+    } catch (e) {
+      showToast.error('Approval failed', (e as Error).message);
+      return false;
     } finally { clearProcessing(item.id); }
   };
 
-  const handleConfirmJob = async (item: QueueItem) => {
+  const handleConfirmJob = async (
+    item: QueueItem,
+    options?: { skipReload?: boolean; suppressSuccessToast?: boolean }
+  ): Promise<boolean> => {
     markProcessing(item.id);
     try {
       const lockCheck = await MockDb.checkJobLock(item.jobId, currentUser.user_id);
       if (lockCheck.isLocked) {
         showToast.error('Job Locked', `Being reviewed by ${lockCheck.lockedByName || 'another admin'}`);
-        return;
+        return false;
       }
       await MockDb.acquireJobLock(item.jobId, currentUser.user_id, currentUser.name);
       await MockDb.updateJobStatus(item.jobId, JobStatus.COMPLETED, currentUser.user_id, currentUser.name);
@@ -330,11 +411,40 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
         job_confirmed_by_name: currentUser.name,
       });
       await MockDb.releaseJobLock(item.jobId, currentUser.user_id);
-      showToast.success('Job confirmed & completed');
-      loadQueue();
+      if (!options?.suppressSuccessToast) showToast.success('Job confirmed & completed');
+      if (!options?.skipReload) await loadQueue();
+      return true;
     } catch (e) {
       showToast.error('Failed', (e as Error).message);
+      return false;
     } finally { clearProcessing(item.id); }
+  };
+
+  const handleApproveAllForJob = async (group: JobGroup) => {
+    if (!group.canShowApproveAll) return;
+
+    const allPartRequests = group.items.every(item => item.type === 'part_request');
+    if (allPartRequests) {
+      let approvedCount = 0;
+
+      for (const item of group.items) {
+        const approved = await handleApproveRequest(item, { skipReload: true, suppressSuccessToast: true });
+        if (approved) approvedCount++;
+      }
+
+      if (approvedCount > 0) {
+        showToast.success(
+          'Requests approved',
+          `${approvedCount} of ${group.items.length} request${group.items.length === 1 ? '' : 's'} approved`
+        );
+        await loadQueue();
+      }
+      return;
+    }
+
+    if (group.items.length === 1 && group.items[0].type === 'confirm_job') {
+      await handleConfirmJob(group.items[0]);
+    }
   };
 
   const handleReject = async () => {
@@ -432,7 +542,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
       {/* Queue */}
       {loading ? (
         <SkeletonJobList count={4} />
-      ) : filteredQueue.length === 0 ? (
+      ) : groupedQueue.length === 0 ? (
         <div className="text-center py-16 text-[var(--text-muted)]">
           <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="font-medium text-lg">All clear!</p>
@@ -442,129 +552,194 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredQueue.map(item => {
-            const Icon = getTypeIcon(item.type);
-            const isProc = processing.has(item.id);
-            const state = item.requestId ? inlineState[item.requestId] : undefined;
-            const matchedPart = state ? parts.find(p => p.part_id === state.partId) : undefined;
+          {groupedQueue.map(group => {
+            const isExpanded = expandedJobs.has(group.jobId);
+            const isGroupProcessing = group.items.some(item => processing.has(item.id));
+
             return (
-              <div key={item.id} className="card-theme rounded-xl p-4">
-                {/* Header row */}
+              <div key={group.jobId} className="card-theme rounded-xl p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getTypeColor(item.type).split(' ').slice(0, 1).join(' ')}`}>
-                      <Icon className={`w-4 h-4 ${getTypeColor(item.type).split(' ')[1]}`} />
+                  <button
+                    type="button"
+                    onClick={() => toggleJob(group.jobId)}
+                    className="flex items-start gap-3 flex-1 min-w-0 text-left"
+                  >
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-[var(--bg-subtle)] text-[var(--text-muted)]">
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      {/* Type badge + description */}
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${getTypeColor(item.type)}`}>
-                          {getTypeLabel(item.type)}
+                        <p className="font-semibold text-sm text-[var(--text)] truncate">{group.jobTitle || 'Unknown Job'}</p>
+                        <span className="px-2 py-0.5 text-xs font-medium rounded-full border border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-muted)]">
+                          {group.items.length} item{group.items.length === 1 ? '' : 's'}
                         </span>
-                        <span className="text-xs text-[var(--text-muted)]">{formatTimeAgo(item.createdAt)}</span>
+                        <span className="text-xs text-[var(--text-muted)]">{formatTimeAgo(group.oldestCreatedAt)}</span>
                       </div>
-                      {/* Main content */}
-                      <p className="font-medium text-sm text-[var(--text)] mt-1">
-                        {item.type === 'part_request' || item.type === 'ready_to_issue'
-                          ? item.requestDescription
-                          : item.jobTitle
-                        }
-                      </p>
-                      {/* Meta line */}
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-[var(--text-muted)] flex-wrap">
-                        {(item.type === 'part_request' || item.type === 'ready_to_issue') && (
-                          <>
-                            <span>{item.requestedByName}</span>
-                            <span>·</span>
-                          </>
-                        )}
-                        <span>{item.jobTitle}</span>
-                        {item.customerName && <><span>·</span><span>{item.customerName}</span></>}
-                        {item.technicianName && <><span>·</span><span>{item.technicianName}</span></>}
-                        {item.forkliftSerial && <><span>·</span><span>{item.forkliftSerial}</span></>}
+                      <div className="flex items-center gap-2 mt-1 text-xs text-[var(--text-muted)] flex-wrap">
+                        {group.customerName && <span>{group.customerName}</span>}
+                        {group.customerName && group.technicianName && <span>·</span>}
+                        {group.technicianName && <span>{group.technicianName}</span>}
                       </div>
                     </div>
-                  </div>
-                  <button
-                    onClick={() => navigate(`/jobs/${item.jobId}`)}
-                    className="p-1.5 hover:bg-[var(--bg-subtle)] rounded-lg transition flex-shrink-0"
-                    title="View job details"
-                  >
-                    <ExternalLink className="w-4 h-4 text-[var(--text-muted)]" />
                   </button>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {group.canShowApproveAll && (
+                      <button
+                        onClick={() => handleApproveAllForJob(group)}
+                        disabled={isGroupProcessing}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+                      >
+                        {isGroupProcessing ? <Spinner /> : <Check className="w-3.5 h-3.5" />}
+                        Approve All
+                      </button>
+                    )}
+                    <button
+                      onClick={() => navigate(`/jobs/${group.jobId}`)}
+                      className="p-1.5 hover:bg-[var(--bg-subtle)] rounded-lg transition"
+                      title="View job details"
+                    >
+                      <ExternalLink className="w-4 h-4 text-[var(--text-muted)]" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleJob(group.jobId)}
+                      className="p-1.5 hover:bg-[var(--bg-subtle)] rounded-lg transition"
+                      aria-label={isExpanded ? 'Collapse job items' : 'Expand job items'}
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-[var(--text-muted)]" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-[var(--text-muted)]" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
-                {/* ── Part Request: inline approve ── */}
-                {item.type === 'part_request' && item.requestId && (
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)]">
-                    <div className="flex-1">
-                      <Combobox
-                        options={partOptions}
-                        value={state?.partId || ''}
-                        onChange={(val) => updateInline(item.requestId!, { partId: val })}
-                        placeholder="Select part..."
-                      />
-                    </div>
-                    <input
-                      type="number" min="0.1" step="any"
-                      value={state?.quantity || '1'}
-                      onChange={e => updateInline(item.requestId!, { quantity: e.target.value })}
-                      className="w-16 px-2 py-1.5 text-sm border border-[var(--border)] rounded-lg text-center bg-[var(--surface)]"
-                    />
-                    <button
-                      onClick={() => handleApproveRequest(item)}
-                      disabled={isProc || !state?.partId}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
-                    >
-                      {isProc ? <Spinner /> : <Check className="w-3.5 h-3.5" />}
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => { setRejectingId(item.id); setRejectType('request'); setRejectReason(''); }}
-                      disabled={isProc}
-                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
-                    >
-                      <XCircle className="w-4 h-4" />
-                    </button>
-                    {matchedPart && (
-                      <span className="text-xs text-[var(--text-muted)] hidden sm:inline">
-                        Stock: {matchedPart.stock_quantity}
-                      </span>
-                    )}
-                  </div>
-                )}
+                {isExpanded && (
+                  <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] space-y-3">
+                    {group.items.map(item => {
+                      const Icon = getTypeIcon(item.type);
+                      const isProc = processing.has(item.id);
+                      const state = item.requestId ? inlineState[item.requestId] : undefined;
+                      const matchedPart = state ? parts.find(p => p.part_id === state.partId) : undefined;
+                      return (
+                        <div key={item.id} className="rounded-xl border border-[var(--border-subtle)] p-3 bg-[var(--surface)]">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getTypeColor(item.type).split(' ').slice(0, 1).join(' ')}`}>
+                                <Icon className={`w-4 h-4 ${getTypeColor(item.type).split(' ')[1]}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${getTypeColor(item.type)}`}>
+                                    {getTypeLabel(item.type)}
+                                  </span>
+                                  <span className="text-xs text-[var(--text-muted)]">{formatTimeAgo(item.createdAt)}</span>
+                                </div>
+                                <p className="font-medium text-sm text-[var(--text)] mt-1">
+                                  {item.type === 'part_request' || item.type === 'ready_to_issue'
+                                    ? item.requestDescription
+                                    : item.jobTitle
+                                  }
+                                </p>
+                                <div className="flex items-center gap-2 mt-0.5 text-xs text-[var(--text-muted)] flex-wrap">
+                                  {(item.type === 'part_request' || item.type === 'ready_to_issue') && (
+                                    <>
+                                      <span>{item.requestedByName}</span>
+                                      <span>·</span>
+                                    </>
+                                  )}
+                                  <span>{item.jobTitle}</span>
+                                  {item.customerName && <><span>·</span><span>{item.customerName}</span></>}
+                                  {item.technicianName && <><span>·</span><span>{item.technicianName}</span></>}
+                                  {item.forkliftSerial && <><span>·</span><span>{item.forkliftSerial}</span></>}
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => navigate(`/jobs/${item.jobId}`)}
+                              className="p-1.5 hover:bg-[var(--bg-subtle)] rounded-lg transition flex-shrink-0"
+                              title="View job details"
+                            >
+                              <ExternalLink className="w-4 h-4 text-[var(--text-muted)]" />
+                            </button>
+                          </div>
 
-                {/* ── Confirm Job: button ── */}
-                {item.type === 'confirm_job' && (
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border-subtle)]">
-                    <div className="flex items-center gap-3 text-sm">
-                      {item.completedAt && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          (Date.now() - new Date(item.completedAt).getTime()) > 86400000
-                            ? 'bg-red-100 text-red-600'
-                            : 'bg-[var(--bg-subtle)] text-[var(--text-muted)]'
-                        }`}>
-                          Completed {formatTimeAgo(item.completedAt)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleConfirmJob(item)}
-                        disabled={isProc}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition"
-                      >
-                        {isProc ? <Spinner /> : <CheckCircle className="w-3.5 h-3.5" />}
-                        Confirm Job
-                      </button>
-                      <button
-                        onClick={() => { setRejectingId(item.id); setRejectType('job'); setRejectReason(''); }}
-                        disabled={isProc}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    </div>
+                          {item.type === 'part_request' && item.requestId && (
+                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)]">
+                              <div className="flex-1">
+                                <Combobox
+                                  options={partOptions}
+                                  value={state?.partId || ''}
+                                  onChange={(val) => updateInline(item.requestId!, { partId: val })}
+                                  placeholder="Select part..."
+                                />
+                              </div>
+                              <input
+                                type="number" min="0.1" step="any"
+                                value={state?.quantity || '1'}
+                                onChange={e => updateInline(item.requestId!, { quantity: e.target.value })}
+                                className="w-16 px-2 py-1.5 text-sm border border-[var(--border)] rounded-lg text-center bg-[var(--surface)]"
+                              />
+                              <button
+                                onClick={() => handleApproveRequest(item)}
+                                disabled={isProc || !state?.partId}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+                              >
+                                {isProc ? <Spinner /> : <Check className="w-3.5 h-3.5" />}
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => { setRejectingId(item.id); setRejectType('request'); setRejectReason(''); }}
+                                disabled={isProc}
+                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                              {matchedPart && (
+                                <span className="text-xs text-[var(--text-muted)] hidden sm:inline">
+                                  Stock: {matchedPart.stock_quantity}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {item.type === 'confirm_job' && (
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border-subtle)]">
+                              <div className="flex items-center gap-3 text-sm">
+                                {item.completedAt && (
+                                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                    (Date.now() - new Date(item.completedAt).getTime()) > 86400000
+                                      ? 'bg-red-100 text-red-600'
+                                      : 'bg-[var(--bg-subtle)] text-[var(--text-muted)]'
+                                  }`}>
+                                    Completed {formatTimeAgo(item.completedAt)}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleConfirmJob(item)}
+                                  disabled={isProc}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition"
+                                >
+                                  {isProc ? <Spinner /> : <CheckCircle className="w-3.5 h-3.5" />}
+                                  Confirm Job
+                                </button>
+                                <button
+                                  onClick={() => { setRejectingId(item.id); setRejectType('job'); setRejectReason(''); }}
+                                  disabled={isProc}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
