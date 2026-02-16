@@ -65,7 +65,7 @@ export async function getVanUsageHistory(
       used_at,
       used_by_id,
       used_by_name,
-      van_stock_item:van_stock_items!inner(
+      van_stock_item:van_stock_items(
         part:parts(part_name, part_code, unit)
       ),
       job:jobs(title, customer:customers(name))

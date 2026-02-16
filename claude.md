@@ -1,5 +1,9 @@
 # Development Workflow
 
+**⚠️ READ `SHARED_CONTEXT.md` FIRST** — Multi-agent coordination rules.
+**⚠️ CHECK `WORK_LOG.md`** — See what other agents did recently.
+**⚠️ CHECK `git status`** — Before touching any files.
+
 1. **Read first** — Think through the problem, read relevant files before responding. Never speculate about unopened code.
 
 2. **Check in before major changes** — Present the plan, wait for approval.

@@ -1,5 +1,9 @@
 # AGENTS.md - FieldPro Agent Guidelines
 
+**⚠️ READ `SHARED_CONTEXT.md` FIRST** — Multi-agent coordination rules.
+**⚠️ CHECK `WORK_LOG.md`** — See what other agents did recently.
+**⚠️ CHECK `git status`** — Before touching any files.
+
 This file guides AI agents working on this codebase.
 
 ## Quick Commands
