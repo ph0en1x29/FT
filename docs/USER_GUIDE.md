@@ -5,7 +5,13 @@
 
 > 📢 **What's New in February 2026?**
 >
-> **🆕 Latest Update (2026-02-01):**
+> **🆕 Latest Update (2026-02-16):**
+> - **📦 Van History Tab** - Full parts deduction log with technician, job, and timestamps
+> - **🔢 Decimal Quantities** - Type exact amounts (e.g., 1.5L) for liquid/bulk parts
+> - **⛔ Stock Indicators** - Parts dropdown now shows OOS/low stock warnings with visual icons
+> - **🔓 Admin Override** - Admins can add out-of-stock parts (pre-allocation, ordering)
+>
+> **Previous (2026-02-01):**
 > - **✅ Check All Button** - Mark all 48 checklist items as OK with one click
 > - **↩️ Auto-X on Untick** - Click OK on checked item to mark as needs attention
 > - **👁️ Parts Visible to Technicians** - Technicians see parts immediately (no prices)

@@ -4,7 +4,14 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
-## [2026-02-16] - Van History Tab + Decimal Quantities (Customer Feedback)
+## [2026-02-16] - Van History, Decimal Quantities, Parts Bug Fix
+
+### Parts Inventory Bug Fix
+- **Fixed:** Parts dropdown in job detail showed "Stock: undefined" — `getPartsForList()` wasn't fetching `stock_quantity`
+- **Fixed:** Admin was blocked from adding out-of-stock parts — now only technicians are restricted
+- **Fixed:** Stock could go negative when adding parts — clamped to `Math.max(0, ...)`
+- **Added:** Visual stock indicators in parts dropdown: ⛔ OOS (zero), ⚠️ low stock (≤5), normal count otherwise
+- Files: `partsService.ts`, `jobInvoiceService.ts`, `JobDetailPage.tsx`
 
 ### Van History Tab
 - **History tab** in van detail modal — shows full parts deduction log with technician, job, quantity, and timestamp
