@@ -12,7 +12,6 @@ import {
   Package,
   RefreshCw,
   Search,
-  ShieldCheck,
   Wrench,
   X,
   XCircle,
@@ -33,8 +32,8 @@ import { Job, JobStatus, Part, User, UserRole } from '../../types';
 
 // ─── Types ───────────────────────────────────────────────────────
 
-type QueueItemType = 'part_request' | 'confirm_parts' | 'confirm_job';
-type FilterType = 'all' | 'part_request' | 'confirm_parts' | 'confirm_job';
+type QueueItemType = 'part_request' | 'confirm_job';
+type FilterType = 'all' | 'part_request' | 'confirm_job';
 
 interface QueueItem {
   id: string; // unique key
@@ -75,8 +74,7 @@ function getPriority(type: QueueItemType, createdAt: string): number {
   const ageHours = (Date.now() - new Date(createdAt).getTime()) / 3600000;
   const basePriority: Record<QueueItemType, number> = {
     part_request: 0,
-    confirm_parts: 100,
-    confirm_job: 200,
+    confirm_job: 100,
   };
   // Within same type, older items have lower priority number (higher urgency)
   return basePriority[type] - Math.min(ageHours, 99);
@@ -94,7 +92,6 @@ function formatTimeAgo(iso: string): string {
 function getTypeLabel(type: QueueItemType): string {
   switch (type) {
     case 'part_request': return 'Part Request';
-    case 'confirm_parts': return 'Verify Parts';
     case 'confirm_job': return 'Confirm Job';
   }
 }
@@ -102,7 +99,6 @@ function getTypeLabel(type: QueueItemType): string {
 function getTypeColor(type: QueueItemType): string {
   switch (type) {
     case 'part_request': return 'bg-amber-100 text-amber-700 border-amber-200';
-    case 'confirm_parts': return 'bg-purple-100 text-purple-700 border-purple-200';
     case 'confirm_job': return 'bg-green-100 text-green-700 border-green-200';
   }
 }
@@ -110,7 +106,6 @@ function getTypeColor(type: QueueItemType): string {
 function getTypeIcon(type: QueueItemType) {
   switch (type) {
     case 'part_request': return Package;
-    case 'confirm_parts': return ShieldCheck;
     case 'confirm_job': return Wrench;
   }
 }
@@ -231,29 +226,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
       );
 
       for (const job of awaitingJobs) {
-        const needsPartsConfirm = job.parts_used.length > 0 && !job.parts_confirmed_at && !job.parts_confirmation_skipped;
-        const needsJobConfirm = (job.parts_confirmed_at || job.parts_confirmation_skipped || job.parts_used.length === 0) && !job.job_confirmed_at;
-
-        if (needsPartsConfirm) {
-          const partsTotal = job.parts_used.reduce((sum: number, p: { sell_price_at_time: number; quantity: number }) =>
-            sum + p.sell_price_at_time * p.quantity, 0
-          );
-          items.push({
-            id: `parts-${job.job_id}`,
-            type: 'confirm_parts',
-            priority: getPriority('confirm_parts', job.completed_at || job.created_at),
-            createdAt: job.completed_at || job.created_at,
-            jobId: job.job_id,
-            jobTitle: job.title,
-            jobStatus: job.status,
-            customerName: job.customer?.name || '',
-            technicianName: job.assigned_technician_name || '',
-            forkliftSerial: job.forklift?.serial_number || '',
-            completedAt: job.completed_at,
-            partsCount: job.parts_used.length,
-            partsTotal,
-          });
-        }
+        const needsJobConfirm = !job.job_confirmed_at;
 
         if (needsJobConfirm) {
           items.push({
@@ -310,7 +283,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
   // ─── Counts per type ──────────────────────────────────────────
 
   const counts = useMemo(() => {
-    const c = { part_request: 0, confirm_parts: 0, confirm_job: 0, all: 0 };
+    const c = { part_request: 0, confirm_job: 0, all: 0 };
     for (const item of queue) {
       c[item.type]++;
       c.all++;
@@ -338,36 +311,6 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
       );
       if (ok) { showToast.success('Request approved'); loadQueue(); }
       else showToast.error('Approval failed', 'Check stock availability');
-    } finally { clearProcessing(item.id); }
-  };
-
-  const handleConfirmParts = async (item: QueueItem) => {
-    markProcessing(item.id);
-    try {
-      const lockCheck = await MockDb.checkJobLock(item.jobId, currentUser.user_id);
-      if (lockCheck.isLocked) {
-        showToast.error('Job Locked', `Being reviewed by ${lockCheck.lockedByName || 'another admin'}`);
-        return;
-      }
-      await MockDb.acquireJobLock(item.jobId, currentUser.user_id, currentUser.name);
-
-      const now = new Date().toISOString();
-      const updates: Record<string, unknown> = {
-        parts_confirmed_at: now,
-        parts_confirmed_by_id: currentUser.user_id,
-        parts_confirmed_by_name: currentUser.name,
-      };
-      if (currentUser.role === UserRole.ADMIN) {
-        updates.job_confirmed_at = now;
-        updates.job_confirmed_by_id = currentUser.user_id;
-        updates.job_confirmed_by_name = currentUser.name;
-      }
-      await MockDb.updateJob(item.jobId, updates);
-      await MockDb.releaseJobLock(item.jobId, currentUser.user_id);
-      showToast.success('Parts verified', currentUser.role === UserRole.ADMIN ? 'Job also auto-confirmed' : undefined);
-      loadQueue();
-    } catch (e) {
-      showToast.error('Failed', (e as Error).message);
     } finally { clearProcessing(item.id); }
   };
 
@@ -429,7 +372,6 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
   const filters: { id: FilterType; label: string; count: number }[] = [
     { id: 'all', label: 'All', count: counts.all },
     { id: 'part_request', label: 'Requests', count: counts.part_request },
-    { id: 'confirm_parts', label: 'Verify Parts', count: counts.confirm_parts },
     { id: 'confirm_job', label: 'Confirm Jobs', count: counts.confirm_job },
   ];
 
@@ -592,55 +534,10 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                   </div>
                 )}
 
-                {/* ── Confirm Parts: summary + button ── */}
-                {item.type === 'confirm_parts' && (
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border-subtle)]">
-                    <div className="flex items-center gap-3 text-sm">
-                      <span className="text-[var(--text)]">
-                        {item.partsCount} part{item.partsCount !== 1 ? 's' : ''} used
-                      </span>
-                      <span className="text-[var(--text-muted)]">
-                        RM{(item.partsTotal || 0).toFixed(2)} total
-                      </span>
-                      {item.completedAt && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          (Date.now() - new Date(item.completedAt).getTime()) > 86400000
-                            ? 'bg-red-100 text-red-600'
-                            : 'bg-[var(--bg-subtle)] text-[var(--text-muted)]'
-                        }`}>
-                          Completed {formatTimeAgo(item.completedAt)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleConfirmParts(item)}
-                        disabled={isProc}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition"
-                      >
-                        {isProc ? <Spinner /> : <ShieldCheck className="w-3.5 h-3.5" />}
-                        Verify Parts
-                      </button>
-                      <button
-                        onClick={() => { setRejectingId(item.id); setRejectType('parts'); setRejectReason(''); }}
-                        disabled={isProc}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
                 {/* ── Confirm Job: button ── */}
                 {item.type === 'confirm_job' && (
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border-subtle)]">
                     <div className="flex items-center gap-3 text-sm">
-                      {item.partsConfirmedAt && (
-                        <span className="text-xs text-green-600 flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Parts verified
-                        </span>
-                      )}
                       {item.completedAt && (
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           (Date.now() - new Date(item.completedAt).getTime()) > 86400000
