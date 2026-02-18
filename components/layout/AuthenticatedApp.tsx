@@ -105,6 +105,11 @@ const sidebarStyles = `
     backdrop-filter: blur(20px);
     border-top: 1px solid rgba(0, 0, 0, 0.1);
   }
+  [data-theme="dark"] .bottom-nav-glass,
+  .dark .bottom-nav-glass {
+    background: rgba(15, 23, 42, 0.95);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
   .mobile-drawer-glass {
     background: #1e293b;
   }
