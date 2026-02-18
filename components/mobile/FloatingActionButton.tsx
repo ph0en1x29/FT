@@ -100,9 +100,9 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser
                 : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200'
             }`;
 
-            const labelClasses = `rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-xl shadow-lg ${
+            const labelClasses = `rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg ${
               active
-                ? 'bg-[rgba(0,102,204,0.15)] text-[var(--accent)] border border-[rgba(0,102,204,0.3)]'
+                ? 'bg-[var(--accent)] text-white border border-[var(--accent)]'
                 : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200'
             }`;
 
