@@ -11,8 +11,9 @@ import { Link,Navigate,Route,HashRouter as Router,Routes,useLocation } from 'rea
 import { Toaster } from 'sonner';
 import { DevModeProvider,useDevModeContext } from '../../contexts/DevModeContext';
 import { FeatureFlagProvider } from '../../contexts/FeatureFlagContext';
-import { NotificationProvider } from '../../contexts/NotificationContext';
+import { NotificationProvider,useNotifications } from '../../contexts/NotificationContext';
 import { QueryProvider } from '../../contexts/QueryProvider';
+import FloatingActionButton from '../mobile/FloatingActionButton';
 import { User,UserRole } from '../../types';
 import DevBanner from '../dev/DevBanner';
 import DevModeSelector from '../dev/DevModeSelector';
@@ -234,28 +235,68 @@ const TopHeader = ({ currentUser, isDark, onToggleTheme, devModeActive }: { curr
   </div>
 );
 
-const MobileNav = ({ currentUser: _currentUser, onOpenDrawer, navRole: _navRole }: { currentUser: User; onOpenDrawer: () => void; navRole: UserRole }) => {
+const MobileNav = ({ currentUser: _currentUser, onOpenDrawer, navRole }: { currentUser: User; onOpenDrawer: () => void; navRole: UserRole }) => {
   const location = useLocation();
-  const { hasPermission } = useDevModeContext();
-  const isActive = (path: string) => path === '/' ? location.pathname === '/' : location.pathname === path || location.pathname.startsWith(path + '/');
+  const { unreadCount } = useNotifications();
 
-  const canViewDashboard = hasPermission('canViewDashboard');
-  const canViewForklifts = hasPermission('canViewForklifts');
-  const canViewCustomers = hasPermission('canViewCustomers');
+  const navItems: Array<{ to: string; icon: LucideIcon; label: string; showBadge?: boolean }> = (() => {
+    switch (navRole) {
+      case UserRole.TECHNICIAN:
+        return [
+          { to: '/', icon: LayoutDashboard, label: 'Home' },
+          { to: '/jobs', icon: List, label: 'Jobs' },
+          { to: '/my-van-stock', icon: Package, label: 'Van Stock', showBadge: true },
+        ];
+      case UserRole.SUPERVISOR:
+        return [
+          { to: '/', icon: LayoutDashboard, label: 'Home' },
+          { to: '/jobs', icon: List, label: 'Jobs' },
+          { to: '/jobs?tab=approvals', icon: PackageCheck, label: 'Approvals', showBadge: true },
+        ];
+      case UserRole.ACCOUNTANT:
+        return [
+          { to: '/', icon: LayoutDashboard, label: 'Home' },
+          { to: '/jobs', icon: List, label: 'Jobs' },
+          { to: '/invoices', icon: FileText, label: 'Billing', showBadge: true },
+        ];
+      default:
+        return [
+          { to: '/', icon: LayoutDashboard, label: 'Home' },
+          { to: '/jobs', icon: List, label: 'Jobs' },
+          { to: '/inventory', icon: Package, label: 'Inventory', showBadge: true },
+        ];
+    }
+  })();
 
-  const NavIcon = ({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) => (
-    <Link to={to} className={`flex flex-col items-center gap-0.5 p-2 rounded-xl ${isActive(to) ? 'text-blue-600' : 'text-slate-400'}`}>
+  const isActive = (to: string) => {
+    const [path, query] = to.split('?');
+    const pathActive = path === '/' ? location.pathname === '/' : location.pathname === path || location.pathname.startsWith(path + '/');
+    if (!query) return pathActive;
+
+    const expected = new URLSearchParams(query);
+    const current = new URLSearchParams(location.search);
+    return pathActive && Array.from(expected.entries()).every(([key, value]) => current.get(key) === value);
+  };
+
+  const Badge = ({ count }: { count: number }) => count > 0 ? (
+    <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+      {count > 9 ? '9+' : count}
+    </span>
+  ) : null;
+
+  const NavIcon = ({ to, icon: Icon, label, badgeCount }: { to: string; icon: LucideIcon; label: string; badgeCount?: number }) => (
+    <Link to={to} className={`relative flex flex-col items-center gap-0.5 p-2 rounded-xl ${isActive(to) ? 'text-blue-600' : 'text-slate-400'}`}>
       <Icon className="w-6 h-6" />
+      <Badge count={badgeCount ?? 0} />
       <span className="text-[10px] font-medium">{label}</span>
     </Link>
   );
 
   return (
     <nav className="bottom-nav-glass md:hidden fixed bottom-0 left-0 right-0 z-50 px-2 py-2 flex justify-around items-center">
-      {canViewDashboard && <NavIcon to="/" icon={LayoutDashboard} label="Home" />}
-      <NavIcon to="/jobs" icon={List} label="Jobs" />
-      {canViewForklifts && <NavIcon to="/forklifts" icon={Truck} label="Assets" />}
-      {canViewCustomers && <NavIcon to="/customers" icon={Building2} label="Clients" />}
+      {navItems.map((item) => (
+        <span key={item.label}><NavIcon to={item.to} icon={item.icon} label={item.label} badgeCount={item.showBadge ? unreadCount : 0} /></span>
+      ))}
       <button onClick={onOpenDrawer} className="flex flex-col items-center gap-0.5 p-2 rounded-xl text-slate-400">
         <Menu className="w-6 h-6" />
         <span className="text-[10px] font-medium">More</span>
@@ -439,6 +480,7 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
               </Routes>
             </Suspense>
           </main>
+          <FloatingActionButton currentUser={currentUser} currentPath={window.location.hash} />
           <MobileNav currentUser={currentUser} onOpenDrawer={() => setMobileDrawerOpen(true)} navRole={navRole} />
           <MobileDrawer currentUser={currentUser} isOpen={mobileDrawerOpen} onClose={() => setMobileDrawerOpen(false)} onLogout={onLogout} navRole={navRole} />
           {devMode.isDevModeActive && devMode.impersonatedRole && (

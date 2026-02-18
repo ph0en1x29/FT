@@ -1,4 +1,4 @@
-import { AlertTriangle,ArrowLeft } from 'lucide-react';
+import { AlertTriangle,ArrowLeft,Camera,Wrench } from 'lucide-react';
 import React from 'react';
 import { useNavigate,useParams } from 'react-router-dom';
 import { ComboboxOption } from '../../components/Combobox';
@@ -272,6 +272,55 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         onDecline={actions.handleDeclineServiceUpgrade}
         onClose={() => state.setServiceUpgradePrompt(prev => ({ ...prev, show: false }))}
       />
+
+      {(statusFlags.isNew || statusFlags.isAssigned || statusFlags.isInProgress || statusFlags.isCompleted) && (
+        <div className="fixed bottom-16 left-0 right-0 z-30 md:hidden bg-[var(--surface)]/95 backdrop-blur-sm border-t border-[var(--border)] px-4 py-3">
+          <div className="flex items-center gap-2">
+            {(statusFlags.isNew || statusFlags.isAssigned) && (
+              <button
+                onClick={actions.handleOpenStartJobModal}
+                className="w-full bg-[var(--accent)] text-white h-12 rounded-xl font-medium"
+              >
+                Start Job
+              </button>
+            )}
+
+            {statusFlags.isInProgress && (
+              <>
+                <button
+                  onClick={() => actions.handleStatusChange(JobStatus.AWAITING_FINALIZATION)}
+                  className="flex-1 bg-green-600 text-white h-12 rounded-xl font-medium"
+                >
+                  Complete
+                </button>
+                <button
+                  onClick={() => console.log('TODO: action')}
+                  className="w-12 h-12 bg-[var(--surface-2)] rounded-xl flex items-center justify-center"
+                  aria-label="Photo"
+                >
+                  <Camera className="w-5 h-5 text-[var(--text)]" />
+                </button>
+                <button
+                  onClick={() => console.log('TODO: action')}
+                  className="w-12 h-12 bg-[var(--surface-2)] rounded-xl flex items-center justify-center"
+                  aria-label="Parts"
+                >
+                  <Wrench className="w-5 h-5 text-[var(--text)]" />
+                </button>
+              </>
+            )}
+
+            {statusFlags.isCompleted && (
+              <button
+                onClick={actions.handlePrintServiceReport}
+                className="w-full h-12 rounded-xl font-medium border border-[var(--border)] text-[var(--text)] bg-transparent"
+              >
+                View Report
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
