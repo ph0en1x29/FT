@@ -296,17 +296,21 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
 
   useEffect(() => {
     // Fetch top low stock items
-    Promise.resolve(supabase.from('van_stock_items').select('quantity, min_quantity, part:parts(part_name)'))
+    Promise.resolve(supabase.from('parts').select('part_name, stock_quantity, min_stock_level'))
       .then(({ data }) => {
         if (data) {
           const low = data
             .filter((i: Record<string, unknown>) => {
-              const qty = i.quantity as number;
-              const min = i.min_quantity as number;
+              const qty = (i.stock_quantity as number) || 0;
+              const min = (i.min_stock_level as number) || 10;
               return min > 0 && qty < min;
             })
-            .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.quantity as number) - (b.quantity as number))
-            .map((i: Record<string, unknown>) => ({ name: (i.part as Record<string, string>)?.part_name || 'Unknown', quantity: i.quantity as number, min: i.min_quantity as number }));
+            .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (((a.stock_quantity as number) || 0) - ((b.stock_quantity as number) || 0)))
+            .map((i: Record<string, unknown>) => ({
+              name: (i.part_name as string) || 'Unknown',
+              quantity: (i.stock_quantity as number) || 0,
+              min: (i.min_stock_level as number) || 10,
+            }));
           setLowStockItems(low);
           setLowStockCount(low.length);
         }
