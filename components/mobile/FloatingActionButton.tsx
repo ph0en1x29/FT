@@ -1,4 +1,4 @@
-import { Camera,ClipboardCheck,Clock,FileText,Package as PackageIcon,Plus,Wrench,X,type LucideIcon } from 'lucide-react';
+import { ClipboardCheck,FileText,Package as PackageIcon,Plus,Wrench,X,type LucideIcon } from 'lucide-react';
 import React,{ useEffect,useMemo,useState } from 'react';
 import { Link,useLocation } from 'react-router-dom';
 
@@ -32,9 +32,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser
   const actions = useMemo<FabAction[]>(() => {
     if (role === 'technician') {
       return [
-        { icon: Camera, label: 'Add Photo' },
-        { icon: Wrench, label: 'Request Part' },
-        { icon: Clock, label: 'Timer' },
+        { icon: Plus, label: 'New Job', to: '/jobs/new' },
+        { icon: Wrench, label: 'Van Stock', to: '/my-van-stock' },
       ];
     }
 
