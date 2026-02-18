@@ -272,7 +272,7 @@ const StatPill: React.FC<{
 }> = ({ label, value, color, pulse, onClick }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97] ${pulse ? 'animate-pulse' : ''}`}
+    className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all hover:scale-[1.03] active:scale-[0.97] ${pulse ? 'animate-pulse' : ''}`}
     style={{ background: `${color}15`, border: `1px solid ${color}30` }}
   >
     <span className="text-lg font-bold" style={{ color }}>{value}</span>
@@ -603,7 +603,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
   return (
     <div className="space-y-4">
       {/* ===== HEADER ===== */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>{greeting}</h1>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -611,7 +611,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
             {urgentCount > 0 && <span style={{ color: colors.red.text }}> • ⚠️ {urgentCount} need attention</span>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-indigo-600 to-cyan-500 text-white">
             ⚡ V7.1
           </span>
@@ -629,7 +629,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
       <EscalationBanner count={jobsByStatus.escalated.length} onClick={() => navigate('/jobs?filter=escalated')} />
 
       {/* ===== SUMMARY BAR ===== */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 md:flex-wrap">
         <StatPill label="Overdue" value={jobsByStatus.overdue.length} color={colors.red.text} pulse={jobsByStatus.overdue.length > 2} onClick={() => navigate('/jobs?filter=overdue')} />
         <StatPill label="Unassigned" value={jobsByStatus.unassigned.length} color={colors.orange.text} onClick={() => navigate('/jobs?filter=unassigned')} />
         <StatPill label="In Progress" value={jobsByStatus.inProgress.length} color={colors.blue.text} onClick={() => navigate('/jobs?filter=in-progress')} />
