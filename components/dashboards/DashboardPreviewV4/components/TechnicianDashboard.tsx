@@ -75,7 +75,7 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser, 
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <KPICard label="Today" value={todayJobs.length} sublabel="Scheduled" icon={<Calendar className="w-4 h-4" />} accent="blue" />
         <KPICard label="Completed" value={completedToday} sublabel="Today" icon={<CheckCircle className="w-4 h-4" />} accent="green" />
         <KPICard label="This Week" value={completedThisWeek} sublabel="Completed" icon={<TrendingUp className="w-4 h-4" />} accent="purple" />

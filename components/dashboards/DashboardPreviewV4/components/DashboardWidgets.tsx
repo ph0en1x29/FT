@@ -75,7 +75,7 @@ export const KPICard: React.FC<{
   return (
     <div
       onClick={onClick}
-      className={`relative rounded-2xl p-4 transition-all ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]' : ''}`}
+      className={`relative rounded-2xl p-2.5 sm:p-4 min-w-0 overflow-hidden transition-all ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]' : ''}`}
       style={{
         background: 'var(--surface)',
         border: `1px solid ${alert ? c.text : 'var(--border)'}`,
@@ -84,11 +84,11 @@ export const KPICard: React.FC<{
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{label}</p>
-          <p className="text-2xl font-semibold mt-1" style={{ color: alert ? c.text : 'var(--text)', letterSpacing: '-0.02em' }}>{value}</p>
+          <p className="text-[10px] sm:text-[11px] font-medium uppercase tracking-wide truncate" style={{ color: 'var(--text-muted)' }}>{label}</p>
+          <p className="text-xl sm:text-2xl font-semibold mt-1" style={{ color: alert ? c.text : 'var(--text)', letterSpacing: '-0.02em' }}>{value}</p>
           {sublabel && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{sublabel}</p>}
         </div>
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: c.bg }}>
+        <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: c.bg }}>
           <div style={{ color: c.text }}>{icon}</div>
         </div>
       </div>
