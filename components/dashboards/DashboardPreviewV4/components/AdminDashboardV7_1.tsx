@@ -34,6 +34,7 @@ import {
   UserX,
   Zap,
   X,
+  XCircle,
   ArrowRight,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -291,30 +292,53 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
   const [processing, setProcessing] = useState(false);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [lowStockItems, setLowStockItems] = useState<{ name: string; quantity: number; min: number }[]>([]);
+  const [oosItems, setOosItems] = useState<{ name: string; quantity: number; min: number }[]>([]);
+  const [oosCount, setOosCount] = useState(0);
 
   // Notifications handled by global header bell — removed duplicate fetch
 
   useEffect(() => {
-    // Fetch top low stock items
+    // Fetch low-stock + out-of-stock items from global parts inventory
     Promise.resolve(supabase.from('parts').select('part_name, stock_quantity, min_stock_level'))
       .then(({ data }) => {
-        if (data) {
-          const low = data
-            .filter((i: Record<string, unknown>) => {
-              const qty = (i.stock_quantity as number) || 0;
-              const min = (i.min_stock_level as number) || 10;
-              return min > 0 && qty < min;
-            })
-            .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (((a.stock_quantity as number) || 0) - ((b.stock_quantity as number) || 0)))
-            .map((i: Record<string, unknown>) => ({
-              name: (i.part_name as string) || 'Unknown',
-              quantity: (i.stock_quantity as number) || 0,
-              min: (i.min_stock_level as number) || 10,
-            }));
-          setLowStockItems(low);
-          setLowStockCount(low.length);
-        }
-      }).catch(() => {});
+        const parts = data || [];
+
+        const low = parts
+          .filter((i: Record<string, unknown>) => {
+            const qty = (i.stock_quantity as number) || 0;
+            const min = (i.min_stock_level as number) || 10;
+            return qty > 0 && qty <= min;
+          })
+          .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (((a.stock_quantity as number) || 0) - ((b.stock_quantity as number) || 0)))
+          .map((i: Record<string, unknown>) => ({
+            name: (i.part_name as string) || 'Unknown',
+            quantity: (i.stock_quantity as number) || 0,
+            min: (i.min_stock_level as number) || 10,
+          }));
+
+        const oos = parts
+          .filter((i: Record<string, unknown>) => {
+            const qty = (i.stock_quantity as number) || 0;
+            const min = (i.min_stock_level as number) || 10;
+            return qty === 0 && min > 0;
+          })
+          .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (((a.part_name as string) || '').localeCompare((b.part_name as string) || '')))
+          .map((i: Record<string, unknown>) => ({
+            name: (i.part_name as string) || 'Unknown',
+            quantity: (i.stock_quantity as number) || 0,
+            min: (i.min_stock_level as number) || 10,
+          }));
+
+        setLowStockItems(low);
+        setLowStockCount(low.length);
+        setOosItems(oos);
+        setOosCount(oos.length);
+      }).catch(() => {
+        setLowStockItems([]);
+        setLowStockCount(0);
+        setOosItems([]);
+        setOosCount(0);
+      });
   }, []);
 
   // ---- Data categorization ----
@@ -612,9 +636,8 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
         <StatPill label="To Finalize" value={jobsByStatus.awaitingFinalization.length} color="#9333ea" onClick={() => navigate('/jobs?filter=awaiting-finalization')} />
         <StatPill label="On-Time" value={`${slaMetrics.onTimeRate}%`} color={colors.green.text} />
         <StatPill label="Revenue 7d" value={`RM${(weeklyRevenue / 1000).toFixed(1)}k`} color={colors.green.text} onClick={() => navigate('/invoices')} />
-        {lowStockCount > 0 && (
-          <StatPill label="Low Stock" value={lowStockCount} color={colors.orange.text} onClick={() => navigate('/inventory?filter=low-stock')} />
-        )}
+        {oosCount > 0 && <StatPill label="OOS" value={oosCount} color={colors.red.text} onClick={() => navigate('/inventory')} />}
+        {lowStockCount > 0 && <StatPill label="Low Stock" value={lowStockCount} color={colors.orange.text} onClick={() => navigate('/inventory')} />}
       </div>
 
       {/* ===== TWO COLUMN: APPROVAL QUEUE (wider) + ACTION REQUIRED (narrower) ===== */}
@@ -912,38 +935,71 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
         </div>
       </div>
 
-      {/* ===== TWO COLUMN: LOW STOCK + RECENT ACTIVITY ===== */}
+      {/* ===== TWO COLUMN: STOCK ALERTS + RECENT ACTIVITY ===== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Low Stock Alert */}
-        <Section
-          title="Low Stock"
-          icon={<Package className="w-4 h-4" style={{ color: colors.orange.text }} />}
-          badge={lowStockCount}
-          defaultOpen={lowStockCount > 0}
-          actions={
-            <button onClick={() => navigate('/inventory?filter=low-stock')} className="text-xs font-medium hover:opacity-70 flex items-center gap-1" style={{ color: 'var(--accent)' }}>
-              All items <ChevronRight className="w-3 h-3" />
-            </button>
-          }
-        >
-          {lowStockItems.length === 0 ? (
-            <div className="py-3 text-center">
-              <Package className="w-8 h-8 mx-auto mb-1 opacity-30" style={{ color: 'var(--text-muted)' }} />
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Stock levels OK</p>
-            </div>
-          ) : (
-            <div className="space-y-1.5 max-h-[220px] overflow-y-auto">
-              {lowStockItems.map((item, i) => (
-                <div key={i} className="flex items-center gap-2 px-2.5 py-2 rounded-lg" style={{ background: colors.orange.bg }}>
-                  <span className="text-xs font-medium flex-1 truncate" style={{ color: 'var(--text)' }}>{item.name}</span>
-                  <span className="text-xs font-bold" style={{ color: item.quantity === 0 ? colors.red.text : colors.orange.text }}>
-                    {item.quantity}/{item.min}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Section>
+        <div className="space-y-4">
+          {/* Out of Stock */}
+          <Section
+            title="Out of Stock"
+            icon={<XCircle className="w-4 h-4" style={{ color: colors.red.text }} />}
+            badge={oosCount}
+            defaultOpen={oosCount > 0}
+            actions={
+              <button onClick={() => navigate('/inventory')} className="text-xs font-medium hover:opacity-70 flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+                Inventory <ChevronRight className="w-3 h-3" />
+              </button>
+            }
+          >
+            {oosItems.length === 0 ? (
+              <div className="py-3 text-center">
+                <CheckCircle className="w-8 h-8 mx-auto mb-1 opacity-30" style={{ color: 'var(--text-muted)' }} />
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>All items in stock</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-[180px] overflow-y-auto">
+                {oosItems.map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 px-2.5 py-2 rounded-lg" style={{ background: colors.red.bg }}>
+                    <span className="text-xs font-medium flex-1 truncate" style={{ color: 'var(--text)' }}>{item.name}</span>
+                    <span className="text-xs font-bold" style={{ color: colors.red.text }}>
+                      0/{item.min}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
+
+          {/* Low Stock */}
+          <Section
+            title="Low Stock"
+            icon={<Package className="w-4 h-4" style={{ color: colors.orange.text }} />}
+            badge={lowStockCount}
+            defaultOpen={lowStockCount > 0}
+            actions={
+              <button onClick={() => navigate('/inventory')} className="text-xs font-medium hover:opacity-70 flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+                All items <ChevronRight className="w-3 h-3" />
+              </button>
+            }
+          >
+            {lowStockItems.length === 0 ? (
+              <div className="py-3 text-center">
+                <Package className="w-8 h-8 mx-auto mb-1 opacity-30" style={{ color: 'var(--text-muted)' }} />
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Stock levels OK</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-[180px] overflow-y-auto">
+                {lowStockItems.map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 px-2.5 py-2 rounded-lg" style={{ background: colors.orange.bg }}>
+                    <span className="text-xs font-medium flex-1 truncate" style={{ color: 'var(--text)' }}>{item.name}</span>
+                    <span className="text-xs font-bold" style={{ color: colors.orange.text }}>
+                      {item.quantity}/{item.min}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
+        </div>
 
         {/* Recent Activity */}
         <Section

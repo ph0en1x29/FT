@@ -134,7 +134,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser
           aria-expanded={isExpanded}
           aria-label={isExpanded ? 'Close quick actions' : 'Open quick actions'}
           className="w-14 h-14 rounded-full text-white flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 backdrop-blur-xl bg-[var(--accent)] border border-white/30"
-          style={{ boxShadow: '0 4px 16px rgba(0, 102, 204, 0.4), 0 0 0 1px rgba(255,255,255,0.15) inset', opacity: 0.9 }}
+          style={{ boxShadow: '0 4px 16px rgba(0, 102, 204, 0.4), 0 0 0 1px rgba(255,255,255,0.15) inset' }}
         >
           <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-45' : ''}`}>
             {isExpanded ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
