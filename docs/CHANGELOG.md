@@ -4,7 +4,26 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
-## [2026-02-17] - Full Mobile Responsive + PWA Support
+## [2026-02-17] - Full Mobile Responsive + PWA + Role-Aware Mobile UX
+
+### Mobile V2 — Role-Aware UX (Phase 4)
+- **Role-aware bottom navigation** — Each role sees different quick-access icons:
+  - Technician: Home, Jobs, Van Stock, More
+  - Supervisor: Home, Jobs, Approvals, More
+  - Accountant: Home, Jobs, Billing, More
+  - Admin: Home, Jobs, Inventory, More
+- **Notification badges** — Unread count badge on role-specific nav items
+- **Floating Action Button (FAB)** — Role-specific quick actions:
+  - Technicians: Add Photo, Request Part, Timer
+  - Supervisors: Approvals, Assign Job
+  - Admins: New Job, Approvals, Inventory
+  - Accountants: Billing
+- **Bottom Sheet modals** — `BottomSheet` + `BottomSheetOrModal` components (slide-up on mobile, centered on desktop)
+- **Pull-to-refresh hook** — `usePullToRefresh` with arrow→spinner indicator
+- **Swipeable rows** — `SwipeableRow` component for swipe-to-approve/reject on list items
+- **Sticky action bar on JobDetail** — Status-based actions pinned to bottom on mobile (Start Job / Complete / Photo / Parts)
+
+### Mobile Responsive + PWA (Phase 1-3)
 
 ### Mobile Responsive (Phase 1-3)
 - **33 files modified** across all pages for mobile responsiveness
