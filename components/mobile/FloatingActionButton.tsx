@@ -66,10 +66,10 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser
   };
 
   const getActionClasses = (active: boolean) =>
-    `w-11 h-11 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
+    `w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
       active
-        ? 'bg-[var(--accent)] text-white'
-        : 'bg-theme-card border border-theme text-theme hover:bg-theme-surface-2'
+        ? 'bg-[var(--accent)] text-white shadow-lg shadow-blue-500/30'
+        : 'bg-white border border-gray-200 text-gray-700 shadow-md hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200'
     }`;
 
   return (
@@ -97,10 +97,10 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser
             return (
               <div key={action.label} className="flex items-center gap-2">
                 <span
-                  className={`rounded-full border px-3 py-1 text-xs font-medium shadow-sm ${
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold shadow-md ${
                     active
-                      ? 'border-[var(--accent)]/40 bg-[var(--accent)]/15 text-[var(--accent)]'
-                      : 'border-theme bg-theme-card text-theme'
+                      ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-500 dark:bg-blue-900/40 dark:text-blue-300'
+                      : 'border-gray-200 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200'
                   }`}
                 >
                   {action.label}
@@ -125,7 +125,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser
           onClick={toggleFab}
           aria-expanded={isExpanded}
           aria-label={isExpanded ? 'Close quick actions' : 'Open quick actions'}
-          className="w-14 h-14 rounded-full bg-[var(--accent)] text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:opacity-90"
+          className="w-14 h-14 rounded-full bg-[var(--accent)] text-white flex items-center justify-center transition-all duration-200 hover:opacity-90"
+          style={{ boxShadow: '0 4px 14px rgba(0, 102, 204, 0.45), 0 2px 6px rgba(0, 0, 0, 0.2)' }}
         >
           {isExpanded ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
         </button>
