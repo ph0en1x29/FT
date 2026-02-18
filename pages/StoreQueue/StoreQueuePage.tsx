@@ -21,6 +21,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Combobox, ComboboxOption } from '../../components/Combobox';
+import SwipeableRow from '../../components/mobile/SwipeableRow';
 import { usePartsForList } from '../../hooks/useQueryHooks';
 import { SkeletonJobList } from '../../components/Skeleton';
 import {
@@ -477,6 +478,32 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
     setInlineState(prev => ({ ...prev, [requestId]: { ...prev[requestId], ...updates } }));
   };
 
+  const handleSwipeApprove = (item: QueueItem) => {
+    if (processing.has(item.id)) return;
+
+    if (item.type === 'part_request') {
+      void handleApproveRequest(item);
+      return;
+    }
+
+    if (item.type === 'confirm_job') {
+      void handleConfirmJob(item);
+    }
+  };
+
+  const handleSwipeReject = (item: QueueItem) => {
+    if (processing.has(item.id)) return;
+
+    if (item.type === 'part_request') {
+      setRejectType('request');
+    } else if (item.type === 'confirm_job') {
+      setRejectType('job');
+    }
+
+    setRejectReason('');
+    setRejectingId(item.id);
+  };
+
   // ─── Filter bar config ────────────────────────────────────────
 
   const filters: { id: FilterType; label: string; count: number }[] = [
@@ -624,7 +651,16 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                       const state = item.requestId ? inlineState[item.requestId] : undefined;
                       const matchedPart = state ? parts.find(p => p.part_id === state.partId) : undefined;
                       return (
-                        <div key={item.id} className="rounded-xl border border-[var(--border-subtle)] p-3 bg-[var(--surface)]">
+                        <div key={item.id}>
+                        <SwipeableRow
+                          onSwipeRight={() => handleSwipeApprove(item)}
+                          onSwipeLeft={() => handleSwipeReject(item)}
+                          rightLabel={item.type === 'confirm_job' ? 'Confirm' : 'Approve'}
+                          leftLabel="Reject"
+                          rightColor="bg-green-600"
+                          leftColor="bg-red-600"
+                        >
+                        <div className="rounded-xl border border-[var(--border-subtle)] p-3 bg-[var(--surface)]">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3 flex-1 min-w-0">
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getTypeColor(item.type).split(' ').slice(0, 1).join(' ')}`}>
@@ -740,6 +776,8 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                               </div>
                             </div>
                           )}
+                        </div>
+                        </SwipeableRow>
                         </div>
                       );
                     })}

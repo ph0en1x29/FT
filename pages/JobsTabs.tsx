@@ -1,7 +1,8 @@
 import { Briefcase,CheckSquare,FileText,Plus } from 'lucide-react';
-import React,{ useEffect,useState } from 'react';
+import React,{ useCallback,useEffect,useState } from 'react';
 import { useNavigate,useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../contexts/DevModeContext';
+import usePullToRefresh from '../hooks/usePullToRefresh';
 import { User,UserRole } from '../types';
 import JobBoard from './JobBoard';
 import ServiceRecords from './ServiceRecords';
@@ -18,6 +19,7 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const initialTab = (searchParams.get('tab') as TabType) || 'active';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const { displayRole, hasPermission } = useDevModeContext();
 
@@ -31,6 +33,12 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
     setActiveTab(tab);
     setSearchParams({ tab });
   };
+
+  const refreshActiveTab = useCallback(async () => {
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
+  const { pullToRefreshProps, PullIndicator } = usePullToRefresh(refreshActiveTab);
 
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as TabType;
@@ -50,7 +58,8 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
   const effectiveTab = availableTabs.includes(activeTab) ? activeTab : availableTabs[0] || 'active';
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-24 md:pb-8">
+    <div className="space-y-4 md:space-y-6 pb-24 md:pb-8" {...pullToRefreshProps}>
+      <PullIndicator />
       <div className="flex flex-col gap-3 md:gap-4">
         <div className="flex items-center justify-between">
           <div>
@@ -95,9 +104,9 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
         </div>
       </div>
 
-      {effectiveTab === 'active' && <JobBoard currentUser={currentUser} hideHeader />}
-      {effectiveTab === 'history' && canViewHistory && <ServiceRecords currentUser={currentUser} hideHeader />}
-      {effectiveTab === 'approvals' && isAdminOrSupervisor && <StoreQueue currentUser={currentUser} hideHeader />}
+      {effectiveTab === 'active' && <React.Fragment key={`active-${refreshKey}`}><JobBoard currentUser={currentUser} hideHeader /></React.Fragment>}
+      {effectiveTab === 'history' && canViewHistory && <React.Fragment key={`history-${refreshKey}`}><ServiceRecords currentUser={currentUser} hideHeader /></React.Fragment>}
+      {effectiveTab === 'approvals' && isAdminOrSupervisor && <React.Fragment key={`approvals-${refreshKey}`}><StoreQueue currentUser={currentUser} hideHeader /></React.Fragment>}
     </div>
   );
 };

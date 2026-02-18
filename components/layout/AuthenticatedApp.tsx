@@ -5,14 +5,15 @@
  * This component is lazy-loaded to reduce initial bundle size.
  * Contains: Sidebar, TopHeader, MobileNav, MobileDrawer, and all routes.
  */
-import { Building2,CalendarDays,ChevronLeft,FileText,LayoutDashboard,List,Loader2,LogOut,Menu,Moon,Package,PackageCheck,Sun,Truck,User as UserIcon,Users,X,Zap,type LucideIcon } from 'lucide-react';
-import React,{ lazy,Suspense,useState } from 'react';
-import { Link,Navigate,Route,HashRouter as Router,Routes,useLocation } from 'react-router-dom';
+import { Building2,CalendarDays,ChevronLeft,FileText,LayoutDashboard,List,Loader2,LogOut,Menu,Moon,Package,PackageCheck,Search,Sun,Truck,User as UserIcon,Users,X,Zap,type LucideIcon } from 'lucide-react';
+import React,{ lazy,Suspense,useCallback,useEffect,useState } from 'react';
+import { Link,Navigate,Route,HashRouter as Router,Routes,useLocation,useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { DevModeProvider,useDevModeContext } from '../../contexts/DevModeContext';
 import { FeatureFlagProvider } from '../../contexts/FeatureFlagContext';
 import { NotificationProvider,useNotifications } from '../../contexts/NotificationContext';
 import { QueryProvider } from '../../contexts/QueryProvider';
+import CommandPalette from '../CommandPalette';
 import FloatingActionButton from '../mobile/FloatingActionButton';
 import { User,UserRole } from '../../types';
 import DevBanner from '../dev/DevBanner';
@@ -210,13 +211,19 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed, navRole }
   );
 };
 
-const TopHeader = ({ currentUser, isDark, onToggleTheme, devModeActive }: { currentUser: User; isDark: boolean; onToggleTheme: () => void; devModeActive?: boolean }) => (
+const TopHeader = ({ currentUser, isDark, onToggleTheme, devModeActive, onOpenSearch }: { currentUser: User; isDark: boolean; onToggleTheme: () => void; devModeActive?: boolean; onOpenSearch?: () => void }) => (
   <div className={`bg-theme-surface border-b border-theme px-4 py-3 mb-6 -mx-4 md:-mx-8 -mt-4 md:-mt-8 flex justify-between items-center sticky z-40 theme-transition ${devModeActive ? 'top-10' : 'top-0'}`}>
     <div className="md:hidden">
       <h1 className="text-lg font-bold text-theme">FieldPro</h1>
     </div>
     <div className="hidden md:block" />
     <div className="flex items-center gap-3">
+      {onOpenSearch && (
+        <button onClick={onOpenSearch} className="flex items-center gap-2 px-3 py-2 bg-theme-surface-2 border border-theme rounded-lg text-theme-muted hover:text-theme transition-all" title="Search (⌘K)">
+          <Search className="w-4 h-4" />
+          <span className="hidden sm:inline text-xs">⌘K</span>
+        </button>
+      )}
       <DevModeSelector />
       <button onClick={onToggleTheme} className="flex items-center gap-2 px-3 py-2 bg-theme-surface-2 border border-theme rounded-lg text-theme-muted hover:text-theme transition-all" title={isDark ? 'Light Mode' : 'Dark Mode'}>
         {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -409,6 +416,12 @@ export default function AuthenticatedApp({ currentUser, onLogout }: Authenticate
   );
 }
 
+function CommandPaletteWrapper({ isOpen, onClose, currentUser }: { isOpen: boolean; onClose: () => void; currentUser: User }) {
+  const navigate = useNavigate();
+  const handleNavigate = useCallback((path: string) => { navigate(path); }, [navigate]);
+  return <CommandPalette isOpen={isOpen} onClose={onClose} currentUser={currentUser} onNavigate={handleNavigate} />;
+}
+
 interface AppLayoutProps {
   currentUser: User;
   onLogout: () => void;
@@ -423,6 +436,18 @@ interface AppLayoutProps {
 function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapsed, mobileDrawerOpen, setMobileDrawerOpen, isDarkTheme, toggleTheme }: AppLayoutProps) {
   const devMode = useDevModeContext();
   const navRole = devMode.permissionRole;
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const _canViewDashboard = devMode.hasPermission('canViewDashboard');
   const canViewForklifts = devMode.hasPermission('canViewForklifts');
@@ -439,12 +464,14 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
     <FeatureFlagProvider enabled={devMode.isDev}>
       <Router>
         <style>{sidebarStyles}</style>
-        <Toaster position="top-right" richColors closeButton toastOptions={{ duration: 4000, className: 'text-sm' }} />
+        <Toaster position="bottom-center" richColors closeButton toastOptions={{ duration: 4000, className: 'text-sm !mb-20 sm:!mb-0' }} />
+        <CommandPaletteWrapper isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} currentUser={currentUser} />
         <div className="min-h-screen bg-theme-bg flex theme-transition">
           <Sidebar currentUser={currentUser} onLogout={onLogout} isCollapsed={sidebarCollapsed} setIsCollapsed={setSidebarCollapsed} navRole={navRole} />
           <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-60'} p-4 md:p-6 lg:p-8 pb-20 md:pb-8 ${devMode.isDevModeActive ? 'pt-14' : ''}`}>
-            <TopHeader currentUser={currentUser} isDark={isDarkTheme} onToggleTheme={toggleTheme} devModeActive={devMode.isDevModeActive} />
+            <TopHeader currentUser={currentUser} isDark={isDarkTheme} onToggleTheme={toggleTheme} devModeActive={devMode.isDevModeActive} onOpenSearch={() => setCommandPaletteOpen(true)} />
             <Suspense fallback={<PageLoader />}>
+              <div className="animate-page-enter">
               <Routes>
                 <Route path="/" element={<PrototypeDashboards currentUser={currentUser} />} />
                 <Route path="/jobs" element={<JobsTabs currentUser={currentUser} />} />
@@ -478,6 +505,7 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
                 <Route path="/my-profile" element={<Navigate to={`/people/employees/${currentUser.user_id}`} replace />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
+              </div>
             </Suspense>
           </main>
           <FloatingActionButton currentUser={currentUser} currentPath={window.location.hash} />
