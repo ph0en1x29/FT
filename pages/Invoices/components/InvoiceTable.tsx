@@ -28,7 +28,46 @@ const InvoiceTable: React.FC<InvoiceTableProps> = ({ jobs, grandTotal, hasFilter
   }
 
   return (
-    <div className="card-theme rounded-xl overflow-hidden theme-transition">
+    <>
+    {/* Mobile Card View */}
+    <div className="md:hidden space-y-3">
+      {jobs.map(job => (
+        <div key={job.job_id} className="card-theme rounded-xl p-3 space-y-2 theme-transition">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-sm font-medium text-blue-600">
+              INV-{job.job_id.slice(0, 8).toUpperCase()}
+            </span>
+            <span className="font-semibold text-green-600">
+              RM {calculateJobTotal(job).toFixed(2)}
+            </span>
+          </div>
+          <div className="text-sm text-theme truncate">{job.title}</div>
+          <div className="flex items-center gap-2 text-xs text-theme-muted">
+            <Building2 className="w-3 h-3" />
+            <span className="truncate">{job.customer?.name}</span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-theme-muted">
+            <span>{new Date(job.invoiced_at || job.created_at).toLocaleDateString()}</span>
+            <div className="flex gap-1">
+              <button onClick={() => navigate(`/jobs/${job.job_id}`)} className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg" title="View Details">
+                <Eye className="w-4 h-4" />
+              </button>
+              <button onClick={() => generateInvoicePDF(job)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Print Invoice">
+                <Download className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+      <div className="card-theme rounded-xl p-3 theme-transition flex justify-between items-center">
+        <span className="font-semibold text-theme">Total:</span>
+        <span className="font-bold text-green-600 text-lg">RM {grandTotal.toFixed(2)}</span>
+      </div>
+    </div>
+
+    {/* Desktop Table View */}
+    <div className="hidden md:block card-theme rounded-xl overflow-hidden theme-transition">
+      <div className="overflow-x-auto">
       <table className="w-full">
         <thead className="bg-theme-surface-2 text-theme-muted text-xs uppercase">
           <tr>
@@ -98,7 +137,9 @@ const InvoiceTable: React.FC<InvoiceTableProps> = ({ jobs, grandTotal, hasFilter
           </tr>
         </tfoot>
       </table>
+      </div>
     </div>
+    </>
   );
 };
 

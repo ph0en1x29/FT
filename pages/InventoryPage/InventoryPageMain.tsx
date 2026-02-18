@@ -92,12 +92,12 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-24 md:pb-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-theme">Inventory</h1>
-          <p className="text-sm text-theme-muted mt-1">
+          <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-theme">Inventory</h1>
+          <p className="text-xs md:text-sm text-theme-muted mt-1">
             Manage parts catalog and van stock
           </p>
         </div>

@@ -38,19 +38,19 @@ const Billing: React.FC<BillingProps> = ({ currentUser }) => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-8">
       {/* Header with Tabs */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-theme">Billing</h1>
-            <p className="text-sm text-theme-muted mt-1">Manage invoices and accounting exports</p>
+            <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-theme">Billing</h1>
+            <p className="text-xs md:text-sm text-theme-muted mt-1">Manage invoices and accounting exports</p>
           </div>
         </div>
 
         {/* Tab Navigation */}
         <div className="border-b border-theme">
-          <nav className="flex gap-1 -mb-px">
+          <nav className="flex gap-1 -mb-px overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -58,7 +58,7 @@ const Billing: React.FC<BillingProps> = ({ currentUser }) => {
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  className={`flex items-center gap-2 px-3 md:px-4 py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap min-w-fit ${
                     isActive
                       ? 'border-blue-600 text-blue-600'
                       : 'border-transparent text-theme-muted hover:text-theme hover:border-slate-300'

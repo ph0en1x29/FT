@@ -103,39 +103,39 @@ export default function MyVanStock({ currentUser }: MyVanStockProps) {
   const headerVanIdentifier = vanStock.van_plate || vanStock.van_code || 'No Plate';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-24 md:pb-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-theme flex items-center gap-2">
-            <Truck className="w-7 h-7" />
+          <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-theme flex items-center gap-2 flex-wrap">
+            <Truck className="w-6 h-6 md:w-7 md:h-7" />
             My Van Stock
-            <span className="text-sm font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">
+            <span className="text-xs md:text-sm font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 md:px-2.5 md:py-1 rounded-md border border-blue-100">
               {headerVanIdentifier}
             </span>
           </h1>
-          <p className="text-sm text-theme-muted mt-1">
+          <p className="text-xs md:text-sm text-theme-muted mt-1">
             Manage your mobile inventory
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
           <button
             onClick={() => setShowVanRequest(true)}
-            className="flex items-center gap-2 px-4 py-2 border border-theme rounded-lg hover:bg-theme-surface-2 text-sm text-theme-muted theme-transition"
+            className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 h-12 sm:h-10 border border-theme rounded-lg hover:bg-theme-surface-2 text-sm text-theme-muted theme-transition"
           >
             <Search className="w-4 h-4" /> Find Van
           </button>
           <button
             onClick={loadData}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 border border-theme rounded-lg hover:bg-theme-surface-2 text-sm text-theme-muted theme-transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 h-12 sm:h-10 border border-theme rounded-lg hover:bg-theme-surface-2 text-sm text-theme-muted theme-transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>
           {lowStockItems.length > 0 && (
             <button
               onClick={() => setShowReplenishmentModal(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-sm font-medium"
+              className="flex items-center justify-center gap-2 bg-blue-600 text-white px-3 md:px-4 py-2 h-12 sm:h-10 rounded-lg hover:bg-blue-700 shadow-sm font-medium col-span-2 sm:col-span-1"
             >
               <Plus className="w-4 h-4" /> Request Replenishment
             </button>

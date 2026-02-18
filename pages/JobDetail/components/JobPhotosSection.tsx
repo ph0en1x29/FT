@@ -452,7 +452,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
           </div>
 
           {/* Photo Grid */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {filteredMedia.map((m, idx) => {
               const catInfo = PHOTO_CATEGORIES.find(c => c.value === m.category) || PHOTO_CATEGORIES.find(c => c.value === 'other');
               return (

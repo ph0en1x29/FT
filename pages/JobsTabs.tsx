@@ -50,28 +50,29 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
   const effectiveTab = availableTabs.includes(activeTab) ? activeTab : availableTabs[0] || 'active';
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4">
+    <div className="space-y-4 md:space-y-6 pb-24 md:pb-8">
+      <div className="flex flex-col gap-3 md:gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-theme">
+            <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-theme">
               {displayRole === UserRole.TECHNICIAN ? 'My Jobs' : 'Jobs'}
             </h1>
-            <p className="text-sm text-theme-muted mt-1">Manage jobs and service records</p>
+            <p className="text-xs md:text-sm text-theme-muted mt-1">Manage jobs and service records</p>
           </div>
           {canCreateJob && (
             <button
               onClick={() => navigate('/jobs/new')}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+              className="flex items-center gap-2 bg-blue-600 text-white px-3 md:px-4 py-2.5 md:py-2 h-12 md:h-auto rounded-lg shadow hover:bg-blue-700 transition text-sm md:text-base"
             >
               <Plus className="w-4 h-4" />
-              New Job
+              <span className="hidden sm:inline">New Job</span>
+              <span className="sm:hidden">New</span>
             </button>
           )}
         </div>
 
         <div className="border-b border-theme">
-          <nav className="flex gap-1 -mb-px">
+          <nav className="flex gap-1 -mb-px overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = effectiveTab === tab.id;
@@ -79,7 +80,7 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  className={`flex items-center gap-2 px-3 md:px-4 py-3 h-12 min-w-[44px] text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     isActive
                       ? 'border-blue-600 text-blue-600'
                       : 'border-transparent text-theme-muted hover:text-theme hover:border-slate-300'

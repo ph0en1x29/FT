@@ -488,12 +488,12 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
   // ─── Render ───────────────────────────────────────────────────
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4 pb-24 md:pb-8">
       {!hideHeader && (
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-[var(--text)]">Store Queue</h1>
-            <p className="text-sm text-[var(--text-muted)]">
+            <h1 className="text-lg md:text-xl font-bold text-[var(--text)]">Store Queue</h1>
+            <p className="text-xs md:text-sm text-[var(--text-muted)]">
               {counts.all} item{counts.all !== 1 ? 's' : ''} need attention
             </p>
           </div>
@@ -667,8 +667,8 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                           </div>
 
                           {item.type === 'part_request' && item.requestId && (
-                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)]">
-                              <div className="flex-1">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)]">
+                              <div className="flex-1 w-full sm:w-auto">
                                 <Combobox
                                   options={partOptions}
                                   value={state?.partId || ''}
@@ -676,37 +676,40 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                                   placeholder="Select part..."
                                 />
                               </div>
-                              <input
-                                type="number" min="0.1" step="any"
-                                value={state?.quantity || '1'}
-                                onChange={e => updateInline(item.requestId!, { quantity: e.target.value })}
-                                className="w-16 px-2 py-1.5 text-sm border border-[var(--border)] rounded-lg text-center bg-[var(--surface)]"
-                              />
-                              <button
-                                onClick={() => handleApproveRequest(item)}
-                                disabled={isProc || !state?.partId}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
-                              >
-                                {isProc ? <Spinner /> : <Check className="w-3.5 h-3.5" />}
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => { setRejectingId(item.id); setRejectType('request'); setRejectReason(''); }}
-                                disabled={isProc}
-                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </button>
-                              {matchedPart && (
-                                <span className="text-xs text-[var(--text-muted)] hidden sm:inline">
-                                  Stock: {matchedPart.stock_quantity}
-                                </span>
-                              )}
+                              <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <input
+                                  type="number" min="0.1" step="any"
+                                  inputMode="numeric"
+                                  value={state?.quantity || '1'}
+                                  onChange={e => updateInline(item.requestId!, { quantity: e.target.value })}
+                                  className="w-16 px-2 py-1.5 h-10 sm:h-auto text-sm border border-[var(--border)] rounded-lg text-center bg-[var(--surface)]"
+                                />
+                                <button
+                                  onClick={() => handleApproveRequest(item)}
+                                  disabled={isProc || !state?.partId}
+                                  className="inline-flex items-center justify-center gap-1 px-3 py-1.5 h-12 sm:h-auto text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition flex-1 sm:flex-none"
+                                >
+                                  {isProc ? <Spinner /> : <Check className="w-3.5 h-3.5" />}
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => { setRejectingId(item.id); setRejectType('request'); setRejectReason(''); }}
+                                  disabled={isProc}
+                                  className="p-2.5 h-12 sm:h-auto min-w-[44px] text-red-500 hover:bg-red-50 rounded-lg transition flex items-center justify-center"
+                                >
+                                  <XCircle className="w-5 h-5 sm:w-4 sm:h-4" />
+                                </button>
+                                {matchedPart && (
+                                  <span className="text-xs text-[var(--text-muted)] hidden sm:inline">
+                                    Stock: {matchedPart.stock_quantity}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           )}
 
                           {item.type === 'confirm_job' && (
-                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border-subtle)]">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)]">
                               <div className="flex items-center gap-3 text-sm">
                                 {item.completedAt && (
                                   <span className={`text-xs px-2 py-0.5 rounded-full ${
@@ -718,11 +721,11 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 w-full sm:w-auto">
                                 <button
                                   onClick={() => handleConfirmJob(item)}
                                   disabled={isProc}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition"
+                                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 h-12 sm:h-auto text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition flex-1 sm:flex-none"
                                 >
                                   {isProc ? <Spinner /> : <CheckCircle className="w-3.5 h-3.5" />}
                                   Confirm Job
@@ -730,9 +733,9 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                                 <button
                                   onClick={() => { setRejectingId(item.id); setRejectType('job'); setRejectReason(''); }}
                                   disabled={isProc}
-                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                                  className="p-2.5 h-12 sm:h-auto min-w-[44px] text-red-500 hover:bg-red-50 rounded-lg transition flex items-center justify-center"
                                 >
-                                  <XCircle className="w-4 h-4" />
+                                  <XCircle className="w-5 h-5 sm:w-4 sm:h-4" />
                                 </button>
                               </div>
                             </div>
@@ -750,8 +753,8 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
 
       {/* Reject Modal */}
       {rejectingId && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setRejectingId(null)}>
-          <div className="bg-[var(--surface)] rounded-2xl p-5 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={() => setRejectingId(null)}>
+          <div className="bg-[var(--surface)] rounded-t-2xl sm:rounded-2xl p-5 w-full sm:max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
             <h4 className="font-semibold text-[var(--text)] mb-3 flex items-center gap-2">
               <XCircle className="w-5 h-5 text-red-500" />
               Reject {rejectType === 'request' ? 'Request' : rejectType === 'parts' ? 'Parts' : 'Job'}

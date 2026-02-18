@@ -71,17 +71,17 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
 
   return (
     <div className="bg-[var(--surface)] border-b border-[var(--border)] -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 py-4 sticky top-0 z-30 shadow-premium-xs">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
+        <div className="flex items-start gap-3 min-w-0">
           <button 
             onClick={() => navigate(-1)} 
-            className="p-2 hover:bg-[var(--bg-subtle)] rounded-lg transition-colors mt-0.5"
+            className="p-2 h-12 w-12 md:h-auto md:w-auto flex items-center justify-center hover:bg-[var(--bg-subtle)] rounded-lg transition-colors mt-0.5 flex-shrink-0"
           >
             <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
           </button>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold text-[var(--text)]">{job.title}</h1>
+              <h1 className="text-lg md:text-xl font-semibold text-[var(--text)] truncate">{job.title}</h1>
               {/* Real-time connection indicator */}
               <span 
                 className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-gray-400'}`}
@@ -122,7 +122,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
         </div>
         
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+        <div className="flex items-center gap-2 flex-wrap justify-start md:justify-end overflow-x-auto [&>button]:min-h-[48px] [&>button]:md:min-h-0 [&>div>button]:min-h-[48px] [&>div>button]:md:min-h-0">
           {/* Acknowledge Slot-In Job Button */}
           {isSlotInPendingAck && (isAssigned || isInProgress) && (isAssignedToCurrentUser || isAdmin || isSupervisor) && (
             <button

@@ -71,7 +71,7 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   const { isNew, isAssigned, isInProgress, isAwaitingFinalization } = statusFlags;
 
   return (
-    <div className="card-premium p-5">
+    <div className="card-premium p-3 md:p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
@@ -96,7 +96,7 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
             </div>
           )}
           {job.parts_used.map(p => (
-            <div key={p.job_part_id} className="flex items-center justify-between p-3 bg-[var(--bg-subtle)] rounded-xl">
+            <div key={p.job_part_id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-[var(--bg-subtle)] rounded-xl">
               <div>
                 <span className="font-medium text-[var(--text)]">{Number.isInteger(p.quantity) ? p.quantity : p.quantity.toFixed(2)}× {p.part_name}</span>
               </div>

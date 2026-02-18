@@ -94,6 +94,7 @@ const DashboardV4: React.FC<DashboardV4Props> = ({ currentUser }) => {
   }
 
   return (
+    <div className="pb-24 md:pb-8">
     <DashboardPreviewV4
       currentUser={currentUser}
       displayRole={devMode.displayRole}
@@ -101,6 +102,7 @@ const DashboardV4: React.FC<DashboardV4Props> = ({ currentUser }) => {
       users={users}
       onRefresh={handleRefresh}
     />
+    </div>
   );
 };
 

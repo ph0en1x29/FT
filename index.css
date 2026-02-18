@@ -489,6 +489,13 @@ body {
    Mobile optimizations
    ========================================= */
 
+/* Safe area padding for notched phones */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .bottom-nav-glass {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+}
+
 @media (max-width: 640px) {
   .stat-card {
     padding: 1rem;
@@ -497,6 +504,33 @@ body {
   .card-premium,
   .card-premium-elevated {
     border-radius: var(--radius-md);
+  }
+
+  /* Touch-friendly tap targets */
+  button, a, [role="button"], select, input[type="checkbox"], input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent zoom on input focus (iOS) */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Smooth scrolling for lists */
+  .overflow-x-auto, .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Better modal behavior on mobile */
+  .modal-overlay {
+    align-items: flex-end;
+  }
+
+  /* Reduce padding in tight spaces */
+  th, td {
+    padding: 0.5rem 0.375rem;
+    font-size: 0.8125rem;
   }
 }
 

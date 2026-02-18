@@ -64,11 +64,13 @@ const PartsTable: React.FC<PartsTableProps> = ({
     <>
       {Object.keys(groupedParts).sort().map(category => (
         <div key={category} className="card-theme rounded-xl overflow-hidden theme-transition">
-          <div className="bg-theme-surface-2 px-4 py-3 border-b border-theme">
-            <h2 className="font-semibold text-theme">{category}</h2>
+          <div className="bg-theme-surface-2 px-3 md:px-4 py-3 border-b border-theme">
+            <h2 className="font-semibold text-theme text-sm md:text-base">{category}</h2>
             <p className="text-xs text-theme-muted">{groupedParts[category].length} items</p>
           </div>
-          <div className="overflow-x-auto">
+
+          {/* Desktop table view */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-theme-surface-2 text-theme-muted text-xs uppercase">
                 <tr>
@@ -153,6 +155,61 @@ const PartsTable: React.FC<PartsTableProps> = ({
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile card view */}
+          <div className="md:hidden divide-y divide-theme">
+            {groupedParts[category].map(p => (
+              <div key={p.part_id} className="p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-theme text-sm truncate">{p.part_name}</div>
+                    <div className="text-xs text-theme-muted font-mono">{p.part_code}</div>
+                  </div>
+                  <div className={`text-lg font-bold flex items-center gap-1 flex-shrink-0 ${
+                    p.stock_quantity === 0 ? 'text-red-500' :
+                    p.stock_quantity <= (p.min_stock_level || 10) ? 'text-amber-500' :
+                    'text-green-600'
+                  }`}>
+                    {p.stock_quantity}
+                    {p.stock_quantity === 0 && (
+                      <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">OUT</span>
+                    )}
+                    {p.stock_quantity > 0 && p.stock_quantity <= (p.min_stock_level || 10) && (
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-theme-muted">
+                  {canViewPricing && <span>Cost: RM{p.cost_price.toFixed(2)}</span>}
+                  {canViewPricing && <span>Price: RM{p.sell_price.toFixed(2)}</span>}
+                  <span>{p.warranty_months} mo warranty</span>
+                  <span>Min: {p.min_stock_level || 10}</span>
+                </div>
+                {(p.supplier || p.location) && (
+                  <div className="flex flex-wrap gap-x-3 text-xs text-theme-muted">
+                    {p.supplier && <span>Supplier: {p.supplier}</span>}
+                    {p.location && <span>Location: {p.location}</span>}
+                  </div>
+                )}
+                {isAdmin && (
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => onEdit(p)}
+                      className="flex items-center gap-1.5 px-3 py-2 h-10 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-xs font-medium"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" /> Edit
+                    </button>
+                    <button
+                      onClick={() => onDelete(p)}
+                      className="flex items-center gap-1.5 px-3 py-2 h-10 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-xs font-medium"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       ))}

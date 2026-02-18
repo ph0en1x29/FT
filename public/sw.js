@@ -1,114 +1,164 @@
-// FieldPro Service Worker for Push Notifications
-// Version: 1.0.0
+// FieldPro Service Worker v2.0
+// Push Notifications + Offline Caching + PWA
 
-const CACHE_NAME = 'fieldpro-v1';
+const CACHE_NAME = 'fieldpro-v2';
+const STATIC_CACHE = 'fieldpro-static-v2';
+const API_CACHE = 'fieldpro-api-v1';
 
-// Install event - cache essential resources
+// Static assets to precache
+const PRECACHE_URLS = [
+  '/',
+  '/favicon.svg',
+  '/manifest.json',
+];
+
+// Install: precache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Service Worker installing...');
-  self.skipWaiting();
+  console.log('[SW] Installing v2...');
+  event.waitUntil(
+    caches.open(STATIC_CACHE)
+      .then(cache => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting())
+  );
 });
 
-// Activate event - clean up old caches
+// Activate: clean old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Service Worker activating...');
-  event.waitUntil(clients.claim());
+  console.log('[SW] Activating v2...');
+  event.waitUntil(
+    caches.keys().then(keys => 
+      Promise.all(
+        keys
+          .filter(key => key !== STATIC_CACHE && key !== API_CACHE && key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      )
+    ).then(() => clients.claim())
+  );
 });
 
-// Push notification event - handle incoming push messages
-self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received:', event);
+// Fetch: network-first for API, cache-first for static
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
 
+  // Skip non-GET and cross-origin
+  if (event.request.method !== 'GET') return;
+  if (!url.origin.includes(self.location.origin) && !url.hostname.includes('supabase')) return;
+
+  // API requests (Supabase): network-first with cache fallback
+  if (url.hostname.includes('supabase')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // Cache successful GET responses
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(API_CACHE).then(cache => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // Offline: serve from cache
+          return caches.match(event.request).then(cached => {
+            if (cached) return cached;
+            return new Response(JSON.stringify({ error: 'offline', message: 'No network connection' }), {
+              headers: { 'Content-Type': 'application/json' }
+            });
+          });
+        })
+    );
+    return;
+  }
+
+  // Static assets: cache-first
+  event.respondWith(
+    caches.match(event.request).then(cached => {
+      if (cached) {
+        // Return cache but also update in background
+        fetch(event.request).then(response => {
+          if (response.ok) {
+            caches.open(STATIC_CACHE).then(cache => cache.put(event.request, response));
+          }
+        }).catch(() => {});
+        return cached;
+      }
+      return fetch(event.request).then(response => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(STATIC_CACHE).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => {
+        // Offline fallback for navigation
+        if (event.request.mode === 'navigate') {
+          return caches.match('/');
+        }
+        return new Response('Offline', { status: 503 });
+      });
+    })
+  );
+});
+
+// Push notifications
+self.addEventListener('push', (event) => {
   let data = {
-    title: 'FieldPro Notification',
+    title: 'FieldPro',
     body: 'You have a new notification',
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
     tag: 'fieldpro-notification',
-    requireInteraction: false,
     data: { url: '/' }
   };
 
-  // Parse push data if available
   if (event.data) {
     try {
       const pushData = event.data.json();
-      data = {
-        ...data,
-        ...pushData,
-        data: { 
-          url: pushData.url || pushData.data?.url || '/',
-          ...pushData.data
-        }
-      };
+      data = { ...data, ...pushData, data: { url: pushData.url || '/', ...pushData.data } };
     } catch (e) {
-      console.warn('[SW] Failed to parse push data:', e);
       data.body = event.data.text();
     }
   }
 
-  // Set notification options based on priority
-  const options = {
-    body: data.body,
-    icon: data.icon || '/favicon.svg',
-    badge: data.badge || '/favicon.svg',
-    tag: data.tag || 'fieldpro-notification',
-    requireInteraction: data.priority === 'urgent' || data.priority === 'high',
-    vibrate: data.priority === 'urgent' ? [200, 100, 200, 100, 200] : [200, 100, 200],
-    data: data.data,
-    actions: data.actions || [
-      { action: 'open', title: 'Open' },
-      { action: 'dismiss', title: 'Dismiss' }
-    ]
-  };
-
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon,
+      badge: data.badge,
+      tag: data.tag,
+      requireInteraction: data.priority === 'urgent',
+      vibrate: data.priority === 'urgent' ? [200, 100, 200, 100, 200] : [200, 100, 200],
+      data: data.data,
+      actions: [
+        { action: 'open', title: 'Open' },
+        { action: 'dismiss', title: 'Dismiss' }
+      ]
+    })
   );
 });
 
-// Notification click event - handle user interaction
+// Notification click
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event);
-
   event.notification.close();
+  if (event.action === 'dismiss') return;
 
-  // Handle action buttons
-  if (event.action === 'dismiss') {
-    return;
-  }
-
-  // Open the app or focus existing window
   const urlToOpen = event.notification.data?.url || '/';
-
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((windowClients) => {
-        // Check if there's already a window/tab open
-        for (const client of windowClients) {
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
-            // Navigate to the notification URL and focus
-            client.navigate(urlToOpen);
-            return client.focus();
-          }
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(urlToOpen);
+          return client.focus();
         }
-        // If no window is open, open a new one
-        if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
-        }
-      })
+      }
+      return clients.openWindow(urlToOpen);
+    })
   );
 });
 
-// Notification close event
-self.addEventListener('notificationclose', (event) => {
-  console.log('[SW] Notification closed:', event);
-});
-
-// Background sync for offline notifications (future enhancement)
+// Background sync
 self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync:', event.tag);
   if (event.tag === 'sync-notifications') {
-    // Handle background sync
+    // Future: sync offline actions
   }
 });

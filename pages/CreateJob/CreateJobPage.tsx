@@ -46,20 +46,20 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
   }));
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 relative">
+    <div className="max-w-2xl mx-auto space-y-4 md:space-y-6 relative pb-24 md:pb-8 px-1 sm:px-0">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4 md:mb-6">
         <button 
           onClick={() => navigate(-1)} 
-          className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+          className="p-3 hover:bg-slate-100 rounded-full transition-colors min-w-[44px] h-12 flex items-center justify-center"
         >
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
-        <h1 className="text-2xl font-bold text-slate-900">New Job Order</h1>
+        <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-slate-900">New Job Order</h1>
       </div>
 
       {/* Main Form */}
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white p-3 md:p-4 lg:p-6 rounded-xl shadow-sm space-y-4 md:space-y-6">
         
         {/* Customer Selection */}
         <Combobox 
@@ -148,17 +148,17 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
         </div>
 
         {/* Form Actions */}
-        <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
+        <div className="pt-4 md:pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-end gap-3">
           <button 
             type="button" 
             onClick={() => navigate(-1)} 
-            className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+            className="px-5 py-2.5 h-12 sm:h-auto text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
           >
             Cancel
           </button>
           <button 
             type="submit" 
-            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2 shadow-sm transition-colors focus:ring-4 focus:ring-blue-100"
+            className="px-6 py-2.5 h-12 sm:h-auto bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center justify-center gap-2 shadow-sm transition-colors focus:ring-4 focus:ring-blue-100"
           >
             <Save className="w-4 h-4" /> Create Job
           </button>

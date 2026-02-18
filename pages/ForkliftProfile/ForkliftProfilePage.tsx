@@ -91,7 +91,7 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-4 md:space-y-6 pb-24 md:pb-8">
       <ForkliftHeader
         hasActiveRental={!!activeRental}
         canScheduleMaintenance={canScheduleMaintenance}

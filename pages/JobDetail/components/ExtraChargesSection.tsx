@@ -45,7 +45,7 @@ export const ExtraChargesSection: React.FC<ExtraChargesSectionProps> = ({
   };
 
   return (
-    <div className="card-premium p-5">
+    <div className="card-premium p-3 md:p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
@@ -63,7 +63,7 @@ export const ExtraChargesSection: React.FC<ExtraChargesSectionProps> = ({
       {job.extra_charges && job.extra_charges.length > 0 ? (
         <div className="space-y-2 mb-4">
           {job.extra_charges.map(charge => (
-            <div key={charge.charge_id} className="flex items-center justify-between p-3 bg-[var(--warning-bg)] rounded-xl">
+            <div key={charge.charge_id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-[var(--warning-bg)] rounded-xl">
               <div>
                 <p className="font-medium text-[var(--text)]">{charge.name}</p>
                 {charge.description && <p className="text-xs text-[var(--text-muted)]">{charge.description}</p>}

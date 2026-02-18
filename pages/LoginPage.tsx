@@ -32,15 +32,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const inputClassName = "w-full pl-10 pr-4 py-3 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/25 placeholder-slate-400 transition-all duration-200";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full animate-in fade-in zoom-in duration-300">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-3 sm:p-4">
+      <div className="bg-white p-5 sm:p-8 rounded-2xl shadow-xl max-w-sm sm:max-w-md w-full animate-in fade-in zoom-in duration-300">
         
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-600 rounded-xl mx-auto mb-6 flex items-center justify-center shadow-lg shadow-blue-200">
             <LayoutDashboard className="text-white w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Welcome to FieldPro</h1>
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 mb-2">Welcome to FieldPro</h1>
           <p className="text-slate-500">Sign in to your account to continue.</p>
         </div>
 
@@ -84,7 +84,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 text-white p-3 h-12 rounded-lg hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {loading ? 'Signing in...' : 'Sign In'}
             {!loading && <ArrowRight className="w-4 h-4" />}

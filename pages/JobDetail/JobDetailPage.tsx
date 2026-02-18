@@ -100,7 +100,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   );
 
   return (
-    <div className="max-w-5xl mx-auto pb-20 fade-in">
+    <div className="max-w-5xl mx-auto pb-24 md:pb-8 fade-in">
       <JobHeader job={job} isRealtimeConnected={true} roleFlags={roleFlags} statusFlags={statusFlags}
         exportingToAutoCount={state.exportingToAutoCount} onAcceptJob={actions.handleAcceptJob}
         onRejectJob={() => state.setShowRejectJobModal(true)} onStartJob={actions.handleOpenStartJobModal}

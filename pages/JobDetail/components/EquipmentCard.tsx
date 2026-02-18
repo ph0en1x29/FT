@@ -56,7 +56,7 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
         </div>
       </div>
       
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <div>
           <p className="label-premium mb-1">Serial Number</p>
           <p className="font-mono value-premium">{job.forklift.serial_number}</p>

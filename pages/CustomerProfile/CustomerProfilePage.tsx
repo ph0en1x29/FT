@@ -76,7 +76,7 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
   if (!customer) return <div className="p-8 text-center text-red-500">Customer not found</div>;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-4 md:space-y-6 pb-24 md:pb-8">
       <CustomerHeader
         customer={customer}
         isAdmin={isAdmin}

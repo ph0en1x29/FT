@@ -13,7 +13,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
   onDeleteCustomer,
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-5 border border-slate-200">
+    <div className="bg-white rounded-xl shadow-sm p-3 md:p-5 border border-slate-200">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         {/* Left: Customer Info */}
         <div className="flex items-start gap-4">
@@ -22,7 +22,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
           </button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-900">{customer.name}</h1>
+              <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-slate-900">{customer.name}</h1>
               <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded font-mono">
                 {customer.customer_id.slice(0, 8)}
               </span>

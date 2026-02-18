@@ -109,10 +109,10 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
   const pendingCount = requests.filter(r => r.status === 'pending').length;
 
   return (
-    <div className="card-theme rounded-xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-[var(--text)] flex items-center gap-2">
-          <Package className="w-5 h-5 text-[var(--accent)]" />
+    <div className="card-theme rounded-xl p-3 md:p-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+        <h3 className="font-semibold text-[var(--text)] flex items-center gap-2 text-sm md:text-base">
+          <Package className="w-5 h-5 text-[var(--accent)] flex-shrink-0" />
           Part Requests
           {pendingCount > 0 && (
             <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
@@ -167,14 +167,14 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
                 {getStatusBadge(request.status)}
               </div>
 
-              <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-[var(--text-muted)]">
                 <span>
                   By {request.requested_by_user?.full_name || request.requested_by_user?.name || 'Unknown'}
                   {' · '}
                   {new Date(request.created_at).toLocaleString()}
                 </span>
                 
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap [&>button]:min-h-[44px] [&>button]:md:min-h-0 [&>button]:px-3">
                   {/* Edit button - only for technician's own pending requests */}
                   {request.status === 'pending' && 
                    request.requested_by === currentUserId && 

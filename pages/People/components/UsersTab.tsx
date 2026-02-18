@@ -159,8 +159,8 @@ const UsersTab: React.FC<UsersTabProps> = ({ _currentUser }) => {
         </button>
       </div>
 
-      {/* Users Table */}
-      <div className="card-theme rounded-xl shadow-sm overflow-hidden">
+      {/* Users Table - Desktop */}
+      <div className="hidden md:block card-theme rounded-xl shadow-sm overflow-hidden">
         <table className="w-full">
           <thead className="bg-theme-surface-2 border-b border-theme">
             <tr>
@@ -209,11 +209,49 @@ const UsersTab: React.FC<UsersTabProps> = ({ _currentUser }) => {
         </table>
       </div>
 
+      {/* Users Cards - Mobile */}
+      <div className="md:hidden space-y-3">
+        {filteredUsers.map(user => (
+          <div key={user.user_id} className="card-theme rounded-xl p-3 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-theme truncate">{user.name}</p>
+                <p className="text-sm text-theme-muted truncate">{user.email}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {getRoleBadge(user.role)}
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}`}>
+                  {user.is_active ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                  {user.is_active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              <div className="flex items-center">
+                <button onClick={() => handleOpenModal(user)} className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => setConfirmModal({ isOpen: true, user, action: user.is_active ? 'deactivate' : 'activate' })}
+                  className={`p-2 rounded ${user.is_active ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}
+                  title={user.is_active ? 'Deactivate' : 'Activate'}
+                >
+                  {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
+            <div className="px-4 md:px-6 py-4 border-b flex justify-between items-center bg-slate-50">
               <h3 className="font-bold text-lg text-slate-800">{editingUser ? 'Edit User' : 'Add New User'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
             </div>
