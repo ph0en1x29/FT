@@ -11,3 +11,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-17 22:11] [Codex] Implemented Feature #4 mobile bottom sheet modal primitives in `components/mobile/BottomSheet.tsx` (mobile sheet + desktop fallback modal) and verified with npm run build.
 
 [2026-02-18 00:10] [Codex] Implemented Feature #3 standalone mobile filter wrapper in `components/mobile/FilterSheet.tsx` (mobile Filters button + active badge + BottomSheet, desktop inline children) and verified with npm run build.
+
+[2026-02-18 00:52] [Codex] Fixed AdminDashboardV7_1 low-stock race by removing getGlobalLowStockCount call/import, kept low-stock list scroll container at max-h-[220px] overflow-y-auto, aligned getGlobalLowStockCount predicate to min > 0 && quantity < min, and verified with npm run build.

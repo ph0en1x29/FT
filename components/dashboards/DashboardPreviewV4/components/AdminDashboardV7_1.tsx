@@ -38,7 +38,6 @@ import {
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 // Notifications handled by global header NotificationBell
-import { getGlobalLowStockCount } from '../../../../services/inventoryService';
 import { SupabaseDb } from '../../../../services/supabaseService';
 import { supabase } from '../../../../services/supabaseClient';
 import { Job, User, UserRole, JobStatus } from '../../../../types';
@@ -296,7 +295,6 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
   // Notifications handled by global header bell — removed duplicate fetch
 
   useEffect(() => {
-    getGlobalLowStockCount().then(setLowStockCount).catch(() => {});
     // Fetch top low stock items
     Promise.resolve(supabase.from('van_stock_items').select('quantity, min_quantity, part:parts(part_name)'))
       .then(({ data }) => {

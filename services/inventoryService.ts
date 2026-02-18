@@ -460,7 +460,11 @@ export const getGlobalLowStockCount = async (): Promise<number> => {
     const { data } = await supabase
       .from('van_stock_items')
       .select('quantity, min_quantity');
-    return (data || []).filter(i => i.min_quantity > 0 && i.quantity < i.min_quantity).length;
+    return (data || []).filter((item) => {
+      const min = item.min_quantity;
+      const quantity = item.quantity;
+      return min > 0 && quantity < min;
+    }).length;
   } catch {
     return 0;
   }
