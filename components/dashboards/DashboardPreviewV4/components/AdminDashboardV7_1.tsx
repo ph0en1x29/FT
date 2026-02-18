@@ -304,7 +304,6 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
           const low = data
             .filter((i: Record<string, unknown>) => (i.quantity as number) <= (i.min_quantity as number))
             .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.quantity as number) - (b.quantity as number))
-            .slice(0, 3)
             .map((i: Record<string, unknown>) => ({ name: (i.part as Record<string, string>)?.part_name || 'Unknown', quantity: i.quantity as number, min: i.min_quantity as number }));
           setLowStockItems(low);
         }
