@@ -32,8 +32,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser
   const actions = useMemo<FabAction[]>(() => {
     if (role === 'technician') {
       return [
-        { icon: Plus, label: 'New Job', to: '/jobs/new' },
         { icon: Wrench, label: 'Van Stock', to: '/my-van-stock' },
+        { icon: ClipboardCheck, label: 'My Jobs', to: '/jobs' },
       ];
     }
 
