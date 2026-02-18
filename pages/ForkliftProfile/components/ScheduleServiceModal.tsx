@@ -50,7 +50,7 @@ export const ScheduleServiceModal: React.FC<ScheduleServiceModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
+      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 sticky top-0">
           <h3 className="font-bold text-lg text-slate-800">Schedule Service</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">

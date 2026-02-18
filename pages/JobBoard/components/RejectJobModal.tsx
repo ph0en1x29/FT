@@ -28,7 +28,7 @@ export const RejectJobModal: React.FC<RejectJobModalProps> = ({
       onClick={onCancel}
     >
       <div 
-        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4" 
+        className="bg-[var(--surface)] rounded-xl shadow-xl p-6 w-full max-w-md mx-4" 
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-semibold text-slate-800 mb-4">

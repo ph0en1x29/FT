@@ -222,7 +222,7 @@ export default function PendingConfirmations({ currentUser, hideHeader = false }
               {selectMode && (
                 <div className="absolute top-3 left-3 z-10">
                   <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                    selectedIds.has(job.job_id) ? 'bg-blue-500 border-blue-500' : 'border-gray-300 bg-white hover:border-blue-400'
+                    selectedIds.has(job.job_id) ? 'bg-blue-500 border-blue-500' : 'border-gray-300 bg-[var(--surface)] hover:border-blue-400'
                   }`}>
                     {selectedIds.has(job.job_id) && (
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>

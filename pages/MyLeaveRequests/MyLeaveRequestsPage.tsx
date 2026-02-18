@@ -83,7 +83,7 @@ export default function MyLeaveRequestsPage({ currentUser }: MyLeaveRequestsPage
       <LeaveStatsCards stats={stats} />
 
       {/* Filter Tabs & Leave List */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+      <div className="bg-[var(--surface)] rounded-xl shadow-sm border border-slate-200">
         <LeaveFilterTabs
           filter={filter}
           onFilterChange={setFilter}

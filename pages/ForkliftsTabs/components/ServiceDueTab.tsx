@@ -174,7 +174,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
         <button
           onClick={() => setFilter(filter === 'overdue' ? 'all' : 'overdue')}
           className={`p-4 rounded-xl border-2 text-left transition-all ${
-            filter === 'overdue' ? 'border-red-500 bg-red-50' : 'border-transparent bg-white hover:border-red-200'
+            filter === 'overdue' ? 'border-red-500 bg-red-50' : 'border-transparent bg-[var(--surface)] hover:border-red-200'
           }`}
         >
           <div className="flex items-center gap-3">
@@ -191,7 +191,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
         <button
           onClick={() => setFilter(filter === 'due_soon' ? 'all' : 'due_soon')}
           className={`p-4 rounded-xl border-2 text-left transition-all ${
-            filter === 'due_soon' ? 'border-amber-500 bg-amber-50' : 'border-transparent bg-white hover:border-amber-200'
+            filter === 'due_soon' ? 'border-amber-500 bg-amber-50' : 'border-transparent bg-[var(--surface)] hover:border-amber-200'
           }`}
         >
           <div className="flex items-center gap-3">
@@ -208,7 +208,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
         <button
           onClick={() => setFilter(filter === 'job_created' ? 'all' : 'job_created')}
           className={`p-4 rounded-xl border-2 text-left transition-all ${
-            filter === 'job_created' ? 'border-green-500 bg-green-50' : 'border-transparent bg-white hover:border-green-200'
+            filter === 'job_created' ? 'border-green-500 bg-green-50' : 'border-transparent bg-[var(--surface)] hover:border-green-200'
           }`}
         >
           <div className="flex items-center gap-3">
@@ -225,7 +225,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
         <button
           onClick={() => setFilter(filter === 'stale' ? 'all' : 'stale')}
           className={`p-4 rounded-xl border-2 text-left transition-all ${
-            filter === 'stale' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-white hover:border-purple-200'
+            filter === 'stale' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-[var(--surface)] hover:border-purple-200'
           }`}
         >
           <div className="flex items-center gap-3">

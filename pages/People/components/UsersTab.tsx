@@ -250,7 +250,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ _currentUser }) => {
       {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
             <div className="px-4 md:px-6 py-4 border-b flex justify-between items-center bg-slate-50">
               <h3 className="font-bold text-lg text-slate-800">{editingUser ? 'Edit User' : 'Add New User'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
@@ -294,7 +294,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ _currentUser }) => {
       {/* Confirm Toggle Modal */}
       {confirmModal.isOpen && confirmModal.user && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+          <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className={`px-6 py-4 border-b ${confirmModal.action === 'deactivate' ? 'bg-red-50' : 'bg-green-50'}`}>
               <h3 className={`font-bold text-lg ${confirmModal.action === 'deactivate' ? 'text-red-800' : 'text-green-800'}`}>
                 {confirmModal.action === 'deactivate' ? 'Deactivate User?' : 'Activate User?'}

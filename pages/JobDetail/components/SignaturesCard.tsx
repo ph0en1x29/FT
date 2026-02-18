@@ -57,7 +57,7 @@ export const SignaturesCard: React.FC<SignaturesCardProps> = ({
                 loading="lazy" 
                 decoding="async" 
                 alt="Tech Signature" 
-                className="w-full h-16 object-contain bg-white rounded border border-[var(--border)]" 
+                className="w-full h-16 object-contain bg-[var(--surface)] rounded border border-[var(--border)]" 
               />
               <p className="text-[10px] text-[var(--text-muted)] mt-1">{job.technician_signature.signed_by_name}</p>
             </div>
@@ -91,7 +91,7 @@ export const SignaturesCard: React.FC<SignaturesCardProps> = ({
                 loading="lazy" 
                 decoding="async" 
                 alt="Customer Signature" 
-                className="w-full h-16 object-contain bg-white rounded border border-[var(--border)]" 
+                className="w-full h-16 object-contain bg-[var(--surface)] rounded border border-[var(--border)]" 
               />
               <p className="text-[10px] text-[var(--text-muted)] mt-1">{job.customer_signature.signed_by_name}</p>
             </div>

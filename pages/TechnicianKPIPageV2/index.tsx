@@ -91,7 +91,7 @@ const TechnicianKPIPage: React.FC<TechnicianKPIPageProps> = ({ currentUser, hide
       </div>
 
       {technicianKPIs.length === 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center border border-slate-200">
+        <div className="bg-[var(--surface)] rounded-xl shadow-sm p-12 text-center border border-slate-200">
           <Users className="w-12 h-12 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-500">No technician data available for the selected period</p>
         </div>

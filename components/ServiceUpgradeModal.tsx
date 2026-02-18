@@ -58,7 +58,7 @@ const ServiceUpgradeModal: React.FC<ServiceUpgradeModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-xl shadow-xl max-w-md w-full overflow-hidden">
         {/* Header */}
         <div className="bg-amber-50 dark:bg-amber-900/30 px-6 py-4 flex items-center gap-3 border-b border-amber-200 dark:border-amber-800">
           <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center">
@@ -123,7 +123,7 @@ const ServiceUpgradeModal: React.FC<ServiceUpgradeModalProps> = ({
           <button
             onClick={handleDecline}
             disabled={disabled}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-[var(--surface)] border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
           >
             Keep Minor Service
           </button>

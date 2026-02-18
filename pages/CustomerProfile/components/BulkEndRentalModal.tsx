@@ -12,7 +12,7 @@ const BulkEndRentalModal: React.FC<BulkEndRentalModalProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
         <div className="px-6 py-4 border-b flex justify-between items-center bg-red-50">
           <h3 className="font-bold text-lg text-red-800">
             End {selectedRentals.length} Rental(s)
@@ -27,7 +27,7 @@ const BulkEndRentalModal: React.FC<BulkEndRentalModalProps> = ({
             <p className="text-xs font-bold text-slate-500 uppercase mb-2">Rentals to End:</p>
             <div className="space-y-1">
               {selectedRentals.map(rental => (
-                <div key={rental.rental_id} className="text-sm p-2 bg-white rounded border border-slate-200 flex items-center gap-2">
+                <div key={rental.rental_id} className="text-sm p-2 bg-[var(--surface)] rounded border border-slate-200 flex items-center gap-2">
                   <Truck className="w-3 h-3 text-slate-400" />
                   <span className="font-medium">{rental.forklift?.serial_number}</span>
                   <span className="text-slate-400">—</span>

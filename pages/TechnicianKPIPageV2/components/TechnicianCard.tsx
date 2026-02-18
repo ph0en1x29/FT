@@ -18,7 +18,7 @@ export const TechnicianCard: React.FC<TechnicianCardProps> = ({
   onToggle,
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-[var(--surface)] rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       {/* Header Row */}
       <div
         className="p-4 cursor-pointer hover:bg-slate-50 transition"

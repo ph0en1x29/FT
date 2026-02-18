@@ -40,7 +40,7 @@ export default function AmendmentDetailModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         {/* Modal Header */}
         <div className={`p-4 border-b ${colors.bg}`}>
           <div className="flex items-center justify-between">
@@ -162,7 +162,7 @@ export default function AmendmentDetailModal({
             <div className="flex justify-end gap-3">
               <button
                 onClick={onClose}
-                className="px-4 py-2 border border-slate-200 rounded-lg hover:bg-white text-sm"
+                className="px-4 py-2 border border-slate-200 rounded-lg hover:bg-[var(--surface)] text-sm"
               >
                 Cancel
               </button>
@@ -187,7 +187,7 @@ export default function AmendmentDetailModal({
             <div className="flex justify-end">
               <button
                 onClick={onClose}
-                className="px-4 py-2 border border-slate-200 rounded-lg hover:bg-white text-sm"
+                className="px-4 py-2 border border-slate-200 rounded-lg hover:bg-[var(--surface)] text-sm"
               >
                 Close
               </button>

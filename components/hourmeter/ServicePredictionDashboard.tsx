@@ -43,7 +43,7 @@ export function ServicePredictionDashboard({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-[var(--surface)] rounded-lg border border-gray-200 p-6">
         <div className="flex items-center justify-center py-8">
           <RefreshCw className="h-6 w-6 text-gray-400 animate-spin" />
         </div>
@@ -53,7 +53,7 @@ export function ServicePredictionDashboard({
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-[var(--surface)] rounded-lg border border-gray-200 p-6">
         <div className="text-center py-8">
           <p className="text-red-600 text-sm">{error}</p>
           <button 
@@ -73,7 +73,7 @@ export function ServicePredictionDashboard({
   const hasAnyPredictions = overdue.length > 0 || due_this_week.length > 0 || upcoming_two_weeks.length > 0;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="bg-[var(--surface)] rounded-lg border border-gray-200 overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="flex items-center justify-between">

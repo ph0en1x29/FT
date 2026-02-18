@@ -59,7 +59,7 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
       </div>
 
       {/* Main Form */}
-      <form onSubmit={handleSubmit} className="bg-white p-3 md:p-4 lg:p-6 rounded-xl shadow-sm space-y-4 md:space-y-6">
+      <form onSubmit={handleSubmit} className="bg-[var(--surface)] p-3 md:p-4 lg:p-6 rounded-xl shadow-sm space-y-4 md:space-y-6">
         
         {/* Customer Selection */}
         <Combobox 

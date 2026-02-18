@@ -84,19 +84,19 @@ export const ForkliftInfoCard: React.FC<ForkliftInfoCardProps> = ({
 
         {/* Right Side - KPI Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+          <div className="bg-[var(--surface)] rounded-lg p-3 text-center shadow-sm">
             <p className="text-2xl font-bold text-blue-600">{stats.totalServices}</p>
             <p className="text-xs text-slate-500">Total Services</p>
           </div>
-          <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+          <div className="bg-[var(--surface)] rounded-lg p-3 text-center shadow-sm">
             <p className="text-2xl font-bold text-green-600">{stats.completedServices}</p>
             <p className="text-xs text-slate-500">Completed</p>
           </div>
-          <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+          <div className="bg-[var(--surface)] rounded-lg p-3 text-center shadow-sm">
             <p className="text-2xl font-bold text-purple-600">{stats.totalPartsUsed}</p>
             <p className="text-xs text-slate-500">Parts Used</p>
           </div>
-          <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+          <div className="bg-[var(--surface)] rounded-lg p-3 text-center shadow-sm">
             <p className="text-2xl font-bold text-amber-600">RM{stats.totalRentalRevenue.toLocaleString()}</p>
             <p className="text-xs text-slate-500">Rental Revenue</p>
           </div>

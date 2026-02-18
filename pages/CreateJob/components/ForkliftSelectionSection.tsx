@@ -43,7 +43,7 @@ const ForkliftSelectionSection: React.FC<ForkliftSelectionSectionProps> = ({
 
       {/* Selected Forklift Info Card */}
       {selectedForklift && (
-        <div className="bg-white rounded-lg p-3 border border-amber-200">
+        <div className="bg-[var(--surface)] rounded-lg p-3 border border-amber-200">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <span className="text-slate-500">Serial Number:</span>

@@ -61,7 +61,7 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
   );
 
   return (
-    <div className="bg-white p-6 max-w-4xl mx-auto text-sm font-sans" style={{ fontFamily: 'Arial, sans-serif' }}>
+    <div className="bg-[var(--surface)] p-6 max-w-4xl mx-auto text-sm font-sans" style={{ fontFamily: 'Arial, sans-serif' }}>
       {/* Header */}
       <div className="flex justify-between items-start border-b-2 border-blue-600 pb-4 mb-4">
         <div>

@@ -28,7 +28,7 @@ export const ServiceHistorySection: React.FC<ServiceHistorySectionProps> = ({
   const [showCancelledJobs, setShowCancelledJobs] = useState(false);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-[var(--surface)] rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-200 bg-slate-50">
         <h3 className="font-bold text-slate-800 flex items-center gap-2">
           <Wrench className="w-5 h-5 text-blue-600" /> Service History ({activeServices.length})

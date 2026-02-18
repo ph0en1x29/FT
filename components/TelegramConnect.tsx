@@ -324,7 +324,7 @@ const TelegramConnect: React.FC<TelegramConnectProps> = ({ currentUser, compact 
                           : 'bg-gray-300 dark:bg-gray-600'
                       }`}
                     >
-                      <div className={`w-4 h-4 rounded-full bg-white shadow transform transition-transform ${
+                      <div className={`w-4 h-4 rounded-full bg-[var(--surface)] shadow transform transition-transform ${
                         preferences[item.key as keyof typeof preferences]
                           ? 'translate-x-5'
                           : 'translate-x-1'

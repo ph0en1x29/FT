@@ -40,7 +40,7 @@ const ResultModal: React.FC<ResultModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
         <div className={`px-6 py-4 border-b flex justify-between items-center ${headerColors[type]}`}>
           <h3 className={`font-bold text-lg flex items-center gap-2 ${titleColors[type]}`}>
             {type === 'success' && <CheckCircle className="w-5 h-5" />}

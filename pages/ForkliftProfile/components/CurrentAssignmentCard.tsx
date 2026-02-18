@@ -16,7 +16,7 @@ export const CurrentAssignmentCard: React.FC<CurrentAssignmentCardProps> = ({
   onEndRental,
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-green-200">
+    <div className="bg-[var(--surface)] rounded-xl shadow-sm p-6 border border-green-200">
       <div className="flex justify-between items-start flex-wrap gap-4">
         <div className="flex-1">
           <h3 className="font-bold text-green-800 flex items-center gap-2 mb-2">

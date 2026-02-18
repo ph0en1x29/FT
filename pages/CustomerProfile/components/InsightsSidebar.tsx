@@ -17,7 +17,7 @@ const InsightsSidebar: React.FC<InsightsSidebarProps> = ({
   return (
     <div className="space-y-4">
       {/* Service Stats */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div className="bg-[var(--surface)] rounded-xl shadow-sm border border-slate-200 p-4">
         <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
           <Wrench className="w-4 h-4 text-blue-600" /> Service Stats
         </h3>
@@ -40,7 +40,7 @@ const InsightsSidebar: React.FC<InsightsSidebarProps> = ({
       </div>
 
       {/* Common Issues */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div className="bg-[var(--surface)] rounded-xl shadow-sm border border-slate-200 p-4">
         <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-orange-600" /> Common Issues
         </h3>

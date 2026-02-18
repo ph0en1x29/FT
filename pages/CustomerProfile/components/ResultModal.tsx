@@ -14,7 +14,7 @@ const ResultModal: React.FC<ResultModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
         <div className={`px-6 py-4 border-b flex justify-between items-center ${
           type === 'success' ? 'bg-green-50 border-green-100' :
           type === 'error' ? 'bg-red-50 border-red-100' :

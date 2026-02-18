@@ -111,7 +111,7 @@ const BulkActionBar: React.FC<{
             key={i}
             onClick={a.onClick}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105 active:scale-95 ${
-              a.variant === 'primary' ? 'bg-white text-gray-900' :
+              a.variant === 'primary' ? 'bg-[var(--surface)] text-gray-900' :
               a.variant === 'danger' ? 'bg-red-500 text-white' :
               'bg-white/20 text-white'
             }`}

@@ -91,7 +91,7 @@ export default function HourmeterAmendmentModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg overflow-hidden">
         {/* Header */}
         <div className="p-4 border-b flex items-center justify-between bg-amber-50">
           <div className="flex items-center gap-3">
@@ -132,7 +132,7 @@ export default function HourmeterAmendmentModal({
                 </div>
                 <div className="text-xs text-slate-400">hrs</div>
               </div>
-              <div className="text-center px-3 py-2 bg-white rounded-lg border">
+              <div className="text-center px-3 py-2 bg-[var(--surface)] rounded-lg border">
                 <div className="text-xs text-slate-500 mb-1">Difference</div>
                 <div className={`text-lg font-bold ${
                   difference < 0 ? 'text-red-600' : difference > 1000 ? 'text-amber-600' : 'text-green-600'
@@ -225,7 +225,7 @@ export default function HourmeterAmendmentModal({
         <div className="p-4 border-t bg-slate-50 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-slate-200 rounded-lg hover:bg-white text-sm"
+            className="px-4 py-2 border border-slate-200 rounded-lg hover:bg-[var(--surface)] text-sm"
           >
             Cancel
           </button>

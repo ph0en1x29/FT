@@ -112,7 +112,7 @@ export default function EmployeeProfilePage({ currentUser }: EmployeeProfileProp
 
       <ProfileCard employee={employee} />
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+      <div className="bg-[var(--surface)] rounded-xl shadow-sm border border-slate-200">
         <ProfileTabs
           activeTab={activeTab}
           isTechnician={isTechnician}

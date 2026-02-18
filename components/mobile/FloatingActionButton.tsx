@@ -97,13 +97,13 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser
             const circleClasses = `w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-xl shadow-lg ${
               active
                 ? 'bg-[var(--accent)] text-white'
-                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200'
+                : 'bg-[var(--surface)] border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200'
             }`;
 
             const labelClasses = `rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg ${
               active
                 ? 'bg-[var(--accent)] text-white border border-[var(--accent)]'
-                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200'
+                : 'bg-[var(--surface)] border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200'
             }`;
 
             return (

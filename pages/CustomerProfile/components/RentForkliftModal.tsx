@@ -34,7 +34,7 @@ const RentForkliftModal: React.FC<RentForkliftModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
         <div className="px-6 py-4 border-b flex justify-between items-center bg-green-50 flex-shrink-0">
           <h3 className="font-bold text-lg text-green-800 flex items-center gap-2">
             <Plus className="w-5 h-5" />
@@ -80,7 +80,7 @@ const RentForkliftModal: React.FC<RentForkliftModalProps> = ({
                       className={`p-3 rounded-lg cursor-pointer transition-all ${
                         isSelected 
                           ? 'bg-green-100 border-2 border-green-400' 
-                          : 'bg-white border border-slate-200 hover:border-green-300'
+                          : 'bg-[var(--surface)] border border-slate-200 hover:border-green-300'
                       }`}
                     >
                       <div className="flex items-center gap-3">

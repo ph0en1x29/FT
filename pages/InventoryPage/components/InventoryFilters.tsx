@@ -21,7 +21,7 @@ const InventoryFilters: React.FC<InventoryFiltersProps> = ({
   onStockChange,
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-3 md:p-4 space-y-3 md:space-y-4">
+    <div className="bg-[var(--surface)] rounded-xl shadow-sm p-3 md:p-4 space-y-3 md:space-y-4">
       <div className="flex flex-col lg:flex-row gap-3 md:gap-4">
         {/* Search */}
         <div className="flex-1 relative">

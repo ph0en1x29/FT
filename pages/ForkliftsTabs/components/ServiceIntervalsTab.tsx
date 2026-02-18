@@ -276,7 +276,7 @@ const ServiceIntervalsTab: React.FC<TabProps> = ({ _currentUser }) => {
       {/* Add/Edit Modal */}
       {(showAddModal || editingInterval) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
               <h3 className="font-bold text-lg text-slate-800">
                 {editingInterval ? 'Edit Service Interval' : 'Add Service Interval'}

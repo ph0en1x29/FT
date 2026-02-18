@@ -22,7 +22,7 @@ const RentalsSection: React.FC<RentalsSectionProps> = ({
   const displayedRentals = rentalTab === 'active' ? activeRentals : pastRentals;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-[var(--surface)] rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="flex border-b border-slate-200">
         <button
           onClick={() => { setRentalTab('active'); }}

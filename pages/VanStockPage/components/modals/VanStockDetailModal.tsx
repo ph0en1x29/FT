@@ -65,7 +65,7 @@ export function VanStockDetailModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-[var(--surface)] rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Modal Header */}
         <div className="p-4 border-b flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -110,7 +110,7 @@ export function VanStockDetailModal({
                 </button>
                 {actionMenuOpen && (
                   <div
-                    className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border py-1 z-[60]"
+                    className="absolute right-0 top-full mt-1 w-48 bg-[var(--surface)] rounded-lg shadow-lg border py-1 z-[60]"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button

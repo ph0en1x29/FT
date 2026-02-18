@@ -43,7 +43,7 @@ export const HourmeterHistorySection: React.FC<HourmeterHistorySectionProps> = (
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-[var(--surface)] rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <button
         onClick={() => setShowHistory(!showHistory)}
         className="w-full px-5 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center hover:bg-slate-100 transition"

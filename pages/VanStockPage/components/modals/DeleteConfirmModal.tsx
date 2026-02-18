@@ -24,7 +24,7 @@ export function DeleteConfirmModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md overflow-hidden">
         <div className="p-4 border-b">
           <h2 className="font-semibold text-lg text-red-600">
             {deleteType === 'delete' ? 'Delete Van Stock?' : 'Deactivate Van Stock?'}

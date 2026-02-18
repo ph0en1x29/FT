@@ -150,7 +150,7 @@ export const ServiceTrackingCard: React.FC<ServiceTrackingCardProps> = ({ forkli
       <div className="p-5">
         {/* Edit Form */}
         {editing && (
-          <div className="mb-4 p-4 bg-white rounded-lg border-2 border-blue-200">
+          <div className="mb-4 p-4 bg-[var(--surface)] rounded-lg border-2 border-blue-200">
             <p className="text-sm font-semibold text-slate-700 mb-3">Edit Service Baseline</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {isHourmeterBased && (
@@ -202,7 +202,7 @@ export const ServiceTrackingCard: React.FC<ServiceTrackingCardProps> = ({ forkli
           /* ===== HOURMETER-BASED (Diesel/LPG/Petrol) ===== */
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg p-3 border border-slate-200">
+              <div className="bg-[var(--surface)] rounded-lg p-3 border border-slate-200">
                 <div className="flex items-center gap-1 mb-1">
                   <Gauge className="w-3.5 h-3.5 text-blue-500" />
                   <span className="text-xs font-medium text-slate-500">Current</span>
@@ -211,7 +211,7 @@ export const ServiceTrackingCard: React.FC<ServiceTrackingCardProps> = ({ forkli
                 <p className="text-xs text-slate-400">hours</p>
               </div>
 
-              <div className="bg-white rounded-lg p-3 border border-slate-200">
+              <div className="bg-[var(--surface)] rounded-lg p-3 border border-slate-200">
                 <div className="flex items-center gap-1 mb-1">
                   <CheckCircle className="w-3.5 h-3.5 text-green-500" />
                   <span className="text-xs font-medium text-slate-500">Last Service</span>
@@ -226,7 +226,7 @@ export const ServiceTrackingCard: React.FC<ServiceTrackingCardProps> = ({ forkli
                 </p>
               </div>
 
-              <div className="bg-white rounded-lg p-3 border border-slate-200">
+              <div className="bg-[var(--surface)] rounded-lg p-3 border border-slate-200">
                 <div className="flex items-center gap-1 mb-1">
                   <Target className="w-3.5 h-3.5 text-orange-500" />
                   <span className="text-xs font-medium text-slate-500">Next Service</span>
@@ -247,7 +247,7 @@ export const ServiceTrackingCard: React.FC<ServiceTrackingCardProps> = ({ forkli
                 </p>
               </div>
 
-              <div className="bg-white rounded-lg p-3 border border-slate-200">
+              <div className="bg-[var(--surface)] rounded-lg p-3 border border-slate-200">
                 <div className="flex items-center gap-1 mb-1">
                   <TrendingUp className="w-3.5 h-3.5 text-purple-500" />
                   <span className="text-xs font-medium text-slate-500">Predicted Date</span>
@@ -281,7 +281,7 @@ export const ServiceTrackingCard: React.FC<ServiceTrackingCardProps> = ({ forkli
           /* ===== CALENDAR-BASED (Electric) ===== */
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-white rounded-lg p-3 border border-slate-200">
+              <div className="bg-[var(--surface)] rounded-lg p-3 border border-slate-200">
                 <div className="flex items-center gap-1 mb-1">
                   <CheckCircle className="w-3.5 h-3.5 text-green-500" />
                   <span className="text-xs font-medium text-slate-500">Last Service</span>
@@ -298,7 +298,7 @@ export const ServiceTrackingCard: React.FC<ServiceTrackingCardProps> = ({ forkli
                 </p>
               </div>
 
-              <div className="bg-white rounded-lg p-3 border border-slate-200">
+              <div className="bg-[var(--surface)] rounded-lg p-3 border border-slate-200">
                 <div className="flex items-center gap-1 mb-1">
                   <Calendar className="w-3.5 h-3.5 text-orange-500" />
                   <span className="text-xs font-medium text-slate-500">Next Service</span>
@@ -317,7 +317,7 @@ export const ServiceTrackingCard: React.FC<ServiceTrackingCardProps> = ({ forkli
                 </p>
               </div>
 
-              <div className="bg-white rounded-lg p-3 border border-slate-200">
+              <div className="bg-[var(--surface)] rounded-lg p-3 border border-slate-200">
                 <div className="flex items-center gap-1 mb-1">
                   <Gauge className="w-3.5 h-3.5 text-blue-500" />
                   <span className="text-xs font-medium text-slate-500">Hourmeter</span>

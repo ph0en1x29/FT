@@ -18,7 +18,7 @@ interface ProfileCardProps {
  */
 export function ProfileCard({ employee }: ProfileCardProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+    <div className="bg-[var(--surface)] rounded-xl shadow-sm border border-slate-200 p-6">
       <div className="flex flex-col md:flex-row gap-6">
         {/* Avatar */}
         <div className="flex-shrink-0">

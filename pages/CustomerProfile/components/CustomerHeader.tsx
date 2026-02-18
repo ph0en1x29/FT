@@ -13,7 +13,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
   onDeleteCustomer,
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-3 md:p-5 border border-slate-200">
+    <div className="bg-[var(--surface)] rounded-xl shadow-sm p-3 md:p-5 border border-slate-200">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         {/* Left: Customer Info */}
         <div className="flex items-start gap-4">

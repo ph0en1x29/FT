@@ -89,8 +89,8 @@ export default function AddPermitModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 bg-white">
+      <div className="bg-[var(--surface)] rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 bg-[var(--surface)]">
           <h2 className="text-lg font-semibold text-slate-800">Add Special Permit</h2>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
             <X className="w-5 h-5" />

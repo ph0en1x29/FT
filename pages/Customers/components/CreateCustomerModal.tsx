@@ -28,7 +28,7 @@ const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl p-6 w-full max-w-md">
+      <div className="bg-[var(--surface)] rounded-xl p-6 w-full max-w-md">
         <div className="flex justify-between items-center mb-4">
           <h4 className="font-bold text-lg text-slate-900">New Customer</h4>
           <button

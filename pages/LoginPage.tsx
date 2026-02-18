@@ -33,7 +33,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-3 sm:p-4">
-      <div className="bg-white p-5 sm:p-8 rounded-2xl shadow-xl max-w-sm sm:max-w-md w-full animate-in fade-in zoom-in duration-300">
+      <div className="bg-[var(--surface)] p-5 sm:p-8 rounded-2xl shadow-xl max-w-sm sm:max-w-md w-full animate-in fade-in zoom-in duration-300">
         
         {/* Header */}
         <div className="text-center mb-8">

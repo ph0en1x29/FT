@@ -333,7 +333,7 @@ export const QuotationPDF: React.FC<QuotationPDFProps> = ({
   const total = data.total || subTotal;
 
   return (
-    <div className="bg-white p-8 max-w-4xl mx-auto text-sm shadow-lg" style={{ fontFamily: 'Arial, sans-serif' }}>
+    <div className="bg-[var(--surface)] p-8 max-w-4xl mx-auto text-sm shadow-lg" style={{ fontFamily: 'Arial, sans-serif' }}>
       {/* Header */}
       <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-blue-600">
         <div>

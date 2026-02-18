@@ -212,7 +212,7 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilte
       {/* Reject Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+          <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="px-6 py-4 border-b bg-red-50">
               <h3 className="font-bold text-lg text-red-800">Reject Leave Request</h3>
             </div>

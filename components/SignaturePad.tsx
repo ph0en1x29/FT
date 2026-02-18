@@ -88,7 +88,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ onSave }) => {
   };
 
   return (
-    <div className="border border-slate-300 rounded-lg p-4 bg-white shadow-sm">
+    <div className="border border-slate-300 rounded-lg p-4 bg-[var(--surface)] shadow-sm">
       <p className="text-sm text-slate-500 mb-2">Sign below:</p>
       <canvas
         ref={canvasRef}

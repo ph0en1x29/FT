@@ -107,8 +107,7 @@
          Using html[data-theme] for higher specificity
          ======================================== */
       
-      /* Fix white backgrounds - the #1 dark mode issue */
-      html[data-theme="dark"] .bg-white { background-color: var(--surface) !important; }
+      /* bg-white override removed — all components now use bg-[var(--surface)] directly */
       html[data-theme="dark"] .bg-slate-50 { background-color: var(--surface-2) !important; }
       html[data-theme="dark"] .bg-slate-100 { background-color: var(--surface-3) !important; }
       html[data-theme="dark"] .bg-gray-50 { background-color: var(--surface-2) !important; }

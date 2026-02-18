@@ -27,7 +27,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({
         className={`relative p-3 rounded-xl border transition-all text-left ${
           isActive
             ? `${config.bgColor} ${config.borderColor} ring-2 ring-offset-2 ${config.borderColor.replace('border-', 'ring-')}`
-            : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
+            : 'bg-[var(--surface)] border-slate-200 hover:border-slate-300 hover:shadow-sm'
         }`}
       >
         <div className="flex items-center gap-3">
@@ -53,7 +53,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({
       className={`relative p-4 rounded-xl border transition-all text-left ${
         isActive
           ? `${config.bgColor} ${config.borderColor} ring-2 ring-offset-2 ${config.borderColor.replace('border-', 'ring-')}`
-          : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
+          : 'bg-[var(--surface)] border-slate-200 hover:border-slate-300 hover:shadow-sm'
       }`}
     >
       <div className="flex items-start justify-between">

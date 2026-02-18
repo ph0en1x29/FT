@@ -102,7 +102,7 @@ export function HourmeterReadingForm({
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="bg-[var(--surface)] rounded-lg border border-gray-200 p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-medium text-gray-900 flex items-center gap-2">
           <Gauge className="h-5 w-5 text-blue-600" />

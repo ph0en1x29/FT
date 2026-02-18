@@ -76,7 +76,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
       </div>
 
       {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
+        <div className="absolute top-full left-0 w-full mt-1 bg-[var(--surface)] border border-slate-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
           {filteredOptions.length > 0 ? (
             <ul>
               {filteredOptions.map(opt => (
