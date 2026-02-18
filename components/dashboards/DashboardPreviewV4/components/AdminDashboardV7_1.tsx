@@ -302,10 +302,15 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
       .then(({ data }) => {
         if (data) {
           const low = data
-            .filter((i: Record<string, unknown>) => (i.quantity as number) <= (i.min_quantity as number))
+            .filter((i: Record<string, unknown>) => {
+              const qty = i.quantity as number;
+              const min = i.min_quantity as number;
+              return min > 0 && qty < min;
+            })
             .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.quantity as number) - (b.quantity as number))
             .map((i: Record<string, unknown>) => ({ name: (i.part as Record<string, string>)?.part_name || 'Unknown', quantity: i.quantity as number, min: i.min_quantity as number }));
           setLowStockItems(low);
+          setLowStockCount(low.length);
         }
       }).catch(() => {});
   }, []);
@@ -925,7 +930,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Stock levels OK</p>
             </div>
           ) : (
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 max-h-[220px] overflow-y-auto">
               {lowStockItems.map((item, i) => (
                 <div key={i} className="flex items-center gap-2 px-2.5 py-2 rounded-lg" style={{ background: colors.orange.bg }}>
                   <span className="text-xs font-medium flex-1 truncate" style={{ color: 'var(--text)' }}>{item.name}</span>
