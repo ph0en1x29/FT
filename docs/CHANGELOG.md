@@ -4,7 +4,18 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
-## [2026-02-17] - Full Mobile Responsive + PWA + Role-Aware Mobile UX
+## [2026-02-17] - Full Mobile Responsive + PWA + Role-Aware Mobile UX + UI Upgrade
+
+### UI Upgrade — 9 Features
+- **Command Palette** — `Cmd+K` / `Ctrl+K` or search button in header. Role-aware navigation + quick actions (New Job, New Customer). Arrow keys + Enter to select.
+- **Pull-to-Refresh** — Wired into Jobs page. Pull down to reload the active tab.
+- **Swipe Actions** — StoreQueue items: swipe right to approve/confirm, swipe left to reject. Green/red reveal.
+- **Filter Bottom Sheets** — `MobileFilterSheet` component: slide-up sheet on mobile, inline on desktop.
+- **Skeleton Loading** — `JobCardSkeleton`, `DashboardCardSkeleton`, `TableRowSkeleton`, `ListSkeleton` patterns.
+- **Empty States** — Reusable `EmptyState` component with icon, title, description, optional CTA button.
+- **Page Transitions** — CSS fade-in + slide-up animation on route changes.
+- **Toast Position** — Moved to bottom-center on mobile (above bottom nav), unchanged on desktop.
+- **View Toggle** — `ViewToggle` component for switching between table and card views.
 
 ### Mobile V2 — Role-Aware UX (Phase 4)
 - **Role-aware bottom navigation** — Each role sees different quick-access icons:
