@@ -894,18 +894,18 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
               </button>
             }
           >
-            <div className="grid grid-cols-3 gap-2">
-              <div className="p-2.5 rounded-xl text-center" style={{ background: colors.orange.bg }}>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <div className="p-2.5 rounded-xl text-center min-w-0 overflow-hidden" style={{ background: colors.orange.bg }}>
                 <p className="text-lg font-bold" style={{ color: 'var(--text)' }}>{jobsByStatus.awaitingFinalization.length}</p>
-                <p className="text-[10px]" style={{ color: colors.orange.text }}>To Invoice</p>
+                <p className="text-[10px] truncate" style={{ color: colors.orange.text }}>To Invoice</p>
               </div>
-              <div className="p-2.5 rounded-xl text-center" style={{ background: colors.blue.bg }}>
+              <div className="p-2.5 rounded-xl text-center min-w-0 overflow-hidden" style={{ background: colors.blue.bg }}>
                 <p className="text-lg font-bold" style={{ color: 'var(--text)' }}>{jobsByStatus.awaitingAck.length}</p>
-                <p className="text-[10px]" style={{ color: colors.blue.text }}>Awaiting Ack</p>
+                <p className="text-[10px] truncate" style={{ color: colors.blue.text }}>Awaiting Ack</p>
               </div>
-              <div className="p-2.5 rounded-xl text-center" style={{ background: colors.green.bg }}>
-                <p className="text-lg font-bold" style={{ color: 'var(--text)' }}>RM{(weeklyRevenue / 1000).toFixed(1)}k</p>
-                <p className="text-[10px]" style={{ color: colors.green.text }}>7-Day Rev</p>
+              <div className="p-2.5 rounded-xl text-center min-w-0 overflow-hidden" style={{ background: colors.green.bg }}>
+                <p className="text-lg font-bold truncate" style={{ color: 'var(--text)' }}>RM{(weeklyRevenue / 1000).toFixed(1)}k</p>
+                <p className="text-[10px] truncate" style={{ color: colors.green.text }}>7-Day Rev</p>
               </div>
             </div>
           </Section>

@@ -98,13 +98,13 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser
             const circleClasses = `w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-xl ${
               active
                 ? 'bg-[var(--accent)] text-white'
-                : 'bg-white/70 dark:bg-white/10 border border-white/40 dark:border-white/20 text-gray-700 dark:text-gray-200'
+                : 'bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(255,255,255,0.1)] border border-white/40 dark:border-white/20 text-gray-700 dark:text-gray-200'
             }`;
 
             const labelClasses = `rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-xl ${
               active
-                ? 'bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30'
-                : 'bg-white/70 dark:bg-white/10 border border-white/40 dark:border-white/20 text-gray-700 dark:text-gray-200'
+                ? 'bg-[rgba(0,102,204,0.15)] text-[var(--accent)] border border-[rgba(0,102,204,0.3)]'
+                : 'bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(255,255,255,0.1)] border border-white/40 dark:border-white/20 text-gray-700 dark:text-gray-200'
             }`;
 
             return (
@@ -133,8 +133,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser
           onClick={toggleFab}
           aria-expanded={isExpanded}
           aria-label={isExpanded ? 'Close quick actions' : 'Open quick actions'}
-          className="w-14 h-14 rounded-full text-white flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 backdrop-blur-xl bg-[var(--accent)]/85 border border-white/30"
-          style={{ boxShadow: '0 4px 16px rgba(0, 102, 204, 0.4), 0 0 0 1px rgba(255,255,255,0.15) inset' }}
+          className="w-14 h-14 rounded-full text-white flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 backdrop-blur-xl bg-[var(--accent)] border border-white/30"
+          style={{ boxShadow: '0 4px 16px rgba(0, 102, 204, 0.4), 0 0 0 1px rgba(255,255,255,0.15) inset', opacity: 0.9 }}
         >
           <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-45' : ''}`}>
             {isExpanded ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}

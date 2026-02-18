@@ -144,7 +144,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, curren
         onClick={onClose}
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
       />
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]/95 shadow-xl backdrop-blur-xl">
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl backdrop-blur-xl">
         <div className="relative border-b border-[var(--border)]">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-theme-muted" />
           <input
