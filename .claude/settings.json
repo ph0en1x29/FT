@@ -1,5 +1,18 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ ! -f \"$CLAUDE_PROJECT_DIR/.coordination-checked\" ]; then echo '⚠️ REMINDER: Read SHARED_CONTEXT.md and WORK_LOG.md before modifying files. Run git status first.' && touch \"$CLAUDE_PROJECT_DIR/.coordination-checked\"; fi",
+            "statusMessage": "Checking coordination...",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
@@ -9,6 +22,12 @@
             "command": "cd \"$CLAUDE_PROJECT_DIR\" && npm run typecheck 2>&1 | tail -5",
             "statusMessage": "Running TypeScript check...",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && rm -f .coordination-checked",
+            "statusMessage": "Cleanup...",
+            "timeout": 5
           }
         ]
       }

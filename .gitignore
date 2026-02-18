@@ -34,3 +34,4 @@ test-results/
 supabase/.temp/
 .vercel
 .env*.local
+.coordination-checked
