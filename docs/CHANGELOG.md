@@ -4,6 +4,35 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-17] - Full Mobile Responsive + PWA Support
+
+### Mobile Responsive (Phase 1-3)
+- **33 files modified** across all pages for mobile responsiveness
+- **JobDetail** — Stacked single-column layout on mobile, touch-friendly 48px action buttons, responsive photo grid (2→3→4 cols), stackable equipment/financial cards
+- **JobsTabs** — Scrollable tab bar, 44px tap targets, responsive "New Job" button with shorter label on mobile
+- **CreateJob** — Full-width form inputs, responsive grid (1 col mobile → 2 col tablet), 48px buttons
+- **Inventory** — Card view on mobile for parts table (hidden table, visible cards), stacked filters/stats, responsive header
+- **StoreQueue** — Responsive approval cards, full-width approve/reject buttons on mobile
+- **Customers** — Card layout on mobile, full-width search
+- **Forklifts** — Responsive grid (1→2→3 columns)
+- **People/Invoices** — Table overflow wrappers, card fallbacks on mobile
+- **Login** — Centered card, max-w-sm, mobile-friendly button sizing
+
+### PWA (Progressive Web App)
+- **manifest.json** — App name, icons (192/512), standalone display, shortcuts (My Jobs, New Job)
+- **Service Worker v2** — Offline caching with stale-while-revalidate for static assets, network-first for API (Supabase), offline fallback page
+- **Apple meta tags** — apple-mobile-web-app-capable, status bar style, touch icon
+- **Safe area support** — Bottom nav respects notched phones (env(safe-area-inset-bottom))
+
+### Global Mobile CSS
+- 44px minimum tap targets on all interactive elements
+- 16px input font size (prevents iOS zoom on focus)
+- Touch-optimized scrolling (-webkit-overflow-scrolling: touch)
+- Reduced table cell padding on mobile
+- Bottom nav clearance (pb-24 md:pb-8) on all pages
+
+---
+
 ## [2026-02-16] - Van History, Decimal Quantities, Bug Fixes
 
 ### Approvals Tab (StoreQueue) — Grouped Accordion
