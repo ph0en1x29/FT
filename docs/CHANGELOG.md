@@ -4,6 +4,22 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-18/19] — Mobile Polish + Dark Mode + Theme Fixes
+
+### Bug Fixes
+- **Dark mode theming** — Replaced `bg-white` with `bg-[var(--surface)]` across 73 components — all pages now fully theme-aware
+- **Bottom nav dark mode** — Dark background + light border in dark mode (was transparent)
+- **FAB fixes** — Solid white backgrounds on menu items, blue glow on main button, closes on route change
+- **FAB active label** — Solid accent background with white text (was transparent)
+- **Technician FAB** — Replaced "New Job" (no permission) with Van Stock + My Jobs quick actions
+- **KPI cards** — Fixed overflow on mobile — smaller padding/font/icons, tighter 3-col grid
+- **Dashboard mobile** — Scrollable stat pills, stacking header on small screens
+- **Low stock card** — Queries global `parts` table instead of `van_stock_items`; fixed race condition; excludes 0/0 items; scrollable list
+- **Command palette** — Fixed transparent background on dark mode
+- **Dashboard card overlap** — Fixed layout collision on mobile
+
+---
+
 ## [2026-02-17] - Full Mobile Responsive + PWA + Role-Aware Mobile UX + UI Upgrade
 
 ### UI Upgrade — 9 Features

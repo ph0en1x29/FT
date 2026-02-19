@@ -1,8 +1,8 @@
 # FieldPro
 
-![Status](https://img.shields.io/badge/Status-v1.1%20Prototype%20Validation-green)
+![Status](https://img.shields.io/badge/Status-v1.2%20Active%20Development-green)
 ![Client](https://img.shields.io/badge/Client-ACWER%20Industrial-blue)
-![Last Updated](https://img.shields.io/badge/Updated-January%202026-lightgrey)
+![Last Updated](https://img.shields.io/badge/Updated-February%202026-lightgrey)
 
 **Field Service Management Platform** for equipment service operations.
 
@@ -17,7 +17,7 @@
 | Document | Description |
 |----------|-------------|
 | [User Guide](./docs/USER_GUIDE.md) | How to use FieldPro — roles, workflows, features |
-| [What's New in v1.1](./docs/User_Manual_v1.1.md) | Latest release notes |
+| [Changelog](./docs/CHANGELOG.md) | Latest release notes and version history |
 | [Documentation Index](./docs/README.md) | Full docs navigation |
 
 ### For Developers
@@ -31,53 +31,44 @@
 
 ## ✨ Features
 
-### Current (v1.0)
+### Core Platform
 - Role-based permissions (Admin, Supervisor, Technician, Accountant)
-- Job lifecycle management with audit trails
-- Customer signature capture
-- Condition checklist (48 inspection items)
-- Invoice & Service Report PDF generation
-- Forklift rental tracking
-- Light/Dark theme
+- Job lifecycle management with full audit trails
+- Customer signature capture + deferred acknowledgement
+- 48-item condition checklist
+- Invoice, Service Report & Quotation PDF generation
+- Fleet (forklift) management + hourmeter tracking
+- Real-time notification system with sound alerts
+- Light/Dark theme (auto system preference)
 
-### v1.1 Features (ACWER Workflow) - January 2026
+### v1.2 — February 2026
+- **📱 Full Mobile Responsive + PWA** — All pages optimized for mobile, installable as app
+- **🧭 Role-Aware Mobile Navigation** — Bottom nav with role-specific tabs and badge counts
+- **⚡ Floating Action Button (FAB)** — Role-specific quick actions in one tap
+- **⌨️ Command Palette** — Cmd+K global search and navigation
+- **↕️ Pull-to-Refresh** — Native-feel refresh on Jobs page
+- **👆 Swipe Actions** — Swipe to approve/reject on StoreQueue items
+- **💀 Skeleton Loading** — Smooth loading states across all pages
+- **📊 Van Stock History Tab** — Full parts deduction log with timestamps
+- **🔢 Decimal Quantities** — Liquid/bulk parts support (e.g. 1.5L)
+- **🌗 Global Dark Mode** — Theme-aware across all 73+ components
 
-| Feature | Status |
-|---------|--------|
-| ✅ Service Intervals Config | Completed |
-| ✅ Hourmeter Prediction + Dashboard | Completed |
-| ✅ Photo Categorization + ZIP Download | Completed |
-| ✅ Helper Technician support | Completed |
-| ✅ In-Job Request System (Assistance, Spare Parts) | Completed |
-| ✅ Multi-Day Jobs with escalation | Completed |
-| ✅ Deferred Customer Acknowledgement | Completed |
-| ✅ KPI Dashboard | Completed |
-| ✅ Real-time Notification System | Completed |
-| ✅ Enhanced Escalation Management | Completed |
-| ⏳ Job Reassignment UI | In Progress |
-| ⏳ Asset Overview Dashboard | Planned |
+### v1.1 — January 2026
+- Helper Technician System, In-Job Request System, Multi-Day Jobs
+- KPI Dashboard, Enhanced Escalation, Van Stock System
+- AutoCount accounting export, Push Notifications
+- Bundle optimization (1.5MB → 290KB initial load)
+- Comprehensive RLS security hardening
 
 ---
 
 ## 🚀 Release Notes
 
+### v1.2 (February 2026)
+Full mobile + PWA overhaul, command palette, role-aware UX — [View details →](./docs/CHANGELOG.md)
+
 ### v1.1 (January 2026)
 ACWER Industrial workflow implementation — [View details →](./docs/CHANGELOG.md)
-- ✅ Helper Technician System with photo uploads
-- ✅ In-Job Request System (assistance, spare parts, skillful tech)
-- ✅ Multi-Day Jobs with escalation management
-- ✅ Deferred Customer Acknowledgement flow
-- ✅ Photo Categorization + ZIP download
-- ✅ Real-time notifications with sound alerts
-- ✅ Enhanced Dashboard with Action Required queue
-- ✅ KPI Dashboard for technician performance
-- ✅ Comprehensive RLS security hardening
-- ✅ Bundle optimization (1.5MB → 290KB initial load)
-
-### v1.0.1
-- Job Type Classification (Service/Repair/Checking/Accident)
-- Photo timestamps and uploader tracking
-- Professional invoice format
 
 ### v1.0
 - Initial release with full FSM capabilities

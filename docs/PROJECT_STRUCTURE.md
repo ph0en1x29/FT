@@ -1,6 +1,6 @@
 # FieldPro Project Structure
 
-> **Last Updated:** 2026-01-31  
+> **Last Updated:** 2026-02-19  
 > **Author:** Phoenix (Clawdbot)
 
 This document describes the codebase architecture and folder patterns used in FieldPro.
@@ -23,6 +23,120 @@ FT/
 ├── docs/                 # Documentation
 └── public/               # Static assets
 ```
+
+---
+
+## Current Frontend Structure (February 2026)
+
+### Components Directory (`components/`)
+
+```
+components/
+├── AssetDashboard.tsx
+├── ChunkErrorBoundary.tsx
+├── Combobox.tsx
+├── CommandPalette.tsx            # Cmd+K command palette (NEW)
+├── DashboardNotificationCard.tsx
+├── HourmeterAmendmentModal.tsx
+├── InvoicePDF.tsx
+├── NotificationBell.tsx
+├── NotificationPanel.tsx
+├── NotificationSettings.tsx
+├── OfflineIndicator.tsx
+├── PullToRefresh.tsx             # Pull-to-refresh wrapper (NEW)
+├── QuotationPDF.tsx
+├── ReplenishmentRequestModal.tsx
+├── ServiceAutomationWidget.tsx
+├── ServiceReportPDF.tsx
+├── ServiceUpgradeModal.tsx
+├── SignaturePad.tsx
+├── Skeleton.tsx                  # Skeleton loading patterns (NEW)
+├── SlotInSLABadge.tsx
+├── StaleDataBanner.tsx
+├── SwipeableCard.tsx             # Swipe card interactions (NEW)
+├── TeamStatusTab.tsx
+├── TechnicianJobsTab.tsx
+├── TelegramConnect.tsx
+├── TelegramTeamStatus.tsx
+├── VanStockWidget.tsx
+├── layout/
+│   ├── AuthenticatedApp.tsx
+│   └── NavigationComponents.tsx
+├── mobile/                       # Mobile-first interaction primitives (NEW)
+│   ├── BottomSheet.tsx
+│   ├── FilterSheet.tsx
+│   ├── FloatingActionButton.tsx
+│   └── SwipeableRow.tsx
+├── ui/                           # Existing shared UI primitives
+├── dashboards/                   # Existing dashboard-specific components
+├── hourmeter/                    # Existing hourmeter component set
+└── ... (additional domain folders/files)
+```
+
+### Mobile Components (`components/mobile/`)
+
+| Component | Purpose |
+|-----------|---------|
+| `BottomSheet.tsx` | Slide-up modal on mobile; centered modal behavior on desktop. |
+| `FilterSheet.tsx` | Filter panel that renders as a bottom sheet on mobile and inline on desktop. |
+| `FloatingActionButton.tsx` | Role-aware FAB exposing quick actions on mobile. |
+| `SwipeableRow.tsx` | Swipe-to-action row interactions (e.g., approve/reject). |
+
+### Shared Hooks (`hooks/`)
+
+| Hook | Purpose |
+|------|---------|
+| `useDevMode.ts` | Development-mode state/helpers. |
+| `useFeatureFlags.ts` | Feature flag consumption logic (NEW). |
+| `usePullToRefresh.tsx` | Pull-to-refresh gesture handling (NEW). |
+| `useQueryHooks.ts` | Shared TanStack Query wrappers/helpers. |
+
+### Context Providers (`contexts/`)
+
+| Context | Purpose |
+|---------|---------|
+| `DevModeContext.tsx` | Dev mode provider/state. |
+| `FeatureFlagContext.tsx` | Feature flag provider and lookup API (NEW). |
+| `NotificationContext.tsx` | Notification state/provider. |
+| `QueryProvider.tsx` | App-level React Query provider setup. |
+
+### Pages Directory (`pages/`)
+
+| Page Entry | Type | Notes |
+|------------|------|-------|
+| `AutoCountExport/` | Folder module | AutoCount export flows. |
+| `CreateJob/` | Folder module | Modular Create Job implementation. |
+| `CreateJob.tsx` | Wrapper file | Route-level wrapper/compatibility entry. |
+| `CustomerProfile/` | Folder module | Modular customer detail page. |
+| `Customers/` | Folder module | Modular customers listing flows. |
+| `Customers.tsx` | Wrapper file | Route-level customers entry. |
+| `EmployeeProfile/` | Folder module | Modular employee profile flows. |
+| `ForkliftProfile/` | Folder module | Forklift profile detail page. |
+| `ForkliftsTabs/` | Folder module | Forklift dashboard tabbed module. |
+| `HourmeterReview/` | Folder module | Hourmeter review/approval workflows. |
+| `InventoryPage/` | Folder module | Inventory management views. |
+| `Invoices/` | Folder module | Invoice management pages. |
+| `JobBoard/` | Folder module | Job board feature module. |
+| `JobDetail/` | Folder module | Main job detail/workflow module. |
+| `JobsTabs.tsx` | Wrapper file | Wrapper/entry for jobs tab views. |
+| `LoginPage.tsx` | Route file | Authentication page. |
+| `MyLeaveRequests/` | Folder module | Leave request self-service pages. |
+| `MyVanStock/` | Folder module | Modular My Van Stock page implementation. |
+| `MyVanStock.tsx` | Wrapper file | Route-level My Van Stock entry. |
+| `PartRequests/` | Folder module | Part requests feature module. |
+| `PendingConfirmations/` | Folder module | Pending confirmations workflows. |
+| `People/` | Folder module | People/user management flows. |
+| `PrototypeDashboards.tsx` | Route file | Dashboard prototype route. |
+| `ServiceDue/` | Folder module | Service due module. |
+| `ServiceDue.tsx` | Wrapper file | Route-level service due entry. |
+| `ServiceIntervalsConfig/` | Folder module | Service interval configuration module. |
+| `ServiceIntervalsConfig.tsx` | Wrapper file | Route-level config entry. |
+| `ServiceRecords/` | Folder module | Service records module. |
+| `ServiceRecords.tsx` | Wrapper file | Route-level service records entry. |
+| `StoreManager/` | Folder module | Store manager views/workflows. |
+| `StoreQueue/` | Folder module | Store queue approvals and processing. |
+| `TechnicianKPIPageV2/` | Folder module | Technician KPI page module. |
+| `VanStockPage/` | Folder module | Modular van stock workflows. |
 
 ---
 
@@ -49,13 +163,13 @@ pages/
 
 ### Pages Using This Pattern
 
-| Page | Components | Hooks | Notes |
-|------|------------|-------|-------|
-| JobDetail | 8 | 1 | Job management with real-time |
-| EmployeeProfile | 9 | 0 | HR with licenses/permits/leaves |
-| ForkliftsTabs | 7 | 0 | Multi-tab fleet management |
-| CustomerProfile | 9 | 1 | Customer with rentals/history |
-| VanStockPage | 11 | 1 | Inventory with 6 modals |
+| Page | Pattern | Notes |
+|------|---------|-------|
+| JobDetail | Folder module + re-export | Job management with real-time behavior |
+| EmployeeProfile | Folder module + re-export | HR with licenses/permits/leaves |
+| ForkliftsTabs | Folder module + re-export | Multi-tab fleet management |
+| CustomerProfile | Folder module + re-export | Customer with rentals/history |
+| VanStockPage | Folder module + re-export | Inventory with modal-driven workflows |
 
 ### How It Works
 

@@ -1,10 +1,28 @@
 # FieldPro Roadmap
 
-**Last Updated:** January 18, 2026
+**Last Updated:** February 19, 2026
 
 ---
 
 ## ✅ Recently Completed
+
+### February 17-19, 2026
+- [x] **Full Mobile Responsive** — All pages optimized for 320px+ screens, 44px tap targets, 16px inputs (prevents iOS zoom)
+- [x] **PWA Support** — manifest.json, Service Worker v2 (offline cache), Apple meta tags, safe area support
+- [x] **Role-Aware Mobile Navigation** — Bottom nav with role-specific tabs (Tech/Super/Accountant/Admin), notification badge counts
+- [x] **Floating Action Button (FAB)** — Role-specific quick actions, closes on route change, liquid glass styling
+- [x] **Command Palette** — Cmd+K / Ctrl+K global navigation, role-aware, arrow keys + Enter, Escape to close
+- [x] **Pull-to-Refresh** — Wired into Jobs page, visual arrow→spinner indicator
+- [x] **Swipe Actions** — StoreQueue: swipe right to approve, swipe left to reject
+- [x] **Skeleton Loading** — JobCard, DashboardCard, TableRow, List skeleton patterns
+- [x] **Empty States** — Reusable EmptyState component with icon, title, description, optional CTA
+- [x] **Page Transitions** — CSS fade-in + slide-up on route changes
+- [x] **View Toggle** — Table/card view switching
+- [x] **Filter Bottom Sheets** — Slide-up on mobile, inline on desktop
+- [x] **Sticky Action Bar** — Status-based actions pinned to bottom on JobDetail mobile
+- [x] **Global Dark Mode** — 73+ components updated to `bg-[var(--surface)]`, fully theme-aware
+- [x] **Van Stock History Tab** — Full parts deduction log with technician, job, timestamps
+- [x] **Decimal Quantities** — Liquid/bulk parts (e.g. 1.5L)
 
 ### January 18, 2026
 - [x] **Bug Fixes**
@@ -202,7 +220,7 @@ Waiting for client responses before proceeding with Phase 1 Quick Wins.
 - [x] Job Types Update - Add Slot-In, Courier/Collection ✅ COMPLETED
 - [ ] Conditional Field Visibility by job type
 - [x] "Check All" button for condition checklist ✅ COMPLETED 2026-01-15
-- [ ] Hide pricing from Tech App views
+- [x] Hide pricing from Tech App views ✅ COMPLETED
 - [ ] Edit button for pending requests
 - [ ] Hourmeter locking (first tech records, persists on reassignment)
 
@@ -241,7 +259,7 @@ Waiting for client responses before proceeding with Phase 1 Quick Wins.
 - [ ] Dual-Path Parts Flow (Store Request vs Van Stock) - Partially done
 
 ### Phase 5: Advanced Features (Future)
-- [ ] Offline Mode (PWA) - significant undertaking, post-MVP
+- [x] Offline Mode (PWA) ✅ COMPLETED 2026-02-17 — Service Worker v2, installable
 - [ ] Contract Management - link forklifts to rental agreements
 - [ ] Preventive Maintenance Automation
 

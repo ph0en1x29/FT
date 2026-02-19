@@ -5,7 +5,16 @@
 
 > 📢 **What's New in February 2026?**
 >
-> **🆕 Latest Update (2026-02-16):**
+> **🆕 Latest Update (2026-02-18):**
+> - **⌨️ Command Palette (Cmd/Ctrl+K)** - Role-aware quick navigation and actions from anywhere
+> - **📱 Mobile Bottom Navigation** - Role-specific tabs with unread notification badge support
+> - **🔵 Floating Action Button (FAB)** - Mobile quick actions menu by role
+> - **🔄 Pull-to-Refresh** - Pull down on Jobs page to reload with arrow/spinner feedback
+> - **👆 Swipe Actions** - Swipe right to approve (green), left to reject (red) in StoreQueue/Approvals
+> - **📲 PWA Install** - Add FieldPro to home screen for standalone app experience + offline cached pages
+> - **🌙 Dark Mode** - Full app dark theme that follows your system preference
+>
+> **Previous (2026-02-16):**
 > - **📦 Van History Tab** - Full parts deduction log with technician, job, and timestamps
 > - **🔢 Decimal Quantities** - Type exact amounts (e.g., 1.5L) for liquid/bulk parts
 > - **⛔ Stock Indicators** - Parts dropdown now shows OOS/low stock warnings with visual icons
@@ -52,7 +61,8 @@
    - [Admin Guide](#admin-guide)
 5. [Job Completion Requirements](#job-completion-requirements)
 6. [Common Tasks](#common-tasks)
-7. [Troubleshooting](#troubleshooting)
+7. [Mobile Features](#mobile-features-new---2026-02-18)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -879,6 +889,79 @@ Units with no hourmeter update in 60+ days are flagged. This helps identify:
 3. Click **"Add Charge"**
 4. Enter name, description, amount
 5. Save
+
+---
+
+## Mobile Features (NEW - 2026-02-18)
+
+### Command Palette
+
+Use Command Palette for fast navigation and quick actions.
+
+- Open with `Cmd+K` (Mac) or `Ctrl+K` (Windows)
+- Or click the search icon in the header
+- Results are role-aware (pages + actions you are allowed to access)
+- Navigate directly to pages or run quick actions like creating jobs/customers
+- Use `↑` / `↓` to move, `Enter` to select, `Escape` to close
+
+### Mobile Bottom Navigation
+
+On mobile screens, a bottom navigation bar appears automatically (hidden on desktop).
+
+- **Technician tabs:** Home, Jobs, Van Stock, More
+- **Supervisor tabs:** Home, Jobs, Approvals, More
+- **Accountant tabs:** Home, Jobs, Billing, More
+- **Admin tabs:** Home, Jobs, Inventory, More
+- Role-specific tab can show an unread notification badge count
+
+### Floating Action Button (FAB)
+
+On mobile, a blue floating action button appears in the bottom-right corner.
+
+- Tap the main button to expand quick actions
+- Tap an action to navigate directly
+- **Technician actions:** Van Stock, My Jobs
+- **Supervisor actions:** Approvals, Assign Job
+- **Admin actions:** New Job, Approvals, Inventory
+- **Accountant actions:** Billing
+
+### Pull-to-Refresh (Jobs Page)
+
+On the Jobs page (mobile), pull down to refresh the jobs list.
+
+- Pull down from the top of the list
+- Arrow indicator appears while pulling
+- Indicator switches to spinner while loading
+- List updates when refresh completes
+
+### Swipe Actions (StoreQueue / Approvals)
+
+Use swipe gestures as a fast alternative to action buttons.
+
+- Swipe right to approve (green)
+- Swipe left to reject (red)
+- Available in StoreQueue and Approvals views
+
+### PWA Install (Add to Home Screen)
+
+Install FieldPro as an app from your mobile browser.
+
+1. Open FieldPro in Safari (iOS) or Chrome (Android)
+2. Tap **Add to Home Screen**:
+   - iOS Safari: Share icon → Add to Home Screen
+   - Android Chrome: Browser menu → Add to Home Screen
+3. Launch FieldPro from your home screen
+
+Benefits:
+- Runs in standalone mode (no browser address bar/chrome)
+- Supports offline access for cached pages
+
+### Dark Mode
+
+FieldPro supports full dark theme across all pages.
+
+- Dark mode is automatic and follows your device/system preference
+- No manual switch required
 
 ---
 
