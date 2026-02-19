@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ ! -f \"$CLAUDE_PROJECT_DIR/.coordination-checked\" ]; then echo '⚠️ REMINDER: Read SHARED_CONTEXT.md and WORK_LOG.md before modifying files. Run git status first.' && touch \"$CLAUDE_PROJECT_DIR/.coordination-checked\"; fi",
-            "statusMessage": "Checking coordination...",
+            "command": "FILE=\"${CLAUDE_TOOL_INPUT_FILE_PATH:-${CLAUDE_TOOL_INPUT_PATH:-}}\"; if echo \"$FILE\" | grep -qE '\\.(ts|tsx|css|sql)$'; then echo ''; echo '🚨 DELEGATION GATE TRIGGERED'; echo \"File: $FILE\"; echo ''; echo 'Phoenix does NOT write FT code. Use codex exec instead:'; echo '  cd /home/jay/FT && codex exec \"Implement X in [file]. npm run build after.\"'; echo ''; echo 'Only proceed if Codex is down AND you document WHY in WORK_LOG.md.'; echo ''; fi",
+            "statusMessage": "Delegation gate check...",
             "timeout": 5
           }
         ]
@@ -22,12 +22,6 @@
             "command": "cd \"$CLAUDE_PROJECT_DIR\" && npm run typecheck 2>&1 | tail -5",
             "statusMessage": "Running TypeScript check...",
             "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && rm -f .coordination-checked",
-            "statusMessage": "Cleanup...",
-            "timeout": 5
           }
         ]
       }
