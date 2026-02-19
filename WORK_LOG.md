@@ -15,3 +15,10 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-18 00:52] [Codex] Fixed AdminDashboardV7_1 low-stock race by removing getGlobalLowStockCount call/import, kept low-stock list scroll container at max-h-[220px] overflow-y-auto, aligned getGlobalLowStockCount predicate to min > 0 && quantity < min, and verified with npm run build.
 
 [2026-02-18 01:01] [Codex] Updated AdminDashboardV7_1 low-stock card to query parts (global inventory), align threshold/default handling to inventory semantics, include out-of-stock in low-stock totals/list, and validated with npm run build.
+
+[2026-02-18 13:05] [Codex] Read SHARED_CONTEXT.md/WORK_LOG.md, checked git status, and confirmed multi-agent setup roles.
+
+[2026-02-19 14:50] [Codex] Updated docs/PROJECT_STRUCTURE.md for Feb 2026 current state: refreshed Last Updated date, added components/mobile section + mobile component descriptions, updated hooks/contexts, and expanded pages directory table with missing entries.
+[2026-02-19 14:50] [Codex] Updated `docs/USER_GUIDE.md` with Feb 17-18 features (Command Palette, mobile bottom navigation, FAB, pull-to-refresh, swipe actions, PWA install, dark mode), plus new TOC entry and What’s New additions.
+
+[2026-02-19 15:50] [Codex] Added GitHub Actions CI workflow at .github/workflows/ci.yml (push/pull_request on main, Node 20, node_modules cache, npm ci, npm run build, Playwright chromium smoke step), replaced tests/smoke.spec.ts with minimal homepage title check against ft-kappa.vercel.app, and updated playwright.config.ts to skip local webServer when running that smoke spec.
