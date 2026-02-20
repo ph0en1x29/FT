@@ -1,5 +1,18 @@
 #!/bin/sh
 
+AUTHOR=$(git config user.name)
+
+if [ "$AUTHOR" = "Phoenix" ]; then
+  STAGED_CODE_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|css|sql)$' || true)
+
+  if [ -n "$STAGED_CODE_FILES" ]; then
+    printf '\033[0;31m%s\033[0m\n' "🚫 DELEGATION VIOLATION: Phoenix is committing code files directly!"
+    printf '\033[0;31m%s\033[0m\n' "These files should be committed by Codex, not Phoenix."
+    echo "$STAGED_CODE_FILES"
+    exit 1
+  fi
+fi
+
 echo "🔍 Running pre-commit checks..."
 
 # TypeScript check
