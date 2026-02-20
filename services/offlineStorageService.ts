@@ -27,6 +27,8 @@ interface EnqueueSyncInput {
   type: string;
   payload: unknown;
   meta?: Record<string, unknown>;
+  attempts?: number;
+  lastError?: string;
 }
 
 let databasePromise: Promise<IDBDatabase> | null = null;
@@ -142,7 +144,8 @@ async function enqueueSync(input: EnqueueSyncInput): Promise<SyncQueueRecord> {
     payload: input.payload,
     meta: input.meta,
     createdAt: Date.now(),
-    attempts: 0,
+    attempts: Math.max(0, input.attempts ?? 0),
+    lastError: input.lastError,
   };
 
   store.put(record);

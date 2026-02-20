@@ -1,6 +1,6 @@
 import { FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import useOfflineStatus from '../hooks/useOfflineStatus';
-import { addToSyncQueue } from '../services/offlineStorageService';
+import { offlineStorageService } from '../services/offlineStorageService';
 
 type OfflineFormWrapperProps = {
   onSubmit: (data: any) => Promise<void>;
@@ -35,12 +35,7 @@ export default function OfflineFormWrapper({
       return;
     }
 
-    await addToSyncQueue({
-      entityType,
-      action: 'create',
-      data: formData,
-      queuedAt: new Date().toISOString(),
-    } as any);
+    await offlineStorageService.enqueueSync({ type: entityType, payload: formData });
 
     setSavedOffline(true);
     if (hideMessageTimeoutRef.current !== null) {

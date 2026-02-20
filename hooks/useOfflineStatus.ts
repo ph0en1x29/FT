@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getSyncQueue } from '../services/offlineStorageService';
+import { offlineStorageService } from '../services/offlineStorageService';
 
 type OfflineStatus = {
   isOnline: boolean;
@@ -19,11 +19,11 @@ export function useOfflineStatus(): OfflineStatus {
 
     const refreshQueueCount = async (): Promise<void> => {
       try {
-        const queue = await Promise.resolve(getSyncQueue());
+        const queueCount = await offlineStorageService.getSyncQueueCount();
         if (!mounted) {
           return;
         }
-        setPendingSync(Array.isArray(queue) ? queue.length : 0);
+        setPendingSync(queueCount);
         if (typeof navigator === 'undefined' || navigator.onLine) {
           setLastSyncAt(new Date());
         }

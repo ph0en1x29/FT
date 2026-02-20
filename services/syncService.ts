@@ -1,23 +1,4 @@
-import * as offlineStorageService from './offlineStorageService';
-
-type SyncQueueEntry = {
-  id: string;
-  url: string;
-  method?: string;
-  headers?: Record<string, string>;
-  body?: unknown;
-  retries?: number;
-  createdAt?: number | string;
-  timestamp?: number | string;
-};
-
-type OfflineStorageApi = {
-  getSyncQueue: () => Promise<SyncQueueEntry[]> | SyncQueueEntry[];
-  removeSyncQueueEntry?: (id: string) => Promise<void> | void;
-  removeFromSyncQueue?: (id: string) => Promise<void> | void;
-  updateSyncQueueEntry?: (entry: SyncQueueEntry) => Promise<void> | void;
-  updateSyncQueueItem?: (entry: SyncQueueEntry) => Promise<void> | void;
-};
+import { offlineStorageService, SyncQueueRecord } from './offlineStorageService';
 
 export type SyncResult = {
   synced: number;
@@ -26,46 +7,43 @@ export type SyncResult = {
 };
 
 const MAX_RETRIES = 5;
-const storage = offlineStorageService as unknown as OfflineStorageApi;
+const TYPE_TO_URL: Record<string, string> = {
+  'job-create': '/rest/v1/jobs',
+  'job-update': '/rest/v1/jobs',
+};
+const supabaseBaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let onlineHandler: (() => void) | null = null;
 let processing = false;
 
-function getEntryOrderValue(entry: SyncQueueEntry): number {
-  const raw = entry.createdAt ?? entry.timestamp;
-  if (typeof raw === 'number') {
-    return raw;
+function resolveEndpoint(type: string): string {
+  const path = TYPE_TO_URL[type] ?? `/rest/v1/${type}`;
+
+  if (/^https?:\/\//i.test(path) || !supabaseBaseUrl) {
+    return path;
   }
-  if (typeof raw === 'string') {
-    const parsed = Date.parse(raw);
-    return Number.isNaN(parsed) ? 0 : parsed;
-  }
-  return 0;
+
+  return path.startsWith('/') ? `${supabaseBaseUrl}${path}` : `${supabaseBaseUrl}/${path}`;
 }
 
-async function removeEntry(id: string): Promise<void> {
-  if (storage.removeSyncQueueEntry) {
-    await storage.removeSyncQueueEntry(id);
-    return;
-  }
-  if (storage.removeFromSyncQueue) {
-    await storage.removeFromSyncQueue(id);
-  }
+async function requeueEntry(
+  entry: SyncQueueRecord,
+  attempts: number,
+  lastError?: string
+): Promise<void> {
+  await offlineStorageService.removeSyncQueueItem(entry.id);
+  await offlineStorageService.enqueueSync({
+    type: entry.type,
+    payload: entry.payload,
+    meta: entry.meta,
+    attempts,
+    lastError,
+  });
 }
 
-async function updateEntry(entry: SyncQueueEntry): Promise<void> {
-  if (storage.updateSyncQueueEntry) {
-    await storage.updateSyncQueueEntry(entry);
-    return;
-  }
-  if (storage.updateSyncQueueItem) {
-    await storage.updateSyncQueueItem(entry);
-  }
-}
-
-async function getQueue(): Promise<SyncQueueEntry[]> {
-  const queue = await Promise.resolve(storage.getSyncQueue());
+async function getQueue(): Promise<SyncQueueRecord[]> {
+  const queue = await offlineStorageService.getSyncQueue();
   return Array.isArray(queue) ? queue : [];
 }
 
@@ -82,10 +60,10 @@ export async function processQueue(): Promise<SyncResult> {
 
   try {
     const queue = await getQueue();
-    const orderedQueue = [...queue].sort((a, b) => getEntryOrderValue(a) - getEntryOrderValue(b));
+    const orderedQueue = [...queue].sort((a, b) => a.createdAt - b.createdAt);
 
     for (const entry of orderedQueue) {
-      const retries = entry.retries ?? 0;
+      const retries = entry.attempts ?? 0;
 
       if (retries >= MAX_RETRIES) {
         failed += 1;
@@ -93,24 +71,24 @@ export async function processQueue(): Promise<SyncResult> {
       }
 
       try {
-        const response = await fetch(entry.url, {
-          method: entry.method ?? 'POST',
-          headers: entry.headers,
-          body:
-            entry.body == null || typeof entry.body === 'string'
-              ? (entry.body as string | undefined)
-              : JSON.stringify(entry.body),
+        const response = await fetch(resolveEndpoint(entry.type), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(entry.payload ?? null),
         });
 
         if (response.ok) {
-          await removeEntry(entry.id);
+          await offlineStorageService.removeSyncQueueItem(entry.id);
           synced += 1;
         } else {
-          await updateEntry({ ...entry, retries: Math.min(retries + 1, MAX_RETRIES) });
+          await requeueEntry(entry, Math.min(retries + 1, MAX_RETRIES), `HTTP ${response.status}`);
           failed += 1;
         }
-      } catch {
-        await updateEntry({ ...entry, retries: Math.min(retries + 1, MAX_RETRIES) });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Network error';
+        await requeueEntry(entry, Math.min(retries + 1, MAX_RETRIES), message);
         failed += 1;
       }
     }

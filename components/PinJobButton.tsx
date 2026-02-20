@@ -1,57 +1,50 @@
 import { useEffect, useState } from 'react';
-import { cacheJobs } from '../services/offlineStorageService';
+import { offlineStorageService } from '../services/offlineStorageService';
 
 type PinJobButtonProps = {
   jobId: string;
   jobData: any;
 };
 
-const STORAGE_KEY = 'pinned-jobs';
-
-const getPinnedJobs = (): string[] => {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return [];
-    }
-
-    const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
 export default function PinJobButton({ jobId, jobData }: PinJobButtonProps) {
   const [isPinned, setIsPinned] = useState(false);
 
   useEffect(() => {
-    const pinnedJobs = getPinnedJobs();
-    setIsPinned(pinnedJobs.includes(jobId));
+    let mounted = true;
+
+    const checkPinnedStatus = async () => {
+      try {
+        const pinned = await offlineStorageService.isJobPinned(jobId);
+        if (mounted) {
+          setIsPinned(pinned);
+        }
+      } catch {
+        if (mounted) {
+          setIsPinned(false);
+        }
+      }
+    };
+
+    void checkPinnedStatus();
+
+    return () => {
+      mounted = false;
+    };
   }, [jobId]);
 
   const togglePin = async () => {
-    if (typeof window === 'undefined') {
-      return;
+    try {
+      if (isPinned) {
+        await offlineStorageService.unpinJob(jobId);
+        setIsPinned(false);
+        return;
+      }
+
+      await offlineStorageService.pinJob(jobId, jobData);
+      setIsPinned(true);
+    } catch {
+      // Keep current UI state if persistence fails.
     }
-
-    const pinnedJobs = getPinnedJobs();
-
-    if (pinnedJobs.includes(jobId)) {
-      const updated = pinnedJobs.filter((id) => id !== jobId);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      setIsPinned(false);
-      return;
-    }
-
-    const updated = Array.from(new Set([...pinnedJobs, jobId]));
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    setIsPinned(true);
-    await cacheJobs([jobData]);
   };
 
   return (
