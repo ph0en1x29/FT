@@ -35,10 +35,9 @@ async function loginWithCredentials(page: Page, credentials: AuthCredentials): P
   await page.fill(SELECTORS.email, credentials.email);
   await page.fill(SELECTORS.password, credentials.password);
 
-  await Promise.all([
-    page.waitForURL((url) => url.hash.startsWith('#/'), { timeout: 15000 }),
-    page.getByRole('button', { name: /sign in/i }).click(),
-  ]);
+  await page.getByRole('button', { name: /sign in/i }).click();
+  // Wait for authenticated app to load (nav links appear)
+  await page.getByRole('link', { name: /dashboard/i }).waitFor({ state: 'visible', timeout: 15000 });
 }
 
 export async function loginAsAdmin(page: Page): Promise<void> {

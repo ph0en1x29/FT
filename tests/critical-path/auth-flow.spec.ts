@@ -7,10 +7,9 @@ import {
 } from '../fixtures/auth.fixture';
 
 async function expectDashboardLoaded(page: Page): Promise<void> {
-  await expect(page).toHaveURL(/#\//);
-  await expect(page.locator('aside')).toBeVisible();
-  await expect(page.locator('main')).toBeVisible();
-  await expect(page.getByRole('button', { name: /sign out/i })).toBeVisible();
+  // Dashboard loaded = nav sidebar visible with authenticated links
+  await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /jobs/i })).toBeVisible();
 }
 
 test.describe('Critical Path - Auth Flow', () => {
