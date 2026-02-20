@@ -87,8 +87,8 @@ function normalizeMatches(payload: unknown): MatchJobRow[] {
 
       const row = item as Record<string, unknown>;
       const id =
-        typeof row.id === 'string'
-          ? row.id
+        typeof row.job_id === 'string'
+          ? row.job_id
           : typeof row.job_id === 'string'
             ? row.job_id
             : null;
@@ -111,14 +111,14 @@ async function hydrateMatches(matches: MatchJobRow[]): Promise<SearchResult[]> {
   const uniqueIds = Array.from(new Set(matches.map((match) => match.id)));
   const { data, error } = await supabase
     .from('jobs')
-    .select('job_id as id, title, description, status, created_at')
+    .select('job_id, title, description, status, created_at')
     .in('job_id', uniqueIds);
 
   if (error) {
     throw new Error(`Failed to load job details: ${error.message}`);
   }
 
-  const jobs = (data ?? []) as JobDetailsRow[];
+  const jobs = (data ?? []) as unknown as JobDetailsRow[];
   const byId = new Map(jobs.map((job) => [job.id, job]));
 
   return matches.map((match) => {
@@ -178,7 +178,7 @@ export async function findSimilarToJob(jobId: string, limit = 5): Promise<Search
 
   const { data, error } = await supabase
     .from('jobs')
-    .select('job_id as id, embedding')
+    .select('job_id, embedding')
     .eq('job_id', trimmedJobId)
     .single();
 
@@ -186,7 +186,7 @@ export async function findSimilarToJob(jobId: string, limit = 5): Promise<Search
     throw new Error(`Failed to load job embedding: ${error.message}`);
   }
 
-  const job = data as JobEmbeddingRow | null;
+  const job = data as unknown as JobEmbeddingRow | null;
   if (!job || !isNumberArray(job.embedding) || job.embedding.length === 0) {
     return [];
   }
