@@ -1,28 +1,11 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { loginAsTechnician } from '../fixtures/auth.fixture';
 
 test.describe('Critical Path - Job Completion', () => {
-  test.use({ baseURL: 'http://localhost:3000' });
-
-  async function login(page: Page, email: string, password: string) {
-    await page.goto('/');
-    await page.locator('input[type="email"], input[name="email"], input[placeholder*="email" i]').first().fill(email);
-    await page.locator('input[type="password"], input[name="password"], input[placeholder*="password" i]').first().fill(password);
-    await page.getByRole('button', { name: /sign in|log in/i }).first().click();
-    await page.waitForURL(/#\//, { timeout: 15000 });
-  }
-
-  async function openRoute(page: Page, path: string) {
-    await page.goto(path);
-    if (!page.url().includes(path)) {
-      await page.goto(`/#${path}`);
-    }
-    await expect.poll(() => page.url()).toContain(path);
-  }
-
   test('technician moves job to completed', async ({ page }) => {
-    await login(page, 'tech1@example.com', 'Tech123!');
+    await loginAsTechnician(page);
 
-    await openRoute(page, '/jobs');
+    await page.goto('/#/jobs');
     const firstJobLink = page.locator('a[href*="jobs/"]').first();
     await expect(firstJobLink).toBeVisible({ timeout: 15000 });
     await firstJobLink.click();

@@ -1,24 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import { loginAsAdmin } from '../fixtures/auth.fixture';
 
 test.describe('Critical Path - Job Lifecycle', () => {
-  test.use({ baseURL: 'http://localhost:3000' });
-
-  async function login(page: Page, email: string, password: string) {
-    await page.goto('/');
-    await page.locator('input[type="email"], input[name="email"], input[placeholder*="email" i]').first().fill(email);
-    await page.locator('input[type="password"], input[name="password"], input[placeholder*="password" i]').first().fill(password);
-    await page.getByRole('button', { name: /sign in|log in/i }).first().click();
-    await page.waitForURL(/#\//, { timeout: 15000 });
-  }
-
-  async function openRoute(page: Page, path: string) {
-    await page.goto(path);
-    if (!page.url().includes(path)) {
-      await page.goto(`/#${path}`);
-    }
-    await expect.poll(() => page.url()).toContain(path);
-  }
-
   async function chooseFromControl(page: Page, selectLocator: string, comboName: RegExp) {
     const select = page.locator(selectLocator).first();
     if (await select.count()) {
@@ -44,13 +27,13 @@ test.describe('Critical Path - Job Lifecycle', () => {
   test('admin creates a job and sees it in the jobs list', async ({ page }) => {
     const description = `E2E lifecycle ${Date.now()}`;
 
-    await login(page, 'dev@test.com', 'Dev123!');
+    await loginAsAdmin(page);
 
     const newJobLink = page.getByRole('link', { name: /new job/i }).first();
     if (await newJobLink.count()) {
       await newJobLink.click();
     } else {
-      await openRoute(page, '/jobs/new');
+      await page.goto('/#/jobs/new');
     }
     await expect.poll(() => page.url()).toMatch(/jobs\/new/);
 
@@ -96,7 +79,7 @@ test.describe('Critical Path - Job Lifecycle', () => {
     await page.getByRole('button', { name: /create job|save|submit|create/i }).first().click();
     await expect.poll(() => page.url()).toMatch(/jobs\/(?!new$)[^/?#]+/);
 
-    await openRoute(page, '/jobs');
+    await page.goto('/#/jobs');
     await expect(page.getByText(description).first()).toBeVisible({ timeout: 15000 });
   });
 });

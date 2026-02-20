@@ -22,3 +22,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-19 14:50] [Codex] Updated `docs/USER_GUIDE.md` with Feb 17-18 features (Command Palette, mobile bottom navigation, FAB, pull-to-refresh, swipe actions, PWA install, dark mode), plus new TOC entry and What’s New additions.
 
 [2026-02-19 15:50] [Codex] Added GitHub Actions CI workflow at .github/workflows/ci.yml (push/pull_request on main, Node 20, node_modules cache, npm ci, npm run build, Playwright chromium smoke step), replaced tests/smoke.spec.ts with minimal homepage title check against ft-kappa.vercel.app, and updated playwright.config.ts to skip local webServer when running that smoke spec.
+
+[2026-02-19 23:41] [Codex] Refactored 4 critical-path Playwright specs to use auth fixtures (role-specific loginAsXxx), removed inline login/openRoute helpers and test.use baseURL blocks, and switched route helper calls to direct hash-based page.goto paths.

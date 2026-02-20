@@ -1,26 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
+import { loginAsSupervisor, loginAsTechnician } from '../fixtures/auth.fixture';
 
 test.describe('Critical Path - Job Assignment', () => {
-  test.use({ baseURL: 'http://localhost:3000' });
-
-  async function login(page: Page, email: string, password: string) {
-    await page.goto('/');
-    await page.locator('input[type="email"], input[name="email"], input[placeholder*="email" i]').first().fill(email);
-    await page.locator('input[type="password"], input[name="password"], input[placeholder*="password" i]').first().fill(password);
-    await page.getByRole('button', { name: /sign in|log in/i }).first().click();
-    await page.waitForURL(/#\//, { timeout: 15000 });
-  }
-
-  async function openRoute(page: Page, path: string) {
-    await page.goto(path);
-    if (!page.url().includes(path)) {
-      await page.goto(`/#${path}`);
-    }
-    await expect.poll(() => page.url()).toContain(path);
-  }
-
   async function openFirstJob(page: Page) {
-    await openRoute(page, '/jobs');
+    await page.goto('/#/jobs');
     const firstJobLink = page.locator('a[href*="jobs/"]').first();
     await expect(firstJobLink).toBeVisible({ timeout: 15000 });
     const jobLabel = (await firstJobLink.innerText()).trim();
@@ -70,7 +53,7 @@ test.describe('Critical Path - Job Assignment', () => {
   }
 
   test('supervisor assigns technician and technician sees assigned job', async ({ page, browser }) => {
-    await login(page, 'super1234@gmail.com', 'Super123!');
+    await loginAsSupervisor(page);
 
     const { jobId, jobLabel } = await openFirstJob(page);
 
@@ -80,8 +63,8 @@ test.describe('Critical Path - Job Assignment', () => {
     const technicianContext = await browser.newContext({ baseURL: 'http://localhost:3000' });
     const technicianPage = await technicianContext.newPage();
 
-    await login(technicianPage, 'tech1@example.com', 'Tech123!');
-    await openRoute(technicianPage, '/jobs');
+    await loginAsTechnician(technicianPage);
+    await technicianPage.goto('/#/jobs');
 
     if (jobId) {
       await expect(technicianPage.getByText(new RegExp(jobId, 'i')).first()).toBeVisible({ timeout: 15000 });
