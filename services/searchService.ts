@@ -111,8 +111,8 @@ async function hydrateMatches(matches: MatchJobRow[]): Promise<SearchResult[]> {
   const uniqueIds = Array.from(new Set(matches.map((match) => match.id)));
   const { data, error } = await supabase
     .from('jobs')
-    .select('id, title, description, status, created_at')
-    .in('id', uniqueIds);
+    .select('job_id as id, title, description, status, created_at')
+    .in('job_id', uniqueIds);
 
   if (error) {
     throw new Error(`Failed to load job details: ${error.message}`);
@@ -178,8 +178,8 @@ export async function findSimilarToJob(jobId: string, limit = 5): Promise<Search
 
   const { data, error } = await supabase
     .from('jobs')
-    .select('id, embedding')
-    .eq('id', trimmedJobId)
+    .select('job_id as id, embedding')
+    .eq('job_id', trimmedJobId)
     .single();
 
   if (error) {

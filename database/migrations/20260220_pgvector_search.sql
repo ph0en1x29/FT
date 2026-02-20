@@ -23,7 +23,7 @@ language sql
 stable
 as $$
   select
-    j.id::text as id,
+    j.job_id as id,
     1 - (j.embedding <=> query_embedding) as similarity
   from public.jobs as j
   where j.embedding is not null
