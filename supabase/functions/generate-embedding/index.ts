@@ -1,106 +1,58 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// Supabase Edge Function — generate embeddings using built-in gte-small
+// No external API key required
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-type GenerateEmbeddingPayload = {
-  jobId?: string;
-  text?: string;
-};
+const session = new Supabase.ai.Session('gte-small');
 
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "application/json",
-    },
-  });
-}
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
-  if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
-  }
-
   try {
-    const { jobId, text } = (await req.json()) as GenerateEmbeddingPayload;
+    const { jobId, text } = await req.json();
 
-    if (!jobId || !text || !text.trim()) {
-      return jsonResponse({ error: "jobId and text are required" }, 400);
-    }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const openAIKey = Deno.env.get("OPENAI_API_KEY");
-
-    if (!supabaseUrl || !supabaseServiceRoleKey || !openAIKey) {
-      return jsonResponse(
-        { error: "Missing SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or OPENAI_API_KEY" },
-        500,
+    if (!text || typeof text !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid "text" field' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const openAIResponse = await fetch("https://api.openai.com/v1/embeddings", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "text-embedding-3-small",
-        input: text,
+    // Generate embedding using built-in gte-small (384 dimensions)
+    const embedding = await session.run(text, {
+      mean_pool: true,
+      normalize: true,
+    });
+
+    // If jobId provided, store directly in the jobs table
+    if (jobId) {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const { error } = await supabase
+        .from('jobs')
+        .update({ embedding: Array.from(embedding) })
+        .eq('job_id', jobId);
+
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: `Failed to store embedding: ${error.message}` }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        dimensions: 384,
+        embedding: jobId ? undefined : Array.from(embedding),
       }),
-    });
-
-    if (!openAIResponse.ok) {
-      const errorBody = await openAIResponse.text();
-      return jsonResponse(
-        { error: `OpenAI embedding request failed: ${openAIResponse.status}`, details: errorBody },
-        502,
-      );
-    }
-
-    const openAIData = await openAIResponse.json();
-    const embedding = openAIData?.data?.[0]?.embedding;
-
-    if (!Array.isArray(embedding) || embedding.length === 0) {
-      return jsonResponse({ error: "OpenAI response missing embedding vector" }, 502);
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: { persistSession: false },
-    });
-
-    const { data, error } = await supabase
-      .from("jobs")
-      .update({ embedding })
-      .eq("id", jobId)
-      .select("id")
-      .maybeSingle();
-
-    if (error) {
-      return jsonResponse({ error: error.message }, 500);
-    }
-
-    if (!data) {
-      return jsonResponse({ error: "Job not found" }, 404);
-    }
-
-    return jsonResponse({
-      jobId: data.id,
-      dimensions: embedding.length,
-      model: "text-embedding-3-small",
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unexpected error";
-    return jsonResponse({ error: message }, 500);
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 });
