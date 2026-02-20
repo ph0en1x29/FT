@@ -35,3 +35,4 @@ supabase/.temp/
 .vercel
 .env*.local
 .coordination-checked
+node_modules
