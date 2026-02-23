@@ -7,6 +7,7 @@ import {
   Play,
   RefreshCw,
   Trash2,
+  X,
   XCircle
 } from 'lucide-react';
 import React from 'react';
@@ -124,23 +125,41 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
               </button>
             </div>
           </div>
-          <p className="text-sm text-[var(--text-muted)] mb-4">Check items in good condition (uncheck any issues found):</p>
+          <p className="text-sm text-[var(--text-muted)] mb-4">Tap to toggle. Green = OK, Red X = Needs attention.</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {CHECKLIST_CATEGORIES.map(category => (
               <div key={category.name} className="bg-[var(--bg-subtle)] p-3 rounded-xl border border-[var(--border)]">
                 <h6 className="font-semibold text-[var(--text-secondary)] text-xs mb-2 border-b border-[var(--border-subtle)] pb-1">{category.name}</h6>
                 <div className="space-y-1">
-                  {category.items.map(item => (
-                    <label key={item.key} className="flex items-center gap-2 cursor-pointer hover:bg-[var(--surface-2)] p-1 rounded text-xs">
-                      <input 
-                        type="checkbox" 
-                        checked={!!conditionChecklist[item.key as keyof ForkliftConditionChecklist]} 
-                        onChange={() => onChecklistToggle(item.key)} 
-                        className="w-3.5 h-3.5 rounded border-[var(--border)] text-[var(--accent)]" 
-                      />
-                      <span className="text-[var(--text-secondary)]">{item.label}</span>
-                    </label>
-                  ))}
+                  {category.items.map(item => {
+                    const itemValue = conditionChecklist[item.key as keyof ForkliftConditionChecklist];
+                    const isNotOk = itemValue === 'not_ok';
+                    const isOk = itemValue === true || itemValue === 'ok';
+
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => onChecklistToggle(item.key)}
+                        className={`w-full flex items-center gap-2 p-1.5 rounded text-xs border text-left transition-colors ${
+                          isNotOk
+                            ? 'bg-red-50 dark:bg-red-900/20 border-red-200'
+                            : 'border-transparent hover:bg-[var(--surface-2)]'
+                        }`}
+                      >
+                        {isOk ? (
+                          <CheckCircle className="w-3.5 h-3.5 text-[var(--success)] shrink-0" />
+                        ) : isNotOk ? (
+                          <X className="w-3.5 h-3.5 text-[var(--error)] shrink-0" />
+                        ) : (
+                          <span className="w-3.5 h-3.5 flex items-center justify-center text-[var(--text-muted)] shrink-0">-</span>
+                        )}
+                        <span className={isOk ? 'text-[var(--success)]' : isNotOk ? 'text-[var(--error)]' : 'text-[var(--text-muted)]'}>
+                          {item.label}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))}

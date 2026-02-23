@@ -33,3 +33,7 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-23 03:30] [Codex] Updated AGENTS.md Lessons Learned with Combobox ancestor-overflow clipping prevention rule after user correction.
 
 [2026-02-23 03:34] [Codex] Rewrote components/Combobox.tsx dropdown to render via createPortal at document.body with fixed-position recalculation on open/scroll/resize, outside-click handling across input+portal refs, preserved search/add/select/subLabel behavior, and verified with npm run build.
+
+[2026-02-23 10:41] [Codex] Updated start-job checklist toggle in pages/JobDetail/hooks/useJobActions.ts to tri-state cycle (true/ok -> not_ok -> true, with undefined/falsy -> true) so Check All unticks map to not_ok.
+
+[2026-02-23 10:41] [Codex] Updated StartJobModal checklist rows in pages/JobDetail/components/JobDetailModals.tsx: replaced native checkbox inputs with tap-to-toggle state rows (green check/red X/muted dash), added red-highlighted styling for not_ok items, and updated helper text instructions.

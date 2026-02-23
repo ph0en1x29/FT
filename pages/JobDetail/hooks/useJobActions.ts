@@ -144,7 +144,11 @@ export const useJobActions = ({
   }, [job, state, setStartJobHourmeter, setConditionChecklist, setShowStartJobModal]);
 
   const handleChecklistToggle = useCallback((key: string) => {
-    setConditionChecklist(prev => ({ ...prev, [key]: !prev[key as keyof ForkliftConditionChecklist] }));
+    setConditionChecklist(prev => {
+      const currentValue = prev[key as keyof ForkliftConditionChecklist];
+      const nextValue = currentValue === 'not_ok' ? true : currentValue ? 'not_ok' : true;
+      return { ...prev, [key]: nextValue };
+    });
   }, [setConditionChecklist]);
 
   const handleConditionCheckAll = useCallback(() => {
