@@ -28,3 +28,6 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-20 07:26] [Codex] Added a delegation guard to .husky/pre-commit that blocks Phoenix from committing staged .ts/.tsx/.css/.sql files, prints red violation warnings, and preserves existing typecheck/build checks.
 [2026-02-23 03:19] [Codex] Fixed StoreQueue part-select Combobox layering by adding overflow/stacking classes in StoreQueuePage and raising Combobox dropdown z-index to z-[100], then verified with npm run build.
 [2026-02-23 03:24] [Codex] Updated components/mobile/SwipeableRow.tsx root wrapper overflow classes to overflow-x-clip overflow-y-visible to prevent Combobox dropdown clipping while preserving horizontal swipe clipping, then verified with npm run build.
+
+[2026-02-23 03:29] [Codex] Added overflow-visible to StoreQueue approvals group card, expanded items wrapper, and item card containers to stop Combobox dropdown clipping; verified with npm run build.
+[2026-02-23 03:30] [Codex] Updated AGENTS.md Lessons Learned with Combobox ancestor-overflow clipping prevention rule after user correction.

@@ -584,7 +584,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
             const isGroupProcessing = group.items.some(item => processing.has(item.id));
 
             return (
-              <div key={group.jobId} className="card-theme rounded-xl p-4">
+              <div key={group.jobId} className="card-theme rounded-xl p-4 overflow-visible">
                 <div className="flex items-start justify-between gap-3">
                   <button
                     type="button"
@@ -644,7 +644,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                 </div>
 
                 {isExpanded && (
-                  <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] space-y-3">
+                  <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] space-y-3 overflow-visible">
                     {group.items.map(item => {
                       const Icon = getTypeIcon(item.type);
                       const isProc = processing.has(item.id);
@@ -660,7 +660,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                           rightColor="bg-green-600"
                           leftColor="bg-red-600"
                         >
-                        <div className="rounded-xl border border-[var(--border-subtle)] p-3 bg-[var(--surface)]">
+                        <div className="rounded-xl border border-[var(--border-subtle)] p-3 bg-[var(--surface)] overflow-visible">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3 flex-1 min-w-0">
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getTypeColor(item.type).split(' ').slice(0, 1).join(' ')}`}>
