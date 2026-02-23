@@ -140,6 +140,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onCheckAll={actions.handleCheckAll} />
           <PartsSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} partOptions={partOptions}
             selectedPartId={state.selectedPartId} selectedPartPrice={state.selectedPartPrice}
+            addPartQuantity={state.addPartQuantity} onAddPartQuantityChange={state.setAddPartQuantity}
             editingPartId={state.editingPartId} editingPrice={state.editingPrice} noPartsUsed={state.noPartsUsed}
             onSelectedPartIdChange={state.setSelectedPartId} onSelectedPartPriceChange={state.setSelectedPartPrice}
             onAddPart={actions.handleAddPart} onStartEditPrice={actions.handleStartEditPartPrice}

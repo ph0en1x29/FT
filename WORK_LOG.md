@@ -37,3 +37,8 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-23 10:41] [Codex] Updated start-job checklist toggle in pages/JobDetail/hooks/useJobActions.ts to tri-state cycle (true/ok -> not_ok -> true, with undefined/falsy -> true) so Check All unticks map to not_ok.
 
 [2026-02-23 10:41] [Codex] Updated StartJobModal checklist rows in pages/JobDetail/components/JobDetailModals.tsx: replaced native checkbox inputs with tap-to-toggle state rows (green check/red X/muted dash), added red-highlighted styling for not_ok items, and updated helper text instructions.
+[2026-02-23 10:49] [Codex] Added `addPartQuantity` state to `pages/JobDetail/hooks/useJobDetailState.ts` and exposed it in the returned state object immediately after selectedPartPrice.
+[2026-02-23 10:49] [Codex] Updated pages/JobDetail/hooks/useJobPartsHandlers.ts handleAddPart to use parsed add-part quantity, block non-positive quantity with Invalid quantity toast, pass quantity to addPartToJob, and reset addPartQuantity to "1" after successful add.
+
+[2026-02-23 10:50] [Codex] Updated `pages/JobDetail/components/PartsSection.tsx` to add Add Part quantity props/input (with decimal input mode), and added `inputMode="decimal"` to the van stock quantity input.
+[2026-02-23 10:51] [Codex] Updated pages/JobDetail/JobDetailPage.tsx PartsSection call to pass addPartQuantity and onAddPartQuantityChange from state.

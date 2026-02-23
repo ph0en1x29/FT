@@ -27,12 +27,18 @@ export const useJobPartsHandlers = ({
 }: UseJobPartsHandlersParams) => {
   const handleAddPart = useCallback(async () => {
     if (!job || !state.selectedPartId) return;
+    const qty = parseFloat(state.addPartQuantity) || 1;
+    if (qty <= 0) {
+      showToast.error('Invalid quantity');
+      return;
+    }
     const price = parseFloat(state.selectedPartPrice) || 0;
     try {
-      const updated = await MockDb.addPartToJob(job.job_id, state.selectedPartId, 1, price, UserRole.ADMIN, currentUserId, currentUserName);
+      const updated = await MockDb.addPartToJob(job.job_id, state.selectedPartId, qty, price, UserRole.ADMIN, currentUserId, currentUserName);
       setJob({ ...updated } as Job);
       state.setSelectedPartId('');
       state.setSelectedPartPrice('');
+      state.setAddPartQuantity('1');
       showToast.success('Part added');
     } catch (e) {
       showToast.error('Could not add part', (e as Error).message);

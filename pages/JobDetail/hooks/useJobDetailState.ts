@@ -35,6 +35,7 @@ export const useJobDetailState = () => {
   const [noteInput, setNoteInput] = useState('');
   const [selectedPartId, setSelectedPartId] = useState('');
   const [selectedPartPrice, setSelectedPartPrice] = useState<string>('');
+  const [addPartQuantity, setAddPartQuantity] = useState('1');
   const [selectedTechId, setSelectedTechId] = useState('');
 
   // Modal visibility states
@@ -163,6 +164,7 @@ export const useJobDetailState = () => {
     noteInput, setNoteInput,
     selectedPartId, setSelectedPartId,
     selectedPartPrice, setSelectedPartPrice,
+    addPartQuantity, setAddPartQuantity,
     selectedTechId, setSelectedTechId,
 
     // Modals

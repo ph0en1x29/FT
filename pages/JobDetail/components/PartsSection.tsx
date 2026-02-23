@@ -11,11 +11,13 @@ interface PartsSectionProps {
   partOptions: ComboboxOption[];
   selectedPartId: string;
   selectedPartPrice: string;
+  addPartQuantity?: string;
   editingPartId: string | null;
   editingPrice: string;
   noPartsUsed: boolean;
   onSelectedPartIdChange: (id: string) => void;
   onSelectedPartPriceChange: (price: string) => void;
+  onAddPartQuantityChange?: (qty: string) => void;
   onAddPart: () => void;
   onStartEditPrice: (partId: string, currentPrice: number) => void;
   onSavePartPrice: (partId: string) => void;
@@ -44,11 +46,13 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   partOptions,
   selectedPartId,
   selectedPartPrice,
+  addPartQuantity,
   editingPartId,
   editingPrice,
   noPartsUsed,
   onSelectedPartIdChange,
   onSelectedPartPriceChange,
+  onAddPartQuantityChange,
   onAddPart,
   onStartEditPrice,
   onSavePartPrice,
@@ -231,6 +235,7 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
                     <div className="w-20">
                       <input
                         type="number"
+                        inputMode="decimal"
                         min="0.1"
                         step="any"
                         value={vanStockQuantity || '1'}
@@ -310,6 +315,18 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
                 </div>
               </div>
             )}
+            <div className="w-20">
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0.1"
+                step="any"
+                value={addPartQuantity || '1'}
+                onChange={(e) => onAddPartQuantityChange?.(e.target.value)}
+                className="input-premium text-sm w-full text-center"
+                placeholder="Qty"
+              />
+            </div>
             <button onClick={onAddPart} disabled={!selectedPartId} className="btn-premium btn-premium-primary disabled:opacity-50">
               <Plus className="w-5 h-5" />
             </button>
