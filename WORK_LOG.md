@@ -26,3 +26,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-19 23:38] [Codex] Restored missing Playwright critical-path specs/fixture from local git history and refactored 4 critical-path tests to use shared auth fixture functions (removed inline login/openRoute helpers and test.use baseURL, switched route navigation to direct HashRouter paths).
 
 [2026-02-20 07:26] [Codex] Added a delegation guard to .husky/pre-commit that blocks Phoenix from committing staged .ts/.tsx/.css/.sql files, prints red violation warnings, and preserves existing typecheck/build checks.
+[2026-02-23 03:19] [Codex] Fixed StoreQueue part-select Combobox layering by adding overflow/stacking classes in StoreQueuePage and raising Combobox dropdown z-index to z-[100], then verified with npm run build.

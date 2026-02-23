@@ -703,8 +703,8 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                           </div>
 
                           {item.type === 'part_request' && item.requestId && (
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)]">
-                              <div className="flex-1 w-full sm:w-auto">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)] overflow-visible">
+                              <div className="flex-1 w-full sm:w-auto relative z-20">
                                 <Combobox
                                   options={partOptions}
                                   value={state?.partId || ''}
