@@ -93,7 +93,7 @@ const SwipeableRow = ({
   const leftReveal = Math.max(-translateX, 0);
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-x-clip overflow-y-visible">
       {onSwipeRight ? (
         <div
           className={`absolute inset-y-0 left-0 flex items-center px-4 text-sm font-semibold text-white ${rightColor}`}
