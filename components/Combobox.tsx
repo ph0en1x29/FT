@@ -1,5 +1,6 @@
 import { Check,ChevronDown,Plus,Search } from 'lucide-react';
-import React,{ useEffect,useRef,useState } from 'react';
+import React,{ useCallback,useEffect,useRef,useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface ComboboxOption {
   id: string;
@@ -22,7 +23,10 @@ export const Combobox: React.FC<ComboboxProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0,left: 0,width: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputWrapperRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Find selected item label for display
   const selectedItem = options.find(o => o.id === value);
@@ -32,10 +36,37 @@ export const Combobox: React.FC<ComboboxProps> = ({
     // But usually we only want to set query on open or just show selected label
   }, [value, options]);
 
+  const updateDropdownPosition = useCallback(() => {
+    if (!inputWrapperRef.current) return;
+    const rect = inputWrapperRef.current.getBoundingClientRect();
+    setDropdownPosition({
+      top: rect.bottom,
+      left: rect.left,
+      width: rect.width
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    updateDropdownPosition();
+    window.addEventListener('resize', updateDropdownPosition);
+    window.addEventListener('scroll', updateDropdownPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updateDropdownPosition);
+      window.removeEventListener('scroll', updateDropdownPosition, true);
+    };
+  }, [isOpen, updateDropdownPosition]);
+
   // Close when clicking outside
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const clickedInsideContainer = containerRef.current?.contains(target);
+      const clickedInsideDropdown = dropdownRef.current?.contains(target);
+
+      if (!clickedInsideContainer && !clickedInsideDropdown) {
         setIsOpen(false);
       }
     };
@@ -54,7 +85,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
     <div className="relative" ref={containerRef}>
       {label && <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>}
       
-      <div className="relative">
+      <div className="relative" ref={inputWrapperRef}>
         <input 
           type="text"
           className={`${inputClassName} pr-10 cursor-pointer`}
@@ -75,8 +106,16 @@ export const Combobox: React.FC<ComboboxProps> = ({
         </div>
       </div>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-1 bg-[var(--surface)] border border-slate-200 rounded-lg shadow-xl z-[100] max-h-60 overflow-y-auto">
+      {isOpen && createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed mt-1 bg-[var(--surface)] border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto z-[9999]"
+          style={{
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+            width: `${dropdownPosition.width}px`
+          }}
+        >
           {filteredOptions.length > 0 ? (
             <ul>
               {filteredOptions.map(opt => (
@@ -112,10 +151,11 @@ export const Combobox: React.FC<ComboboxProps> = ({
                className="border-t border-slate-100 p-3 bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center justify-center gap-2 text-blue-600 font-medium transition-colors"
              >
                <Plus className="w-4 h-4" />
-               {addNewLabel} "{query}"
+              {addNewLabel} "{query}"
              </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -31,3 +31,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 [2026-02-23 03:29] [Codex] Added overflow-visible to StoreQueue approvals group card, expanded items wrapper, and item card containers to stop Combobox dropdown clipping; verified with npm run build.
 [2026-02-23 03:30] [Codex] Updated AGENTS.md Lessons Learned with Combobox ancestor-overflow clipping prevention rule after user correction.
+
+[2026-02-23 03:34] [Codex] Rewrote components/Combobox.tsx dropdown to render via createPortal at document.body with fixed-position recalculation on open/scroll/resize, outside-click handling across input+portal refs, preserved search/add/select/subLabel behavior, and verified with npm run build.
