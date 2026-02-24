@@ -1,15 +1,96 @@
 #!/bin/sh
 
+# ============================================================
+# FT Pre-Commit Hook — Smart Delegation Enforcement (v2)
+# ============================================================
+# Layer 1: Checks if Phoenix is committing code files
+# Layer 2: Validates Codex authored the changes (via WORK_LOG.md)
+# Layer 3: Warns if >50 lines changed without review entry
+# ============================================================
+
 AUTHOR=$(git config user.name)
 
+# Only enforce delegation rules for Phoenix
 if [ "$AUTHOR" = "Phoenix" ]; then
-  STAGED_CODE_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|css|sql)$' || true)
+  STAGED_CODE_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|css|sql|js)$' || true)
 
   if [ -n "$STAGED_CODE_FILES" ]; then
-    printf '\033[0;31m%s\033[0m\n' "🚫 DELEGATION VIOLATION: Phoenix is committing code files directly!"
-    printf '\033[0;31m%s\033[0m\n' "These files should be committed by Codex, not Phoenix."
-    echo "$STAGED_CODE_FILES"
-    exit 1
+    # --- Layer 2: Check WORK_LOG.md for Codex entries ---
+    # For each staged code file, verify a [Codex] entry exists
+    # in WORK_LOG.md within the last 15 minutes
+    
+    UNVERIFIED=""
+    NOW=$(date +%s)
+    
+    for FILE in $STAGED_CODE_FILES; do
+      BASENAME=$(basename "$FILE")
+      # Look for [Codex] entries mentioning this file in WORK_LOG.md
+      FOUND=false
+      
+      if [ -f "WORK_LOG.md" ]; then
+        # Extract timestamps from [Codex] entries that mention this file
+        MATCHES=$(grep -n "\[Codex\]" WORK_LOG.md | grep -i "$BASENAME" || true)
+        
+        if [ -n "$MATCHES" ]; then
+          # Check if any match is within the last 15 minutes
+          while IFS= read -r line; do
+            # Extract timestamp: [2026-02-23 10:41]
+            TIMESTAMP=$(echo "$line" | grep -oE '\[20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}\]' | tr -d '[]' | head -1)
+            if [ -n "$TIMESTAMP" ]; then
+              ENTRY_EPOCH=$(date -d "$TIMESTAMP" +%s 2>/dev/null || echo "0")
+              DIFF=$((NOW - ENTRY_EPOCH))
+              # 900 seconds = 15 minutes
+              if [ "$DIFF" -ge 0 ] && [ "$DIFF" -le 900 ]; then
+                FOUND=true
+                break
+              fi
+            fi
+          done <<EOF
+$MATCHES
+EOF
+        fi
+      fi
+      
+      if [ "$FOUND" = false ]; then
+        UNVERIFIED="$UNVERIFIED\n  $FILE"
+      fi
+    done
+    
+    if [ -n "$UNVERIFIED" ]; then
+      printf '\033[0;31m%s\033[0m\n' "🚫 DELEGATION VIOLATION: No recent Codex entry found for:"
+      printf '\033[0;31m%b\033[0m\n' "$UNVERIFIED"
+      echo ""
+      echo "These code files need a [Codex] entry in WORK_LOG.md (within 15 min)."
+      echo "If Codex wrote the code, make sure it logged to WORK_LOG.md."
+      echo ""
+      echo "To force (emergency only): SKIP_HOOK=1 git commit ..."
+      
+      # Allow emergency bypass via env var (logged)
+      if [ "$SKIP_HOOK" = "1" ]; then
+        printf '\033[0;33m%s\033[0m\n' "⚠️  SKIP_HOOK=1 — bypassing delegation check (emergency)"
+        echo "[$(date '+%Y-%m-%d %H:%M')] [HOOK] Emergency bypass used by Phoenix" >> WORK_LOG.md
+      else
+        exit 1
+      fi
+    else
+      printf '\033[0;32m%s\033[0m\n' "✅ Delegation verified — all code files have Codex entries"
+    fi
+    
+    # --- Layer 3: Review warning for large changes ---
+    LINES_CHANGED=$(git diff --cached --stat | tail -1 | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo "0")
+    LINES_DELETED=$(git diff --cached --stat | tail -1 | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo "0")
+    TOTAL_LINES=$((LINES_CHANGED + LINES_DELETED))
+    
+    if [ "$TOTAL_LINES" -gt 50 ]; then
+      # Check for a review entry in WORK_LOG.md (last 15 min)
+      REVIEW_FOUND=$(grep -E "\[(Sonnet|Review|Claude)\]" WORK_LOG.md 2>/dev/null | tail -5 | grep -oE '\[20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}\]' | tail -1 | tr -d '[]' || true)
+      
+      if [ -z "$REVIEW_FOUND" ]; then
+        printf '\033[0;33m%s\033[0m\n' "⚠️  WARNING: $TOTAL_LINES lines changed but no [Sonnet/Review] entry in WORK_LOG.md"
+        echo "   Consider: claude -p --model sonnet \"Review [files] for bugs. Issues only.\""
+        echo "   (This is a warning, not a block)"
+      fi
+    fi
   fi
 fi
 
@@ -19,7 +100,7 @@ echo "🔍 Running pre-commit checks..."
 echo "→ TypeScript check..."
 npm run typecheck || exit 1
 
-# Build check  
+# Build check
 echo "→ Build check..."
 npm run build || exit 1
 
