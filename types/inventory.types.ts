@@ -21,6 +21,14 @@ export interface Part {
   supplier?: string;
   location?: string;
   unit?: string; // Display unit: "pcs", "L", "kg", "m", etc.
+  // Dual-unit tracking (liquid stock)
+  base_unit?: string;
+  container_unit?: string;
+  container_size?: number;
+  container_quantity?: number;
+  bulk_quantity?: number;
+  price_per_base_unit?: number;
+  is_liquid?: boolean;
 }
 
 export interface JobPartUsed {
@@ -96,6 +104,9 @@ export interface VanStockItem {
 
   // For specialty variation
   is_core_item: boolean; // True = standard item, False = specialty variation
+  // Dual-unit tracking
+  container_quantity?: number;
+  bulk_quantity?: number;
 
   // Metadata
   created_at: string;
@@ -290,4 +301,50 @@ export interface VanFleetItem {
   temporary_tech_name?: string | null;
   item_count: number;
   is_active: boolean;
+}
+
+// =============================================
+// INVENTORY MOVEMENTS (Audit Trail)
+// =============================================
+
+export type InventoryMovementType =
+  | 'purchase'
+  | 'break_container'
+  | 'use_internal'
+  | 'sell_external'
+  | 'transfer_to_van'
+  | 'return_to_store'
+  | 'adjustment'
+  | 'initial_stock';
+
+export interface InventoryMovement {
+  movement_id: string;
+  part_id: string;
+  movement_type: InventoryMovementType;
+  container_qty_change: number;
+  bulk_qty_change: number;
+  job_id?: string;
+  van_stock_id?: string;
+  van_stock_item_id?: string;
+  performed_by: string;
+  performed_by_name?: string;
+  performed_at: string;
+  store_container_qty_after?: number;
+  store_bulk_qty_after?: number;
+  van_container_qty_after?: number;
+  van_bulk_qty_after?: number;
+  notes?: string;
+  created_at: string;
+}
+
+// Liquid keyword detection
+export const LIQUID_KEYWORDS = [
+  'oil', 'coolant', 'fluid', 'lubricant', 'hydraulic',
+  'grease', 'solvent', 'cleaner', 'antifreeze', 'diesel',
+  'petrol', 'fuel', 'brake fluid', 'transmission fluid',
+] as const;
+
+export function isLikelyLiquid(partName: string): boolean {
+  const lower = partName.toLowerCase();
+  return LIQUID_KEYWORDS.some((keyword) => lower.includes(keyword));
 }

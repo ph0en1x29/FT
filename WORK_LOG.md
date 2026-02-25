@@ -42,3 +42,6 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 [2026-02-23 10:50] [Codex] Updated `pages/JobDetail/components/PartsSection.tsx` to add Add Part quantity props/input (with decimal input mode), and added `inputMode="decimal"` to the van stock quantity input.
 [2026-02-23 10:51] [Codex] Updated pages/JobDetail/JobDetailPage.tsx PartsSection call to pass addPartQuantity and onAddPartQuantityChange from state.
+[2026-02-24 22:47] [Sonnet] Added dual-unit fields to Part and VanStockItem interfaces in types/inventory.types.ts
+[2026-02-24 22:47] [Sonnet] Created database/migrations/20260225_dual_unit_inventory.sql - dual-unit columns, inventory_movements table, data migration
+[2026-02-24 22:47] [Sonnet] Added InventoryMovement type, LIQUID_KEYWORDS, isLikelyLiquid() to types/inventory.types.ts
