@@ -99,6 +99,22 @@ export const addPartToJob = async (
         .eq('part_id', partId);
       if (stockError) {
         console.warn('Part added, but stock update failed (RLS?):', stockError.message);
+      } else {
+        // Log movement for audit trail
+        await supabase.from('inventory_movements').insert({
+          part_id: partId,
+          movement_type: 'use_internal',
+          container_qty_change: -quantity,
+          bulk_qty_change: 0,
+          job_id: jobId,
+          performed_by: actorId || '',
+          performed_by_name: actorName || null,
+          notes: `Used ${quantity} ${part.unit || 'pcs'} on job (non-liquid)`,
+          store_container_qty_after: newStock,
+          store_bulk_qty_after: 0,
+        }).then(({ error: mvErr }) => {
+          if (mvErr) console.warn('Movement log failed:', mvErr.message);
+        });
       }
     }
   }

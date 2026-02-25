@@ -200,6 +200,25 @@ export function useInventoryData(currentUser: User) {
       };
 
       if (editingPart) {
+        // Log stock adjustment if quantity changed
+        const oldQty = editingPart.stock_quantity || 0;
+        const newQty = formData.stock_quantity || 0;
+        if (oldQty !== newQty) {
+          const { supabase } = await import('../../../services/supabaseClient');
+          await supabase.from('inventory_movements').insert({
+            part_id: editingPart.part_id,
+            movement_type: 'adjustment',
+            container_qty_change: newQty - oldQty,
+            bulk_qty_change: 0,
+            performed_by: currentUser.user_id,
+            performed_by_name: currentUser.name,
+            notes: `Manual stock adjustment: ${oldQty} → ${newQty}`,
+            store_container_qty_after: newQty,
+            store_bulk_qty_after: editingPart.bulk_quantity || 0,
+          }).then(({ error: mvErr }) => {
+            if (mvErr) console.warn('Movement log failed:', mvErr.message);
+          });
+        }
         await MockDb.updatePart(editingPart.part_id, partData);
         showToast.success('Part updated successfully');
       } else {
@@ -229,21 +248,28 @@ export function useInventoryData(currentUser: User) {
   }, [loadParts]);
 
   const handleExportCSV = useCallback(() => {
-    const headers = ['Part Code', 'Part Name', 'Category', 'Cost Price', 'Sell Price', 'Stock', 'Min Stock', 'Warranty (months)', 'Supplier', 'Location', 'Last Updated By', 'Updated At'];
-    const rows = parts.map(p => [
-      p.part_code,
-      p.part_name,
-      p.category,
-      p.cost_price,
-      p.sell_price,
-      p.stock_quantity,
-      p.min_stock_level || 10,
-      p.warranty_months,
-      p.supplier || '',
-      p.location || '',
-      p.last_updated_by_name || '',
-      p.updated_at || '',
-    ]);
+    const headers = ['Part Code', 'Part Name', 'Category', 'Cost Price', 'Sell Price', 'Stock Qty', 'Min Stock', 'Stock Value (Cost)', 'Stock Value (Sell)', 'Low Stock', 'Warranty (months)', 'Supplier', 'Location', 'Unit', 'Last Updated By', 'Updated At'];
+    const rows = parts.map(p => {
+      const isLow = p.stock_quantity <= (p.min_stock_level || 0) && (p.min_stock_level || 0) > 0;
+      return [
+        p.part_code,
+        p.part_name,
+        p.category,
+        p.cost_price,
+        p.sell_price,
+        p.stock_quantity,
+        p.min_stock_level || 10,
+        (p.stock_quantity * p.cost_price).toFixed(2),
+        (p.stock_quantity * p.sell_price).toFixed(2),
+        isLow ? 'YES' : '',
+        p.warranty_months,
+        p.supplier || '',
+        p.location || '',
+        p.unit || 'pcs',
+        p.last_updated_by_name || '',
+        p.updated_at || '',
+      ];
+    });
 
     const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });

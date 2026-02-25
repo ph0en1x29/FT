@@ -122,6 +122,18 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             onAddNew={handleAddNew}
           />
 
+          {/* Low Stock Alert */}
+          {parts.filter(p => p.stock_quantity <= (p.min_stock_level || 0) && (p.min_stock_level || 0) > 0).length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+              <div className="text-sm text-red-700">
+                <span className="font-semibold">Low stock alert</span> — {parts.filter(p => p.stock_quantity <= (p.min_stock_level || 0) && (p.min_stock_level || 0) > 0).length} item(s) at or below reorder level.
+                {' '}
+                <button onClick={() => setFilterStock('low')} className="underline font-medium">View low stock items</button>
+              </div>
+            </div>
+          )}
+
           {/* Stock Mismatch Alert */}
           {parts.filter(p => p.is_liquid && checkStockMismatch(p).hasMismatch).length > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">

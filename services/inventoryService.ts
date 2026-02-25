@@ -342,6 +342,33 @@ export const useVanStockPart = async (
 
   if (updateError) throw new Error(updateError.message);
 
+  // Log movement for audit trail
+  // Get part_id and van_stock_id from the item
+  const { data: itemDetail } = await supabase
+    .from('van_stock_items')
+    .select('part_id, van_stock_id')
+    .eq('item_id', vanStockItemId)
+    .single();
+
+  if (itemDetail) {
+    await supabase.from('inventory_movements').insert({
+      part_id: itemDetail.part_id,
+      movement_type: 'use_internal',
+      container_qty_change: -quantityUsed,
+      bulk_qty_change: 0,
+      job_id: jobId,
+      van_stock_id: itemDetail.van_stock_id,
+      van_stock_item_id: vanStockItemId,
+      performed_by: usedById,
+      performed_by_name: usedByName,
+      notes: `Used ${quantityUsed} from van stock (non-liquid)`,
+      van_container_qty_after: item.quantity - quantityUsed,
+      van_bulk_qty_after: 0,
+    }).then(({ error: mvErr }) => {
+      if (mvErr) console.warn('Movement log failed:', mvErr.message);
+    });
+  }
+
   return usage as VanStockUsage;
 };
 

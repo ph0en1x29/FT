@@ -61,3 +61,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-25 00:51] [Sonnet] Added transfer/return buttons to VanStockDetailModal for liquid items
 [2026-02-25 00:51] [Sonnet] Added sellSealed toggle to PartsSection + jobInvoiceService + useJobDetailState + useJobPartsHandlers
 [2026-02-25 00:51] [Sonnet] Created MovementHistoryModal component + wired into PartsTable with History icon
+[2026-02-25 00:51] [HOOK] Emergency bypass used by Phoenix
