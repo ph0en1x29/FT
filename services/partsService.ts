@@ -6,6 +6,7 @@
 
 import type { Part } from '../types';
 import { supabase } from './supabaseClient';
+import { isLikelyLiquid } from '../types/inventory.types';
 
 export const getParts = async (): Promise<Part[]> => {
   const { data, error } = await supabase
@@ -18,15 +19,15 @@ export const getParts = async (): Promise<Part[]> => {
   return data as Part[];
 };
 
-export const getPartsForList = async (): Promise<Pick<Part, 'part_id' | 'part_name' | 'part_code' | 'category' | 'sell_price' | 'stock_quantity'>[]> => {
+export const getPartsForList = async (): Promise<Part[]> => {
   const { data, error } = await supabase
     .from('parts')
-    .select('part_id, part_name, part_code, category, sell_price, stock_quantity')
+    .select('part_id, part_name, part_code, category, sell_price, stock_quantity, is_liquid, base_unit, container_unit, container_size, container_quantity, bulk_quantity')
     .order('category')
     .order('part_name');
 
   if (error) throw new Error(error.message);
-  return data as Pick<Part, 'part_id' | 'part_name' | 'part_code' | 'category' | 'sell_price' | 'stock_quantity'>[];
+  return data as Part[];
 };
 
 export const createPart = async (partData: Partial<Part>): Promise<Part> => {
@@ -43,6 +44,14 @@ export const createPart = async (partData: Partial<Part>): Promise<Part> => {
       min_stock_level: partData.min_stock_level || 10,
       supplier: partData.supplier,
       location: partData.location,
+      unit: partData.unit,
+      base_unit: partData.base_unit || 'pcs',
+      container_unit: partData.container_unit || null,
+      container_size: partData.container_size || null,
+      container_quantity: partData.container_quantity || 0,
+      bulk_quantity: partData.bulk_quantity || 0,
+      price_per_base_unit: partData.price_per_base_unit || null,
+      is_liquid: partData.is_liquid ?? isLikelyLiquid(partData.part_name || ''),
       last_updated_by: partData.last_updated_by,
       last_updated_by_name: partData.last_updated_by_name,
       updated_at: new Date().toISOString(),

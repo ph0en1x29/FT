@@ -45,3 +45,6 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-24 22:47] [Sonnet] Added dual-unit fields to Part and VanStockItem interfaces in types/inventory.types.ts
 [2026-02-24 22:47] [Sonnet] Created database/migrations/20260225_dual_unit_inventory.sql - dual-unit columns, inventory_movements table, data migration
 [2026-02-24 22:47] [Sonnet] Added InventoryMovement type, LIQUID_KEYWORDS, isLikelyLiquid() to types/inventory.types.ts
+[2026-02-24 22:47] [HOOK] Emergency bypass used by Phoenix
+[2026-02-24 22:55] [Sonnet] Created services/liquidInventoryService.ts - full dual-unit operations (purchase, break, sell external, use internal, van transfer/return/use, audit trail)
+[2026-02-24 22:55] [Sonnet] Updated services/partsService.ts - added liquid fields to createPart, expanded getPartsForList select
