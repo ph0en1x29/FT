@@ -1,5 +1,6 @@
-import { Package,RotateCcw,Truck } from 'lucide-react';
-import React,{ useEffect,useState } from 'react';
+import { AlertTriangle,Package,RotateCcw,Truck } from 'lucide-react';
+import React,{ useEffect,useMemo,useState } from 'react';
+import { checkStockMismatch } from '../../services/liquidInventoryService';
 import { useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { ROLE_PERMISSIONS,User,UserRole } from '../../types';
@@ -120,6 +121,16 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             onExport={handleExportCSV}
             onAddNew={handleAddNew}
           />
+
+          {/* Stock Mismatch Alert */}
+          {parts.filter(p => p.is_liquid && checkStockMismatch(p).hasMismatch).length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+              <div className="text-sm text-amber-700">
+                <span className="font-semibold">Stock mismatch detected</span> — {parts.filter(p => p.is_liquid && checkStockMismatch(p).hasMismatch).length} liquid item(s) have discrepancies between container/bulk quantities and legacy stock. Review and adjust.
+              </div>
+            </div>
+          )}
 
           <InventoryStats stats={stats} canViewPricing={canViewPricing} />
 

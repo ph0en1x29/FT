@@ -1,6 +1,7 @@
 import { Save,X } from 'lucide-react';
 import React from 'react';
 import { Part } from '../../../types';
+import { isLikelyLiquid } from '../../../types/inventory.types';
 import { InventoryFormData } from '../hooks/useInventoryData';
 
 interface AddPartModalProps {
@@ -60,6 +61,20 @@ const AddPartModal: React.FC<AddPartModalProps> = ({
                 required
               />
             </div>
+
+            {/* Liquid Detection Banner */}
+            {isLikelyLiquid(formData.part_name) && !formData.is_liquid && (
+              <div className="col-span-2 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center justify-between">
+                <span className="text-sm text-amber-700">This looks like a liquid item. Enable liquid tracking?</span>
+                <button
+                  type="button"
+                  onClick={() => updateField('is_liquid', true)}
+                  className="px-3 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full hover:bg-amber-600"
+                >
+                  Enable
+                </button>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
@@ -187,6 +202,123 @@ const AddPartModal: React.FC<AddPartModalProps> = ({
                 placeholder="e.g., Shelf A-12"
               />
             </div>
+
+            {/* Liquid Inventory Section */}
+            <div className="col-span-2 border-t border-slate-200 pt-4 mt-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_liquid}
+                  onChange={e => {
+                    updateField('is_liquid', e.target.checked);
+                    if (e.target.checked) {
+                      updateField('base_unit', 'L');
+                    } else {
+                      updateField('base_unit', 'pcs');
+                      updateField('container_unit', '');
+                      updateField('container_size', '');
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-xs font-bold text-slate-500 uppercase">Liquid / Bulk Item</span>
+              </label>
+            </div>
+
+            {formData.is_liquid && (
+              <>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                    Base Unit *
+                  </label>
+                  <select
+                    className={inputClassName}
+                    value={formData.base_unit}
+                    onChange={e => updateField('base_unit', e.target.value)}
+                  >
+                    <option value="L">Liters (L)</option>
+                    <option value="ml">Milliliters (ml)</option>
+                    <option value="kg">Kilograms (kg)</option>
+                    <option value="g">Grams (g)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                    Container Type *
+                  </label>
+                  <select
+                    className={inputClassName}
+                    value={formData.container_unit}
+                    onChange={e => updateField('container_unit', e.target.value)}
+                    required
+                  >
+                    <option value="">Select...</option>
+                    <option value="bottle">Bottle</option>
+                    <option value="drum">Drum</option>
+                    <option value="jerry_can">Jerry Can</option>
+                    <option value="pail">Pail</option>
+                    <option value="box">Box</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                    Container Size ({formData.base_unit}) *
+                  </label>
+                  <input
+                    type="number"
+                    className={inputClassName}
+                    value={formData.container_size}
+                    onChange={e => updateField('container_size', parseFloat(e.target.value) || '')}
+                    placeholder="e.g., 5 (5L per bottle)"
+                    min="0.1"
+                    step="0.1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                    Sealed Containers
+                  </label>
+                  <input
+                    type="number"
+                    className={inputClassName}
+                    value={formData.container_quantity}
+                    onChange={e => updateField('container_quantity', parseInt(e.target.value) || 0)}
+                    min="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                    Loose {formData.base_unit}
+                  </label>
+                  <input
+                    type="number"
+                    className={inputClassName}
+                    value={formData.bulk_quantity}
+                    onChange={e => updateField('bulk_quantity', parseFloat(e.target.value) || 0)}
+                    min="0"
+                    step="0.1"
+                  />
+                </div>
+
+                {typeof formData.container_size === 'number' && formData.container_size > 0 && formData.sell_price > 0 && (
+                  <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                    <span className="text-blue-700">Price per {formData.base_unit}: </span>
+                    <span className="font-bold text-blue-800">
+                      RM {(formData.sell_price / formData.container_size).toFixed(2)}
+                    </span>
+                    <span className="text-blue-600 ml-3">Total stock: </span>
+                    <span className="font-bold text-blue-800">
+                      {((formData.container_quantity * formData.container_size) + formData.bulk_quantity).toFixed(1)}{formData.base_unit}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* Profit margin indicator */}

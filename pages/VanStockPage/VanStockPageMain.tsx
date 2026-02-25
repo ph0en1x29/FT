@@ -207,7 +207,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       // Only exclude parts that already exist in van with qty > 0
       const existingPartIdsWithStock = new Set(
         (selectedVanStock?.items || [])
-          .filter(i => i.quantity > 0)
+          .filter(i => (i.quantity > 0) || (i.container_quantity || 0) > 0 || (i.bulk_quantity || 0) > 0)
           .map(i => i.part_id)
       );
       const available = parts.filter(p => !existingPartIdsWithStock.has(p.part_id));

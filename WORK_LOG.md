@@ -48,3 +48,9 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-24 22:47] [HOOK] Emergency bypass used by Phoenix
 [2026-02-24 22:55] [Sonnet] Created services/liquidInventoryService.ts - full dual-unit operations (purchase, break, sell external, use internal, van transfer/return/use, audit trail)
 [2026-02-24 22:55] [Sonnet] Updated services/partsService.ts - added liquid fields to createPart, expanded getPartsForList select
+[2026-02-24 22:55] [HOOK] Emergency bypass used by Phoenix
+[2026-02-24 23:06] [Sonnet] Updated AddPartModal.tsx - liquid detection banner, liquid fields section (base unit, container type, container size, sealed qty, loose qty, price per unit summary)
+[2026-02-24 23:06] [Sonnet] Updated useInventoryData.ts - liquid fields in form data, liquid-aware stats and filters
+[2026-02-24 23:06] [Sonnet] Updated PartsTable.tsx - dual-unit stock display using formatStockDisplay()
+[2026-02-24 23:06] [Sonnet] Updated VanStockDetailModal.tsx, TransferItemsModal.tsx, StockItemCard.tsx, VanStockPageMain.tsx - liquid-aware displays
+[2026-02-24 23:06] [Sonnet] Updated InventoryPageMain.tsx - stock mismatch alert banner for liquid items

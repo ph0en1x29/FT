@@ -136,7 +136,8 @@ export function getLowStockItems(items: VanStockItem[] | undefined): VanStockIte
  * Helper function to get stock status color
  */
 export function getStockStatusColor(item: VanStockItem): string {
-  if (item.quantity === 0) return 'text-red-600 bg-red-50';
-  if (item.quantity <= item.min_quantity) return 'text-amber-600 bg-amber-50';
+  const effectiveQty = (item.container_quantity || 0) + (item.bulk_quantity || 0) + (item.quantity || 0);
+  if (effectiveQty === 0) return 'text-red-600 bg-red-50';
+  if (effectiveQty <= item.min_quantity) return 'text-amber-600 bg-amber-50';
   return 'text-green-600 bg-green-50';
 }

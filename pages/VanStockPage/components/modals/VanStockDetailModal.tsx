@@ -240,7 +240,16 @@ export function VanStockDetailModal({
                       <div className="font-medium">{item.part?.part_name || 'Unknown'}</div>
                       <div className="text-xs text-slate-500">{item.part?.part_code}</div>
                     </td>
-                    <td className="p-3 text-center font-semibold">{item.quantity}</td>
+                    <td className="p-3 text-center font-semibold">
+                      {item.part?.is_liquid ? (
+                        <div>
+                          <div>{item.container_quantity || 0} {item.part?.container_unit || 'containers'}</div>
+                          {(item.bulk_quantity || 0) > 0 && (
+                            <div className="text-xs text-slate-500">+ {(item.bulk_quantity || 0).toFixed(1)}{item.part?.base_unit || 'L'} loose</div>
+                          )}
+                        </div>
+                      ) : item.quantity}
+                    </td>
                     <td className="p-3 text-center text-slate-500">{item.min_quantity}</td>
                     <td className="p-3 text-center text-slate-500">{item.max_quantity}</td>
                     <td className="p-3 text-center">
@@ -311,7 +320,8 @@ export function VanStockDetailModal({
 function StockStatusBadge({ item }: { item: VanStockItem }) {
   const colorClass = getStockStatusColor(item);
 
-  if (item.quantity === 0) {
+  const effectiveQty = (item.container_quantity || 0) + (item.bulk_quantity || 0) + (item.quantity || 0);
+  if (effectiveQty === 0) {
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
         <TrendingDown className="w-3 h-3" /> Out
@@ -319,7 +329,7 @@ function StockStatusBadge({ item }: { item: VanStockItem }) {
     );
   }
 
-  if (item.quantity <= item.min_quantity) {
+  if (effectiveQty <= item.min_quantity) {
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
         <AlertTriangle className="w-3 h-3" /> Low

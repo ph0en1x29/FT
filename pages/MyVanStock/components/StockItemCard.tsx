@@ -6,14 +6,15 @@ interface StockItemCardProps {
 }
 
 function getStockStatusBadge(item: VanStockItem) {
-  if (item.quantity === 0) {
+  const effectiveQty = (item.container_quantity || 0) + (item.bulk_quantity || 0) || item.quantity;
+  if (effectiveQty === 0) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
         <TrendingDown className="w-3 h-3" /> Out of Stock
       </span>
     );
   }
-  if (item.quantity <= item.min_quantity) {
+  if (effectiveQty <= item.min_quantity) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full font-medium">
         <AlertTriangle className="w-3 h-3" /> Low Stock
@@ -28,8 +29,9 @@ function getStockStatusBadge(item: VanStockItem) {
 }
 
 function getQuantityBarColor(item: VanStockItem) {
-  const percent = (item.quantity / item.max_quantity) * 100;
-  if (item.quantity === 0) return 'bg-red-500';
+  const effectiveQty = (item.container_quantity || 0) + (item.bulk_quantity || 0) || item.quantity;
+  const percent = (effectiveQty / item.max_quantity) * 100;
+  if (effectiveQty === 0) return 'bg-red-500';
   if (percent <= 25) return 'bg-amber-500';
   return 'bg-green-500';
 }
@@ -50,13 +52,18 @@ export function StockItemCard({ item }: StockItemCardProps) {
         <div className="flex justify-between text-xs mb-1">
           <span className="text-theme-muted">Quantity</span>
           <span className="font-medium text-theme">
-            {item.quantity} / {item.max_quantity}
+            {item.part?.is_liquid ? (
+              <>
+                {item.container_quantity || 0} {item.part?.container_unit || 'sealed'}
+                {(item.bulk_quantity || 0) > 0 && <span className="text-xs text-slate-500"> +{(item.bulk_quantity || 0).toFixed(1)}{item.part?.base_unit || 'L'}</span>}
+              </>
+            ) : (<>{item.quantity} / {item.max_quantity}</>)}
           </span>
         </div>
         <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
           <div
             className={`h-full ${getQuantityBarColor(item)} transition-all duration-300`}
-            style={{ width: `${Math.min(100, (item.quantity / item.max_quantity) * 100)}%` }}
+            style={{ width: `${Math.min(100, (((item.container_quantity || 0) + (item.bulk_quantity || 0) || item.quantity) / item.max_quantity) * 100)}%` }}
           />
         </div>
       </div>

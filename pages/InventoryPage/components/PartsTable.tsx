@@ -1,6 +1,7 @@
 import { AlertTriangle,Clock,Edit2,Package,Trash2 } from 'lucide-react';
 import React from 'react';
 import { Skeleton,SkeletonStats,SkeletonTableRow } from '../../../components/Skeleton';
+import { formatStockDisplay } from '../../../services/liquidInventoryService';
 import { Part } from '../../../types';
 
 interface PartsTableProps {
@@ -99,15 +100,16 @@ const PartsTable: React.FC<PartsTableProps> = ({
                     <td className="p-4 text-theme-muted text-sm font-mono">{p.part_code}</td>
                     <td className="p-4">
                       <div className={`font-bold flex items-center gap-2 ${
-                        p.stock_quantity === 0 ? 'text-red-500' :
-                        p.stock_quantity <= (p.min_stock_level || 10) ? 'text-amber-500' :
+                        (p.is_liquid ? ((p.container_quantity || 0) + (p.bulk_quantity || 0)) === 0 : p.stock_quantity === 0) ? 'text-red-500' :
+                        (p.is_liquid ? ((p.container_quantity || 0) + (p.bulk_quantity || 0)) <= (p.min_stock_level || 10) : p.stock_quantity <= (p.min_stock_level || 10)) ? 'text-amber-500' :
                         'text-green-600'
                       }`}>
-                        {p.stock_quantity}
-                        {p.stock_quantity === 0 && (
+                        {p.is_liquid ? formatStockDisplay(p) : p.stock_quantity}
+                        {(p.is_liquid ? ((p.container_quantity || 0) + (p.bulk_quantity || 0)) === 0 : p.stock_quantity === 0) && (
                           <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">OUT</span>
                         )}
-                        {p.stock_quantity > 0 && p.stock_quantity <= (p.min_stock_level || 10) && (
+                        {!(p.is_liquid ? ((p.container_quantity || 0) + (p.bulk_quantity || 0)) === 0 : p.stock_quantity === 0) &&
+                          (p.is_liquid ? ((p.container_quantity || 0) + (p.bulk_quantity || 0)) <= (p.min_stock_level || 10) : p.stock_quantity <= (p.min_stock_level || 10)) && (
                           <AlertTriangle className="w-4 h-4" />
                         )}
                       </div>
@@ -167,15 +169,16 @@ const PartsTable: React.FC<PartsTableProps> = ({
                     <div className="text-xs text-theme-muted font-mono">{p.part_code}</div>
                   </div>
                   <div className={`text-lg font-bold flex items-center gap-1 flex-shrink-0 ${
-                    p.stock_quantity === 0 ? 'text-red-500' :
-                    p.stock_quantity <= (p.min_stock_level || 10) ? 'text-amber-500' :
+                    (p.is_liquid ? ((p.container_quantity || 0) + (p.bulk_quantity || 0)) === 0 : p.stock_quantity === 0) ? 'text-red-500' :
+                    (p.is_liquid ? ((p.container_quantity || 0) + (p.bulk_quantity || 0)) <= (p.min_stock_level || 10) : p.stock_quantity <= (p.min_stock_level || 10)) ? 'text-amber-500' :
                     'text-green-600'
                   }`}>
-                    {p.stock_quantity}
-                    {p.stock_quantity === 0 && (
+                    {p.is_liquid ? formatStockDisplay(p) : p.stock_quantity}
+                    {(p.is_liquid ? ((p.container_quantity || 0) + (p.bulk_quantity || 0)) === 0 : p.stock_quantity === 0) && (
                       <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">OUT</span>
                     )}
-                    {p.stock_quantity > 0 && p.stock_quantity <= (p.min_stock_level || 10) && (
+                    {!(p.is_liquid ? ((p.container_quantity || 0) + (p.bulk_quantity || 0)) === 0 : p.stock_quantity === 0) &&
+                      (p.is_liquid ? ((p.container_quantity || 0) + (p.bulk_quantity || 0)) <= (p.min_stock_level || 10) : p.stock_quantity <= (p.min_stock_level || 10)) && (
                       <AlertTriangle className="w-3.5 h-3.5" />
                     )}
                   </div>

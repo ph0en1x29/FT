@@ -2,6 +2,8 @@ import React,{ useCallback,useMemo,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { Part,User } from '../../../types';
+import { isLikelyLiquid } from '../../../types/inventory.types';
+import { getTotalBaseUnits } from '../../../services/liquidInventoryService';
 
 export interface InventoryFormData {
   part_name: string;
@@ -14,6 +16,13 @@ export interface InventoryFormData {
   min_stock_level: number;
   supplier: string;
   location: string;
+  // Liquid inventory fields
+  is_liquid: boolean;
+  base_unit: string;
+  container_unit: string;
+  container_size: number | '';
+  container_quantity: number;
+  bulk_quantity: number;
 }
 
 const initialFormData: InventoryFormData = {
@@ -27,6 +36,12 @@ const initialFormData: InventoryFormData = {
   min_stock_level: 10,
   supplier: '',
   location: '',
+  is_liquid: false,
+  base_unit: 'pcs',
+  container_unit: '',
+  container_size: '',
+  container_quantity: 0,
+  bulk_quantity: 0,
 };
 
 export interface InventoryStats {
@@ -77,9 +92,18 @@ export function useInventoryData(currentUser: User) {
 
       let matchesStock = true;
       if (filterStock === 'low') {
-        matchesStock = p.stock_quantity > 0 && p.stock_quantity <= (p.min_stock_level || 10);
+        if (p.is_liquid) {
+          const total = (p.container_quantity || 0) + (p.bulk_quantity || 0);
+          matchesStock = total > 0 && total <= (p.min_stock_level || 10);
+        } else {
+          matchesStock = p.stock_quantity > 0 && p.stock_quantity <= (p.min_stock_level || 10);
+        }
       } else if (filterStock === 'out') {
-        matchesStock = p.stock_quantity === 0;
+        if (p.is_liquid) {
+          matchesStock = ((p.container_quantity || 0) + (p.bulk_quantity || 0)) === 0;
+        } else {
+          matchesStock = p.stock_quantity === 0;
+        }
       }
 
       return matchesSearch && matchesCategory && matchesStock;
@@ -100,9 +124,25 @@ export function useInventoryData(currentUser: User) {
   // Stats
   const stats: InventoryStats = useMemo(() => {
     const total = parts.length;
-    const lowStock = parts.filter(p => p.stock_quantity > 0 && p.stock_quantity <= (p.min_stock_level || 10)).length;
-    const outOfStock = parts.filter(p => p.stock_quantity === 0).length;
-    const totalValue = parts.reduce((sum, p) => sum + (p.cost_price * p.stock_quantity), 0);
+    const lowStock = parts.filter(p => {
+      if (p.is_liquid) {
+        const total = (p.container_quantity || 0) + (p.bulk_quantity || 0);
+        return total > 0 && total <= (p.min_stock_level || 10);
+      }
+      return p.stock_quantity > 0 && p.stock_quantity <= (p.min_stock_level || 10);
+    }).length;
+    const outOfStock = parts.filter(p => {
+      if (p.is_liquid) {
+        return ((p.container_quantity || 0) + (p.bulk_quantity || 0)) === 0;
+      }
+      return p.stock_quantity === 0;
+    }).length;
+    const totalValue = parts.reduce((sum, p) => {
+      if (p.is_liquid) {
+        return sum + (p.cost_price * (p.container_quantity || 0));
+      }
+      return sum + (p.cost_price * p.stock_quantity);
+    }, 0);
     return { total, lowStock, outOfStock, totalValue };
   }, [parts]);
 
@@ -128,6 +168,12 @@ export function useInventoryData(currentUser: User) {
       min_stock_level: part.min_stock_level || 10,
       supplier: part.supplier || '',
       location: part.location || '',
+      is_liquid: part.is_liquid || false,
+      base_unit: part.base_unit || 'pcs',
+      container_unit: part.container_unit || '',
+      container_size: part.container_size || '',
+      container_quantity: part.container_quantity || 0,
+      bulk_quantity: part.bulk_quantity || 0,
     });
     setEditingPart(part);
     setShowModal(true);
@@ -142,8 +188,12 @@ export function useInventoryData(currentUser: User) {
     }
 
     try {
+      const containerSize = typeof formData.container_size === 'number' ? formData.container_size : 0;
       const partData = {
         ...formData,
+        container_size: containerSize || null,
+        container_unit: formData.container_unit || null,
+        price_per_base_unit: containerSize > 0 ? formData.sell_price / containerSize : null,
         last_updated_by: currentUser.user_id,
         last_updated_by_name: currentUser.name,
         updated_at: new Date().toISOString(),
