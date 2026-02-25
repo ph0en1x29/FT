@@ -1,4 +1,4 @@
-import { Download,Plus } from 'lucide-react';
+import { Download,Plus,Upload } from 'lucide-react';
 import React from 'react';
 
 interface PartsHeaderProps {
@@ -7,6 +7,7 @@ interface PartsHeaderProps {
   isAdmin: boolean;
   onExport: () => void;
   onAddNew: () => void;
+  onImport?: () => void;
 }
 
 const PartsHeader: React.FC<PartsHeaderProps> = ({
@@ -15,6 +16,7 @@ const PartsHeader: React.FC<PartsHeaderProps> = ({
   isAdmin,
   onExport,
   onAddNew,
+  onImport,
 }) => {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -28,6 +30,14 @@ const PartsHeader: React.FC<PartsHeaderProps> = ({
         >
           <Download className="w-4 h-4" /> Export CSV
         </button>
+        {isAdmin && onImport && (
+          <button
+            onClick={onImport}
+            className="flex items-center justify-center gap-2 px-4 py-2 h-10 md:h-auto border border-theme rounded-lg hover:bg-theme-surface-2 text-sm text-theme-muted theme-transition flex-1 sm:flex-none"
+          >
+            <Upload className="w-4 h-4" /> Import
+          </button>
+        )}
         {isAdmin && (
           <button
             onClick={onAddNew}

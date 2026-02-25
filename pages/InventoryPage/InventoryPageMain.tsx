@@ -12,6 +12,7 @@ import PartsHeader from './components/PartsHeader';
 import PartsTable from './components/PartsTable';
 import TabNavigation,{ Tab,TabType } from './components/TabNavigation';
 import ReplenishmentsTab from './components/ReplenishmentsTab';
+import ImportPartsModal from './components/ImportPartsModal';
 import { useInventoryData } from './hooks/useInventoryData';
 
 interface InventoryPageProps {
@@ -22,6 +23,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get('tab') as TabType) || 'parts';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Use dev mode context for role-based permissions
   const { displayRole } = useDevModeContext();
@@ -120,6 +122,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             isAdmin={isAdmin}
             onExport={handleExportCSV}
             onAddNew={handleAddNew}
+            onImport={() => setShowImportModal(true)}
           />
 
           {/* Low Stock Alert */}
@@ -173,6 +176,14 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             onClose={closeModal}
             onSubmit={handleSubmit}
             onFormChange={setFormData}
+          />
+
+          <ImportPartsModal
+            show={showImportModal}
+            onClose={() => setShowImportModal(false)}
+            onImportComplete={() => { setShowImportModal(false); loadParts(); }}
+            currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
+            existingPartCodes={parts.map(p => p.part_code)}
           />
         </>
       )}
