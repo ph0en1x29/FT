@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useVanStockPart } from '../../../services/inventoryService';
+import { useVanBulk } from '../../../services/liquidInventoryService';
 import { createReplenishmentRequest } from '../../../services/replenishmentService';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
@@ -114,17 +115,34 @@ export const useJobPartsHandlers = ({
 
     const qtyToUse = parseFloat(state.vanStockQuantity) || 1;
     if (qtyToUse <= 0) { showToast.error('Invalid quantity', 'Quantity must be greater than 0'); return; }
-    if (item.quantity < qtyToUse) { showToast.error('Insufficient stock', `Only ${item.quantity} ${item.part?.unit || 'pcs'} available in van`); return; }
+    const availableQty = item.part?.is_liquid
+      ? (item.container_quantity || 0) * (item.part?.container_size || 0) + (item.bulk_quantity || 0)
+      : item.quantity;
+    if (availableQty < qtyToUse) { showToast.error('Insufficient stock', `Only ${availableQty} ${item.part?.base_unit || item.part?.unit || 'pcs'} available in van`); return; }
 
     try {
-      await useVanStockPart(
-        item.item_id,
-        job.job_id,
-        qtyToUse,
-        currentUserId,
-        currentUserName,
-        false // no approval needed for own van stock
-      );
+      if (item.part?.is_liquid && item.part?.container_size) {
+        // Liquid: use dual-unit deduction from van
+        await useVanBulk(
+          item.part_id,
+          item.item_id,
+          state.vanStock.van_stock_id,
+          qtyToUse,
+          job.job_id,
+          currentUserId,
+          currentUserName
+        );
+      } else {
+        // Non-liquid: legacy van stock usage
+        await useVanStockPart(
+          item.item_id,
+          job.job_id,
+          qtyToUse,
+          currentUserId,
+          currentUserName,
+          false
+        );
+      }
 
       // Also add to job parts for invoicing
       if (item.part) {

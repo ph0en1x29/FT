@@ -54,3 +54,6 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-24 23:06] [Sonnet] Updated PartsTable.tsx - dual-unit stock display using formatStockDisplay()
 [2026-02-24 23:06] [Sonnet] Updated VanStockDetailModal.tsx, TransferItemsModal.tsx, StockItemCard.tsx, VanStockPageMain.tsx - liquid-aware displays
 [2026-02-24 23:06] [Sonnet] Updated InventoryPageMain.tsx - stock mismatch alert banner for liquid items
+[2026-02-24 23:06] [HOOK] Emergency bypass used by Phoenix
+[2026-02-24 23:10] [Sonnet] Updated jobInvoiceService.ts addPartToJob - liquid-aware stock deduction with useInternalBulk, fallback to legacy
+[2026-02-24 23:10] [Sonnet] Updated useJobPartsHandlers.ts - liquid-aware van stock check and useVanBulk for liquid items

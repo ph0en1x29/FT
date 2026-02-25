@@ -8,6 +8,7 @@ import type { Job } from '../types';
 import { JobStatus as JobStatusEnum,UserRole } from '../types';
 import { updateForkliftHourmeter } from './forkliftService';
 import { supabase } from './supabaseClient';
+import { useInternalBulk, sellContainersExternal } from './liquidInventoryService';
 
 // Forward declaration to avoid circular dependency
 const getJobById = async (jobId: string): Promise<Job | null> => {
@@ -72,13 +73,28 @@ export const addPartToJob = async (
   if (insertError) throw new Error(insertError.message);
 
   if (actorRole === UserRole.ADMIN || actorRole === UserRole.TECHNICIAN) {
-    const newStock = Math.max(0, part.stock_quantity - quantity);
-    const { error: stockError } = await supabase
-      .from('parts')
-      .update({ stock_quantity: newStock })
-      .eq('part_id', partId);
-    if (stockError) {
-      console.warn('Part added, but stock update failed (RLS?):', stockError.message);
+    if (part.is_liquid && part.container_size) {
+      // Liquid item — use dual-unit deduction
+      // For now, deduct from bulk (internal use) by default
+      // External sales (sealed containers) should use sellContainersExternal directly
+      try {
+        await useInternalBulk(partId, quantity, jobId, actorId || '', actorName);
+      } catch (liquidErr) {
+        console.warn('Liquid stock deduction failed, falling back to legacy:', (liquidErr as Error).message);
+        // Fallback to legacy stock_quantity deduction
+        const newStock = Math.max(0, part.stock_quantity - quantity);
+        await supabase.from('parts').update({ stock_quantity: newStock }).eq('part_id', partId);
+      }
+    } else {
+      // Non-liquid — legacy deduction
+      const newStock = Math.max(0, part.stock_quantity - quantity);
+      const { error: stockError } = await supabase
+        .from('parts')
+        .update({ stock_quantity: newStock })
+        .eq('part_id', partId);
+      if (stockError) {
+        console.warn('Part added, but stock update failed (RLS?):', stockError.message);
+      }
     }
   }
 
