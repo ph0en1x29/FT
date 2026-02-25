@@ -35,11 +35,12 @@ export const useJobPartsHandlers = ({
     }
     const price = parseFloat(state.selectedPartPrice) || 0;
     try {
-      const updated = await MockDb.addPartToJob(job.job_id, state.selectedPartId, qty, price, UserRole.ADMIN, currentUserId, currentUserName);
+      const updated = await MockDb.addPartToJob(job.job_id, state.selectedPartId, qty, price, UserRole.ADMIN, currentUserId, currentUserName, state.sellSealed);
       setJob({ ...updated } as Job);
       state.setSelectedPartId('');
       state.setSelectedPartPrice('');
       state.setAddPartQuantity('1');
+      state.setSellSealed(false);
       showToast.success('Part added');
     } catch (e) {
       showToast.error('Could not add part', (e as Error).message);

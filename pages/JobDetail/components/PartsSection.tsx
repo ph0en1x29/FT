@@ -37,6 +37,9 @@ interface PartsSectionProps {
   // Van selection props
   availableVans?: VanStock[];
   onSelectJobVan?: (vanStockId: string) => void;
+  // Liquid sell mode
+  sellSealed?: boolean;
+  onSellSealedChange?: (val: boolean) => void;
 }
 
 export const PartsSection: React.FC<PartsSectionProps> = ({
@@ -70,6 +73,8 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   onUseVanStockPart,
   availableVans,
   onSelectJobVan,
+  sellSealed,
+  onSellSealedChange,
 }) => {
   const { isTechnician, _isAdmin, _isSupervisor, _isAccountant, canViewPricing, canEditPrices, canAddParts, isHelperOnly } = roleFlags;
   const { isNew, isAssigned, isInProgress, isAwaitingFinalization } = statusFlags;
@@ -327,6 +332,17 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
                 placeholder="Qty"
               />
             </div>
+            <label className="flex items-center gap-1.5 text-xs whitespace-nowrap cursor-pointer" title="Sell sealed containers instead of using bulk liters">
+              <input
+                type="checkbox"
+                checked={sellSealed || false}
+                onChange={(e) => onSellSealedChange?.(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600"
+              />
+              <span className={sellSealed ? 'text-blue-600 font-medium' : 'text-slate-500'}>
+                {sellSealed ? 'Sealed' : 'Bulk'}
+              </span>
+            </label>
             <button onClick={onAddPart} disabled={!selectedPartId} className="btn-premium btn-premium-primary disabled:opacity-50">
               <Plus className="w-5 h-5" />
             </button>

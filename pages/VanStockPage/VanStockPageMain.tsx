@@ -442,6 +442,8 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
         onDeactivate={() => handleOpenDeleteConfirm('deactivate')}
         onDelete={() => handleOpenDeleteConfirm('delete')}
         onScheduleAudit={handleScheduleAudit}
+        currentUserId={currentUser.user_id}
+        currentUserName={currentUser.name}
       />
 
       <AssignVanStockModal

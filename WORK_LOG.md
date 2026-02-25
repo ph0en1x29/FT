@@ -57,3 +57,7 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-24 23:06] [HOOK] Emergency bypass used by Phoenix
 [2026-02-24 23:10] [Sonnet] Updated jobInvoiceService.ts addPartToJob - liquid-aware stock deduction with useInternalBulk, fallback to legacy
 [2026-02-24 23:10] [Sonnet] Updated useJobPartsHandlers.ts - liquid-aware van stock check and useVanBulk for liquid items
+[2026-02-24 23:10] [HOOK] Emergency bypass used by Phoenix
+[2026-02-25 00:51] [Sonnet] Added transfer/return buttons to VanStockDetailModal for liquid items
+[2026-02-25 00:51] [Sonnet] Added sellSealed toggle to PartsSection + jobInvoiceService + useJobDetailState + useJobPartsHandlers
+[2026-02-25 00:51] [Sonnet] Created MovementHistoryModal component + wired into PartsTable with History icon

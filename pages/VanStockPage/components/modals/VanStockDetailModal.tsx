@@ -15,6 +15,8 @@ TrendingDown,
 X,
 } from 'lucide-react';
 import { useEffect,useState } from 'react';
+import { transferToVan, returnToStore } from '../../../../services/liquidInventoryService';
+import { showToast } from '../../../../services/toastService';
 import { VanStock,VanStockItem } from '../../../../types';
 import { getLowStockItems,getStockStatusColor } from '../../hooks/useVanStockData';
 import { VanHistoryTab } from '../VanHistoryTab';
@@ -30,6 +32,8 @@ interface VanStockDetailModalProps {
   onDeactivate: () => void;
   onDelete: () => void;
   onScheduleAudit: (vanStock: VanStock) => void;
+  currentUserId?: string;
+  currentUserName?: string;
 }
 
 export function VanStockDetailModal({
@@ -43,6 +47,8 @@ export function VanStockDetailModal({
   onDeactivate,
   onDelete,
   onScheduleAudit,
+  currentUserId,
+  currentUserName,
 }: VanStockDetailModalProps) {
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'stock' | 'history'>('stock');
@@ -231,6 +237,7 @@ export function VanStockDetailModal({
                   <th className="text-center p-3 text-theme-muted">Min</th>
                   <th className="text-center p-3 text-theme-muted">Max</th>
                   <th className="text-center p-3 text-theme-muted">Status</th>
+                  <th className="p-3 text-center text-xs font-semibold text-slate-500">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme">
@@ -255,6 +262,48 @@ export function VanStockDetailModal({
                     <td className="p-3 text-center">
                       <StockStatusBadge item={item} />
                     </td>
+                    {item.part?.is_liquid && (
+                      <td className="p-3 text-center">
+                        <div className="flex gap-1 justify-center">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const qty = prompt('How many sealed containers to transfer FROM store TO van?');
+                              if (!qty || isNaN(Number(qty)) || Number(qty) <= 0) return;
+                              try {
+                                await transferToVan(item.part_id, item.item_id, vanStock.van_stock_id, Number(qty), currentUserId || '', currentUserName);
+                                showToast.success('Transfer complete', `${qty} container(s) moved to van`);
+                                if (onClose) onClose();
+                              } catch (err) {
+                                showToast.error('Transfer failed', (err as Error).message);
+                              }
+                            }}
+                            className="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                            title="Transfer sealed containers from store to van"
+                          >
+                            +Store→Van
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const qty = prompt('How many sealed containers to return FROM van TO store?');
+                              if (!qty || isNaN(Number(qty)) || Number(qty) <= 0) return;
+                              try {
+                                await returnToStore(item.part_id, item.item_id, vanStock.van_stock_id, Number(qty), currentUserId || '', currentUserName);
+                                showToast.success('Return complete', `${qty} container(s) returned to store`);
+                                if (onClose) onClose();
+                              } catch (err) {
+                                showToast.error('Return failed', (err as Error).message);
+                              }
+                            }}
+                            className="px-2 py-1 text-xs bg-amber-50 text-amber-600 rounded hover:bg-amber-100"
+                            title="Return sealed containers from van to store"
+                          >
+                            Van→Store
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

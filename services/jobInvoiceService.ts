@@ -45,7 +45,8 @@ export const addPartToJob = async (
   customPrice?: number,
   actorRole?: UserRole,
   actorId?: string,
-  actorName?: string
+  actorName?: string,
+  sellSealed?: boolean
 ): Promise<Job> => {
   const { data: part, error: partError } = await supabase
     .from('parts')
@@ -74,11 +75,15 @@ export const addPartToJob = async (
 
   if (actorRole === UserRole.ADMIN || actorRole === UserRole.TECHNICIAN) {
     if (part.is_liquid && part.container_size) {
-      // Liquid item — use dual-unit deduction
-      // For now, deduct from bulk (internal use) by default
-      // External sales (sealed containers) should use sellContainersExternal directly
+      // Liquid item — branch on sell mode
       try {
-        await useInternalBulk(partId, quantity, jobId, actorId || '', actorName);
+        if (sellSealed) {
+          // Sell sealed containers to external client
+          await sellContainersExternal(partId, quantity, jobId, actorId || '', actorName);
+        } else {
+          // Use loose bulk liters internally
+          await useInternalBulk(partId, quantity, jobId, actorId || '', actorName);
+        }
       } catch (liquidErr) {
         console.warn('Liquid stock deduction failed, falling back to legacy:', (liquidErr as Error).message);
         // Fallback to legacy stock_quantity deduction

@@ -1,5 +1,6 @@
-import { AlertTriangle,Clock,Edit2,Package,Trash2 } from 'lucide-react';
-import React from 'react';
+import { AlertTriangle,Clock,Edit2,History,Package,Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { MovementHistoryModal } from './MovementHistoryModal';
 import { Skeleton,SkeletonStats,SkeletonTableRow } from '../../../components/Skeleton';
 import { formatStockDisplay } from '../../../services/liquidInventoryService';
 import { Part } from '../../../types';
@@ -21,6 +22,9 @@ const PartsTable: React.FC<PartsTableProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const [historyPartId, setHistoryPartId] = useState<string | null>(null);
+  const [historyPartName, setHistoryPartName] = useState('');
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -150,6 +154,15 @@ const PartsTable: React.FC<PartsTableProps> = ({
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
+                          {p.is_liquid && (
+                            <button
+                              onClick={() => { setHistoryPartId(p.part_id); setHistoryPartName(p.part_name); }}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Movement history"
+                            >
+                              <History className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}
@@ -209,6 +222,15 @@ const PartsTable: React.FC<PartsTableProps> = ({
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Delete
                     </button>
+                    {p.is_liquid && (
+                      <button
+                        onClick={() => { setHistoryPartId(p.part_id); setHistoryPartName(p.part_name); }}
+                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Movement history"
+                      >
+                        <History className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -216,6 +238,12 @@ const PartsTable: React.FC<PartsTableProps> = ({
           </div>
         </div>
       ))}
+      <MovementHistoryModal
+        isOpen={!!historyPartId}
+        partId={historyPartId || ''}
+        partName={historyPartName}
+        onClose={() => setHistoryPartId(null)}
+      />
     </>
   );
 };

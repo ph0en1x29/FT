@@ -145,6 +145,7 @@ export const useJobDetailState = () => {
   // Checklist states
   const [missingChecklistItems, setMissingChecklistItems] = useState<string[]>([]);
   const [noPartsUsed, setNoPartsUsed] = useState(false);
+  const [sellSealed, setSellSealed] = useState(false);
 
   // Other data states
   const [activeRental, setActiveRental] = useState<{ rental_id: string; customer_name: string; rental_location: string; start_date: string; } | null>(null);
@@ -266,6 +267,7 @@ export const useJobDetailState = () => {
     // Checklist
     missingChecklistItems, setMissingChecklistItems,
     noPartsUsed, setNoPartsUsed,
+    sellSealed, setSellSealed,
 
     // Other
     activeRental, setActiveRental,
