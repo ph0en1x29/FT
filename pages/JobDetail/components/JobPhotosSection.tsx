@@ -39,9 +39,9 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
 
   const { isTechnician, isAdmin, isSupervisor } = roleFlags;
-  const { isNew, isAssigned, isInProgress, isAwaitingFinalization, isIncompleteContinuing, isIncompleteReassigned } = statusFlags;
+  const { isNew, isAssigned, isInProgress, isAwaitingFinalization, isIncompleteContinuing, isIncompleteReassigned, isCompleted } = statusFlags;
   
-  const canUploadPhotos = isNew || isAssigned || isInProgress || isAwaitingFinalization || isIncompleteContinuing || isIncompleteReassigned;
+  const canUploadPhotos = isNew || isAssigned || isInProgress || isAwaitingFinalization || isIncompleteContinuing || isIncompleteReassigned || isCompleted;
 
   // Helper to get GPS coordinates (non-blocking, shorter timeout)
   const getGPSCoordinates = (): Promise<{ latitude: number; longitude: number; accuracy: number } | null> => {

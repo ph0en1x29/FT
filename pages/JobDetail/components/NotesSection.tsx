@@ -45,7 +45,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
         )}
       </div>
 
-      {(statusFlags.isAssigned || statusFlags.isInProgress) && !roleFlags.isHelperOnly && (
+      {(statusFlags.isAssigned || statusFlags.isInProgress || statusFlags.isAwaitingFinalization || statusFlags.isCompleted) && !roleFlags.isHelperOnly && (
         <div className="flex gap-2">
           <input 
             type="text" 
