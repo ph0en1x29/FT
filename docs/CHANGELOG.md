@@ -4,6 +4,26 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-26] - February 26, 2026
+
+### Features
+- **Auto-generated job numbers** — DB trigger assigns `JOB-YYYYMMDD-XXXX` on insert; existing jobs backfilled; job number badge displayed on job cards and job detail header; searchable via global search
+- **Technician mobile UX overhaul** — My Jobs / Other Jobs tab split; colored status borders on cards (green = completed, yellow = in-progress, red = open); larger tap targets throughout; collapsible sections on job detail page
+
+### Bug Fixes
+- **Sticky action bar** — Moved to top of job detail; hides automatically when modals are open to prevent overlap
+- **Hourmeter validation** — Allow equal hourmeter reading on job complete (handles case where forklift was not operational during job)
+- **Signature images** — Now use permanent public URLs instead of signed URLs (fixes 24-hour expiry issue)
+- **Post-completion notes** — Technicians can now add notes after a job has been marked complete
+- **Confirmation card** — Fixed mobile overflow on confirmation summary card
+- **Checklist grid** — Single-column layout on mobile; overflow handling on long checklist labels
+- **Call button** — Moved below customer name for better visual hierarchy
+- **Combobox dropdown** — Flips upward when near viewport bottom to prevent clipping
+- **CreateJob page** — Job type and priority fields now use Combobox component for consistency
+- **Toast notifications** — Moved to top-center position; close button removed for cleaner mobile UX
+
+---
+
 ## [2026-02-18/19] — Mobile Polish + Dark Mode + Theme Fixes
 
 ### Bug Fixes
