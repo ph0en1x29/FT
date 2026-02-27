@@ -84,7 +84,7 @@ export const ConditionChecklistCard: React.FC<ConditionChecklistCardProps> = ({
               <CheckSquare className="w-3.5 h-3.5" /> Check All
             </button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {CHECKLIST_CATEGORIES.map(cat => (
               <div key={cat.name} className="bg-[var(--surface)] border border-[var(--border)] p-3 rounded-xl">
                 <p className="font-medium text-[var(--text-secondary)] text-xs mb-2">{cat.name}</p>
@@ -92,8 +92,8 @@ export const ConditionChecklistCard: React.FC<ConditionChecklistCardProps> = ({
                   {cat.items.map(item => {
                     const itemState = normalizeChecklistState(checklistEditData[item.key as keyof ForkliftConditionChecklist]);
                     return (
-                      <div key={item.key} className="flex items-center justify-between gap-2 min-h-[44px] py-1">
-                        <span className={`text-xs flex-1 ${
+                      <div key={item.key} className="flex items-center justify-between flex-wrap gap-1 py-1">
+                        <span className={`text-xs flex-1 min-w-0 break-words ${
                           itemState === 'ok' ? 'text-[var(--success)]' :
                           itemState === 'not_ok' ? 'text-[var(--error)]' :
                           'text-[var(--text-muted)]'
@@ -101,11 +101,11 @@ export const ConditionChecklistCard: React.FC<ConditionChecklistCardProps> = ({
                           {item.label}
                           {isMandatoryItem(item.key) && <span className="text-red-500 ml-0.5">*</span>}
                         </span>
-                        <div className="flex gap-1">
+                        <div className="shrink-0 flex gap-1">
                           <button
                             type="button"
                             onClick={() => onSetItemState(item.key, 'ok')}
-                            className={`p-2 min-h-[44px] min-w-[44px] rounded text-xs transition-colors flex items-center justify-center ${
+                            className={`p-1.5 min-h-[36px] min-w-[36px] rounded text-xs transition-colors flex items-center justify-center ${
                               itemState === 'ok'
                                 ? 'bg-[var(--success)] text-white'
                                 : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:bg-[var(--success-bg)] hover:text-[var(--success)]'
@@ -117,7 +117,7 @@ export const ConditionChecklistCard: React.FC<ConditionChecklistCardProps> = ({
                           <button
                             type="button"
                             onClick={() => onSetItemState(item.key, 'not_ok')}
-                            className={`p-2 min-h-[44px] min-w-[44px] rounded text-xs transition-colors flex items-center justify-center ${
+                            className={`p-1.5 min-h-[36px] min-w-[36px] rounded text-xs transition-colors flex items-center justify-center ${
                               itemState === 'not_ok'
                                 ? 'bg-[var(--error)] text-white'
                                 : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:bg-[var(--error-bg)] hover:text-[var(--error)]'

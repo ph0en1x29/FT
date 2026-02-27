@@ -34,62 +34,70 @@ export const ConfirmationStatusCard: React.FC<ConfirmationStatusCardProps> = ({
       <div className="space-y-3">
         {/* Parts Confirmation (Admin 2 - Store) */}
         <div className="flex items-center justify-between p-3 bg-[var(--bg-subtle)] rounded-lg">
-          <div className="flex items-center gap-2">
-            <Box className="w-4 h-4 text-[var(--text-muted)]" />
-            <span className="text-sm text-[var(--text-secondary)]">Parts Confirmation</span>
-            <span className="text-xs text-[var(--text-muted)]">(Admin 2)</span>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Box className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm text-[var(--text-secondary)]">Parts Confirmation</span>
+              <span className="text-xs text-[var(--text-muted)]">(Admin 2)</span>
+            </div>
           </div>
-          {job.parts_confirmed_at ? (
-            <div className="flex items-center gap-2 text-[var(--success)]">
-              <CheckCircle className="w-4 h-4" />
-              <span className="text-sm">{job.parts_confirmed_by_name}</span>
-              <span className="text-xs text-[var(--text-muted)]">
-                {new Date(job.parts_confirmed_at).toLocaleDateString()}
-              </span>
-            </div>
-          ) : job.parts_confirmation_skipped ? (
-            <span className="text-sm text-[var(--text-muted)] italic">Skipped (no parts)</span>
-          ) : job.parts_used.length === 0 ? (
-            <span className="text-sm text-[var(--text-muted)] italic">N/A (no parts used)</span>
-          ) : (
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 text-amber-600">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">Pending</span>
+          <div className="shrink-0 ml-2">
+            {job.parts_confirmed_at ? (
+              <div className="flex items-center gap-2 text-[var(--success)]">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm">{job.parts_confirmed_by_name}</span>
+                <span className="text-xs text-[var(--text-muted)]">
+                  {new Date(job.parts_confirmed_at).toLocaleDateString()}
+                </span>
               </div>
-              {(isAdminStore || isAdmin || isAccountant) && (
-                <button 
-                  onClick={onConfirmParts}
-                  className="ml-2 px-3 py-1 text-xs bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity"
-                >
-                  Verify Parts
-                </button>
-              )}
-            </div>
-          )}
+            ) : job.parts_confirmation_skipped ? (
+              <span className="text-sm text-[var(--text-muted)] italic">Skipped (no parts)</span>
+            ) : job.parts_used.length === 0 ? (
+              <span className="text-sm text-[var(--text-muted)] italic">N/A (no parts used)</span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-amber-600">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm">Pending</span>
+                </div>
+                {(isAdminStore || isAdmin || isAccountant) && (
+                  <button 
+                    onClick={onConfirmParts}
+                    className="ml-2 px-3 py-1 text-xs bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity"
+                  >
+                    Verify Parts
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Job Confirmation (Admin 1 - Service) */}
         <div className="flex items-center justify-between p-3 bg-[var(--bg-subtle)] rounded-lg">
-          <div className="flex items-center gap-2">
-            <Wrench className="w-4 h-4 text-[var(--text-muted)]" />
-            <span className="text-sm text-[var(--text-secondary)]">Job Confirmation</span>
-            <span className="text-xs text-[var(--text-muted)]">(Admin 1)</span>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Wrench className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm text-[var(--text-secondary)]">Job Confirmation</span>
+              <span className="text-xs text-[var(--text-muted)]">(Admin 1)</span>
+            </div>
           </div>
-          {job.job_confirmed_at ? (
-            <div className="flex items-center gap-2 text-[var(--success)]">
-              <CheckCircle className="w-4 h-4" />
-              <span className="text-sm">{job.job_confirmed_by_name}</span>
-              <span className="text-xs text-[var(--text-muted)]">
-                {new Date(job.job_confirmed_at).toLocaleDateString()}
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-amber-600">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm">Pending</span>
-            </div>
-          )}
+          <div className="shrink-0 ml-2">
+            {job.job_confirmed_at ? (
+              <div className="flex items-center gap-2 text-[var(--success)]">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm">{job.job_confirmed_by_name}</span>
+                <span className="text-xs text-[var(--text-muted)]">
+                  {new Date(job.job_confirmed_at).toLocaleDateString()}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-amber-600">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm">Pending</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

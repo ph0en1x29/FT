@@ -3,7 +3,7 @@ import React from 'react';
 import { Combobox,ComboboxOption } from '../../components/Combobox';
 import { JobPriority,JobType,User } from '../../types';
 import { ForkliftSelectionSection,NewCustomerModal } from './components';
-import { INPUT_CLASS_NAME,SELECT_CLASS_NAME } from './constants';
+import { INPUT_CLASS_NAME } from './constants';
 import { useCreateJobForm } from './hooks';
 
 interface CreateJobProps {
@@ -108,30 +108,20 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
 
         {/* Job Type & Priority */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Job Type</label>
-            <select 
-              className={SELECT_CLASS_NAME}
-              value={formData.job_type}
-              onChange={e => setFormData(prev => ({...prev, job_type: e.target.value as JobType}))}
-            >
-              {Object.values(JobType).map(t => (
-                <option key={t} value={t} className="text-[#111827]">{t}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
-            <select 
-              className={SELECT_CLASS_NAME}
-              value={formData.priority}
-              onChange={e => setFormData(prev => ({...prev, priority: e.target.value as JobPriority}))}
-            >
-              {Object.values(JobPriority).map(p => (
-                <option key={p} value={p} className="text-[#111827]">{p}</option>
-              ))}
-            </select>
-          </div>
+          <Combobox
+            label="Job Type"
+            options={Object.values(JobType).map(t => ({ id: t, label: t }))}
+            value={formData.job_type}
+            onChange={(val) => setFormData(prev => ({...prev, job_type: val as JobType}))}
+            placeholder="Select job type..."
+          />
+          <Combobox
+            label="Priority"
+            options={Object.values(JobPriority).map(p => ({ id: p, label: p }))}
+            value={formData.priority}
+            onChange={(val) => setFormData(prev => ({...prev, priority: val as JobPriority}))}
+            placeholder="Select priority..."
+          />
 
           {/* Technician Assignment (Admin/Supervisor only) */}
           {canCreateJobs && (

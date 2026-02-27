@@ -469,7 +469,7 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
     <FeatureFlagProvider enabled={devMode.isDev}>
       <Router>
         <style>{sidebarStyles}</style>
-        <Toaster position="top-center" richColors closeButton toastOptions={{ duration: 4000, className: 'text-sm !mt-2 sm:!mt-2' }} />
+        <Toaster position="top-center" richColors toastOptions={{ duration: 4000, className: 'text-sm !mt-2 sm:!mt-2' }} />
         <CommandPaletteWrapper isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} currentUser={currentUser} />
         <div className="min-h-screen bg-theme-bg flex theme-transition">
           <Sidebar currentUser={currentUser} onLogout={onLogout} isCollapsed={sidebarCollapsed} setIsCollapsed={setSidebarCollapsed} navRole={navRole} />
