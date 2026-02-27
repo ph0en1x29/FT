@@ -52,6 +52,15 @@ export const JobCard: React.FC<JobCardProps> = ({
       onClick={() => onNavigate(job.job_id)}
       className={`card-theme p-5 rounded-xl clickable-card group theme-transition ${getStatusBorderColor(job)}`}
     >
+      {/* Job Number — prominent, top of card */}
+      {job.job_number && (
+        <div className="mb-2">
+          <span className="text-xs font-mono font-semibold text-white bg-blue-600 px-2 py-0.5 rounded-full whitespace-nowrap">
+            #{job.job_number}
+          </span>
+        </div>
+      )}
+
       <div className="flex justify-between items-start mb-3">
         <div className="flex gap-2 flex-wrap">
           <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wide ${getStatusColor(job.status)}`}>
@@ -70,12 +79,6 @@ export const JobCard: React.FC<JobCardProps> = ({
           )}
         </div>
         <div className="flex flex-col items-end gap-1">
-          {/* Job Number Badge */}
-          {job.job_number && (
-            <span className="text-[10px] font-mono font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 whitespace-nowrap">
-              #{job.job_number}
-            </span>
-          )}
           {job.priority === 'Emergency' && (
             <span className="text-xs font-bold text-red-600 animate-pulse">EMERGENCY</span>
           )}
