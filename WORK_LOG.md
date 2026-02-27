@@ -63,3 +63,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-25 00:51] [Sonnet] Created MovementHistoryModal component + wired into PartsTable with History icon
 [2026-02-25 00:51] [HOOK] Emergency bypass used by Phoenix
 [2026-02-25 16:47] [HOOK] Emergency bypass used by Phoenix
+[2026-02-25 17:00] [HOOK] Emergency bypass used by Phoenix
+[2026-02-26 20:22] [Sonnet] Fixed hourmeter completion validation in useJobActions.ts — changed <= to < so equal readings allowed (forklift not used/broken). Error message updated to "Hourmeter reading cannot be lower than the start reading".

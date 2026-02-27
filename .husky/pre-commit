@@ -1,10 +1,10 @@
 #!/bin/sh
 
 # ============================================================
-# FT Pre-Commit Hook — Smart Delegation Enforcement (v2)
+# FT Pre-Commit Hook — Smart Delegation Enforcement (v3)
 # ============================================================
 # Layer 1: Checks if Phoenix is committing code files
-# Layer 2: Validates Codex authored the changes (via WORK_LOG.md)
+# Layer 2: Validates Codex/Sonnet authored the changes (via WORK_LOG.md)
 # Layer 3: Warns if >50 lines changed without review entry
 # ============================================================
 
@@ -15,8 +15,8 @@ if [ "$AUTHOR" = "Phoenix" ]; then
   STAGED_CODE_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|css|sql|js)$' || true)
 
   if [ -n "$STAGED_CODE_FILES" ]; then
-    # --- Layer 2: Check WORK_LOG.md for Codex entries ---
-    # For each staged code file, verify a [Codex] entry exists
+    # --- Layer 2: Check WORK_LOG.md for Codex/Sonnet entries ---
+    # For each staged code file, verify a [Codex] or [Sonnet] entry exists
     # in WORK_LOG.md within the last 15 minutes
     
     UNVERIFIED=""
@@ -24,12 +24,12 @@ if [ "$AUTHOR" = "Phoenix" ]; then
     
     for FILE in $STAGED_CODE_FILES; do
       BASENAME=$(basename "$FILE")
-      # Look for [Codex] entries mentioning this file in WORK_LOG.md
+      # Look for [Codex] or [Sonnet] entries mentioning this file in WORK_LOG.md
       FOUND=false
       
       if [ -f "WORK_LOG.md" ]; then
-        # Extract timestamps from [Codex] entries that mention this file
-        MATCHES=$(grep -n "\[Codex\]" WORK_LOG.md | grep -i "$BASENAME" || true)
+        # Extract timestamps from [Codex] or [Sonnet] entries that mention this file
+        MATCHES=$(grep -nE "\[(Codex|Sonnet)\]" WORK_LOG.md | grep -i "$BASENAME" || true)
         
         if [ -n "$MATCHES" ]; then
           # Check if any match is within the last 15 minutes
@@ -57,23 +57,16 @@ EOF
     done
     
     if [ -n "$UNVERIFIED" ]; then
-      printf '\033[0;31m%s\033[0m\n' "🚫 DELEGATION VIOLATION: No recent Codex entry found for:"
+      printf '\033[0;31m%s\033[0m\n' "🚫 DELEGATION VIOLATION: No recent [Codex] or [Sonnet] entry found for:"
       printf '\033[0;31m%b\033[0m\n' "$UNVERIFIED"
       echo ""
-      echo "These code files need a [Codex] entry in WORK_LOG.md (within 15 min)."
-      echo "If Codex wrote the code, make sure it logged to WORK_LOG.md."
+      echo "These code files need a [Codex] or [Sonnet] entry in WORK_LOG.md (within 15 min)."
+      echo "If Codex/Sonnet wrote the code, make sure it logged to WORK_LOG.md."
       echo ""
-      echo "To force (emergency only): SKIP_HOOK=1 git commit ..."
-      
-      # Allow emergency bypass via env var (logged)
-      if [ "$SKIP_HOOK" = "1" ]; then
-        printf '\033[0;33m%s\033[0m\n' "⚠️  SKIP_HOOK=1 — bypassing delegation check (emergency)"
-        echo "[$(date '+%Y-%m-%d %H:%M')] [HOOK] Emergency bypass used by Phoenix" >> WORK_LOG.md
-      else
-        exit 1
-      fi
+      echo "Phoenix cannot commit code files directly. Delegation is mandatory."
+      exit 1
     else
-      printf '\033[0;32m%s\033[0m\n' "✅ Delegation verified — all code files have Codex entries"
+      printf '\033[0;32m%s\033[0m\n' "✅ Delegation verified — all code files have Codex/Sonnet entries"
     fi
     
     # --- Layer 3: Review warning for large changes ---

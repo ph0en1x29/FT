@@ -241,8 +241,8 @@ export const useJobActions = ({
       }
       // Hourmeter must be updated from the start reading (end-of-job reading)
       const startReading = job.forklift?.hourmeter || 0;
-      if (job.hourmeter_reading <= startReading && startReading > 0) {
-        showToast.error('Update hourmeter reading', 'Please update the hourmeter to the current end-of-job reading before completing');
+      if (job.hourmeter_reading < startReading && startReading > 0) {
+        showToast.error('Invalid hourmeter reading', 'Hourmeter reading cannot be lower than the start reading');
         return;
       }
       // "After" photo is mandatory
