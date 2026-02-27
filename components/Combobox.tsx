@@ -23,7 +23,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0,left: 0,width: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, bottom: 0, left: 0, width: 0 });
+  const [opensUpward, setOpensUpward] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputWrapperRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -39,8 +40,12 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const updateDropdownPosition = useCallback(() => {
     if (!inputWrapperRef.current) return;
     const rect = inputWrapperRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const shouldOpenUpward = spaceBelow < 250;
+    setOpensUpward(shouldOpenUpward);
     setDropdownPosition({
       top: rect.bottom,
+      bottom: window.innerHeight - rect.top,
       left: rect.left,
       width: rect.width
     });
@@ -109,8 +114,12 @@ export const Combobox: React.FC<ComboboxProps> = ({
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed mt-1 bg-[var(--surface)] border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto z-[9999]"
-          style={{
+          className={`fixed bg-[var(--surface)] border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto z-[9999]${opensUpward ? ' mb-1' : ' mt-1'}`}
+          style={opensUpward ? {
+            bottom: `${dropdownPosition.bottom}px`,
+            left: `${dropdownPosition.left}px`,
+            width: `${dropdownPosition.width}px`
+          } : {
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
             width: `${dropdownPosition.width}px`

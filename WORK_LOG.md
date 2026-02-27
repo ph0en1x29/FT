@@ -68,3 +68,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-26 21:05] [Sonnet] Fixed sticky bar hiding when modals open (hasModalOpen flag), added pb-32 to modal scrollable content, modal action buttons no longer cramped against nav bar.
 [2026-02-26 21:05] [Sonnet] Updated JobBoard.tsx, JobCard.tsx, JobDetailPage.tsx, ConditionChecklistCard.tsx, JobDetailModals.tsx — sticky bar hides on modal open, modal scroll padding fix.
 [2026-02-26 21:10] [Sonnet] Moved mobile action bar from bottom-16 to top-16 in JobDetailPage.tsx, added pt-16 md:pt-0 to content container.
+[2026-02-26 21:22] [Sonnet] Fixed Combobox dropdown flip-upward when near viewport bottom in Combobox.tsx. Moved Toaster position to top-center in AuthenticatedApp.tsx.
