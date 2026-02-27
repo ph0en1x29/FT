@@ -85,19 +85,21 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-26 22:18] [Sonnet] Made job_number badge prominent in JobCard.tsx — blue pill, text-xs, font-mono, top of card.
 [2026-02-26 22:23] [Sonnet] Restyled job number badge in JobCard.tsx — subtle pill with accent text, light bg, thin border instead of heavy blue.
 [2026-02-26 22:26] [Sonnet] Matched job number badge style on JobCard.tsx to JobHeader.tsx — blue-50 bg, blue-600 text, blue-200 border, consistent across card and detail views.
-[2026-02-27 02:05] [Sonnet] Created DB tables: purchase_batches and added reference_number to inventory_movements via Supabase API.
-[2026-02-27 02:05] [Sonnet] Added receiveLiquidStock() to services/liquidInventoryService.ts — inserts purchase_batches, updates parts.bulk_quantity + container_quantity, logs inventory_movements with movement_type='purchase'.
-[2026-02-27 02:05] [Sonnet] Created pages/InventoryPage/components/ReceiveStockModal.tsx — modal with container qty, size, auto total liters, total price, auto cost/liter, PO ref, notes fields.
-[2026-02-27 02:05] [Sonnet] Updated pages/InventoryPage/components/PartsTable.tsx — added onReceiveStock prop, PackagePlus button for liquid parts (desktop + mobile).
-[2026-02-27 02:05] [Sonnet] Updated pages/InventoryPage/InventoryPageMain.tsx — wired ReceiveStockModal with receiveStockPart state and loadParts refresh on success.
-[2026-02-27 02:05] [Sonnet] Updated pages/JobDetail/components/PartsSection.tsx — added selectedPartIsLiquid prop, conditional decimal input with 'L' label for liquid parts.
-[2026-02-27 02:05] [Sonnet] Updated pages/JobDetail/JobDetailPage.tsx — compute selectedPartIsLiquid from parts array, pass to PartsSection.
-[2026-02-27 02:06] [Sonnet] Added database/migrations/liquid_inventory_phase1.sql — migration file for liquid inventory phase 1.
-[2026-02-27 02:06] [Sonnet] Created pages/InventoryPage/components/InventoryLedgerTab.tsx — ledger tab for inventory movements.
-[2026-02-27 02:06] [Sonnet] Updated pages/InventoryPage/components/TabNavigation.tsx — tab navigation updates.
-[2026-02-27 02:06] [Sonnet] Updated pages/JobDetail/hooks/useJobPartsHandlers.ts — parts handler hook updates.
-[2026-02-27 02:06] [Sonnet] Updated pages/VanStockPage/VanStockPageMain.tsx — van stock page main updates.
-[2026-02-27 02:06] [Sonnet] Created pages/VanStockPage/components/VanLedgerTab.tsx — van ledger tab component.
-[2026-02-27 02:06] [Sonnet] Updated pages/VanStockPage/components/index.ts — component exports update.
+[2026-02-27 01:59] [Sonnet] Created DB tables: purchase_batches and added reference_number to inventory_movements via Supabase API.
+[2026-02-27 01:59] [Sonnet] Added receiveLiquidStock() to services/liquidInventoryService.ts — inserts purchase_batches, updates parts.bulk_quantity + container_quantity, logs inventory_movements with movement_type='purchase'.
+[2026-02-27 01:59] [Sonnet] Created pages/InventoryPage/components/ReceiveStockModal.tsx — modal with container qty, size, auto total liters, total price, auto cost/liter, PO ref, notes fields.
+[2026-02-27 01:59] [Sonnet] Updated pages/InventoryPage/components/PartsTable.tsx — added onReceiveStock prop, PackagePlus button for liquid parts (desktop + mobile).
+[2026-02-27 01:59] [Sonnet] Updated pages/InventoryPage/InventoryPageMain.tsx — wired ReceiveStockModal with receiveStockPart state and loadParts refresh on success.
+[2026-02-27 01:59] [Sonnet] Updated pages/JobDetail/components/PartsSection.tsx — added selectedPartIsLiquid prop, conditional decimal input with 'L' label for liquid parts.
+[2026-02-27 01:59] [Sonnet] Updated pages/JobDetail/JobDetailPage.tsx — compute selectedPartIsLiquid from parts array, pass to PartsSection.
+[2026-02-27 01:59] [Sonnet] Added database/migrations/liquid_inventory_phase1.sql — migration file for liquid inventory phase 1.
+[2026-02-27 01:59] [Sonnet] Created pages/InventoryPage/components/InventoryLedgerTab.tsx — ledger tab for inventory movements.
+[2026-02-27 01:59] [Sonnet] Updated pages/InventoryPage/components/TabNavigation.tsx — tab navigation updates.
+[2026-02-27 01:59] [Sonnet] Updated pages/JobDetail/hooks/useJobPartsHandlers.ts — parts handler hook updates.
+[2026-02-27 01:59] [Sonnet] Updated pages/VanStockPage/VanStockPageMain.tsx — van stock page main updates.
+[2026-02-27 01:59] [Sonnet] Created pages/VanStockPage/components/VanLedgerTab.tsx — van ledger tab component.
+[2026-02-27 01:59] [Sonnet] Updated pages/VanStockPage/components/index.ts — component exports update.
 
 [2026-02-27 01:55] [Sonnet] Built Phase 1 liquid inventory ledger views: InventoryLedgerTab (warehouse per-fluid running balance with purchase/transfer/usage/sale, green/red color coding), VanLedgerTab (per-van/part ledger with amber negative balance row highlight), added Ledger tab to InventoryPageMain and VanStockPageMain sub-tabs. Updated useVanBulk in liquidInventoryService to allow negative balance (returns balanceOverride flag instead of throwing). Job usage handler shows warning toast on negative van balance. Build verified.
+[2026-02-27 02:52] [Sonnet] Phase 1 liquid inventory: purchase_batches schema extended, avg_cost_per_liter function, inventory_movements columns (reference_number, unit_cost_at_time, total_cost, forklift_id), parts columns (avg_cost_per_liter, last_purchase_cost_per_liter). ReceiveStockModal, InventoryLedgerTab, VanLedgerTab built. + buttons replaced with decimal inputs on liquid parts.
+[2026-02-27 02:52] [Sonnet] Fixed liquid_inventory_phase1.sql migration — removed organization_id references, split enum additions to separate transactions.

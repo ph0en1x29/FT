@@ -65,7 +65,6 @@ COMMENT ON COLUMN parts.last_purchase_cost_per_liter IS 'Cost per liter from the
 CREATE TABLE IF NOT EXISTS purchase_batches (
   id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   part_id                  UUID NOT NULL REFERENCES parts(part_id) ON DELETE RESTRICT,
-  organization_id          UUID NOT NULL REFERENCES organizations(organization_id) ON DELETE RESTRICT,
 
   -- Container details
   container_qty            NUMERIC NOT NULL CHECK (container_qty > 0),
@@ -98,9 +97,6 @@ COMMENT ON TABLE purchase_batches IS 'Records of liquid product purchased from s
 CREATE INDEX IF NOT EXISTS idx_purchase_batches_part_id
   ON purchase_batches(part_id);
 
-CREATE INDEX IF NOT EXISTS idx_purchase_batches_organization_id
-  ON purchase_batches(organization_id);
-
 CREATE INDEX IF NOT EXISTS idx_purchase_batches_received_at
   ON purchase_batches(received_at DESC);
 
@@ -116,33 +112,25 @@ CREATE POLICY "purchase_batches_admin_all"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.role = 'admin'
-        AND profiles.organization_id = purchase_batches.organization_id
+      SELECT 1 FROM users
+      WHERE users.id = auth.uid()
+        AND users.role = 'admin'
     )
   )
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.role = 'admin'
-        AND profiles.organization_id = purchase_batches.organization_id
+      SELECT 1 FROM users
+      WHERE users.id = auth.uid()
+        AND users.role = 'admin'
     )
   );
 
--- All authenticated users in the same org can read
-CREATE POLICY "purchase_batches_read_own_org"
+-- All authenticated users can read
+CREATE POLICY "purchase_batches_read"
   ON purchase_batches
   FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.organization_id = purchase_batches.organization_id
-    )
-  );
+  USING (true);
 
 -- -----------------------------------------------------------------------------
 -- 7. Function: update_avg_cost_per_liter
