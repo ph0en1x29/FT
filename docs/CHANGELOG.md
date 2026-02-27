@@ -4,6 +4,24 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-02-27] — Liquid Inventory Phase 1
+
+### Features
+- **Purchase/Receive Stock flow** — Admin enters container qty × size (liters) + total price → auto-calculates total liters and cost per liter (RM). PO reference stored per batch.
+- **Warehouse Ledger tab** — Running balance table per fluid item: purchase, van transfer, job usage, special sale. Color-coded ± changes with reference numbers.
+- **Van Ledger tab** — Per-van running balance. Negative balance rows highlighted amber as warning flag for admin review.
+- **Cost tracking (average costing)** — purchase_batches stores cost per liter per batch. update_avg_cost_per_liter() maintains weighted average. Forklift maintenance cost auto-calculated on job usage (qty × avg cost/L).
+- **Decimal input on liquid parts** — Removed all + counter buttons on fluid items. Replaced with manual decimal text input (inputMode=decimal) supporting values like 4.2L.
+- **Insufficient balance guard** — Van deductions that would go negative are flagged for admin review.
+
+### Database
+- purchase_batches extended: container_size_liters, total_purchase_price_myr, received_by, received_at
+- inventory_movements added: reference_number, unit_cost_at_time, total_cost, forklift_id
+- parts added: avg_cost_per_liter, last_purchase_cost_per_liter
+- New enum values: van_transfer, job_usage, special_sale
+
+---
+
 ## [2026-02-26] - February 26, 2026
 
 ### Features
