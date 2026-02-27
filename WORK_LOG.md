@@ -71,3 +71,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-26 21:22] [Sonnet] Fixed Combobox dropdown flip-upward when near viewport bottom in Combobox.tsx. Moved Toaster position to top-center in AuthenticatedApp.tsx.
 [2026-02-26 21:32] [Sonnet] Fixed ConfirmationStatusCard.tsx mobile overflow — stacked label/badge vertically, shrink-0 on status. Fixed ConditionChecklistCard.tsx checklist grid single-column mobile, break-words on labels. Fixed CreateJobPage.tsx job type/priority to use Combobox. Removed closeButton from Toaster in AuthenticatedApp.tsx.
 [2026-02-26 21:39] [Sonnet] Fix: switch signatures from signed URLs to public URLs in jobMediaService.ts and supabaseClient.ts
+[2026-02-26 21:42] [Sonnet] Fixed conditional pt-16 padding in JobDetailPage.tsx — only applies when action bar is visible, removing empty gap on awaiting_finalization status.

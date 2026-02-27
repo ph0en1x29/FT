@@ -113,7 +113,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   );
 
   return (
-    <div className="max-w-5xl mx-auto pb-24 md:pb-8 pt-16 md:pt-0 fade-in">
+    <div className={`max-w-5xl mx-auto pb-24 md:pb-8 ${(statusFlags.isNew || statusFlags.isAssigned || statusFlags.isInProgress || statusFlags.isCompleted) && !hasModalOpen ? 'pt-16' : ''} md:pt-0 fade-in`}>
       {/* Mobile-only sticky status pill — visible while scrolling past header */}
       {roleFlags.isTechnician && (
         <div className="sticky top-[64px] z-20 md:hidden px-4 pt-2 pb-1 pointer-events-none">
