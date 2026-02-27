@@ -84,3 +84,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-26 22:16] [Sonnet] Added job_number to JOB_SELECT.LIST and JOB_SELECT.BOARD in supabaseClient.ts so job cards fetch and display the field.
 [2026-02-26 22:18] [Sonnet] Made job_number badge prominent in JobCard.tsx — blue pill, text-xs, font-mono, top of card.
 [2026-02-26 22:23] [Sonnet] Restyled job number badge in JobCard.tsx — subtle pill with accent text, light bg, thin border instead of heavy blue.
+[2026-02-26 22:26] [Sonnet] Matched job number badge style on JobCard.tsx to JobHeader.tsx — blue-50 bg, blue-600 text, blue-200 border, consistent across card and detail views.

@@ -55,7 +55,7 @@ export const JobCard: React.FC<JobCardProps> = ({
       {/* Job Number — prominent, top of card */}
       {job.job_number && (
         <div className="mb-2">
-          <span className="text-xs font-mono font-semibold text-[var(--accent)] bg-[var(--bg-subtle)] border border-[var(--accent)] border-opacity-30 px-2 py-0.5 rounded-full whitespace-nowrap">
+          <span className="text-xs font-mono font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-700 whitespace-nowrap">
             #{job.job_number}
           </span>
         </div>
