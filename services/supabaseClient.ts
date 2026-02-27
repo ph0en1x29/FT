@@ -137,6 +137,17 @@ export const getSignedStorageUrl = async (
   }
 };
 
+/**
+ * getPublicStorageUrl() - Get a permanent public URL for a file in a public bucket.
+ * @param bucket - Storage bucket name
+ * @param filePath - Path within the bucket
+ * @returns Public URL string
+ */
+export const getPublicStorageUrl = (bucket: string, filePath: string): string => {
+  const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+  return data.publicUrl;
+};
+
 // =====================
 // QUERY PROFILES
 // =====================

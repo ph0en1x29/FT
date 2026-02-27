@@ -5,7 +5,7 @@
  */
 
 import type { Job,JobMedia,SignatureEntry } from '../types';
-import { getSignedStorageUrl,supabase,uploadToStorage } from './supabaseClient';
+import { getPublicStorageUrl,getSignedStorageUrl,supabase,uploadToStorage } from './supabaseClient';
 
 // Forward declaration to avoid circular dependency
 const getJobById = async (jobId: string): Promise<Job | null> => {
@@ -71,12 +71,11 @@ export const signJob = async (
   const fileName = `${jobId}_${type}_${timestamp}.png`;
   const filePath = await uploadToStorage('signatures', fileName, signatureDataUrl);
   
-  // Get signed URL for the uploaded signature (24h expiry, regenerate on read if needed)
-  // If upload failed (returned base64), use that directly
+  // Get permanent public URL for the uploaded signature.
+  // If upload failed (returned base64), use that directly.
   let signatureUrl = filePath;
   if (!filePath.startsWith('data:')) {
-    const signedUrl = await getSignedStorageUrl('signatures', filePath, 86400);
-    signatureUrl = signedUrl || filePath; // Fallback to path if signing fails
+    signatureUrl = getPublicStorageUrl('signatures', filePath);
   }
   
   const signatureEntry: SignatureEntry = {
