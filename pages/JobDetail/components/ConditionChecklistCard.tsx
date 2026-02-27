@@ -157,7 +157,7 @@ export const ConditionChecklistCard: React.FC<ConditionChecklistCardProps> = ({
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm">
               {CHECKLIST_CATEGORIES.map(cat => {
                 const checkedItems = cat.items.filter(item => {
                   const state = normalizeChecklistState(job.condition_checklist?.[item.key as keyof ForkliftConditionChecklist]);
@@ -165,7 +165,7 @@ export const ConditionChecklistCard: React.FC<ConditionChecklistCardProps> = ({
                 });
                 if (checkedItems.length === 0) return null;
                 return (
-                  <div key={cat.name} className="bg-[var(--surface)] border border-[var(--border)] p-2 rounded-lg">
+                  <div key={cat.name} className="bg-[var(--surface)] border border-[var(--border)] p-2 rounded-lg overflow-hidden">
                     <p className="font-medium text-[var(--text-secondary)] text-[10px] uppercase tracking-wide mb-1">{cat.name}</p>
                     {checkedItems.map(item => {
                       const state = normalizeChecklistState(job.condition_checklist?.[item.key as keyof ForkliftConditionChecklist]);
@@ -174,11 +174,11 @@ export const ConditionChecklistCard: React.FC<ConditionChecklistCardProps> = ({
                           state === 'ok' ? 'text-[var(--success)]' : 'text-[var(--error)]'
                         }`}>
                           {state === 'ok' ? (
-                            <CheckCircle className="w-3 h-3" />
+                            <CheckCircle className="w-3 h-3 shrink-0" />
                           ) : (
-                            <X className="w-3 h-3" />
+                            <X className="w-3 h-3 shrink-0" />
                           )}
-                          {item.label}
+                          <span className="break-words min-w-0">{item.label}</span>
                         </div>
                       );
                     })}

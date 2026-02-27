@@ -1,4 +1,4 @@
-import { AlertTriangle,ArrowLeft,Camera,Wrench } from 'lucide-react';
+import { AlertTriangle,ArrowLeft,Camera,ClipboardList,FileText,ImageIcon,Package,ShieldCheck,Wrench } from 'lucide-react';
 import React, { useRef } from 'react';
 import { useNavigate,useParams } from 'react-router-dom';
 import { ComboboxOption } from '../../components/Combobox';
@@ -6,13 +6,14 @@ import ServiceUpgradeModal from '../../components/ServiceUpgradeModal';
 import { SkeletonJobDetail } from '../../components/Skeleton';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { usePartsForList,useTechnicians } from '../../hooks/useQueryHooks';
-import { JobRequest,JobStatus,Part,User } from '../../types';
+import { JobRequest,JobStatus,MANDATORY_CHECKLIST_ITEMS,normalizeChecklistState,Part,User } from '../../types';
 
 // Extracted components
 import {
 ApproveRequestModal,
 ChecklistWarningModal,
 BulkApproveRequestsModal,
+CollapsibleCard,
 ConditionChecklistCard,
 ConfirmationStatusCard,
 ContinueTomorrowModal,
@@ -68,6 +69,9 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
 
   // All actions
   const actions = useJobActions({ state, currentUserId, currentUserName, currentUserRole, technicians, loadJob });
+
+  // On mobile (< md = 768px), secondary sections collapse by default
+  const isDesktopDefault = typeof window !== 'undefined' ? window.innerWidth >= 768 : true;
 
   // Refs for mobile scroll-to actions
   const photosRef = useRef<HTMLDivElement>(null);
@@ -150,16 +154,51 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             recommendationInput={state.recommendationInput} onJobCarriedOutInputChange={state.setJobCarriedOutInput}
             onRecommendationInputChange={state.setRecommendationInput} onStartEdit={actions.handleStartEditJobCarriedOut}
             onSave={actions.handleSaveJobCarriedOut} onCancel={actions.handleCancelJobCarriedOutEdit} />
-          <ConfirmationStatusCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
-            onConfirmParts={actions.handleConfirmParts} />
-          <NotesSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} noteInput={state.noteInput}
-            onNoteInputChange={state.setNoteInput} onAddNote={actions.handleAddNote} />
-          <ConditionChecklistCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
-            editingChecklist={state.editingChecklist} checklistEditData={state.checklistEditData}
-            onStartEdit={actions.handleStartEditChecklist} onSave={actions.handleSaveChecklist}
-            onCancel={actions.handleCancelChecklistEdit} onSetItemState={actions.handleSetChecklistItemState}
-            onCheckAll={actions.handleCheckAll} />
-          <div ref={partsRef}><PartsSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} partOptions={partOptions}
+          <CollapsibleCard
+            title="Confirmation Status"
+            icon={<ShieldCheck className="w-5 h-5 text-[var(--text-muted)]" />}
+            defaultOpen={isDesktopDefault}
+            summary={job.parts_confirmed ? 'Confirmed' : 'Pending'}
+          >
+            <ConfirmationStatusCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
+              onConfirmParts={actions.handleConfirmParts} />
+          </CollapsibleCard>
+          <CollapsibleCard
+            title="Notes"
+            icon={<FileText className="w-5 h-5 text-[var(--text-muted)]" />}
+            defaultOpen={isDesktopDefault}
+            summary={job.notes && job.notes.length > 0 ? `${job.notes.length} note${job.notes.length !== 1 ? 's' : ''}` : 'No notes'}
+          >
+            <NotesSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} noteInput={state.noteInput}
+              onNoteInputChange={state.setNoteInput} onAddNote={actions.handleAddNote} />
+          </CollapsibleCard>
+          <CollapsibleCard
+            title="Condition Checklist"
+            icon={<ClipboardList className="w-5 h-5 text-[var(--text-muted)]" />}
+            defaultOpen={isDesktopDefault}
+            summary={(() => {
+              if (!job.condition_checklist) return `0/${MANDATORY_CHECKLIST_ITEMS.length} items checked`;
+              const checked = MANDATORY_CHECKLIST_ITEMS.filter(key => {
+                const s = normalizeChecklistState(job.condition_checklist?.[key]);
+                return s === 'ok' || s === 'not_ok';
+              }).length;
+              return `${checked}/${MANDATORY_CHECKLIST_ITEMS.length} items checked`;
+            })()}
+          >
+            <ConditionChecklistCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
+              editingChecklist={state.editingChecklist} checklistEditData={state.checklistEditData}
+              onStartEdit={actions.handleStartEditChecklist} onSave={actions.handleSaveChecklist}
+              onCancel={actions.handleCancelChecklistEdit} onSetItemState={actions.handleSetChecklistItemState}
+              onCheckAll={actions.handleCheckAll} />
+          </CollapsibleCard>
+          <div ref={partsRef}>
+          <CollapsibleCard
+            title="Parts"
+            icon={<Package className="w-5 h-5 text-[var(--text-muted)]" />}
+            defaultOpen={isDesktopDefault}
+            summary={job.parts_used && job.parts_used.length > 0 ? `${job.parts_used.length} part${job.parts_used.length !== 1 ? 's' : ''} used` : 'No parts used'}
+          >
+          <PartsSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} partOptions={partOptions}
             selectedPartId={state.selectedPartId} selectedPartPrice={state.selectedPartPrice}
             addPartQuantity={state.addPartQuantity} onAddPartQuantityChange={state.setAddPartQuantity}
             editingPartId={state.editingPartId} editingPrice={state.editingPrice} noPartsUsed={state.noPartsUsed}
@@ -179,7 +218,9 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             availableVans={state.availableVans}
             onSelectJobVan={actions.handleSelectJobVan}
             sellSealed={state.sellSealed}
-            onSellSealedChange={state.setSellSealed} /></div>
+            onSellSealedChange={state.setSellSealed} />
+          </CollapsibleCard>
+          </div>
           <ExtraChargesSection job={job} roleFlags={roleFlags} showAddCharge={state.showAddCharge}
             chargeName={state.chargeName} chargeDescription={state.chargeDescription} chargeAmount={state.chargeAmount}
             onShowAddChargeChange={state.setShowAddCharge} onChargeNameChange={state.setChargeName}
@@ -195,8 +236,17 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onMarkOutOfStock={actions.handleMarkOutOfStock}
             onMarkPartReceived={actions.handleMarkPartReceived}
             onConfirmPartCollection={actions.handleConfirmPartCollection} />
-          <div ref={photosRef}><JobPhotosSection job={job} currentUserId={currentUserId} currentUserName={currentUserName}
-            roleFlags={roleFlags} statusFlags={statusFlags} isCurrentUserHelper={state.isCurrentUserHelper} onJobUpdate={setJob} /></div>
+          <div ref={photosRef}>
+          <CollapsibleCard
+            title="Photos"
+            icon={<ImageIcon className="w-5 h-5 text-[var(--text-muted)]" />}
+            defaultOpen={isDesktopDefault}
+            summary={job.media && job.media.length > 0 ? `${job.media.length} photo${job.media.length !== 1 ? 's' : ''}` : 'No photos'}
+          >
+            <JobPhotosSection job={job} currentUserId={currentUserId} currentUserName={currentUserName}
+              roleFlags={roleFlags} statusFlags={statusFlags} isCurrentUserHelper={state.isCurrentUserHelper} onJobUpdate={setJob} />
+          </CollapsibleCard>
+          </div>
         </div>
         <div className="space-y-5">
           <FinancialSummary job={job} roleFlags={roleFlags} editingLabor={state.editingLabor} laborCostInput={state.laborCostInput}

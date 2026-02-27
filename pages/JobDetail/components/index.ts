@@ -10,6 +10,7 @@ export { SignaturesCard } from './SignaturesCard';
 // New extracted components
 export { ApproveRequestModal } from './ApproveRequestModal';
 export { BulkApproveRequestsModal } from './BulkApproveRequestsModal';
+export { CollapsibleCard } from './CollapsibleCard';
 export { ConditionChecklistCard } from './ConditionChecklistCard';
 export { ConfirmationStatusCard } from './ConfirmationStatusCard';
 export { CreateRequestModal } from './CreateRequestModal';

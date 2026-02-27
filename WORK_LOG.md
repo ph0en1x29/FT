@@ -72,3 +72,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-26 21:32] [Sonnet] Fixed ConfirmationStatusCard.tsx mobile overflow — stacked label/badge vertically, shrink-0 on status. Fixed ConditionChecklistCard.tsx checklist grid single-column mobile, break-words on labels. Fixed CreateJobPage.tsx job type/priority to use Combobox. Removed closeButton from Toaster in AuthenticatedApp.tsx.
 [2026-02-26 21:39] [Sonnet] Fix: switch signatures from signed URLs to public URLs in jobMediaService.ts and supabaseClient.ts
 [2026-02-26 21:42] [Sonnet] Fixed conditional pt-16 padding in JobDetailPage.tsx — only applies when action bar is visible, removing empty gap on awaiting_finalization status.
+
+[2026-02-26 21:46] [Sonnet] Created CollapsibleCard.tsx accordion component with smooth height animation. Updated index.ts to export it. Fixed ConditionChecklistCard.tsx read-only grid overflow (grid-cols-1 sm:grid-cols-2 md:grid-cols-3, overflow-hidden, shrink-0, break-words). Updated JobDetailPage.tsx to wrap Confirmation/Notes/Checklist/Parts/Photos in CollapsibleCard with mobile/desktop defaultOpen logic.
