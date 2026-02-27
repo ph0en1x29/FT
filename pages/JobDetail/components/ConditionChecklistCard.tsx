@@ -92,7 +92,7 @@ export const ConditionChecklistCard: React.FC<ConditionChecklistCardProps> = ({
                   {cat.items.map(item => {
                     const itemState = normalizeChecklistState(checklistEditData[item.key as keyof ForkliftConditionChecklist]);
                     return (
-                      <div key={item.key} className="flex items-center justify-between gap-2">
+                      <div key={item.key} className="flex items-center justify-between gap-2 min-h-[44px] py-1">
                         <span className={`text-xs flex-1 ${
                           itemState === 'ok' ? 'text-[var(--success)]' :
                           itemState === 'not_ok' ? 'text-[var(--error)]' :
@@ -105,26 +105,26 @@ export const ConditionChecklistCard: React.FC<ConditionChecklistCardProps> = ({
                           <button
                             type="button"
                             onClick={() => onSetItemState(item.key, 'ok')}
-                            className={`p-1 rounded text-xs transition-colors ${
+                            className={`p-2 min-h-[44px] min-w-[44px] rounded text-xs transition-colors flex items-center justify-center ${
                               itemState === 'ok'
                                 ? 'bg-[var(--success)] text-white'
                                 : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:bg-[var(--success-bg)] hover:text-[var(--success)]'
                             }`}
                             title="Good"
                           >
-                            <CheckCircle className="w-3.5 h-3.5" />
+                            <CheckCircle className="w-4 h-4" />
                           </button>
                           <button
                             type="button"
                             onClick={() => onSetItemState(item.key, 'not_ok')}
-                            className={`p-1 rounded text-xs transition-colors ${
+                            className={`p-2 min-h-[44px] min-w-[44px] rounded text-xs transition-colors flex items-center justify-center ${
                               itemState === 'not_ok'
                                 ? 'bg-[var(--error)] text-white'
                                 : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:bg-[var(--error-bg)] hover:text-[var(--error)]'
                             }`}
                             title="Needs Attention"
                           >
-                            <X className="w-3.5 h-3.5" />
+                            <X className="w-4 h-4" />
                           </button>
                         </div>
                       </div>

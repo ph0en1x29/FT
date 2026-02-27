@@ -133,6 +133,49 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
 
       {loading ? (
         <LoadingState />
+      ) : isTechnician ? (
+        // Technician view: My Jobs at top, Other Jobs below
+        (() => {
+          const myJobs = filteredJobs.filter(j => j.assigned_technician_id === currentUser.user_id || j._isHelperAssignment);
+          const otherJobs = filteredJobs.filter(j => j.assigned_technician_id !== currentUser.user_id && !j._isHelperAssignment);
+          const renderCard = (job: typeof filteredJobs[0]) => (
+            <JobCard
+              key={job.job_id}
+              job={job}
+              currentUser={currentUser}
+              isTechnician={isTechnician}
+              processingJobId={processingJobId}
+              jobNeedsAcceptance={jobNeedsAcceptance}
+              getResponseTimeRemaining={getResponseTimeRemaining}
+              onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
+              onAccept={handleAcceptJob}
+              onReject={handleOpenRejectModal}
+            />
+          );
+          return (
+            <div className="space-y-6">
+              {myJobs.length > 0 && (
+                <div>
+                  <h2 className="text-sm font-semibold text-theme-muted uppercase tracking-wide mb-3">My Jobs ({myJobs.length})</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {myJobs.map(renderCard)}
+                  </div>
+                </div>
+              )}
+              {otherJobs.length > 0 && (
+                <div>
+                  <h2 className="text-sm font-semibold text-theme-muted uppercase tracking-wide mb-3">Other Jobs ({otherJobs.length})</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {otherJobs.map(renderCard)}
+                  </div>
+                </div>
+              )}
+              {filteredJobs.length === 0 && (
+                <EmptyJobsState hasActiveFilters={hasActiveFilters} onClearFilters={clearFilters} />
+              )}
+            </div>
+          );
+        })()
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredJobs.map(job => (

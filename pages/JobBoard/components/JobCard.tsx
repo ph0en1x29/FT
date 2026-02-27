@@ -1,7 +1,7 @@
 import { AlertTriangle,Calendar,CheckCircle,Clock,MapPin,User as UserIcon,XCircle } from 'lucide-react';
 import React from 'react';
 import SlotInSLABadge from '../../../components/SlotInSLABadge';
-import { JobType,User } from '../../../types';
+import { JobStatus,JobType,User } from '../../../types';
 import { getJobTypeColor,getStatusColor } from '../constants';
 import { JobWithHelperFlag,ResponseTimeState } from '../types';
 
@@ -16,6 +16,22 @@ interface JobCardProps {
   onAccept: (e: React.MouseEvent, jobId: string) => void;
   onReject: (e: React.MouseEvent, jobId: string) => void;
 }
+
+/** Returns a colored left-border class based on job status/priority */
+const getStatusBorderColor = (job: JobWithHelperFlag): string => {
+  if (job.priority === 'Emergency') return 'border-l-4 border-l-red-500';
+  switch (job.status) {
+    case JobStatus.IN_PROGRESS:
+    case JobStatus.INCOMPLETE_CONTINUING:
+      return 'border-l-4 border-l-green-500';
+    case JobStatus.ASSIGNED:
+      return 'border-l-4 border-l-amber-400';
+    case JobStatus.NEW:
+      return 'border-l-4 border-l-blue-500';
+    default:
+      return 'border-l-4 border-l-slate-300';
+  }
+};
 
 /**
  * Individual job card displaying job details with technician actions
@@ -34,7 +50,7 @@ export const JobCard: React.FC<JobCardProps> = ({
   return (
     <div 
       onClick={() => onNavigate(job.job_id)}
-      className="card-theme p-5 rounded-xl clickable-card group theme-transition"
+      className={`card-theme p-5 rounded-xl clickable-card group theme-transition ${getStatusBorderColor(job)}`}
     >
       <div className="flex justify-between items-start mb-3">
         <div className="flex gap-2 flex-wrap">
@@ -121,7 +137,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             <button
               onClick={(e) => onAccept(e, job.job_id)}
               disabled={processingJobId === job.job_id}
-              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-1 px-3 min-h-[48px] bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 w-full"
             >
               <CheckCircle className="w-4 h-4" />
               {processingJobId === job.job_id ? 'Accepting...' : 'Accept'}
@@ -129,7 +145,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             <button
               onClick={(e) => onReject(e, job.job_id)}
               disabled={processingJobId === job.job_id}
-              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-1 px-3 min-h-[48px] bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium disabled:opacity-50 w-full"
             >
               <XCircle className="w-4 h-4" />
               Reject

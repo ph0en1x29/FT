@@ -80,7 +80,7 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-premium-elevated">
+      <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-premium-elevated pb-32 md:pb-6">
         <h4 className="font-bold text-xl mb-4 text-[var(--text)] flex items-center gap-2">
           <Play className="w-5 h-5 text-[var(--accent)]" /> Start Job - Condition Check
         </h4>

@@ -1,5 +1,5 @@
 import { AlertTriangle,ArrowLeft,Camera,Wrench } from 'lucide-react';
-import React from 'react';
+import React, { useRef } from 'react';
 import { useNavigate,useParams } from 'react-router-dom';
 import { ComboboxOption } from '../../components/Combobox';
 import ServiceUpgradeModal from '../../components/ServiceUpgradeModal';
@@ -69,9 +69,22 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   // All actions
   const actions = useJobActions({ state, currentUserId, currentUserName, currentUserRole, technicians, loadJob });
 
+  // Refs for mobile scroll-to actions
+  const photosRef = useRef<HTMLDivElement>(null);
+  const partsRef = useRef<HTMLDivElement>(null);
+
   // Derived flags
   const statusFlags = getStatusFlags(job, currentUserId, currentUserRole);
   const roleFlags = getRoleFlags(currentUserRole, state.isCurrentUserHelper, job, statusFlags);
+
+  // Hide sticky action bar when any modal is open (prevents overlap)
+  const hasModalOpen =
+    state.showTechSigPad || state.showCustSigPad || state.showStartJobModal ||
+    state.showFinalizeModal || state.showReassignModal || state.showContinueTomorrowModal ||
+    state.showDeleteModal || state.showRejectJobModal || state.showHourmeterAmendmentModal ||
+    state.showChecklistWarningModal || state.showRequestModal || state.showApprovalModal ||
+    state.showBulkApproveModal || state.showAssignHelperModal || state.showDeferredModal ||
+    (state.serviceUpgradePrompt?.show ?? false);
 
   // Options for comboboxes
   const partOptions: ComboboxOption[] = parts.map(p => {
@@ -101,6 +114,14 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
 
   return (
     <div className="max-w-5xl mx-auto pb-24 md:pb-8 fade-in">
+      {/* Mobile-only sticky status pill — visible while scrolling past header */}
+      {roleFlags.isTechnician && (
+        <div className="sticky top-[64px] z-20 md:hidden px-4 pt-2 pb-1 pointer-events-none">
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-md backdrop-blur-sm bg-[var(--surface)]/90 border border-[var(--border)] text-[var(--text)]`}>
+            {job.status}
+          </span>
+        </div>
+      )}
       <JobHeader job={job} isRealtimeConnected={true} roleFlags={roleFlags} statusFlags={statusFlags}
         exportingToAutoCount={state.exportingToAutoCount} onAcceptJob={actions.handleAcceptJob}
         onRejectJob={() => state.setShowRejectJobModal(true)} onStartJob={actions.handleOpenStartJobModal}
@@ -138,7 +159,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onStartEdit={actions.handleStartEditChecklist} onSave={actions.handleSaveChecklist}
             onCancel={actions.handleCancelChecklistEdit} onSetItemState={actions.handleSetChecklistItemState}
             onCheckAll={actions.handleCheckAll} />
-          <PartsSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} partOptions={partOptions}
+          <div ref={partsRef}><PartsSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} partOptions={partOptions}
             selectedPartId={state.selectedPartId} selectedPartPrice={state.selectedPartPrice}
             addPartQuantity={state.addPartQuantity} onAddPartQuantityChange={state.setAddPartQuantity}
             editingPartId={state.editingPartId} editingPrice={state.editingPrice} noPartsUsed={state.noPartsUsed}
@@ -158,7 +179,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             availableVans={state.availableVans}
             onSelectJobVan={actions.handleSelectJobVan}
             sellSealed={state.sellSealed}
-            onSellSealedChange={state.setSellSealed} />
+            onSellSealedChange={state.setSellSealed} /></div>
           <ExtraChargesSection job={job} roleFlags={roleFlags} showAddCharge={state.showAddCharge}
             chargeName={state.chargeName} chargeDescription={state.chargeDescription} chargeAmount={state.chargeAmount}
             onShowAddChargeChange={state.setShowAddCharge} onChargeNameChange={state.setChargeName}
@@ -174,8 +195,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onMarkOutOfStock={actions.handleMarkOutOfStock}
             onMarkPartReceived={actions.handleMarkPartReceived}
             onConfirmPartCollection={actions.handleConfirmPartCollection} />
-          <JobPhotosSection job={job} currentUserId={currentUserId} currentUserName={currentUserName}
-            roleFlags={roleFlags} statusFlags={statusFlags} isCurrentUserHelper={state.isCurrentUserHelper} onJobUpdate={setJob} />
+          <div ref={photosRef}><JobPhotosSection job={job} currentUserId={currentUserId} currentUserName={currentUserName}
+            roleFlags={roleFlags} statusFlags={statusFlags} isCurrentUserHelper={state.isCurrentUserHelper} onJobUpdate={setJob} /></div>
         </div>
         <div className="space-y-5">
           <FinancialSummary job={job} roleFlags={roleFlags} editingLabor={state.editingLabor} laborCostInput={state.laborCostInput}
@@ -277,8 +298,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       />
 
       {(statusFlags.isNew || statusFlags.isAssigned || statusFlags.isInProgress || statusFlags.isCompleted) && (
-        <div className="fixed bottom-16 left-0 right-0 z-30 md:hidden bg-[var(--surface)]/95 backdrop-blur-sm border-t border-[var(--border)] px-4 py-3">
-          <div className="flex items-center gap-2">
+        <div className={`fixed bottom-16 left-0 right-0 z-30 md:hidden bg-[var(--surface)]/95 backdrop-blur-sm border-t border-[var(--border)] px-4 py-3${hasModalOpen ? ' hidden' : ''}`}>
+          <div className="flex flex-col gap-2">
             {(statusFlags.isNew || statusFlags.isAssigned) && (
               <button
                 onClick={actions.handleOpenStartJobModal}
@@ -290,26 +311,53 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
 
             {statusFlags.isInProgress && (
               <>
-                <button
-                  onClick={() => actions.handleStatusChange(JobStatus.AWAITING_FINALIZATION)}
-                  className="flex-1 bg-green-600 text-white h-12 rounded-xl font-medium"
-                >
-                  Complete
-                </button>
-                <button
-                  onClick={() => console.log('TODO: action')}
-                  className="w-12 h-12 bg-[var(--surface-2)] rounded-xl flex items-center justify-center"
-                  aria-label="Photo"
-                >
-                  <Camera className="w-5 h-5 text-[var(--text)]" />
-                </button>
-                <button
-                  onClick={() => console.log('TODO: action')}
-                  className="w-12 h-12 bg-[var(--surface-2)] rounded-xl flex items-center justify-center"
-                  aria-label="Parts"
-                >
-                  <Wrench className="w-5 h-5 text-[var(--text)]" />
-                </button>
+                {/* Hourmeter quick-input row */}
+                {job.forklift && (
+                  <div className="flex items-center gap-2 bg-[var(--surface-2)] rounded-xl px-3 py-2">
+                    <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">
+                      Hourmeter {job.hourmeter_reading ? `(current: ${job.hourmeter_reading}h)` : `(last: ${job.forklift.hourmeter || 0}h)`}
+                    </span>
+                    <input
+                      type="number"
+                      value={state.hourmeterInput}
+                      onChange={e => state.setHourmeterInput(e.target.value)}
+                      onFocus={() => { if (!state.hourmeterInput) state.setHourmeterInput((job.hourmeter_reading || job.forklift?.hourmeter || 0).toString()); }}
+                      placeholder="Enter reading"
+                      className="flex-1 bg-transparent text-[var(--text)] text-sm text-right focus:outline-none min-w-0"
+                    />
+                    {state.hourmeterInput ? (
+                      <button
+                        onClick={actions.handleSaveHourmeter}
+                        className="text-xs font-semibold text-[var(--accent)] whitespace-nowrap"
+                      >
+                        Save
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+                {/* Action buttons row */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => actions.handleStatusChange(JobStatus.AWAITING_FINALIZATION)}
+                    className="flex-1 bg-green-600 text-white h-12 rounded-xl font-medium"
+                  >
+                    Complete
+                  </button>
+                  <button
+                    onClick={() => photosRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    className="w-12 h-12 bg-[var(--surface-2)] rounded-xl flex items-center justify-center"
+                    aria-label="Scroll to Photos"
+                  >
+                    <Camera className="w-5 h-5 text-[var(--text)]" />
+                  </button>
+                  <button
+                    onClick={() => partsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    className="w-12 h-12 bg-[var(--surface-2)] rounded-xl flex items-center justify-center"
+                    aria-label="Scroll to Parts"
+                  >
+                    <Wrench className="w-5 h-5 text-[var(--text)]" />
+                  </button>
+                </div>
               </>
             )}
 

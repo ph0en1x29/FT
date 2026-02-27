@@ -65,3 +65,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-25 16:47] [HOOK] Emergency bypass used by Phoenix
 [2026-02-25 17:00] [HOOK] Emergency bypass used by Phoenix
 [2026-02-26 20:22] [Sonnet] Fixed hourmeter completion validation in useJobActions.ts — changed <= to < so equal readings allowed (forklift not used/broken). Error message updated to "Hourmeter reading cannot be lower than the start reading".
+[2026-02-26 21:05] [Sonnet] Fixed sticky bar hiding when modals open (hasModalOpen flag), added pb-32 to modal scrollable content, modal action buttons no longer cramped against nav bar.
+[2026-02-26 21:05] [Sonnet] Updated JobBoard.tsx, JobCard.tsx, JobDetailPage.tsx, ConditionChecklistCard.tsx, JobDetailModals.tsx — sticky bar hides on modal open, modal scroll padding fix.
