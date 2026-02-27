@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useVanStockPart } from '../../../services/inventoryService';
 import { useVanBulk } from '../../../services/liquidInventoryService';
+import { supabase } from '../../../services/supabaseClient';
 import { createReplenishmentRequest } from '../../../services/replenishmentService';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
@@ -128,6 +129,13 @@ export const useJobPartsHandlers = ({
     try {
       if (item.part?.is_liquid && item.part?.container_size) {
         // Liquid: use dual-unit deduction from van
+        // Fetch avg_cost_per_liter for cost tracking
+        const { data: partCostData } = await supabase
+          .from('parts')
+          .select('avg_cost_per_liter')
+          .eq('part_id', item.part_id)
+          .single();
+        const unitCost = partCostData?.avg_cost_per_liter ?? 0;
         const result = await useVanBulk(
           item.part_id,
           item.item_id,
@@ -135,7 +143,12 @@ export const useJobPartsHandlers = ({
           qtyToUse,
           job.job_id,
           currentUserId,
-          currentUserName
+          currentUserName,
+          {
+            forklift_id: job.forklift_id ?? undefined,
+            unit_cost_at_time: unitCost > 0 ? unitCost : undefined,
+            total_cost: unitCost > 0 ? qtyToUse * unitCost : undefined,
+          }
         );
         if (result?.balanceOverride) {
           showToast.warning('Van balance insufficient — logged with warning flag for admin review.');

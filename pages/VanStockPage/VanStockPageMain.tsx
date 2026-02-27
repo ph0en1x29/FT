@@ -22,11 +22,12 @@ VanStockStatsCards,
 } from './components';
 import { useVanStockData } from './hooks/useVanStockData';
 import VanLedgerTab from './components/VanLedgerTab';
+import FlaggedMovementsTab from './components/FlaggedMovementsTab';
 import { VanStockPageProps } from './types';
 
 export default function VanStockPageMain({ currentUser, hideHeader = false }: VanStockPageProps) {
   // Tab state
-  const [vanActiveTab, setVanActiveTab] = useState<'stock' | 'ledger'>('stock');
+  const [vanActiveTab, setVanActiveTab] = useState<'stock' | 'ledger' | 'flagged'>('stock');
 
   // Data hook
   const {
@@ -392,6 +393,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
           {[
             { id: 'stock' as const, label: 'Van Stock' },
             { id: 'ledger' as const, label: 'Ledger' },
+            ...(isAdmin ? [{ id: 'flagged' as const, label: '⚠️ Flagged' }] : []),
           ].map(tab => (
             <button
               key={tab.id}
@@ -407,6 +409,10 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
           ))}
         </nav>
       </div>
+
+      {vanActiveTab === 'flagged' && isAdmin && (
+        <FlaggedMovementsTab />
+      )}
 
       {vanActiveTab === 'ledger' && (
         <VanLedgerTab currentUser={currentUser} />

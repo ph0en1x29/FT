@@ -40,6 +40,10 @@ const ACTION_LABELS: Record<string, string> = {
   return_to_store: 'Returned to Store',
   adjustment: 'Adjustment',
   initial_stock: 'Initial Stock',
+  // New enum values
+  van_transfer: 'Received from Warehouse',
+  job_usage: 'Job Usage',
+  special_sale: 'Special Sale',
 };
 
 const VAN_POSITIVE_TYPES = ['transfer_to_van', 'return_to_store'];

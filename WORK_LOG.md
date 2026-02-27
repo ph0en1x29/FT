@@ -104,3 +104,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-27 02:52] [Sonnet] Phase 1 liquid inventory: purchase_batches schema extended, avg_cost_per_liter function, inventory_movements columns (reference_number, unit_cost_at_time, total_cost, forklift_id), parts columns (avg_cost_per_liter, last_purchase_cost_per_liter). ReceiveStockModal, InventoryLedgerTab, VanLedgerTab built. + buttons replaced with decimal inputs on liquid parts.
 [2026-02-27 02:52] [Sonnet] Fixed liquid_inventory_phase1.sql migration — removed organization_id references, split enum additions to separate transactions.
 [2026-02-27 02:54] [Sonnet] Updated docs/CHANGELOG.md with 2026-02-27 liquid inventory Phase 1 entry.
+[2026-02-27 03:26] [Sonnet] Fixed forklift cost wiring: useJobPartsHandlers.ts + liquidInventoryService.ts now pass forklift_id, unit_cost_at_time, total_cost to inventory_movements on fluid job usage.
+[2026-02-27 03:26] [Sonnet] Fixed VanLedgerTab.tsx enum labels (van_transfer, job_usage, special_sale). Added FlaggedMovementsTab.tsx for admin review of negative balance movements. Wired into VanStockPageMain.tsx.

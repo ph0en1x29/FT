@@ -716,3 +716,11 @@ Split large page components into maintainable modules:
 ## Archive
 
 Detailed historical changelogs are available in `docs/archive/`.
+
+## [2026-02-27 v2] — Liquid Inventory Bug Fixes
+
+### Fixed
+- **Forklift cost charging** — fluid job usage now records forklift_id + unit_cost_at_time + total_cost in inventory_movements. Cost auto-charged to forklift maintenance record.
+- **Van ledger enum labels** — new movement types (van_transfer, job_usage, special_sale) now display correctly instead of blank
+- **Admin flagged movements tab** — new "⚠️ Flagged" tab in Van Stock page shows all movements where van balance went negative, for admin review
+- **DB trigger** — update_avg_cost_per_liter() now fires automatically on every purchase_batches insert

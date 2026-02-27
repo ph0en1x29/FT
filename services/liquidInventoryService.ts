@@ -31,6 +31,11 @@ interface LogMovementParams {
   store_bulk_qty_after?: number;
   van_container_qty_after?: number;
   van_bulk_qty_after?: number;
+  // Cost & forklift tracking
+  reference_number?: string;
+  unit_cost_at_time?: number;
+  total_cost?: number;
+  forklift_id?: string;
 }
 
 async function logMovement(params: LogMovementParams): Promise<void> {
@@ -51,6 +56,10 @@ async function logMovement(params: LogMovementParams): Promise<void> {
       store_bulk_qty_after: params.store_bulk_qty_after ?? null,
       van_container_qty_after: params.van_container_qty_after ?? null,
       van_bulk_qty_after: params.van_bulk_qty_after ?? null,
+      reference_number: params.reference_number ?? null,
+      unit_cost_at_time: params.unit_cost_at_time ?? null,
+      total_cost: params.total_cost ?? null,
+      forklift_id: params.forklift_id ?? null,
     });
 
   if (error) {
@@ -481,7 +490,13 @@ export async function useVanBulk(
   baseUnitsNeeded: number,
   jobId: string,
   performedBy: string,
-  performedByName?: string
+  performedByName?: string,
+  extraParams?: {
+    forklift_id?: string;
+    unit_cost_at_time?: number;
+    total_cost?: number;
+    reference_number?: string;
+  }
 ): Promise<{ balanceOverride: boolean }> {
   // 1. Get van item + part container_size
   const { data: vanItem, error: vanErr } = await supabase
@@ -562,6 +577,10 @@ export async function useVanBulk(
       : `Used ${baseUnitsNeeded} base units from van on job`,
     van_container_qty_after: currentContainers,
     van_bulk_qty_after: newBulkQty,
+    forklift_id: extraParams?.forklift_id,
+    unit_cost_at_time: extraParams?.unit_cost_at_time,
+    total_cost: extraParams?.total_cost,
+    reference_number: extraParams?.reference_number,
   });
 
   // Return warning flag so caller can show toast
