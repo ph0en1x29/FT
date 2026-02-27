@@ -160,6 +160,7 @@ export const JOB_SELECT = {
   // For job list/cards (minimal - ~500 bytes vs ~10KB per job)
   LIST: `
     job_id,
+    job_number,
     title,
     status,
     priority,
@@ -180,6 +181,7 @@ export const JOB_SELECT = {
   // For job board (with timing info)
   BOARD: `
     job_id,
+    job_number,
     title,
     status,
     priority,
