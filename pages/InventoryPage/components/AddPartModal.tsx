@@ -138,6 +138,7 @@ const AddPartModal: React.FC<AddPartModalProps> = ({
               />
             </div>
 
+            {!formData.is_liquid && (
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                 Stock Quantity
@@ -150,6 +151,7 @@ const AddPartModal: React.FC<AddPartModalProps> = ({
                 min="0"
               />
             </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">

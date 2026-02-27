@@ -3,6 +3,8 @@
 Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 ---
+[2026-02-27 11:35] [Sonnet] Fix liquid display in liquidInventoryService.ts, PartsTable.tsx, AddPartModal.tsx: show total liters only for liquid parts, correct low-stock threshold comparison
+[2026-02-27 11:34] [Sonnet] Fix liquid inventory display: formatStockDisplay() now shows total liters (containers×size + bulk) as "418.0 L"; low-stock thresholds updated to use total liters; Stock Quantity field hidden for liquid parts in AddPartModal
 
 [2026-02-16 11:30] [Phoenix] Initialized multi-agent workflow. Created SHARED_CONTEXT.md and WORK_LOG.md.
 

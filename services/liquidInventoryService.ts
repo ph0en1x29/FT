@@ -602,28 +602,25 @@ export function getTotalBaseUnits(part: Pick<Part, 'container_quantity' | 'bulk_
 }
 
 /**
- * Format stock display: "5 bottles + 3.0L" or "50 pcs"
+ * Format stock display: "418.0 L" for liquid parts or "50 pcs" for non-liquid.
+ * Liquid parts always show total liters = (containers × container_size) + bulk.
  */
-export function formatStockDisplay(part: Pick<Part, 'container_quantity' | 'bulk_quantity' | 'container_unit' | 'base_unit' | 'is_liquid'>): string {
+export function formatStockDisplay(part: Pick<Part, 'container_quantity' | 'bulk_quantity' | 'container_unit' | 'base_unit' | 'is_liquid' | 'container_size'>): string {
   if (!part.is_liquid) {
     return `${part.container_quantity ?? 0} ${part.base_unit ?? 'pcs'}`;
   }
 
   const containers = part.container_quantity ?? 0;
   const bulk = part.bulk_quantity ?? 0;
-  const unit = part.container_unit ?? 'container';
+  const size = part.container_size ?? 0;
   const baseUnit = part.base_unit ?? 'L';
 
-  if (containers > 0 && bulk > 0) {
-    return `${containers} ${unit}${containers !== 1 ? 's' : ''} + ${bulk.toFixed(1)}${baseUnit}`;
+  const totalLiters = (containers * size) + bulk;
+
+  if (totalLiters <= 0) {
+    return 'Out of stock';
   }
-  if (containers > 0) {
-    return `${containers} ${unit}${containers !== 1 ? 's' : ''}`;
-  }
-  if (bulk > 0) {
-    return `${bulk.toFixed(1)}${baseUnit} (loose)`;
-  }
-  return 'Out of stock';
+  return `${totalLiters.toFixed(1)} ${baseUnit}`;
 }
 
 /**
