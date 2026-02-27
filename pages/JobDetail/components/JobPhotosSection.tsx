@@ -41,7 +41,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
   const { isTechnician, isAdmin, isSupervisor } = roleFlags;
   const { isNew, isAssigned, isInProgress, isAwaitingFinalization, isIncompleteContinuing, isIncompleteReassigned, isCompleted } = statusFlags;
   
-  const canUploadPhotos = isNew || isAssigned || isInProgress || isAwaitingFinalization || isIncompleteContinuing || isIncompleteReassigned || isCompleted;
+  const canUploadPhotos = isNew || isAssigned || isInProgress || isAwaitingFinalization || isIncompleteContinuing || isIncompleteReassigned;
 
   // Helper to get GPS coordinates (non-blocking, shorter timeout)
   const getGPSCoordinates = (): Promise<{ latitude: number; longitude: number; accuracy: number } | null> => {

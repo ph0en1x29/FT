@@ -78,3 +78,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-26 21:50] [Sonnet] Fixed Call button alignment in CustomerAssignmentCard.tsx — moved below customer name as standalone pill, removed justify-between float.
 [2026-02-26 21:57] [Sonnet] Fixed NotesSection.tsx and JobPhotosSection.tsx — technicians can now add notes and upload photos on completed jobs.
 [2026-02-26 21:57] [Sonnet] Fixed missing isCompleted destructure in JobPhotosSection.tsx (TypeScript error from prior agent).
+[2026-02-26 21:59] [Sonnet] Reverted photo upload on completed jobs in JobPhotosSection.tsx — only notes allowed after completion.
