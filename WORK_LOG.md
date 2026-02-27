@@ -75,3 +75,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 [2026-02-26 21:46] [Sonnet] Created CollapsibleCard.tsx accordion component with smooth height animation. Updated index.ts to export it. Fixed ConditionChecklistCard.tsx read-only grid overflow (grid-cols-1 sm:grid-cols-2 md:grid-cols-3, overflow-hidden, shrink-0, break-words). Updated JobDetailPage.tsx to wrap Confirmation/Notes/Checklist/Parts/Photos in CollapsibleCard with mobile/desktop defaultOpen logic.
 [2026-02-26 21:48] [Sonnet] Removed redundant sticky status pill and blank gap in JobDetailPage.tsx — cleaned up conditional pt-16 padding.
+[2026-02-26 21:50] [Sonnet] Fixed Call button alignment in CustomerAssignmentCard.tsx — moved below customer name as standalone pill, removed justify-between float.

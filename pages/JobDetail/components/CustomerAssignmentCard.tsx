@@ -33,25 +33,26 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
 }) => {
   return (
     <div className="card-premium p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center">
-            <UserIcon className="w-5 h-5 text-[var(--text-muted)]" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-[var(--text)]">Customer</h3>
-            {job.customer ? (
-              <p className="text-sm text-[var(--text-secondary)]">{job.customer.name}</p>
-            ) : (
-              <p className="text-sm text-[var(--warning)]">No customer assigned</p>
-            )}
-          </div>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center flex-shrink-0">
+          <UserIcon className="w-5 h-5 text-[var(--text-muted)]" />
         </div>
-        {job.customer?.phone && (
-          <a href={`tel:${job.customer.phone}`} className="btn-premium btn-premium-ghost text-xs">
-            <Phone className="w-3.5 h-3.5" /> Call
-          </a>
-        )}
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold text-[var(--text)]">Customer</h3>
+          {job.customer ? (
+            <p className="text-sm text-[var(--text-secondary)]">{job.customer.name}</p>
+          ) : (
+            <p className="text-sm text-[var(--warning)]">No customer assigned</p>
+          )}
+          {job.customer?.phone && (
+            <a
+              href={`tel:${job.customer.phone}`}
+              className="inline-flex items-center gap-1.5 mt-2 rounded-full px-3 min-h-[36px] text-xs font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-[var(--accent-subtle)] hover:text-[var(--accent)] transition-colors"
+            >
+              <Phone className="w-3.5 h-3.5" /> Call
+            </a>
+          )}
+        </div>
       </div>
       
       {job.customer && (
