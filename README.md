@@ -1,6 +1,6 @@
 # FieldPro
 
-![Status](https://img.shields.io/badge/Status-v1.2%20Active%20Development-green)
+![Status](https://img.shields.io/badge/Status-v1.3%20Active%20Development-green)
 ![Client](https://img.shields.io/badge/Client-ACWER%20Industrial-blue)
 ![Last Updated](https://img.shields.io/badge/Updated-February%202026-lightgrey)
 
@@ -34,24 +34,35 @@
 ### Core Platform
 - Role-based permissions (Admin, Supervisor, Technician, Accountant)
 - Job lifecycle management with full audit trails
+- Auto-generated job numbers (`JOB-YYYYMMDD-XXXX`) with DB trigger
 - Customer signature capture + deferred acknowledgement
-- 48-item condition checklist
+- 48-item tri-state condition checklist (OK / Not OK / blank)
 - Invoice, Service Report & Quotation PDF generation
 - Fleet (forklift) management + hourmeter tracking
+- Helper Technician system + multi-day job support
 - Real-time notification system with sound alerts
 - Light/Dark theme (auto system preference)
 
-### v1.2 — February 2026
-- **📱 Full Mobile Responsive + PWA** — All pages optimized for mobile, installable as app
-- **🧭 Role-Aware Mobile Navigation** — Bottom nav with role-specific tabs and badge counts
-- **⚡ Floating Action Button (FAB)** — Role-specific quick actions in one tap
-- **⌨️ Command Palette** — Cmd+K global search and navigation
-- **↕️ Pull-to-Refresh** — Native-feel refresh on Jobs page
-- **👆 Swipe Actions** — Swipe to approve/reject on StoreQueue items
-- **💀 Skeleton Loading** — Smooth loading states across all pages
-- **📊 Van Stock History Tab** — Full parts deduction log with timestamps
-- **🔢 Decimal Quantities** — Liquid/bulk parts support (e.g. 1.5L)
-- **🌗 Global Dark Mode** — Theme-aware across all 73+ components
+### Inventory Management
+- **Dual-unit inventory** — Parts tracked in discrete units AND liquid/bulk (L, kg, m)
+- **Liquid inventory service** — Liquid-aware stock deduction in job flow
+- **Bulk parts import** — CSV/JSON upload with upsert by part code
+- **Inventory movement logging** — Full audit trail for all stock changes
+- **Low stock alerts** — Threshold-based alerts on admin dashboard
+- **Van Stock** — Per-technician van inventory with history tab and decimal quantity input
+
+### Mobile & PWA
+- **📱 Full Mobile Responsive** — All pages optimized; 44px minimum tap targets
+- **📲 PWA** — Installable as standalone app; offline caching (service worker)
+- **🧭 Role-Aware Bottom Navigation** — Tabs and badge counts by role
+- **⚡ FAB** — Role-specific quick actions in one tap
+- **⌨️ Command Palette** — `Cmd+K` global search and navigation
+- **↕️ Pull-to-Refresh** + **👆 Swipe Actions** on key lists
+
+### Search & Testing
+- **🔍 Semantic Search** — pgvector (Supabase gte-small, 384d) on jobs and customers
+- **🧪 E2E Test Suite** — Playwright critical-path tests (login, job create, job complete, parts approval)
+- **⚙️ CI/CD** — GitHub Actions build + smoke test pipeline
 
 ### v1.1 — January 2026
 - Helper Technician System, In-Job Request System, Multi-Day Jobs
@@ -64,14 +75,17 @@
 
 ## 🚀 Release Notes
 
-### v1.2 (February 2026)
-Full mobile + PWA overhaul, command palette, role-aware UX — [View details →](./docs/CHANGELOG.md)
+### v1.3 (February 26, 2026)
+Job numbers, liquid inventory, bulk parts import, checklist tri-state, semantic search, E2E tests, mobile UX overhaul — [View details →](./docs/CHANGELOG.md)
+
+### v1.2 (February 17, 2026)
+Full mobile + PWA overhaul, command palette, role-aware navigation, FAB, dark mode — [View details →](./docs/CHANGELOG.md)
 
 ### v1.1 (January 2026)
 ACWER Industrial workflow implementation — [View details →](./docs/CHANGELOG.md)
 
-### v1.0
-- Initial release with full FSM capabilities
+### v1.0 (December 2025)
+Initial release with full FSM capabilities
 
 ---
 

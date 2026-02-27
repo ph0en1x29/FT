@@ -7,20 +7,46 @@ All notable changes to the FieldPro Field Service Management System.
 ## [2026-02-26] - February 26, 2026
 
 ### Features
-- **Auto-generated job numbers** — DB trigger assigns `JOB-YYYYMMDD-XXXX` on insert; existing jobs backfilled; job number badge displayed on job cards and job detail header; searchable via global search
+- **Auto-generated job numbers** — DB trigger assigns `JOB-YYYYMMDD-XXXX` on insert; existing jobs backfilled; job number badge displayed on job cards and job detail header (blue accent pill style); searchable via global search
 - **Technician mobile UX overhaul** — My Jobs / Other Jobs tab split; colored status borders on cards (green = completed, yellow = in-progress, red = open); larger tap targets throughout; collapsible sections on job detail page
 
 ### Bug Fixes
 - **Sticky action bar** — Moved to top of job detail; hides automatically when modals are open to prevent overlap
 - **Hourmeter validation** — Allow equal hourmeter reading on job complete (handles case where forklift was not operational during job)
 - **Signature images** — Now use permanent public URLs instead of signed URLs (fixes 24-hour expiry issue)
-- **Post-completion notes** — Technicians can now add notes after a job has been marked complete
+- **Post-completion notes** — Technicians can add notes (but not photo uploads) after a job has been marked complete
 - **Confirmation card** — Fixed mobile overflow on confirmation summary card
 - **Checklist grid** — Single-column layout on mobile; overflow handling on long checklist labels
 - **Call button** — Moved below customer name for better visual hierarchy
-- **Combobox dropdown** — Flips upward when near viewport bottom to prevent clipping
+- **Combobox dropdown** — Flips upward when near viewport bottom to prevent clipping; job card list and board views now include `job_number` in select queries
 - **CreateJob page** — Job type and priority fields now use Combobox component for consistency
 - **Toast notifications** — Moved to top-center position; close button removed for cleaner mobile UX
+- **Sticky status pill** — Removed redundant pill and blank gap on mobile job detail (status is already shown in action bar)
+
+---
+
+## [2026-02-24/25] - Liquid Inventory System + Bulk Parts Import
+
+### Features
+- **Dual-unit inventory foundation** — Parts now support two quantity types: discrete units (pcs) and liquid/bulk (L, kg, m); `unit` field and `liquid_quantity`/`liquid_unit` columns added across `parts`, `van_stock_items`, `job_parts`, and `replenishment_items` tables
+- **Liquid inventory service** — `liquidInventoryService.ts` handles liquid-aware stock read/write; `partsService.ts` updated for dual-unit support
+- **Liquid-aware stock deduction in job flow** — When a liquid part is used on a job, the liquid quantity is deducted correctly (in addition to or instead of unit count)
+- **Dual-unit UI across all pages** — Inventory page, Van Stock modal, parts dropdowns all show unit type and appropriate quantity inputs
+- **Bulk parts import** — Admin can import parts from CSV or JSON file; validates headers, upserts by part code; progress feedback with success/error counts
+- **Inventory movement logging** — All stock changes (deductions, replenishments, manual adjustments) now logged to `inventory_movements` table with actor, job, quantity delta, and timestamp
+- **Low stock alerts** — Server-side function evaluates low-stock threshold per part; alert surfaced on admin dashboard; better CSV export with all columns
+
+---
+
+## [2026-02-23] - Checklist Tri-State, Decimal Qty, Combobox Portal Fix
+
+### Features
+- **Checklist tri-state toggle** — Previously, clicking an OK item just cleared it (blank). Now it shows a red ✗ (needs attention). Three states: blank → ✓ OK → ✗ Not OK → blank. Gives technicians a clearer visual for issues they're flagging.
+- **Decimal quantity input for parts** — Technicians can type exact amounts (1.5, 0.5, 0.25) instead of tapping a "+" button. Supports liquid/bulk items. Validates: > 0, ≤ available stock. DB: quantity columns altered to `DECIMAL(10,2)` across affected tables.
+- **Smart pre-commit hook v2** — Validates Codex authorship via git trailer; blocks non-Codex commits on code files
+
+### Bug Fixes
+- **Combobox portal fix** — Combobox dropdown now renders at the document body level via React portal, making it immune to `overflow: hidden` on parent containers. Fixes dropdowns being clipped inside SwipeableRow, approval cards, and other overflow-constrained parents.
 
 ---
 

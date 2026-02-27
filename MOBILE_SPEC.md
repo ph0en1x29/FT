@@ -69,3 +69,34 @@
 - Theme color matching --accent
 - Display: standalone
 - Start URL: /
+
+---
+
+## Implementation Status (as of 2026-02-26)
+
+### ✅ Completed
+- **Tap targets** — 44px min enforced on all interactive elements (global CSS)
+- **Tables → Cards** — Inventory, Customers, People, Invoices all have card views on mobile
+- **Grid responsiveness** — All pages use single-col mobile → multi-col desktop grids
+- **Form inputs** — All `w-full`, `inputmode` set, labels above on mobile
+- **Bottom nav clearance** — `pb-24 md:pb-8` on all pages
+- **PWA** — `manifest.json` + service worker (stale-while-revalidate static, network-first API, offline fallback page)
+- **Safe area support** — `env(safe-area-inset-bottom)` on bottom nav
+- **16px input font** — Prevents iOS auto-zoom on focus
+- **Role-aware bottom nav** — Different tabs per role (Technician / Supervisor / Admin / Accountant) with badge counts
+- **FAB (Floating Action Button)** — Role-specific quick actions; closes on route change; solid styling
+- **Pull-to-refresh** — `usePullToRefresh` hook wired into Jobs page
+- **Swipe actions** — `SwipeableRow` on StoreQueue (approve/reject)
+- **Bottom sheet modals** — `BottomSheet` + `BottomSheetOrModal` components
+- **Command palette** — `Cmd+K` / search button; role-aware; arrow keys + Enter to select
+- **Sticky job action bar** — Status-based actions at top of mobile job detail; hides when modal open
+- **Collapsible sections** — Job detail sections (Equipment, Checklist, Parts, Photos) collapse on mobile
+- **Combobox portal** — Dropdown renders at body level, immune to overflow clipping
+- **Dark mode** — All 73+ components use `var(--surface)` instead of `bg-white`
+
+### 🔲 Planned / Not Yet Implemented
+- **Offline data sync** — Service worker caches static assets; full offline job creation/editing not yet implemented (network-first means features require connectivity)
+- **Push notifications on mobile** — Web push configured but requires user opt-in; not prominently surfaced on mobile onboarding
+- **Haptic feedback** — No vibration API usage on swipe actions or confirmations
+- **Camera direct capture** — Photo upload uses file picker; no direct camera API integration
+- **PWA install prompt** — No custom A2HS (Add to Home Screen) prompt; relies on browser default
