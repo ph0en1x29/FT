@@ -253,7 +253,6 @@ const AddPartModal: React.FC<AddPartModalProps> = ({
                     className={inputClassName}
                     value={formData.container_unit}
                     onChange={e => updateField('container_unit', e.target.value)}
-                    required
                   >
                     <option value="">Select...</option>
                     <option value="bottle">Bottle</option>
@@ -276,7 +275,6 @@ const AddPartModal: React.FC<AddPartModalProps> = ({
                     placeholder="e.g., 5 (5L per bottle)"
                     min="0.1"
                     step="0.1"
-                    required
                   />
                 </div>
 

@@ -108,3 +108,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-27 02:54] [Sonnet] Updated docs/CHANGELOG.md with 2026-02-27 liquid inventory Phase 1 entry.
 [2026-02-27 03:26] [Sonnet] Fixed forklift cost wiring: useJobPartsHandlers.ts + liquidInventoryService.ts now pass forklift_id, unit_cost_at_time, total_cost to inventory_movements on fluid job usage.
 [2026-02-27 03:26] [Sonnet] Fixed VanLedgerTab.tsx enum labels (van_transfer, job_usage, special_sale). Added FlaggedMovementsTab.tsx for admin review of negative balance movements. Wired into VanStockPageMain.tsx.
+
+[2026-02-27 12:41] [Sonnet] Removed required attr from container_unit/container_size in AddPartModal.tsx; added toast validation in useInventoryData.ts for liquid fields.

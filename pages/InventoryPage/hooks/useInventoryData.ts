@@ -187,6 +187,16 @@ export function useInventoryData(currentUser: User) {
       return;
     }
 
+    if (formData.is_liquid && (!formData.container_unit || formData.container_unit === '')) {
+      showToast.error('Container type is required for liquid items');
+      return;
+    }
+
+    if (formData.is_liquid && (!formData.container_size || formData.container_size === 0)) {
+      showToast.error('Container size is required for liquid items');
+      return;
+    }
+
     try {
       const containerSize = typeof formData.container_size === 'number' ? formData.container_size : 0;
       const partData = {
