@@ -79,3 +79,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-26 21:57] [Sonnet] Fixed NotesSection.tsx and JobPhotosSection.tsx — technicians can now add notes and upload photos on completed jobs.
 [2026-02-26 21:57] [Sonnet] Fixed missing isCompleted destructure in JobPhotosSection.tsx (TypeScript error from prior agent).
 [2026-02-26 21:59] [Sonnet] Reverted photo upload on completed jobs in JobPhotosSection.tsx — only notes allowed after completion.
+[2026-02-26 22:14] [Sonnet] Added job_number (JOB-YYYYMMDD-XXXX) — DB trigger, backfill, badge in JobCard.tsx and JobHeader.tsx, search in useJobFilters.ts and SearchFilterBar.tsx.
+[2026-02-26 22:14] [Sonnet] Created database/migrations/add_job_number.sql — job_number column, generate_job_number() function, BEFORE INSERT trigger, backfill existing jobs.

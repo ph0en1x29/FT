@@ -82,6 +82,11 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-lg md:text-xl font-semibold text-[var(--text)] truncate">{job.title}</h1>
+              {job.job_number && (
+                <span className="text-xs font-mono font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-700 whitespace-nowrap flex-shrink-0">
+                  #{job.job_number}
+                </span>
+              )}
               {/* Real-time connection indicator */}
               <span 
                 className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-green-500' : 'bg-gray-400'}`}

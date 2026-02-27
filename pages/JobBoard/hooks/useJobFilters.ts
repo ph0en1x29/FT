@@ -164,7 +164,8 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
         job.customer?.address?.toLowerCase().includes(query) ||
         job.assigned_technician_name?.toLowerCase().includes(query) ||
         job.forklift?.serial_number?.toLowerCase().includes(query) ||
-        job.forklift?.model?.toLowerCase().includes(query)
+        job.forklift?.model?.toLowerCase().includes(query) ||
+        job.job_number?.toLowerCase().includes(query)
       );
     }
 

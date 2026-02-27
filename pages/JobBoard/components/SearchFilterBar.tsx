@@ -51,7 +51,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted" />
           <input
             type="text"
-            placeholder="Search jobs, customers, forklifts..."
+            placeholder="Search jobs, customers, forklifts, job numbers..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-theme bg-theme-surface text-theme focus:ring-2 focus:ring-blue-500 focus:border-transparent"

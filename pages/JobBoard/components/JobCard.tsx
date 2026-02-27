@@ -70,6 +70,12 @@ export const JobCard: React.FC<JobCardProps> = ({
           )}
         </div>
         <div className="flex flex-col items-end gap-1">
+          {/* Job Number Badge */}
+          {job.job_number && (
+            <span className="text-[10px] font-mono font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 whitespace-nowrap">
+              #{job.job_number}
+            </span>
+          )}
           {job.priority === 'Emergency' && (
             <span className="text-xs font-bold text-red-600 animate-pulse">EMERGENCY</span>
           )}
