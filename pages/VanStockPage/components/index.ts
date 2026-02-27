@@ -12,3 +12,6 @@ export { default as VanFleetOverview } from './VanFleetOverview';
 
 // Modal exports
 export * from './modals';
+
+// Ledger
+export { default as VanLedgerTab } from './VanLedgerTab';

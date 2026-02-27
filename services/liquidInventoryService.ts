@@ -482,7 +482,7 @@ export async function useVanBulk(
   jobId: string,
   performedBy: string,
   performedByName?: string
-): Promise<void> {
+): Promise<{ balanceOverride: boolean }> {
   // 1. Get van item + part container_size
   const { data: vanItem, error: vanErr } = await supabase
     .from('van_stock_items')
@@ -512,14 +512,11 @@ export async function useVanBulk(
     containersOpened += 1;
   }
 
-  if (currentBulk < baseUnitsNeeded) {
-    throw new Error(`Van insufficient stock. Available: ${currentBulk.toFixed(1)} base units. Need: ${baseUnitsNeeded}`);
-  }
-
-  const newBulkQty = currentBulk - baseUnitsNeeded;
+  const balanceInsufficient = currentBulk < baseUnitsNeeded;
+  const newBulkQty = currentBulk - baseUnitsNeeded; // May go negative — allowed with warning flag
   const newQty = Math.max(0, (vanItem.quantity ?? 0) - (containersOpened > 0 ? containersOpened : 0));
 
-  // 2. Update van stock
+  // 2. Update van stock (allow negative with warning flag)
   const { error: updateErr } = await supabase
     .from('van_stock_items')
     .update({
@@ -550,7 +547,7 @@ export async function useVanBulk(
     });
   }
 
-  // 4. Log usage
+  // 4. Log usage (with balance_override flag if insufficient)
   await logMovement({
     part_id: partId,
     movement_type: 'use_internal',
@@ -560,10 +557,15 @@ export async function useVanBulk(
     van_stock_item_id: vanStockItemId,
     performed_by: performedBy,
     performed_by_name: performedByName,
-    notes: `Used ${baseUnitsNeeded} base units from van on job`,
+    notes: balanceInsufficient
+      ? `Used ${baseUnitsNeeded} base units from van on job [balance_override: true — van balance was insufficient]`
+      : `Used ${baseUnitsNeeded} base units from van on job`,
     van_container_qty_after: currentContainers,
     van_bulk_qty_after: newBulkQty,
   });
+
+  // Return warning flag so caller can show toast
+  return { balanceOverride: balanceInsufficient };
 }
 
 // =============================================
@@ -693,4 +695,79 @@ export async function adjustStock(
   });
 
   return updated as Part;
+}
+
+// =============================================
+// PURCHASE / RECEIVE STOCK
+// =============================================
+
+export async function receiveLiquidStock(params: {
+  partId: string;
+  containerQty: number;
+  containerSize: number;
+  totalLiters: number;
+  totalPrice: number;
+  costPerLiter: number;
+  poReference?: string;
+  notes?: string;
+  performedBy: string;
+  performedByName: string;
+}) {
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // Insert purchase batch record
+  const { error: batchError } = await supabase.from('purchase_batches').insert({
+    part_id: params.partId,
+    container_qty: params.containerQty,
+    container_size: params.containerSize,
+    total_liters: params.totalLiters,
+    total_price: params.totalPrice,
+    cost_per_liter: params.costPerLiter,
+    po_reference: params.poReference || null,
+    notes: params.notes || null,
+    performed_by: params.performedBy,
+    performed_by_name: params.performedByName,
+  });
+  if (batchError) throw batchError;
+
+  // Fetch current part quantities
+  const { data: part, error: partError } = await supabase
+    .from('parts')
+    .select('part_id, bulk_quantity, container_quantity')
+    .eq('part_id', params.partId)
+    .single();
+  if (partError) throw partError;
+
+  const newBulkQty = (part.bulk_quantity ?? 0) + params.totalLiters;
+  const newContainerQty = (part.container_quantity ?? 0) + params.containerQty;
+
+  // Update parts table
+  const { error: updateError } = await supabase
+    .from('parts')
+    .update({
+      bulk_quantity: newBulkQty,
+      container_quantity: newContainerQty,
+    })
+    .eq('part_id', params.partId);
+  if (updateError) throw updateError;
+
+  // Log to inventory_movements
+  const { error: movError } = await supabase.from('inventory_movements').insert({
+    part_id: params.partId,
+    movement_type: 'purchase',
+    container_qty_change: params.containerQty,
+    bulk_qty_change: params.totalLiters,
+    performed_by: params.performedBy,
+    performed_by_name: params.performedByName,
+    store_container_qty_after: newContainerQty,
+    store_bulk_qty_after: newBulkQty,
+    reference_number: params.poReference || null,
+    notes: params.notes
+      ? `PO: ${params.poReference || 'N/A'} | ${params.notes}`
+      : `PO: ${params.poReference || 'N/A'} | Received ${params.containerQty} containers × ${params.containerSize}L = ${params.totalLiters}L`,
+  });
+  if (movError) throw movError;
 }

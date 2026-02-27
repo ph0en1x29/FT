@@ -100,6 +100,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
     };
   });
   const techOptions: ComboboxOption[] = technicians.map(t => ({ id: t.user_id, label: t.name, subLabel: t.email }));
+  const selectedPartIsLiquid = parts.find(p => p.part_id === state.selectedPartId)?.is_liquid ?? false;
 
   if (loading) return (
     <div className="max-w-5xl mx-auto p-6 fade-in">
@@ -210,7 +211,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             availableVans={state.availableVans}
             onSelectJobVan={actions.handleSelectJobVan}
             sellSealed={state.sellSealed}
-            onSellSealedChange={state.setSellSealed} />
+            onSellSealedChange={state.setSellSealed}
+            selectedPartIsLiquid={selectedPartIsLiquid} />
           </CollapsibleCard>
           </div>
           <ExtraChargesSection job={job} roleFlags={roleFlags} showAddCharge={state.showAddCharge}

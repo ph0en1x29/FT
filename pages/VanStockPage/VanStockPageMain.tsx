@@ -21,9 +21,13 @@ VanStockHeader,
 VanStockStatsCards,
 } from './components';
 import { useVanStockData } from './hooks/useVanStockData';
+import VanLedgerTab from './components/VanLedgerTab';
 import { VanStockPageProps } from './types';
 
 export default function VanStockPageMain({ currentUser, hideHeader = false }: VanStockPageProps) {
+  // Tab state
+  const [vanActiveTab, setVanActiveTab] = useState<'stock' | 'ledger'>('stock');
+
   // Data hook
   const {
     vanStocks,
@@ -382,6 +386,34 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
 
   return (
     <div className="space-y-6">
+      {/* Van Stock Sub-Tabs */}
+      <div className="border-b border-theme">
+        <nav className="flex gap-1 overflow-x-auto" aria-label="Van stock tabs">
+          {[
+            { id: 'stock' as const, label: 'Van Stock' },
+            { id: 'ledger' as const, label: 'Ledger' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setVanActiveTab(tab.id)}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                vanActiveTab === tab.id
+                  ? 'border-[var(--accent)] text-[var(--accent)]'
+                  : 'border-transparent text-theme-muted hover:text-theme hover:border-slate-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {vanActiveTab === 'ledger' && (
+        <VanLedgerTab currentUser={currentUser} />
+      )}
+
+      {vanActiveTab === 'stock' && (
+    <div className="space-y-6">
       {/* Header */}
       {!hideHeader && (
         <VanStockHeader
@@ -577,6 +609,8 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
             </div>
           </div>
         </div>
+      )}
+    </div>
       )}
     </div>
   );

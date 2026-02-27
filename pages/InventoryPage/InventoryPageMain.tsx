@@ -1,9 +1,9 @@
-import { AlertTriangle,Package,RotateCcw,Truck } from 'lucide-react';
+import { AlertTriangle,BookOpen,Package,RotateCcw,Truck } from 'lucide-react';
 import React,{ useEffect,useMemo,useState } from 'react';
 import { checkStockMismatch } from '../../services/liquidInventoryService';
 import { useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../contexts/DevModeContext';
-import { ROLE_PERMISSIONS,User,UserRole } from '../../types';
+import { Part,ROLE_PERMISSIONS,User,UserRole } from '../../types';
 import VanStockPage from '../VanStockPage';
 import AddPartModal from './components/AddPartModal';
 import InventoryFilters from './components/InventoryFilters';
@@ -12,7 +12,9 @@ import PartsHeader from './components/PartsHeader';
 import PartsTable from './components/PartsTable';
 import TabNavigation,{ Tab,TabType } from './components/TabNavigation';
 import ReplenishmentsTab from './components/ReplenishmentsTab';
+import InventoryLedgerTab from './components/InventoryLedgerTab';
 import ImportPartsModal from './components/ImportPartsModal';
+import ReceiveStockModal from './components/ReceiveStockModal';
 import { useInventoryData } from './hooks/useInventoryData';
 
 interface InventoryPageProps {
@@ -24,6 +26,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   const initialTab = (searchParams.get('tab') as TabType) || 'parts';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [receiveStockPart, setReceiveStockPart] = useState<Part | null>(null);
 
   // Use dev mode context for role-based permissions
   const { displayRole } = useDevModeContext();
@@ -70,7 +73,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   // Sync tab with URL
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as TabType;
-    if (tabFromUrl && ['parts', 'vanstock', 'replenishments'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['parts', 'vanstock', 'replenishments', 'ledger'].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
@@ -92,6 +95,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
     { id: 'parts', label: 'Parts Catalog', icon: Package, show: true },
     { id: 'vanstock', label: 'Van Stock', icon: Truck, show: canViewVanStock },
     { id: 'replenishments', label: 'Replenishments', icon: RotateCcw, show: canViewVanStock },
+    { id: 'ledger', label: 'Ledger', icon: BookOpen, show: canViewVanStock },
   ];
 
   return (
@@ -166,6 +170,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             canViewPricing={canViewPricing}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onReceiveStock={(p) => setReceiveStockPart(p)}
           />
 
           <AddPartModal
@@ -185,6 +190,14 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
             existingPartCodes={parts.map(p => p.part_code)}
           />
+
+          <ReceiveStockModal
+            show={!!receiveStockPart}
+            part={receiveStockPart}
+            currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
+            onClose={() => setReceiveStockPart(null)}
+            onSuccess={() => { setReceiveStockPart(null); loadParts(); }}
+          />
         </>
       )}
 
@@ -194,6 +207,10 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
 
       {activeTab === 'replenishments' && canViewVanStock && (
         <ReplenishmentsTab currentUser={currentUser} />
+      )}
+
+      {activeTab === 'ledger' && canViewVanStock && (
+        <InventoryLedgerTab />
       )}
 
     </div>

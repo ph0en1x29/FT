@@ -40,6 +40,8 @@ interface PartsSectionProps {
   // Liquid sell mode
   sellSealed?: boolean;
   onSellSealedChange?: (val: boolean) => void;
+  // Whether the currently selected part is liquid
+  selectedPartIsLiquid?: boolean;
 }
 
 export const PartsSection: React.FC<PartsSectionProps> = ({
@@ -75,6 +77,7 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   onSelectJobVan,
   sellSealed,
   onSellSealedChange,
+  selectedPartIsLiquid,
 }) => {
   const { isTechnician, _isAdmin, _isSupervisor, _isAccountant, canViewPricing, canEditPrices, canAddParts, isHelperOnly } = roleFlags;
   const { isNew, isAssigned, isInProgress, isAwaitingFinalization } = statusFlags;
@@ -320,18 +323,34 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
                 </div>
               </div>
             )}
-            <div className="w-20">
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0.1"
-                step="any"
-                value={addPartQuantity || '1'}
-                onChange={(e) => onAddPartQuantityChange?.(e.target.value)}
-                className="input-premium text-sm w-full text-center"
-                placeholder="Qty"
-              />
-            </div>
+            {selectedPartIsLiquid ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={addPartQuantity || ''}
+                  onChange={(e) => onAddPartQuantityChange?.(e.target.value)}
+                  className="input-premium text-sm w-20 text-center"
+                  placeholder="e.g. 4.2"
+                />
+                <span className="text-xs text-[var(--text-muted)] font-medium">L</span>
+              </div>
+            ) : (
+              <div className="w-20">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0.1"
+                  step="any"
+                  value={addPartQuantity || '1'}
+                  onChange={(e) => onAddPartQuantityChange?.(e.target.value)}
+                  className="input-premium text-sm w-full text-center"
+                  placeholder="Qty"
+                />
+              </div>
+            )}
             <label className="flex items-center gap-1.5 text-xs whitespace-nowrap cursor-pointer" title="Sell sealed containers instead of using bulk liters">
               <input
                 type="checkbox"

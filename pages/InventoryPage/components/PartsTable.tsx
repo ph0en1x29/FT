@@ -1,4 +1,4 @@
-import { AlertTriangle,Clock,Edit2,History,Package,Trash2 } from 'lucide-react';
+import { AlertTriangle,Clock,Edit2,History,Package,PackagePlus,Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { MovementHistoryModal } from './MovementHistoryModal';
 import { Skeleton,SkeletonStats,SkeletonTableRow } from '../../../components/Skeleton';
@@ -12,6 +12,7 @@ interface PartsTableProps {
   canViewPricing?: boolean;
   onEdit: (part: Part) => void;
   onDelete: (part: Part) => void;
+  onReceiveStock?: (part: Part) => void;
 }
 
 const PartsTable: React.FC<PartsTableProps> = ({
@@ -21,6 +22,7 @@ const PartsTable: React.FC<PartsTableProps> = ({
   canViewPricing = true,
   onEdit,
   onDelete,
+  onReceiveStock,
 }) => {
   const [historyPartId, setHistoryPartId] = useState<string | null>(null);
   const [historyPartName, setHistoryPartName] = useState('');
@@ -154,6 +156,15 @@ const PartsTable: React.FC<PartsTableProps> = ({
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
+                          {p.is_liquid && onReceiveStock && (
+                            <button
+                              onClick={() => onReceiveStock(p)}
+                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              title="Receive stock"
+                            >
+                              <PackagePlus className="w-4 h-4" />
+                            </button>
+                          )}
                           {p.is_liquid && (
                             <button
                               onClick={() => { setHistoryPartId(p.part_id); setHistoryPartName(p.part_name); }}
@@ -222,6 +233,14 @@ const PartsTable: React.FC<PartsTableProps> = ({
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Delete
                     </button>
+                    {p.is_liquid && onReceiveStock && (
+                      <button
+                        onClick={() => onReceiveStock(p)}
+                        className="flex items-center gap-1.5 px-3 py-2 h-10 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors text-xs font-medium"
+                      >
+                        <PackagePlus className="w-3.5 h-3.5" /> Receive
+                      </button>
+                    )}
                     {p.is_liquid && (
                       <button
                         onClick={() => { setHistoryPartId(p.part_id); setHistoryPartName(p.part_name); }}

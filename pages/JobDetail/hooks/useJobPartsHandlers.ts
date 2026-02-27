@@ -119,12 +119,16 @@ export const useJobPartsHandlers = ({
     const availableQty = item.part?.is_liquid
       ? (item.container_quantity || 0) * (item.part?.container_size || 0) + (item.bulk_quantity || 0)
       : item.quantity;
-    if (availableQty < qtyToUse) { showToast.error('Insufficient stock', `Only ${availableQty} ${item.part?.base_unit || item.part?.unit || 'pcs'} available in van`); return; }
+    // For liquid items, allow negative balance (will be flagged as balance_override)
+    if (availableQty < qtyToUse && !item.part?.is_liquid) {
+      showToast.error('Insufficient stock', `Only ${availableQty} ${item.part?.base_unit || item.part?.unit || 'pcs'} available in van`);
+      return;
+    }
 
     try {
       if (item.part?.is_liquid && item.part?.container_size) {
         // Liquid: use dual-unit deduction from van
-        await useVanBulk(
+        const result = await useVanBulk(
           item.part_id,
           item.item_id,
           state.vanStock.van_stock_id,
@@ -133,6 +137,9 @@ export const useJobPartsHandlers = ({
           currentUserId,
           currentUserName
         );
+        if (result?.balanceOverride) {
+          showToast.warning('Van balance insufficient — logged with warning flag for admin review.');
+        }
       } else {
         // Non-liquid: legacy van stock usage
         await useVanStockPart(

@@ -1,7 +1,7 @@
 import { LucideIcon } from 'lucide-react';
 import React from 'react';
 
-export type TabType = 'parts' | 'vanstock' | 'replenishments';
+export type TabType = 'parts' | 'vanstock' | 'replenishments' | 'ledger';
 
 export interface Tab {
   id: TabType;
