@@ -110,3 +110,6 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-27 03:26] [Sonnet] Fixed VanLedgerTab.tsx enum labels (van_transfer, job_usage, special_sale). Added FlaggedMovementsTab.tsx for admin review of negative balance movements. Wired into VanStockPageMain.tsx.
 
 [2026-02-27 12:41] [Sonnet] Removed required attr from container_unit/container_size in AddPartModal.tsx; added toast validation in useInventoryData.ts for liquid fields.
+[2026-02-27 21:34] [Sonnet] Removed 20 dead files (17 orphan components + 3 dead services = 3,087 lines). Removed 3 unused exports from liquidInventoryService.ts (purchaseContainers, breakContainer, adjustStock).
+[2026-02-27 21:34] [Sonnet] Dead code cleanup: moved 20 unused files to .trash-cleanup-20260227/. Removed purchaseContainers, breakContainer, adjustStock from liquidInventoryService.ts. Fixed AddPartModal liquid toggle position + PWA skipWaiting in vite.config.ts.
+[2026-02-27 21:34] [Sonnet] Moved liquid toggle checkbox to position #2 in AddPartModal.tsx (right after Part Name). Added skipWaiting + clientsClaim to vite.config.ts PWA config.

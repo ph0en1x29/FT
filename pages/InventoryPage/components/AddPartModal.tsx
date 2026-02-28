@@ -75,6 +75,27 @@ const AddPartModal: React.FC<AddPartModalProps> = ({
                 </button>
               </div>
             )}
+            {/* Liquid / Bulk Item Toggle */}
+            <div className="col-span-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_liquid}
+                  onChange={e => {
+                    updateField('is_liquid', e.target.checked);
+                    if (e.target.checked) {
+                      updateField('base_unit', 'L');
+                    } else {
+                      updateField('base_unit', 'pcs');
+                      updateField('container_unit', '');
+                      updateField('container_size', '');
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-xs font-bold text-slate-500 uppercase">Liquid / Bulk Item</span>
+              </label>
+            </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
@@ -205,27 +226,6 @@ const AddPartModal: React.FC<AddPartModalProps> = ({
               />
             </div>
 
-            {/* Liquid Inventory Section */}
-            <div className="col-span-2 border-t border-slate-200 pt-4 mt-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.is_liquid}
-                  onChange={e => {
-                    updateField('is_liquid', e.target.checked);
-                    if (e.target.checked) {
-                      updateField('base_unit', 'L');
-                    } else {
-                      updateField('base_unit', 'pcs');
-                      updateField('container_unit', '');
-                      updateField('container_size', '');
-                    }
-                  }}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-xs font-bold text-slate-500 uppercase">Liquid / Bulk Item</span>
-              </label>
-            </div>
 
             {formData.is_liquid && (
               <>

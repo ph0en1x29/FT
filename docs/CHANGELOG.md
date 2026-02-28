@@ -724,3 +724,11 @@ Detailed historical changelogs are available in `docs/archive/`.
 - **Van ledger enum labels** — new movement types (van_transfer, job_usage, special_sale) now display correctly instead of blank
 - **Admin flagged movements tab** — new "⚠️ Flagged" tab in Van Stock page shows all movements where van balance went negative, for admin review
 - **DB trigger** — update_avg_cost_per_liter() now fires automatically on every purchase_batches insert
+
+## [2026-02-27 v3] — Dead Code Cleanup
+
+### Removed
+- 17 orphan components never wired into the app (OfflineFormWrapper, PageTransition, SkeletonPatterns, ViewToggle, ServiceAutomationWidget, VanStockWidget, DevPanelToggle, FilterSheet, SwipeableCard, OfflineIndicator, NavigationComponents, NotificationPanel, OfflineSyncStatus, PinJobButton, QuotationPDF, SemanticSearch, TelegramTeamStatus)
+- 3 dead services: mockDb.ts (341 lines), syncService.ts (132 lines), storageService.ts (111 lines)
+- 3 unused exports from liquidInventoryService.ts: purchaseContainers, breakContainer, adjustStock (replaced by receiveLiquidStock)
+- **Total: ~3,100 lines of dead code removed**

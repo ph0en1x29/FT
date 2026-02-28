@@ -36,3 +36,4 @@ supabase/.temp/
 .env*.local
 .coordination-checked
 node_modules
+.trash-cleanup-20260227/

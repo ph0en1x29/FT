@@ -28,6 +28,8 @@ export default defineConfig(({ mode }) => {
             ],
           },
           workbox: {
+            skipWaiting: true,
+            clientsClaim: true,
             runtimeCaching: [
               {
                 urlPattern: /supabase\.co/,
