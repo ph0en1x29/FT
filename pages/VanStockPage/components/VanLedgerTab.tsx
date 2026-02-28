@@ -44,6 +44,8 @@ const ACTION_LABELS: Record<string, string> = {
   van_transfer: 'Received from Warehouse',
   job_usage: 'Job Usage',
   special_sale: 'Special Sale',
+  reversal: 'Reversal',
+  stocktake: 'Stocktake Adjustment',
 };
 
 const VAN_POSITIVE_TYPES = ['transfer_to_van', 'return_to_store'];

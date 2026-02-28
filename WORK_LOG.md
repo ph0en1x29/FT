@@ -168,3 +168,12 @@ Files: ReceiveStockModal.tsx, AdjustStockModal.tsx, PendingAdjustmentsTab.tsx, I
 ### [Sonnet] [2026-02-28 02:57] Additional files - liquidInventoryService.ts StocktakeTab.tsx inventory.types.ts TabNavigation.tsx
 Files: liquidInventoryService.ts, StocktakeTab.tsx, inventory.types.ts, TabNavigation.tsx
 Minor updates to support cost variance and adjustment workflow.
+
+### [Sonnet] [2026-02-28 03:30] Audit Trail Phase 2 — stocktake, cost alerts, adjustment approval, batch tracing
+Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavigation.tsx, VanLedgerTab.tsx, inventory.types.ts
+- Wired StocktakeTab into inventory page with tab entry and URL validation
+- Added expiry warning banner querying purchase_batches.expires_at
+- Fixed StocktakeTab: removed GENERATED column insert, changed location_type to warehouse
+- Added reversal/stocktake/van_transfer/job_usage/special_sale to ACTION_LABELS in both ledgers
+- Added purchase_batch_id and reversal_of to InventoryMovement TypeScript types
+- Added pending-adjustments to TabType union

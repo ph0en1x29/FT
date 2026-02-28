@@ -17,7 +17,9 @@ import ReplenishmentsTab from './components/ReplenishmentsTab';
 import InventoryLedgerTab from './components/InventoryLedgerTab';
 import ImportPartsModal from './components/ImportPartsModal';
 import ReceiveStockModal from './components/ReceiveStockModal';
+import StocktakeTab from './components/StocktakeTab';
 import { useInventoryData } from './hooks/useInventoryData';
+import { supabase } from '../../services/supabaseClient';
 
 interface InventoryPageProps {
   currentUser: User;
@@ -30,6 +32,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [receiveStockPart, setReceiveStockPart] = useState<Part | null>(null);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [expiryWarnings, setExpiryWarnings] = useState<any[]>([]);
 
   // Use dev mode context for role-based permissions
   const { displayRole } = useDevModeContext();
@@ -76,7 +79,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   // Sync tab with URL
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as TabType;
-    if (tabFromUrl && ['parts', 'vanstock', 'replenishments', 'ledger', 'pending-adjustments'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['parts', 'vanstock', 'replenishments', 'ledger', 'pending-adjustments', 'stocktake'].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
@@ -93,6 +96,22 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
     }
   }, [activeTab, loadParts]);
 
+  // Fetch expiring stock within 30 days
+  useEffect(() => {
+    const fetchExpiryWarnings = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('purchase_batches')
+        .select('batch_id, batch_label, expires_at, part_id, parts(part_name)')
+        .gte('expires_at', today)
+        .lte('expires_at', thirtyDaysFromNow)
+        .limit(10);
+      if (data) setExpiryWarnings(data);
+    };
+    fetchExpiryWarnings();
+  }, []);
+
   // Build available tabs based on permissions
   const tabs: Tab[] = [
     { id: 'parts', label: 'Parts Catalog', icon: Package, show: true },
@@ -100,6 +119,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
     { id: 'replenishments', label: 'Replenishments', icon: RotateCcw, show: canViewVanStock },
     { id: 'ledger', label: 'Ledger', icon: BookOpen, show: canViewVanStock },
     { id: 'pending-adjustments' as TabType, label: 'Pending Adjustments', icon: ClipboardList, show: isAdmin },
+    { id: 'stocktake' as TabType, label: 'Stocktake', icon: ClipboardList, show: isAdmin },
   ];
 
   return (
@@ -123,6 +143,18 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
           </button>
         )}
       </div>
+
+      {/* Expiry Warning Banners */}
+      {expiryWarnings.map((w) => (
+        <div key={w.batch_id} className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <div className="text-sm text-amber-700">
+            <span className="font-semibold">⚠️ {(w.parts as any)?.part_name || 'Unknown Part'}</span> has stock expiring on{' '}
+            <span className="font-medium">{new Date(w.expires_at).toLocaleDateString()}</span>
+            {' '}(Batch: {w.batch_label || w.batch_id})
+          </div>
+        </div>
+      ))}
 
       {/* Tab Navigation */}
       <TabNavigation
@@ -229,6 +261,10 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
 
       {activeTab === ('pending-adjustments' as TabType) && isAdmin && (
         <PendingAdjustmentsTab currentUser={currentUser} />
+      )}
+
+      {activeTab === ('stocktake' as TabType) && isAdmin && (
+        <StocktakeTab currentUser={currentUser} />
       )}
 
       {/* Adjust Stock Modal — accessible from all tabs */}

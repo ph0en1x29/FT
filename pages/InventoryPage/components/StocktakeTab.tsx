@@ -139,10 +139,9 @@ const StocktakeTab: React.FC<StocktakeTabProps> = ({ currentUser }) => {
     try {
       const inserts = rowsWithVariance.map((row) => ({
         part_id: row.part.part_id,
-        location_type: 'store',
+        location_type: 'warehouse',
         system_qty: getSystemQty(row.part),
         physical_qty: parseFloat(row.physicalQty),
-        variance: getVariance(row),
         variance_reason: row.reason,
         performed_by: currentUser.user_id,
         performed_by_name: currentUser.name,

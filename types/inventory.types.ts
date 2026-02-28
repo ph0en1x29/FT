@@ -338,7 +338,9 @@ export interface InventoryMovement {
   notes?: string;
   created_at: string;
   // Adjustment / approval fields
+  purchase_batch_id?: string;
   adjustment_reason?: string;
+  reversal_of?: string;
   requires_approval?: boolean;
   approved_by?: string;
   approved_at?: string;

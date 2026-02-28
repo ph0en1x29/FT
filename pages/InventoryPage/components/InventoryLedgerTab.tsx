@@ -15,6 +15,11 @@ const ACTION_LABELS: Record<string, string> = {
   return_to_store: 'Return',
   adjustment: 'Adjustment',
   initial_stock: 'Initial Stock',
+  reversal: 'Reversal',
+  stocktake: 'Stocktake Adjustment',
+  van_transfer: 'Van Transfer',
+  job_usage: 'Job Usage',
+  special_sale: 'Special Sale',
 };
 
 const POSITIVE_TYPES = ['purchase', 'return_to_store', 'initial_stock', 'break_container'];
