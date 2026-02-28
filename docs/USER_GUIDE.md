@@ -1019,3 +1019,38 @@ For technical issues or questions:
 
 *Last Updated: January 28, 2026*
 *Version: 2.2 - Customer Feedback Implementation Phase 2*
+
+---
+
+## Inventory Audit Trail (New — Feb 2026)
+
+### Stock Adjustments
+If you need to correct stock levels (damage, theft, spillage, counting error):
+1. Go to **Inventory** → click **Stock Adjustment** button
+2. Select the fluid part, enter the +/- quantity
+3. Choose a **reason code** (required)
+4. Submit — the adjustment goes to the approval queue
+5. A different admin must approve before stock changes
+
+### Stocktake (Physical Count)
+To reconcile system stock with actual physical stock:
+1. Go to **Inventory** → **Stocktake** tab
+2. Click **New Stocktake**
+3. Enter the physical quantity you counted for each fluid
+4. System shows variance (green = match, red = short, amber = over)
+5. Select a reason for any variance
+6. Submit — a different admin approves and stock auto-corrects
+
+### Pending Adjustments
+- **Inventory** → **Pending Adjustments** tab shows all adjustments waiting for approval
+- You cannot approve your own adjustment (anti-fraud control)
+- Rejected adjustments get a reason logged
+
+### Batch Tracking & Expiry
+- When receiving stock, you can optionally add a **Batch Label** and **Expiry Date**
+- If stock is expiring within 30 days, an amber warning banner appears on the inventory page
+- Every movement traces back to the specific purchase batch
+
+### Cost Alerts
+- When entering a new purchase, if the cost per liter differs more than 10% from the average, a warning appears
+- This helps catch supplier price changes early

@@ -732,3 +732,22 @@ Detailed historical changelogs are available in `docs/archive/`.
 - 3 dead services: mockDb.ts (341 lines), syncService.ts (132 lines), storageService.ts (111 lines)
 - 3 unused exports from liquidInventoryService.ts: purchaseContainers, breakContainer, adjustStock (replaced by receiveLiquidStock)
 - **Total: ~3,100 lines of dead code removed**
+
+## [2026-02-28] — Audit Trail Phase 2
+
+### Added
+- **Immutable inventory movements** — DB trigger prevents editing/deleting movement records. Corrections must use reversal entries.
+- **Stock Adjustment workflow** — new AdjustStockModal with reason codes (Damage, Theft, Spillage, Counting Error, Expired, Other). All adjustments require admin approval before stock changes.
+- **Pending Adjustments tab** — admin approval queue. No self-approval allowed.
+- **Stocktake workflow** — new Stocktake tab: admin enters physical count per liquid part, system calculates variance, requires approval from different admin. Approved stocktakes auto-correct stock levels.
+- **Batch tracing** — every purchase movement links to its purchase_batch_id. Each batch can have a label and expiry date.
+- **Expiry warnings** — amber banner on inventory page when any purchase batch expires within 30 days.
+- **Cost variance alert** — ReceiveStockModal warns when new purchase price differs >10% from average.
+- **New movement types** — `reversal` and `stocktake` added to inventory_movement_type enum.
+- **New DB table** — `stocktakes` (part_id, system_qty, physical_qty, variance, reason, approval workflow).
+
+### Fixed
+- **Van stock liquid display** — VanStockDetailModal and TransferItemsModal now show total liters instead of "X sealed + Y.YL loose"
+- **Van stock query performance** — getAllVanStocks narrowed to needed columns only (removed `select(*)` wildcards)
+- **Ledger labels** — reversal, stocktake, van_transfer, job_usage, special_sale now display proper labels in both warehouse and van ledgers
+- **TypeScript types** — InventoryMovement interface updated with purchase_batch_id, reversal_of fields

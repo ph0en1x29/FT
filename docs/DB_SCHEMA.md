@@ -2813,3 +2813,55 @@ Stores:
 - License images (front/back)
 - Permit documents
 - Leave supporting documents
+
+---
+
+## Audit Trail Tables (Added Feb 28, 2026)
+
+### stocktakes
+| Column | Type | Notes |
+|--------|------|-------|
+| stocktake_id | UUID PK | |
+| part_id | UUID FK → parts | |
+| location_type | VARCHAR(20) | 'warehouse' or 'van' |
+| van_stock_id | UUID FK → van_stocks | nullable, for van stocktakes |
+| system_qty | NUMERIC(10,2) | system-calculated qty at time of count |
+| physical_qty | NUMERIC(10,2) | actual counted qty |
+| variance | NUMERIC(10,2) | GENERATED: physical - system |
+| variance_reason | VARCHAR(100) | Damage/Theft/Spillage/Counting Error/Evaporation/Other |
+| performed_by | UUID FK → users | who counted |
+| performed_by_name | VARCHAR(100) | |
+| approved_by | UUID FK → users | who approved (different person) |
+| approved_at | TIMESTAMPTZ | |
+| status | VARCHAR(20) | pending/approved/rejected |
+| notes | TEXT | |
+| created_at | TIMESTAMPTZ | |
+
+### inventory_movements — New Columns
+| Column | Type | Notes |
+|--------|------|-------|
+| purchase_batch_id | UUID FK → purchase_batches | links movement to specific batch |
+| adjustment_reason | VARCHAR(50) | reason code for adjustments |
+| requires_approval | BOOLEAN | true for manual adjustments |
+| approved_by | UUID FK → users | |
+| approved_at | TIMESTAMPTZ | |
+| reversal_of | UUID | links to original movement being reversed |
+| is_pending | BOOLEAN | true until approved/rejected |
+
+### purchase_batches — New Columns
+| Column | Type | Notes |
+|--------|------|-------|
+| batch_label | VARCHAR(50) | optional label e.g. "Batch 2026-02-28 #1" |
+| expires_at | DATE | optional expiry date for FIFO tracking |
+
+### New Movement Types
+| Type | Description |
+|------|-------------|
+| reversal | Correction entry reversing a previous movement |
+| stocktake | Auto-generated when stocktake approved |
+
+### Immutability Trigger
+`trg_prevent_update` and `trg_prevent_delete` on inventory_movements:
+- DELETE is fully blocked
+- UPDATE only allows approval fields (is_pending, approved_by, approved_at, notes)
+- Core fields (part_id, movement_type, qty changes, performed_by) are locked
