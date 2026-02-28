@@ -113,3 +113,13 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-02-27 21:34] [Sonnet] Removed 20 dead files (17 orphan components + 3 dead services = 3,087 lines). Removed 3 unused exports from liquidInventoryService.ts (purchaseContainers, breakContainer, adjustStock).
 [2026-02-27 21:34] [Sonnet] Dead code cleanup: moved 20 unused files to .trash-cleanup-20260227/. Removed purchaseContainers, breakContainer, adjustStock from liquidInventoryService.ts. Fixed AddPartModal liquid toggle position + PWA skipWaiting in vite.config.ts.
 [2026-02-27 21:34] [Sonnet] Moved liquid toggle checkbox to position #2 in AddPartModal.tsx (right after Part Name). Added skipWaiting + clientsClaim to vite.config.ts PWA config.
+
+## [Sonnet] 2026-02-28 01:58 EST
+**Files:** pages/VanStockPage/components/modals/VanStockDetailModal.tsx, pages/VanStockPage/components/modals/TransferItemsModal.tsx, services/inventoryService.ts
+**Task:** Fix liquid display (total liters) and optimize getAllVanStocks query
+**Changes:**
+- VanStockDetailModal: show total liters = (container_qty × container_size) + bulk_qty, fix effectiveQty for StockStatusBadge
+- TransferItemsModal: show total liters for liquid items
+- inventoryService: select only required columns in getAllVanStocks
+[2026-02-28 01:58] [Sonnet] Fix liquid display: VanStockDetailModal.tsx TransferItemsModal.tsx show total liters (container_qty × container_size + bulk_qty). inventoryService.ts getAllVanStocks optimized to select only required columns.
+[2026-02-28 01:59] [Sonnet] Fix TS errors from narrowed select: VanStockDetailModal.tsx TransferItemsModal.tsx inventoryService.ts — use unknown casts, fix technician reference

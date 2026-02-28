@@ -100,12 +100,9 @@ export function TransferItemsModal({
                       <div className="text-xs text-slate-500">{item.part?.part_code}</div>
                     </div>
                     <div className="text-sm text-slate-600">
-                      {item.part?.is_liquid ? (
-                        <>
-                          {item.container_quantity || 0} {item.part?.container_unit || 'sealed'}
-                          {(item.bulk_quantity || 0) > 0 && ` + ${(item.bulk_quantity || 0).toFixed(1)}${item.part?.base_unit || 'L'}`}
-                        </>
-                      ) : `Qty: ${item.quantity}`}
+                      {item.part?.is_liquid
+                        ? `${(((item.container_quantity || 0) * (item.part?.container_size || 1)) + (item.bulk_quantity || 0)).toFixed(1)} ${item.part?.base_unit || 'L'}`
+                        : `Qty: ${item.quantity}`}
                     </div>
                   </label>
                 ))}

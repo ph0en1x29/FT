@@ -250,10 +250,7 @@ export function VanStockDetailModal({
                     <td className="p-3 text-center font-semibold">
                       {item.part?.is_liquid ? (
                         <div>
-                          <div>{item.container_quantity || 0} {item.part?.container_unit || 'containers'}</div>
-                          {(item.bulk_quantity || 0) > 0 && (
-                            <div className="text-xs text-slate-500">+ {(item.bulk_quantity || 0).toFixed(1)}{item.part?.base_unit || 'L'} loose</div>
-                          )}
+                          {(((item.container_quantity || 0) * (item.part?.container_size || 1)) + (item.bulk_quantity || 0)).toFixed(1)} {item.part?.base_unit || 'L'}
                         </div>
                       ) : item.quantity}
                     </td>
@@ -369,7 +366,9 @@ export function VanStockDetailModal({
 function StockStatusBadge({ item }: { item: VanStockItem }) {
   const colorClass = getStockStatusColor(item);
 
-  const effectiveQty = (item.container_quantity || 0) + (item.bulk_quantity || 0) + (item.quantity || 0);
+  const effectiveQty = item.part?.is_liquid
+    ? ((item.container_quantity || 0) * (item.part?.container_size || 1)) + (item.bulk_quantity || 0)
+    : (item.quantity || 0);
   if (effectiveQty === 0) {
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
