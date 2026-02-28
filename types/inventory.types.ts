@@ -29,6 +29,8 @@ export interface Part {
   bulk_quantity?: number;
   price_per_base_unit?: number;
   is_liquid?: boolean;
+  avg_cost_per_liter?: number;
+  last_purchase_cost_per_liter?: number;
 }
 
 export interface JobPartUsed {
@@ -335,6 +337,15 @@ export interface InventoryMovement {
   van_bulk_qty_after?: number;
   notes?: string;
   created_at: string;
+  // Adjustment / approval fields
+  adjustment_reason?: string;
+  requires_approval?: boolean;
+  approved_by?: string;
+  approved_at?: string;
+  is_pending?: boolean;
+  reference_number?: string;
+  unit_cost_at_time?: number;
+  total_cost?: number;
 }
 
 // Liquid keyword detection

@@ -1,4 +1,4 @@
-import { AlertTriangle,BookOpen,Package,RotateCcw,Truck } from 'lucide-react';
+import { AlertTriangle,BookOpen,ClipboardList,Package,RotateCcw,Settings2,Truck } from 'lucide-react';
 import React,{ useEffect,useMemo,useState } from 'react';
 import { checkStockMismatch } from '../../services/liquidInventoryService';
 import { useSearchParams } from 'react-router-dom';
@@ -6,10 +6,12 @@ import { useDevModeContext } from '../../contexts/DevModeContext';
 import { Part,ROLE_PERMISSIONS,User,UserRole } from '../../types';
 import VanStockPage from '../VanStockPage';
 import AddPartModal from './components/AddPartModal';
+import AdjustStockModal from './components/AdjustStockModal';
 import InventoryFilters from './components/InventoryFilters';
 import InventoryStats from './components/InventoryStats';
 import PartsHeader from './components/PartsHeader';
 import PartsTable from './components/PartsTable';
+import PendingAdjustmentsTab from './components/PendingAdjustmentsTab';
 import TabNavigation,{ Tab,TabType } from './components/TabNavigation';
 import ReplenishmentsTab from './components/ReplenishmentsTab';
 import InventoryLedgerTab from './components/InventoryLedgerTab';
@@ -27,6 +29,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [showImportModal, setShowImportModal] = useState(false);
   const [receiveStockPart, setReceiveStockPart] = useState<Part | null>(null);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
 
   // Use dev mode context for role-based permissions
   const { displayRole } = useDevModeContext();
@@ -73,7 +76,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   // Sync tab with URL
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as TabType;
-    if (tabFromUrl && ['parts', 'vanstock', 'replenishments', 'ledger'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['parts', 'vanstock', 'replenishments', 'ledger', 'pending-adjustments'].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
@@ -96,6 +99,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
     { id: 'vanstock', label: 'Van Stock', icon: Truck, show: canViewVanStock },
     { id: 'replenishments', label: 'Replenishments', icon: RotateCcw, show: canViewVanStock },
     { id: 'ledger', label: 'Ledger', icon: BookOpen, show: canViewVanStock },
+    { id: 'pending-adjustments' as TabType, label: 'Pending Adjustments', icon: ClipboardList, show: isAdmin },
   ];
 
   return (
@@ -108,6 +112,16 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             Manage parts catalog and van stock
           </p>
         </div>
+        {/* Stock Adjustment button — admin only */}
+        {isAdmin && (
+          <button
+            onClick={() => setShowAdjustModal(true)}
+            className="btn-premium btn-premium-secondary flex items-center gap-2 self-start sm:self-auto"
+          >
+            <Settings2 className="w-4 h-4" />
+            Stock Adjustment
+          </button>
+        )}
       </div>
 
       {/* Tab Navigation */}
@@ -213,6 +227,18 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
         <InventoryLedgerTab />
       )}
 
+      {activeTab === ('pending-adjustments' as TabType) && isAdmin && (
+        <PendingAdjustmentsTab currentUser={currentUser} />
+      )}
+
+      {/* Adjust Stock Modal — accessible from all tabs */}
+      <AdjustStockModal
+        show={showAdjustModal}
+        parts={parts}
+        currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
+        onClose={() => setShowAdjustModal(false)}
+        onSuccess={() => { setShowAdjustModal(false); loadParts(); }}
+      />
     </div>
   );
 };

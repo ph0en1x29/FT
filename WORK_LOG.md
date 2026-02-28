@@ -3,6 +3,23 @@
 Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 ---
+[2026-02-28 02:57] [Sonnet] Created StocktakeTab.tsx — physical count form, variance coloring (green/amber/red), reason dropdown, submit to stocktakes table, approve flow with no self-approval, creates inventory_movements adjustment, updates bulk_quantity
+[2026-02-28 02:57] [Sonnet] Updated InventoryPageMain.tsx — added stocktake tab (admin-only), expiry warning banner for purchase_batches within 30 days, wired StocktakeTab component
+[2026-02-28 02:57] [Sonnet] Updated TabNavigation.tsx — added 'stocktake' to TabType union
+[2026-02-28 02:57] [Sonnet] Updated liquidInventoryService.ts — receiveLiquidStock captures batch_id and stores as purchase_batch_id in inventory_movements; added batchLabel and expiresAt params
+[2026-02-28 02:57] [Sonnet] Updated ReceiveStockModal.tsx — added optional Batch Label and Expiry Date fields mapped to purchase_batches.batch_label and expires_at
+[2026-02-28 02:57] [Sonnet] Verified AdjustStockModal.tsx — no changes, file staged from prior work, confirmed unchanged
+[2026-02-28 02:57] [Sonnet] Verified PendingAdjustmentsTab.tsx — no changes, file staged from prior work, confirmed unchanged
+[2026-02-28 02:57] [Sonnet] Verified inventory.types.ts — no changes, file staged from prior work, confirmed unchanged
+
+[2026-02-28 02:57] [Sonnet] Implemented stocktake workflow, batch tracing, and expiry warnings:
+- StocktakeTab.tsx: physical count form, variance coloring, reason dropdown, approve flow with no self-approval, adjustment movement + bulk_quantity update
+- InventoryPageMain.tsx: Stocktake tab (admin-only), expiry warning banner (30-day window from purchase_batches)
+- TabNavigation.tsx: added 'stocktake' to TabType
+- liquidInventoryService.ts: purchase_batch_id linked to inventory_movement, batchLabel/expiresAt params
+- ReceiveStockModal.tsx: optional Batch Label and Expiry Date fields
+- AdjustStockModal.tsx, PendingAdjustmentsTab.tsx, inventory.types.ts: verified unchanged, staged from prior work
+
 [2026-02-27 11:35] [Sonnet] Fix liquid display in liquidInventoryService.ts, PartsTable.tsx, AddPartModal.tsx: show total liters only for liquid parts, correct low-stock threshold comparison
 [2026-02-27 11:34] [Sonnet] Fix liquid inventory display: formatStockDisplay() now shows total liters (containers×size + bulk) as "418.0 L"; low-stock thresholds updated to use total liters; Stock Quantity field hidden for liquid parts in AddPartModal
 
@@ -123,3 +140,31 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 - inventoryService: select only required columns in getAllVanStocks
 [2026-02-28 01:58] [Sonnet] Fix liquid display: VanStockDetailModal.tsx TransferItemsModal.tsx show total liters (container_qty × container_size + bulk_qty). inventoryService.ts getAllVanStocks optimized to select only required columns.
 [2026-02-28 01:59] [Sonnet] Fix TS errors from narrowed select: VanStockDetailModal.tsx TransferItemsModal.tsx inventoryService.ts — use unknown casts, fix technician reference
+
+[2026-02-28 02:55] [Sonnet] Implemented stocktake workflow and batch tracing for FT inventory:
+- Created StocktakeTab.tsx: physical count form with system qty, physical input, variance coloring (green/amber/red), reason dropdown, submit to stocktakes table, approve flow with no self-approval, adjustment movement logging, bulk_quantity update
+- Updated TabNavigation.tsx: added 'stocktake' to TabType union
+- Updated InventoryPageMain.tsx: added Stocktake tab (admin-only), expiry warning banner querying purchase_batches within 30 days, wired StocktakeTab component
+- Updated liquidInventoryService.ts: receiveLiquidStock now captures batch_id from insert and stores as purchase_batch_id in inventory_movements; added batchLabel and expiresAt params
+- Updated ReceiveStockModal.tsx: added optional Batch Label and Expiry Date fields
+
+## 2026-02-28
+
+### [Sonnet] Cost variance alert + adjustment approval workflow
+- ReceiveStockModal: cost variance banner (>10% diff from avg_cost_per_liter)
+- AdjustStockModal: new modal with reason codes, pending approval flow
+- PendingAdjustmentsTab: approve/reject UI with no self-approval
+- InventoryPageMain: Stock Adjustment button + Pending Adjustments tab
+- TabNavigation: added pending-adjustments TabType
+- inventory.types.ts: avg_cost_per_liter on Part, adjustment fields on InventoryMovement
+
+### [Sonnet] [2026-02-28 02:57] Cost variance alert + adjustment approval workflow
+Files: ReceiveStockModal.tsx, AdjustStockModal.tsx, PendingAdjustmentsTab.tsx, InventoryPageMain.tsx, TabNavigation.tsx, inventory.types.ts
+- Cost variance banner in ReceiveStockModal when >10% from avg_cost_per_liter
+- AdjustStockModal with part selector, +/- type, reason codes, pending approval flow
+- PendingAdjustmentsTab with approve/reject, no self-approval rule
+- Admin-only Stock Adjustment button + Pending Adjustments tab in InventoryPageMain
+
+### [Sonnet] [2026-02-28 02:57] Additional files - liquidInventoryService.ts StocktakeTab.tsx inventory.types.ts TabNavigation.tsx
+Files: liquidInventoryService.ts, StocktakeTab.tsx, inventory.types.ts, TabNavigation.tsx
+Minor updates to support cost variance and adjustment workflow.

@@ -1,4 +1,4 @@
-import { Loader2, X } from 'lucide-react';
+import { AlertTriangle, Loader2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { receiveLiquidStock } from '../../../services/liquidInventoryService';
 import { Part } from '../../../types';
@@ -23,6 +23,8 @@ const ReceiveStockModal: React.FC<ReceiveStockModalProps> = ({
   const [totalPrice, setTotalPrice] = useState('');
   const [poRef, setPoRef] = useState('');
   const [notes, setNotes] = useState('');
+  const [batchLabel, setBatchLabel] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,6 +35,8 @@ const ReceiveStockModal: React.FC<ReceiveStockModalProps> = ({
       setTotalPrice('');
       setPoRef('');
       setNotes('');
+      setBatchLabel('');
+      setExpiresAt('');
       setError('');
     }
   }, [show, part]);
@@ -44,6 +48,28 @@ const ReceiveStockModal: React.FC<ReceiveStockModalProps> = ({
   const totalLiters = cQty * cSize;
   const totalPriceNum = parseFloat(totalPrice) || 0;
   const costPerLiter = totalLiters > 0 ? totalPriceNum / totalLiters : 0;
+
+  // Cost variance alert
+  const avgCost = part.avg_cost_per_liter;
+  let costVarianceBanner: React.ReactNode = null;
+  if (costPerLiter > 0 && avgCost && avgCost > 0) {
+    const diff = ((costPerLiter - avgCost) / avgCost) * 100;
+    if (Math.abs(diff) > 10) {
+      const direction = diff > 0 ? 'higher' : 'lower';
+      const absDiff = Math.abs(diff).toFixed(1);
+      costVarianceBanner = (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <span>
+            <strong>Price alert:</strong> Cost per liter is{' '}
+            <strong>RM {costPerLiter.toFixed(2)}</strong> — that&apos;s{' '}
+            <strong>{absDiff}% {direction}</strong> than the average (RM {avgCost.toFixed(2)}).
+            Verify with supplier before confirming.
+          </span>
+        </div>
+      );
+    }
+  }
 
   const handleSubmit = async () => {
     if (!containerQty || !containerSize || !totalPrice) {
@@ -66,6 +92,8 @@ const ReceiveStockModal: React.FC<ReceiveStockModalProps> = ({
         costPerLiter,
         poReference: poRef || undefined,
         notes: notes || undefined,
+        batchLabel: batchLabel || undefined,
+        expiresAt: expiresAt || undefined,
         performedBy: currentUser.user_id,
         performedByName: currentUser.name,
       });
@@ -164,6 +192,9 @@ const ReceiveStockModal: React.FC<ReceiveStockModalProps> = ({
             </span>
           </div>
 
+          {/* Cost variance warning — between cost display and submit */}
+          {costVarianceBanner}
+
           <div>
             <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">
               PO Reference <span className="font-normal">(optional)</span>
@@ -175,6 +206,32 @@ const ReceiveStockModal: React.FC<ReceiveStockModalProps> = ({
               placeholder="e.g. PO-2024-001"
               className="input-premium text-sm w-full"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">
+                Batch Label <span className="font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={batchLabel}
+                onChange={(e) => setBatchLabel(e.target.value)}
+                placeholder="e.g. Batch 2026-02"
+                className="input-premium text-sm w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">
+                Expiry Date <span className="font-normal">(optional)</span>
+              </label>
+              <input
+                type="date"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                className="input-premium text-sm w-full"
+              />
+            </div>
           </div>
 
           <div>

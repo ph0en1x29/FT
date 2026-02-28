@@ -571,6 +571,8 @@ export async function receiveLiquidStock(params: {
   notes?: string;
   performedBy: string;
   performedByName: string;
+  batchLabel?: string;
+  expiresAt?: string;
 }) {
   const { createClient } = await import('@supabase/supabase-js');
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
@@ -578,7 +580,7 @@ export async function receiveLiquidStock(params: {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   // Insert purchase batch record
-  const { error: batchError } = await supabase.from('purchase_batches').insert({
+  const { data: batchData, error: batchError } = await supabase.from('purchase_batches').insert({
     part_id: params.partId,
     container_qty: params.containerQty,
     container_size: params.containerSize,
@@ -589,8 +591,11 @@ export async function receiveLiquidStock(params: {
     notes: params.notes || null,
     performed_by: params.performedBy,
     performed_by_name: params.performedByName,
-  });
+    batch_label: params.batchLabel || null,
+    expires_at: params.expiresAt || null,
+  }).select('batch_id').single();
   if (batchError) throw batchError;
+  const purchaseBatchId = batchData?.batch_id ?? null;
 
   // Fetch current part quantities
   const { data: part, error: partError } = await supabase
@@ -613,7 +618,7 @@ export async function receiveLiquidStock(params: {
     .eq('part_id', params.partId);
   if (updateError) throw updateError;
 
-  // Log to inventory_movements
+  // Log to inventory_movements (linked to purchase batch)
   const { error: movError } = await supabase.from('inventory_movements').insert({
     part_id: params.partId,
     movement_type: 'purchase',
@@ -624,6 +629,7 @@ export async function receiveLiquidStock(params: {
     store_container_qty_after: newContainerQty,
     store_bulk_qty_after: newBulkQty,
     reference_number: params.poReference || null,
+    purchase_batch_id: purchaseBatchId,
     notes: params.notes
       ? `PO: ${params.poReference || 'N/A'} | ${params.notes}`
       : `PO: ${params.poReference || 'N/A'} | Received ${params.containerQty} containers × ${params.containerSize}L = ${params.totalLiters}L`,
