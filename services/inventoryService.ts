@@ -36,7 +36,7 @@ export const getAllVanStocks = async (): Promise<VanStock[]> => {
     const { data, error } = await supabase
       .from('van_stocks')
       .select(`
-        van_stock_id, van_code, van_plate, technician_id, is_active, status, last_audit_at, created_at,
+        van_stock_id, van_code, van_plate, technician_id, is_active, van_status, last_audit_at, created_at,
         technician:users!technician_id(name),
         items:van_stock_items(
           item_id, part_id, quantity, container_quantity, bulk_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
@@ -69,7 +69,7 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
     const { data: tempVan } = await supabase
       .from('van_stocks')
       .select(`
-        van_stock_id, van_code, van_plate, technician_id, is_active, status, last_audit_at, created_at,
+        van_stock_id, van_code, van_plate, technician_id, is_active, van_status, last_audit_at, created_at,
         technician:users!technician_id(name),
         items:van_stock_items(
           item_id, part_id, quantity, container_quantity, bulk_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
@@ -147,7 +147,7 @@ export const getVanStockById = async (vanStockId: string): Promise<VanStock | nu
     const { data, error } = await supabase
       .from('van_stocks')
       .select(`
-        van_stock_id, van_code, van_plate, technician_id, is_active, status, last_audit_at, created_at,
+        van_stock_id, van_code, van_plate, technician_id, is_active, van_status, last_audit_at, created_at,
         technician:users!technician_id(name),
         items:van_stock_items(
           item_id, part_id, quantity, container_quantity, bulk_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
