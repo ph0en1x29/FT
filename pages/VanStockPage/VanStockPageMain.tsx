@@ -180,7 +180,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
   };
 
   const handleAssignVanStock = async () => {
-    if (!selectedTechnicianId || !vanPlate.trim() || !vanCode.trim()) {
+    if (!selectedTechnicianId || !vanPlate.trim()) {
       showToast.error('Please fill all required fields');
       return;
     }
@@ -190,7 +190,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       await MockDb.createVanStock(
         selectedTechnicianId,
         technician?.name || 'Unknown',
-        vanCode.trim(),
+        vanCode.trim() || null,
         vanPlate.trim(),
         currentUser.user_id,
         currentUser.name,
@@ -283,7 +283,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
   };
 
   const handleSaveEdit = async () => {
-    if (!selectedVanStock || !editVanCode.trim() || !editTechnicianId) {
+    if (!selectedVanStock || !editVanPlate.trim() || !editTechnicianId) {
       showToast.error('Please fill all required fields');
       return;
     }
@@ -291,7 +291,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
     try {
       const updates: { van_plate?: string; van_code?: string; notes?: string; max_items?: number; technician_id?: string } = {
         van_plate: editVanPlate.trim() || undefined,
-        van_code: editVanCode.trim(),
+        van_code: editVanCode.trim() || null,
         notes: editVanNotes.trim() || '',
         max_items: editMaxItems,
       };
