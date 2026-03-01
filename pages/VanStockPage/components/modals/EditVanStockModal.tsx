@@ -83,7 +83,7 @@ export function EditVanStockModal({
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Van Plate (License Plate)
+              Van Plate (License Plate) <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -96,7 +96,7 @@ export function EditVanStockModal({
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Van Code <span className="text-red-500">*</span>
+              Van Code (Optional)
             </label>
             <input
               type="text"
@@ -142,7 +142,7 @@ export function EditVanStockModal({
           </button>
           <button
             onClick={onSubmit}
-            disabled={!editVanCode.trim() || !editTechnicianId || submitting}
+            disabled={!editVanPlate.trim() || !editTechnicianId || submitting}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? 'Saving...' : 'Save Changes'}
