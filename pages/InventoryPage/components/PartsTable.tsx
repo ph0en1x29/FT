@@ -1,6 +1,5 @@
-import { AlertTriangle,Clock,Edit2,History,Package,PackagePlus,Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
-import { MovementHistoryModal } from './MovementHistoryModal';
+import { AlertTriangle,Clock,Edit2,Package,Trash2 } from 'lucide-react';
+import React from 'react';
 import { Skeleton,SkeletonStats,SkeletonTableRow } from '../../../components/Skeleton';
 import { formatStockDisplay } from '../../../services/liquidInventoryService';
 import { Part } from '../../../types';
@@ -12,7 +11,6 @@ interface PartsTableProps {
   canViewPricing?: boolean;
   onEdit: (part: Part) => void;
   onDelete: (part: Part) => void;
-  onReceiveStock?: (part: Part) => void;
 }
 
 const PartsTable: React.FC<PartsTableProps> = ({
@@ -22,11 +20,7 @@ const PartsTable: React.FC<PartsTableProps> = ({
   canViewPricing = true,
   onEdit,
   onDelete,
-  onReceiveStock,
 }) => {
-  const [historyPartId, setHistoryPartId] = useState<string | null>(null);
-  const [historyPartName, setHistoryPartName] = useState('');
-
   if (loading) {
     return (
       <div className="space-y-4">
@@ -156,24 +150,6 @@ const PartsTable: React.FC<PartsTableProps> = ({
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
-                          {p.is_liquid && onReceiveStock && (
-                            <button
-                              onClick={() => onReceiveStock(p)}
-                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                              title="Receive stock"
-                            >
-                              <PackagePlus className="w-4 h-4" />
-                            </button>
-                          )}
-                          {p.is_liquid && (
-                            <button
-                              onClick={() => { setHistoryPartId(p.part_id); setHistoryPartName(p.part_name); }}
-                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Movement history"
-                            >
-                              <History className="w-4 h-4" />
-                            </button>
-                          )}
                         </div>
                       </td>
                     )}
@@ -233,23 +209,6 @@ const PartsTable: React.FC<PartsTableProps> = ({
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Delete
                     </button>
-                    {p.is_liquid && onReceiveStock && (
-                      <button
-                        onClick={() => onReceiveStock(p)}
-                        className="flex items-center gap-1.5 px-3 py-2 h-10 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors text-xs font-medium"
-                      >
-                        <PackagePlus className="w-3.5 h-3.5" /> Receive
-                      </button>
-                    )}
-                    {p.is_liquid && (
-                      <button
-                        onClick={() => { setHistoryPartId(p.part_id); setHistoryPartName(p.part_name); }}
-                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Movement history"
-                      >
-                        <History className="w-4 h-4" />
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
@@ -257,12 +216,6 @@ const PartsTable: React.FC<PartsTableProps> = ({
           </div>
         </div>
       ))}
-      <MovementHistoryModal
-        isOpen={!!historyPartId}
-        partId={historyPartId || ''}
-        partName={historyPartName}
-        onClose={() => setHistoryPartId(null)}
-      />
     </>
   );
 };

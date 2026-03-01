@@ -180,3 +180,10 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 
 [Sonnet 2026-02-28 21:17] Generalized InventoryLedgerTab, StocktakeTab, PendingAdjustmentsTab to work for all parts (liquid + solid). Removed is_liquid filters, updated qty calculations, unit display (L/pcs), and approval logic to update bulk_quantity vs stock_quantity based on part type.
 [Sonnet 2026-02-28 21:18] InventoryLedgerTab.tsx, StocktakeTab.tsx, PendingAdjustmentsTab.tsx — generalized all three tabs to support solid parts. Removed is_liquid filters from parts queries, updated qty calculations to use container_qty_change for solid parts, added L/pcs unit display, and updated approval logic.
+
+## [Subagent] 2026-02-28 23:57 EST
+**Task:** Remove redundant ReceiveStockModal and MovementHistoryModal from inventory
+**Files:** pages/InventoryPage/InventoryPageMain.tsx, pages/InventoryPage/components/PartsTable.tsx
+**Changes:** Deleted obsolete modal components, cleaned imports/state/props/JSX from host files
+
+[2026-02-28 23:56] [Sonnet] Cleanup: removed ReceiveStockModal and MovementHistoryModal references from InventoryPageMain.tsx and PartsTable.tsx — deleted redundant modal files, stripped onReceiveStock prop, history state, and related buttons.

@@ -16,7 +16,6 @@ import TabNavigation,{ Tab,TabType } from './components/TabNavigation';
 import ReplenishmentsTab from './components/ReplenishmentsTab';
 import InventoryLedgerTab from './components/InventoryLedgerTab';
 import ImportPartsModal from './components/ImportPartsModal';
-import ReceiveStockModal from './components/ReceiveStockModal';
 import BatchReceiveStockModal from './components/BatchReceiveStockModal';
 import StocktakeTab from './components/StocktakeTab';
 import { useInventoryData } from './hooks/useInventoryData';
@@ -31,7 +30,6 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   const initialTab = (searchParams.get('tab') as TabType) || 'parts';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [receiveStockPart, setReceiveStockPart] = useState<Part | null>(null);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [showBatchReceive, setShowBatchReceive] = useState(false);
   const [expiryWarnings, setExpiryWarnings] = useState<any[]>([]);
@@ -227,7 +225,6 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             canViewPricing={canViewPricing}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            onReceiveStock={(p) => setReceiveStockPart(p)}
           />
 
           <AddPartModal
@@ -246,14 +243,6 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             onImportComplete={() => { setShowImportModal(false); loadParts(); }}
             currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
             existingPartCodes={parts.map(p => p.part_code)}
-          />
-
-          <ReceiveStockModal
-            show={!!receiveStockPart}
-            part={receiveStockPart}
-            currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
-            onClose={() => setReceiveStockPart(null)}
-            onSuccess={() => { setReceiveStockPart(null); loadParts(); }}
           />
         </>
       )}
