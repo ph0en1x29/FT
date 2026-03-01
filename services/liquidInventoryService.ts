@@ -541,21 +541,6 @@ export function checkStockMismatch(
 /**
  * Get movement history for a part
  */
-export async function getMovementHistory(
-  partId: string,
-  limit: number = 50
-): Promise<InventoryMovement[]> {
-  const { data, error } = await supabase
-    .from('inventory_movements')
-    .select('*')
-    .eq('part_id', partId)
-    .order('performed_at', { ascending: false })
-    .limit(limit);
-
-  if (error) throw new Error(error.message);
-  return data as InventoryMovement[];
-}
-
 // =============================================
 // PURCHASE / RECEIVE STOCK
 // =============================================
