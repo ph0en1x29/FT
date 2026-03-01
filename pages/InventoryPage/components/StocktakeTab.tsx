@@ -27,7 +27,7 @@ interface Stocktake {
   status: 'pending' | 'approved' | 'rejected';
   notes: string | null;
   created_at: string;
-  parts?: { part_name: string };
+  parts?: { part_name: string; is_liquid?: boolean };
 }
 
 const VARIANCE_REASONS = [
@@ -58,11 +58,10 @@ const StocktakeTab: React.FC<StocktakeTabProps> = ({ currentUser }) => {
         supabase
           .from('parts')
           .select('*')
-          .eq('is_liquid', true)
           .order('part_name'),
         supabase
           .from('stocktakes')
-          .select('*, parts(part_name)')
+          .select('*, parts(part_name, is_liquid)')
           .order('created_at', { ascending: false })
           .limit(50),
       ]);
@@ -84,6 +83,7 @@ const StocktakeTab: React.FC<StocktakeTabProps> = ({ currentUser }) => {
   }, [loadData]);
 
   const getSystemQty = (part: Part) => {
+    if (!part.is_liquid) return part.stock_quantity ?? 0;
     const containers = part.container_quantity ?? 0;
     const bulk = part.bulk_quantity ?? 0;
     const size = part.container_size ?? 0;
@@ -178,19 +178,23 @@ const StocktakeTab: React.FC<StocktakeTabProps> = ({ currentUser }) => {
         .eq('stocktake_id', stocktake.stocktake_id);
       if (approveErr) throw approveErr;
 
+      const partUpdate = stocktake.parts?.is_liquid
+        ? { bulk_quantity: stocktake.physical_qty }
+        : { stock_quantity: stocktake.physical_qty };
       const { error: partUpdateErr } = await supabase
         .from('parts')
-        .update({ bulk_quantity: stocktake.physical_qty })
+        .update(partUpdate)
         .eq('part_id', stocktake.part_id);
       if (partUpdateErr) throw partUpdateErr;
 
       const { error: movErr } = await supabase.from('inventory_movements').insert({
         part_id: stocktake.part_id,
         movement_type: 'adjustment',
-        bulk_qty_change: stocktake.variance,
+        bulk_qty_change: stocktake.parts?.is_liquid ? stocktake.variance : 0,
+        container_qty_change: stocktake.parts?.is_liquid ? 0 : stocktake.variance,
         performed_by: currentUser.user_id,
         performed_by_name: currentUser.name,
-        store_bulk_qty_after: stocktake.physical_qty,
+        store_bulk_qty_after: stocktake.parts?.is_liquid ? stocktake.physical_qty : null,
         notes: `Stocktake adjustment: ${stocktake.variance >= 0 ? '+' : ''}${stocktake.variance.toFixed(2)} (Reason: ${stocktake.variance_reason})`,
         adjustment_reason: stocktake.variance_reason,
       });
@@ -295,7 +299,7 @@ const StocktakeTab: React.FC<StocktakeTabProps> = ({ currentUser }) => {
                     <tr key={row.part.part_id} className="hover:bg-[var(--bg-subtle)]">
                       <td className="px-4 py-2.5 font-medium text-theme">{row.part.part_name}</td>
                       <td className="px-4 py-2.5 text-right text-theme-muted tabular-nums">
-                        {systemQty.toFixed(2)} {row.part.base_unit ?? 'L'}
+                        {systemQty.toFixed(2)} {row.part.is_liquid ? (row.part.base_unit ?? 'L') : 'pcs'}
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         <input

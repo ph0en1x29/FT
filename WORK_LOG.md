@@ -177,3 +177,6 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 - Added reversal/stocktake/van_transfer/job_usage/special_sale to ACTION_LABELS in both ledgers
 - Added purchase_batch_id and reversal_of to InventoryMovement TypeScript types
 - Added pending-adjustments to TabType union
+
+[Sonnet 2026-02-28 21:17] Generalized InventoryLedgerTab, StocktakeTab, PendingAdjustmentsTab to work for all parts (liquid + solid). Removed is_liquid filters, updated qty calculations, unit display (L/pcs), and approval logic to update bulk_quantity vs stock_quantity based on part type.
+[Sonnet 2026-02-28 21:18] InventoryLedgerTab.tsx, StocktakeTab.tsx, PendingAdjustmentsTab.tsx — generalized all three tabs to support solid parts. Removed is_liquid filters from parts queries, updated qty calculations to use container_qty_change for solid parts, added L/pcs unit display, and updated approval logic.

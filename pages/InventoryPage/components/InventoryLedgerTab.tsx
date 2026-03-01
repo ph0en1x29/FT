@@ -45,8 +45,7 @@ const InventoryLedgerTab: React.FC = () => {
       const { data } = await supabase
         .from('parts')
         .select('part_id, part_name, part_code, is_liquid, container_size, base_unit')
-        .eq('is_liquid', true)
-        .order('part_name');
+                .order('part_name');
       if (data) setLiquidParts(data as Part[]);
       setPartsLoading(false);
     };
@@ -65,16 +64,17 @@ const InventoryLedgerTab: React.FC = () => {
 
     const part = liquidParts.find(p => p.part_id === partId);
     const containerSize = part?.container_size ?? 1;
+    const isLiquid = part?.is_liquid ?? true;
 
     let balance = 0;
     const computed: LedgerRow[] = (data as InventoryMovement[]).map(m => {
       const cQty = m.container_qty_change ?? 0;
       const bQty = m.bulk_qty_change ?? 0;
-      const liters = cQty * containerSize + bQty;
+      const liters = isLiquid ? (cQty * containerSize + bQty) : cQty;
       const isPos = POSITIVE_TYPES.includes(m.movement_type) || liters >= 0;
 
       let balanceAfter: number;
-      if (m.store_bulk_qty_after != null) {
+      if (isLiquid && m.store_bulk_qty_after != null) {
         const cAfter = m.store_container_qty_after ?? 0;
         balanceAfter = cAfter * containerSize + Number(m.store_bulk_qty_after);
       } else {
@@ -112,7 +112,7 @@ const InventoryLedgerTab: React.FC = () => {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1 max-w-sm">
-          <label className="block text-xs font-medium text-theme-muted mb-1">Select Fluid Item</label>
+          <label className="block text-xs font-medium text-theme-muted mb-1">Select Item</label>
           {partsLoading ? (
             <div className="h-10 bg-theme-surface-2 rounded-lg animate-pulse" />
           ) : (
@@ -121,7 +121,7 @@ const InventoryLedgerTab: React.FC = () => {
               onChange={e => setSelectedPartId(e.target.value)}
               className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-surface text-theme text-sm focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">— Choose a fluid item —</option>
+              <option value="">— Choose an item —</option>
               {liquidParts.map(p => (
                 <option key={p.part_id} value={p.part_id}>{p.part_name} ({p.part_code})</option>
               ))}
@@ -136,7 +136,7 @@ const InventoryLedgerTab: React.FC = () => {
       </div>
 
       {!selectedPartId ? (
-        <div className="text-center py-16 text-theme-muted text-sm">Select a fluid item to view its ledger</div>
+        <div className="text-center py-16 text-theme-muted text-sm">Select an item to view its ledger</div>
       ) : loading ? (
         <div className="flex items-center justify-center py-16">
           <div className="text-sm text-theme-muted">Loading ledger…</div>
@@ -151,7 +151,7 @@ const InventoryLedgerTab: React.FC = () => {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Date</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Action</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Reference</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Change (L)</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Change</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Balance After</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Performed By</th>
               </tr>
@@ -178,10 +178,10 @@ const InventoryLedgerTab: React.FC = () => {
                   <td className={`px-4 py-3 text-right font-mono font-semibold ${
                     row.is_positive ? 'text-green-600' : 'text-red-500'
                   }`}>
-                    {row.is_positive && row.change_liters >= 0 ? '+' : ''}{Number(row.change_liters).toFixed(2)} L
+                    {row.is_positive && row.change_liters >= 0 ? '+' : ''}{Number(row.change_liters).toFixed(2)} {selectedPart?.is_liquid ? 'L' : 'pcs'}
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-theme">
-                    {Number(row.balance_after).toFixed(2)} L
+                    {Number(row.balance_after).toFixed(2)} {selectedPart?.is_liquid ? 'L' : 'pcs'}
                   </td>
                   <td className="px-4 py-3 text-theme-muted text-sm">
                     {row.performed_by_name ?? '—'}

@@ -43,8 +43,8 @@ const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
 
   if (!show) return null;
 
-  const liquidParts = parts.filter(p => p.is_liquid);
-  const selectedPart = liquidParts.find(p => p.part_id === selectedPartId);
+  const allParts = parts;
+  const selectedPart = allParts.find(p => p.part_id === selectedPartId);
 
   const handleSubmit = async () => {
     if (!selectedPartId) { setError('Please select a part.'); return; }
@@ -114,13 +114,13 @@ const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
               className="input-premium text-sm w-full"
             >
               <option value="">Select a part...</option>
-              {liquidParts.map(p => (
+              {allParts.map(p => (
                 <option key={p.part_id} value={p.part_id}>{p.part_name}</option>
               ))}
             </select>
             {selectedPart && (
               <p className="text-xs text-[var(--text-muted)] mt-1">
-                Current bulk: {selectedPart.bulk_quantity?.toFixed(2) ?? '—'} L
+                Current stock: {selectedPart.is_liquid ? ((selectedPart.bulk_quantity ?? 0).toFixed(2) + ' L') : ((selectedPart.stock_quantity ?? 0) + ' ' + (selectedPart.base_unit || 'pcs'))}
               </p>
             )}
           </div>
@@ -151,7 +151,7 @@ const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
                 step="0.01"
                 value={quantity}
                 onChange={e => setQuantity(e.target.value)}
-                placeholder="Liters"
+                placeholder={selectedPart?.is_liquid ? "Liters" : (selectedPart?.base_unit || "pcs")}
                 className="input-premium text-sm flex-1"
               />
             </div>

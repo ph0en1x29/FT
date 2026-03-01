@@ -17,6 +17,7 @@ import ReplenishmentsTab from './components/ReplenishmentsTab';
 import InventoryLedgerTab from './components/InventoryLedgerTab';
 import ImportPartsModal from './components/ImportPartsModal';
 import ReceiveStockModal from './components/ReceiveStockModal';
+import BatchReceiveStockModal from './components/BatchReceiveStockModal';
 import StocktakeTab from './components/StocktakeTab';
 import { useInventoryData } from './hooks/useInventoryData';
 import { supabase } from '../../services/supabaseClient';
@@ -32,6 +33,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [receiveStockPart, setReceiveStockPart] = useState<Part | null>(null);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [showBatchReceive, setShowBatchReceive] = useState(false);
   const [expiryWarnings, setExpiryWarnings] = useState<any[]>([]);
 
   // Use dev mode context for role-based permissions
@@ -132,15 +134,24 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             Manage parts catalog and van stock
           </p>
         </div>
-        {/* Stock Adjustment button — admin only */}
+        {/* Action buttons — admin only */}
         {isAdmin && (
-          <button
-            onClick={() => setShowAdjustModal(true)}
-            className="btn-premium btn-premium-secondary flex items-center gap-2 self-start sm:self-auto"
-          >
-            <Settings2 className="w-4 h-4" />
-            Stock Adjustment
-          </button>
+          <div className="flex gap-2 self-start sm:self-auto">
+            <button
+              onClick={() => setShowBatchReceive(true)}
+              className="btn-premium btn-premium-primary flex items-center gap-2"
+            >
+              <Package className="w-4 h-4" />
+              Receive Stock
+            </button>
+            <button
+              onClick={() => setShowAdjustModal(true)}
+              className="btn-premium btn-premium-secondary flex items-center gap-2"
+            >
+              <Settings2 className="w-4 h-4" />
+              Stock Adjustment
+            </button>
+          </div>
         )}
       </div>
 
@@ -266,6 +277,15 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
       {activeTab === ('stocktake' as TabType) && isAdmin && (
         <StocktakeTab currentUser={currentUser} />
       )}
+
+      {/* Batch Receive Stock Modal */}
+      <BatchReceiveStockModal
+        show={showBatchReceive}
+        parts={parts}
+        currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
+        onClose={() => setShowBatchReceive(false)}
+        onSuccess={() => { setShowBatchReceive(false); loadParts(); }}
+      />
 
       {/* Adjust Stock Modal — accessible from all tabs */}
       <AdjustStockModal

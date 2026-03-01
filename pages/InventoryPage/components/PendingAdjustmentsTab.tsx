@@ -68,19 +68,28 @@ const PendingAdjustmentsTab: React.FC<PendingAdjustmentsTabProps> = ({ currentUs
       // 2. Apply qty change to parts table
       const { data: partData, error: partErr } = await supabase
         .from('parts')
-        .select('bulk_quantity')
+        .select('bulk_quantity, stock_quantity, is_liquid')
         .eq('part_id', adj.part_id)
         .single();
 
       if (partErr) throw partErr;
 
-      const currentBulk = partData?.bulk_quantity ?? 0;
-      const newBulk = Math.max(0, currentBulk + adj.bulk_qty_change);
-
-      const { error: updatePartErr } = await supabase
-        .from('parts')
-        .update({ bulk_quantity: newBulk })
-        .eq('part_id', adj.part_id);
+      let updatePartErr;
+      if (partData?.is_liquid !== false) {
+        const currentBulk = partData?.bulk_quantity ?? 0;
+        const newBulk = Math.max(0, currentBulk + adj.bulk_qty_change);
+        ({ error: updatePartErr } = await supabase
+          .from('parts')
+          .update({ bulk_quantity: newBulk })
+          .eq('part_id', adj.part_id));
+      } else {
+        const currentStock = partData?.stock_quantity ?? 0;
+        const newStock = Math.max(0, currentStock + adj.bulk_qty_change);
+        ({ error: updatePartErr } = await supabase
+          .from('parts')
+          .update({ stock_quantity: newStock })
+          .eq('part_id', adj.part_id));
+      }
 
       if (updatePartErr) throw updatePartErr;
 
