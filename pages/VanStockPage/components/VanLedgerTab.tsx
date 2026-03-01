@@ -13,6 +13,7 @@ interface VanInfo {
   van_code?: string;
   van_plate?: string;
   technician_name?: string;
+  technician?: { name: string } | null;
 }
 
 interface PartInfo {
@@ -69,10 +70,10 @@ const VanLedgerTab: React.FC<VanLedgerTabProps> = () => {
       setVansLoading(true);
       const { data } = await supabase
         .from('van_stocks')
-        .select('van_stock_id, van_code, van_plate, technician_name')
+        .select('van_stock_id, van_code, van_plate, technician:users!technician_id(name)')
         .eq('is_active', true)
         .order('van_code');
-      if (data) setVans(data as VanInfo[]);
+      if (data) setVans((data as any[]).map(v => ({ ...v, technician_name: v.technician?.name })) as VanInfo[]);
       setVansLoading(false);
     };
     load();

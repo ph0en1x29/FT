@@ -12,6 +12,7 @@ interface FlaggedMovementRow {
   van_code?: string;
   van_plate?: string;
   technician_name?: string;
+  van_stocks?: { van_code?: string; van_plate?: string; technician?: { name: string } | null } | null;
   part_name?: string;
   part_code?: string;
   container_size: number;
@@ -42,7 +43,7 @@ const FlaggedMovementsTab: React.FC = () => {
           van_container_qty_after,
           job_id,
           notes,
-          van_stocks(van_code, van_plate, technician_name),
+          van_stocks(van_code, van_plate, technician:users!technician_id(name)),
           parts(part_name, part_code, container_size, is_liquid)
         `)
         .like('notes', '%balance_override: true%')
@@ -54,7 +55,7 @@ const FlaggedMovementsTab: React.FC = () => {
           performed_at: m.performed_at,
           van_code: m.van_stocks?.van_code,
           van_plate: m.van_stocks?.van_plate,
-          technician_name: m.van_stocks?.technician_name,
+          technician_name: m.van_stocks?.technician?.name,
           part_name: m.parts?.part_name,
           part_code: m.parts?.part_code,
           container_size: m.parts?.container_size ?? 1,

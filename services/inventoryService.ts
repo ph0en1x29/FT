@@ -36,7 +36,8 @@ export const getAllVanStocks = async (): Promise<VanStock[]> => {
     const { data, error } = await supabase
       .from('van_stocks')
       .select(`
-        van_stock_id, van_code, van_plate, technician_id, technician_name, is_active, status, last_audit_at, created_at,
+        van_stock_id, van_code, van_plate, technician_id, is_active, status, last_audit_at, created_at,
+        technician:users!technician_id(name),
         items:van_stock_items(
           item_id, part_id, quantity, container_quantity, bulk_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
           part:parts(part_id, part_name, part_code, cost_price, sell_price, is_liquid, base_unit, container_unit, container_size)
@@ -51,7 +52,7 @@ export const getAllVanStocks = async (): Promise<VanStock[]> => {
 
     return (data || []).map((vs: any) => ({
       ...vs,
-      technician_name: vs.technician_name || 'Unknown',
+      technician_name: vs.technician?.name || 'Unknown',
       total_value: vs.items?.reduce((sum: number, item: VanStockItemRow) => {
         const partCost = item.part?.cost_price || 0;
         return sum + (partCost * item.quantity);
@@ -68,7 +69,8 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
     const { data: tempVan } = await supabase
       .from('van_stocks')
       .select(`
-        van_stock_id, van_code, van_plate, technician_id, technician_name, is_active, status, last_audit_at, created_at,
+        van_stock_id, van_code, van_plate, technician_id, is_active, status, last_audit_at, created_at,
+        technician:users!technician_id(name),
         items:van_stock_items(
           item_id, part_id, quantity, container_quantity, bulk_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
           part:parts(part_id, part_name, part_code, cost_price, sell_price, is_liquid, base_unit, container_unit, container_size)
@@ -105,7 +107,7 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
         return sum + (partCost * item.quantity);
       }, 0);
 
-      return { ...data, technician_name: (data as any).technician?.name || data.technician_name || 'Unknown', total_value } as unknown as VanStock;
+      return { ...data, technician_name: (data as any).technician?.name || 'Unknown', total_value } as unknown as VanStock;
     }
 
     const items = (vanData.items || []) as unknown as VanStockItemRow[];
@@ -114,7 +116,7 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
       return sum + (partCost * item.quantity);
     }, 0);
 
-    return { ...vanData, technician_name: (vanData as any).technician_name || 'Unknown', total_value } as unknown as VanStock;
+    return { ...vanData, technician_name: (vanData as any).technician?.name || 'Unknown', total_value } as unknown as VanStock;
   } catch (_e) {
     return null;
   }
@@ -132,7 +134,7 @@ export const getActiveVansList = async (): Promise<VanStock[]> => {
     if (error) return [];
     return (data || []).map((vs: any) => ({
       ...vs,
-      technician_name: vs.technician?.name || vs.technician_name || 'Unknown',
+      technician_name: vs.technician?.name || 'Unknown',
       // No items loaded — lightweight for dropdown use
     })) as VanStock[];
   } catch (_e) {
@@ -145,7 +147,8 @@ export const getVanStockById = async (vanStockId: string): Promise<VanStock | nu
     const { data, error } = await supabase
       .from('van_stocks')
       .select(`
-        van_stock_id, van_code, van_plate, technician_id, technician_name, is_active, status, last_audit_at, created_at,
+        van_stock_id, van_code, van_plate, technician_id, is_active, status, last_audit_at, created_at,
+        technician:users!technician_id(name),
         items:van_stock_items(
           item_id, part_id, quantity, container_quantity, bulk_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
           part:parts(part_id, part_name, part_code, cost_price, sell_price, is_liquid, base_unit, container_unit, container_size)
@@ -164,7 +167,7 @@ export const getVanStockById = async (vanStockId: string): Promise<VanStock | nu
       return sum + (partCost * item.quantity);
     }, 0);
 
-    return { ...data, technician_name: (data as any).technician?.name || data.technician_name || 'Unknown', total_value } as unknown as VanStock;
+    return { ...data, technician_name: (data as any).technician?.name || 'Unknown', total_value } as unknown as VanStock;
   } catch (_e) {
     return null;
   }
