@@ -15,6 +15,7 @@ interface FlaggedMovementRow {
   part_name?: string;
   part_code?: string;
   container_size: number;
+  is_liquid?: boolean;
   bulk_qty_change?: number;
   container_qty_change?: number;
   van_bulk_qty_after?: number;
@@ -42,7 +43,7 @@ const FlaggedMovementsTab: React.FC = () => {
           job_id,
           notes,
           van_stocks(van_code, van_plate, technician_name),
-          parts(part_name, part_code, container_size)
+          parts(part_name, part_code, container_size, is_liquid)
         `)
         .like('notes', '%balance_override: true%')
         .order('performed_at', { ascending: false });
@@ -57,6 +58,7 @@ const FlaggedMovementsTab: React.FC = () => {
           part_name: m.parts?.part_name,
           part_code: m.parts?.part_code,
           container_size: m.parts?.container_size ?? 1,
+          is_liquid: m.parts?.is_liquid ?? true,
           bulk_qty_change: m.bulk_qty_change,
           container_qty_change: m.container_qty_change,
           van_bulk_qty_after: m.van_bulk_qty_after,
@@ -72,18 +74,23 @@ const FlaggedMovementsTab: React.FC = () => {
   }, []);
 
   const formatQty = (m: FlaggedMovementRow) => {
-    const bQty = Math.abs(m.bulk_qty_change ?? 0);
     const cQty = Math.abs(m.container_qty_change ?? 0);
-    if (cQty > 0 && bQty > 0) return `${cQty} ctn + ${bQty} L`;
-    if (cQty > 0) return `${cQty} ctn`;
-    return `${bQty} L`;
+    const bQty = Math.abs(m.bulk_qty_change ?? 0);
+    if (m.is_liquid) {
+      const totalL = cQty * m.container_size + bQty;
+      return `${totalL.toFixed(1)} L`;
+    }
+    return `${cQty} pcs`;
   };
 
   const formatBalanceAfter = (m: FlaggedMovementRow) => {
-    const cAfter = m.van_container_qty_after ?? 0;
-    const bAfter = Number(m.van_bulk_qty_after ?? 0);
-    const totalL = cAfter * m.container_size + bAfter;
-    return `${totalL.toFixed(2)} L`;
+    if (m.is_liquid) {
+      const cAfter = m.van_container_qty_after ?? 0;
+      const bAfter = Number(m.van_bulk_qty_after ?? 0);
+      const totalL = cAfter * m.container_size + bAfter;
+      return `${totalL.toFixed(2)} L`;
+    }
+    return `${m.van_container_qty_after ?? 0} pcs`;
   };
 
   return (
@@ -110,7 +117,7 @@ const FlaggedMovementsTab: React.FC = () => {
         </div>
       ) : movements.length === 0 ? (
         <div className="text-center py-16 text-theme-muted text-sm">
-          No flagged movements found.
+          No flagged movements found. Movements are flagged when a technician uses more stock than available in the van.
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-amber-200">

@@ -54,3 +54,21 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 **Changes:** Deleted obsolete modal components, cleaned imports/state/props/JSX from host files
 
 [2026-02-28 23:56] [Sonnet] Cleanup: removed ReceiveStockModal and MovementHistoryModal references from InventoryPageMain.tsx and PartsTable.tsx — deleted redundant modal files, stripped onReceiveStock prop, history state, and related buttons.
+
+## 2026-03-01
+
+### [Sonnet] VanLedgerTab + FlaggedMovementsTab fixes
+- Removed `.eq('is_liquid', true)` filter from VanLedgerTab part loading query
+- Added `is_liquid?: boolean` to PartInfo interface
+- Updated loadLedger: solid parts use `container_qty_change` (pcs), liquid use `cQty*containerSize+bQty` (L)
+- Unit display in change/balance columns: "L" for liquid, "pcs" for solid
+- FlaggedMovementsTab: updated empty state message
+- FlaggedMovementsTab: formatQty uses total liters for liquid, pcs for solid
+- FlaggedMovementsTab: added is_liquid to parts join and FlaggedMovementRow interface
+
+## [Sonnet] [2026-03-01 00:46] VanLedgerTab FlaggedMovementsTab fixes
+- VanLedgerTab.tsx: removed is_liquid filter, added is_liquid to PartInfo, solid/liquid qty logic
+- FlaggedMovementsTab.tsx: updated empty state, formatQty for liquid/solid, is_liquid from parts join
+
+[Sonnet] [2026-03-01 00:47] Fixed VanLedgerTab.tsx: removed is_liquid filter, added is_liquid to PartInfo, solid/liquid qty logic, unit display
+[Sonnet] [2026-03-01 00:47] Fixed FlaggedMovementsTab.tsx: empty state message, formatQty for liquid/solid, is_liquid from parts join

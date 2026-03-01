@@ -1,5 +1,5 @@
 /**
- * VanLedgerTab - Van liquid inventory ledger
+ * VanLedgerTab - Van inventory ledger (liquid and solid parts)
  * Shows running balance per van/part with warning on negative balance
  */
 import React, { useCallback, useEffect, useState } from 'react';
@@ -21,6 +21,7 @@ interface PartInfo {
   part_code: string;
   container_size?: number;
   base_unit?: string;
+  is_liquid?: boolean;
 }
 
 interface LedgerRow extends InventoryMovement {
@@ -29,6 +30,7 @@ interface LedgerRow extends InventoryMovement {
   is_positive: boolean;
   action_label: string;
   reference: string;
+  is_liquid: boolean;
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -40,7 +42,6 @@ const ACTION_LABELS: Record<string, string> = {
   return_to_store: 'Returned to Store',
   adjustment: 'Adjustment',
   initial_stock: 'Initial Stock',
-  // New enum values
   van_transfer: 'Received from Warehouse',
   job_usage: 'Job Usage',
   special_sale: 'Special Sale',
@@ -63,7 +64,6 @@ const VanLedgerTab: React.FC<VanLedgerTabProps> = () => {
   const [loading, setLoading] = useState(false);
   const [vansLoading, setVansLoading] = useState(true);
 
-  // Load active vans
   useEffect(() => {
     const load = async () => {
       setVansLoading(true);
@@ -78,11 +78,10 @@ const VanLedgerTab: React.FC<VanLedgerTabProps> = () => {
     load();
   }, []);
 
-  // Load liquid parts for selected van
+  // Load all parts for selected van (liquid and solid)
   useEffect(() => {
     if (!selectedVanId) { setVanParts([]); setSelectedPartId(''); return; }
     const load = async () => {
-      // Get distinct part_ids from inventory_movements for this van
       const { data: movs } = await supabase
         .from('inventory_movements')
         .select('part_id')
@@ -94,8 +93,7 @@ const VanLedgerTab: React.FC<VanLedgerTabProps> = () => {
       const { data: parts } = await supabase
         .from('parts')
         .select('part_id, part_name, part_code, container_size, base_unit, is_liquid')
-        .in('part_id', partIds)
-        .eq('is_liquid', true);
+        .in('part_id', partIds);
       
       if (parts) setVanParts(parts as PartInfo[]);
       setSelectedPartId('');
@@ -116,21 +114,26 @@ const VanLedgerTab: React.FC<VanLedgerTabProps> = () => {
 
     const part = vanParts.find(p => p.part_id === partId);
     const containerSize = part?.container_size ?? 1;
+    const isLiquid = part?.is_liquid ?? false;
 
     let balance = 0;
     const computed: LedgerRow[] = (data as InventoryMovement[]).map(m => {
       const cQty = m.container_qty_change ?? 0;
       const bQty = m.bulk_qty_change ?? 0;
-      const liters = cQty * containerSize + bQty;
+      // For liquid: change = cQty * containerSize + bQty (liters)
+      // For solid: change = cQty (pcs)
+      const change = isLiquid ? cQty * containerSize + bQty : cQty;
       
-      const isPos = VAN_POSITIVE_TYPES.includes(m.movement_type) || liters > 0;
+      const isPos = VAN_POSITIVE_TYPES.includes(m.movement_type) || change > 0;
 
       let balanceAfter: number;
-      if (m.van_bulk_qty_after != null) {
+      if (isLiquid && m.van_bulk_qty_after != null) {
         const cAfter = m.van_container_qty_after ?? 0;
         balanceAfter = cAfter * containerSize + Number(m.van_bulk_qty_after);
+      } else if (!isLiquid && m.van_container_qty_after != null) {
+        balanceAfter = m.van_container_qty_after;
       } else {
-        balance += liters;
+        balance += change;
         balanceAfter = balance;
       }
       balance = balanceAfter;
@@ -140,11 +143,12 @@ const VanLedgerTab: React.FC<VanLedgerTabProps> = () => {
 
       return {
         ...m,
-        change_liters: liters,
+        change_liters: change,
         balance_after: balanceAfter,
         is_positive: isPos,
         action_label: ACTION_LABELS[m.movement_type] ?? m.movement_type,
         reference,
+        is_liquid: isLiquid,
       };
     });
 
@@ -158,10 +162,12 @@ const VanLedgerTab: React.FC<VanLedgerTabProps> = () => {
   }, [selectedVanId, selectedPartId, loadLedger]);
 
   const selectedVan = vans.find(v => v.van_stock_id === selectedVanId);
+  const selectedPart = vanParts.find(p => p.part_id === selectedPartId);
+  const selectedIsLiquid = selectedPart?.is_liquid ?? false;
+  const unit = selectedIsLiquid ? 'L' : 'pcs';
 
   return (
     <div className="space-y-4">
-      {/* Selectors */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 max-w-sm">
           <label className="block text-xs font-medium text-theme-muted mb-1">Select Van</label>
@@ -187,10 +193,10 @@ const VanLedgerTab: React.FC<VanLedgerTabProps> = () => {
 
         {selectedVanId && (
           <div className="flex-1 max-w-sm">
-            <label className="block text-xs font-medium text-theme-muted mb-1">Select Fluid Item</label>
+            <label className="block text-xs font-medium text-theme-muted mb-1">Select Part</label>
             {vanParts.length === 0 ? (
               <div className="px-3 py-2 text-xs text-theme-muted border border-theme rounded-lg bg-theme-surface">
-                No liquid parts found for this van
+                No parts found for this van
               </div>
             ) : (
               <select
@@ -198,7 +204,7 @@ const VanLedgerTab: React.FC<VanLedgerTabProps> = () => {
                 onChange={e => setSelectedPartId(e.target.value)}
                 className="w-full px-3 py-2 border border-theme rounded-lg bg-theme-surface text-theme text-sm focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">— Choose a fluid item —</option>
+                <option value="">— Choose a part —</option>
                 {vanParts.map(p => (
                   <option key={p.part_id} value={p.part_id}>{p.part_name} ({p.part_code})</option>
                 ))}
@@ -215,17 +221,16 @@ const VanLedgerTab: React.FC<VanLedgerTabProps> = () => {
         </div>
       )}
 
-      {/* Table */}
       {!selectedVanId || !selectedPartId ? (
         <div className="text-center py-16 text-theme-muted text-sm">
-          Select a van and fluid item to view its ledger
+          Select a van and part to view its ledger
         </div>
       ) : loading ? (
         <div className="flex items-center justify-center py-16">
           <div className="text-sm text-theme-muted">Loading ledger…</div>
         </div>
       ) : rows.length === 0 ? (
-        <div className="text-center py-16 text-theme-muted text-sm">No movements recorded for this van/item</div>
+        <div className="text-center py-16 text-theme-muted text-sm">No movements recorded for this van/part</div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-theme">
           <table className="w-full text-sm min-w-[640px]">
@@ -234,7 +239,7 @@ const VanLedgerTab: React.FC<VanLedgerTabProps> = () => {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Date</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Action</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Reference</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Change (L)</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Change ({unit})</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Balance After</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Performed By</th>
               </tr>
@@ -263,11 +268,12 @@ const VanLedgerTab: React.FC<VanLedgerTabProps> = () => {
                     <td className={`px-4 py-3 text-right font-mono font-semibold ${
                       row.is_positive ? 'text-green-600' : 'text-red-500'
                     }`}>
-                      {row.is_positive && row.change_liters >= 0 ? '+' : ''}{Number(row.change_liters).toFixed(2)} L
+                      {row.is_positive && row.change_liters >= 0 ? '+' : ''}
+                      {row.is_liquid ? Number(row.change_liters).toFixed(2) : Math.round(row.change_liters)} {unit}
                     </td>
                     <td className={`px-4 py-3 text-right font-mono font-semibold ${isNegBal ? 'text-amber-600' : 'text-theme'}`}>
                       {isNegBal && <AlertTriangle className="w-3 h-3 inline mr-1 text-amber-500" />}
-                      {Number(row.balance_after).toFixed(2)} L
+                      {row.is_liquid ? Number(row.balance_after).toFixed(2) : Math.round(row.balance_after)} {unit}
                     </td>
                     <td className="px-4 py-3 text-theme-muted text-sm">
                       {row.performed_by_name ?? '—'}
