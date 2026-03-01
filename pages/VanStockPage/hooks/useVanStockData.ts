@@ -86,7 +86,8 @@ export function useVanStockData({ currentUser }: UseVanStockDataProps) {
       result = result.filter(vs =>
         vs.technician_name?.toLowerCase().includes(query) ||
         vs.technician?.email?.toLowerCase().includes(query) ||
-        vs.van_code?.toLowerCase().includes(query)
+        vs.van_code?.toLowerCase().includes(query) ||
+        vs.van_plate?.toLowerCase().includes(query)
       );
     }
 
