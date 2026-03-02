@@ -527,11 +527,11 @@ export function checkStockMismatch(
   const bulk = part.bulk_quantity ?? 0;
   const size = part.container_size ?? 1;
   const actual = (containers * size) + bulk;
-  const expected = (part.stock_quantity ?? 0) * size; // Legacy field * size
+  const expected = part.stock_quantity ?? 0; // Total liters (legacy field)
 
   const difference = Math.abs(actual - expected);
   return {
-    hasMismatch: difference > 0.01, // Float tolerance
+    hasMismatch: difference > 1.0, // Rounding tolerance for integer stock_quantity vs decimal liters
     expected,
     actual,
     difference,
