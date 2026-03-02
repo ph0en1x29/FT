@@ -17,8 +17,7 @@ import { supabase } from './supabaseClient';
 export const approveSparePartRequest = async (
   requestId: string,
   adminUserId: string,
-  partId: string,
-  quantity: number,
+  items: Array<{ partId: string; quantity: number }>,
   notes?: string,
   adminUserName?: string,
   adminRole?: string
@@ -30,46 +29,53 @@ export const approveSparePartRequest = async (
       .eq('request_id', requestId)
       .single();
 
-    if (reqError || !request) {
-      return false;
+    if (reqError || !request) return false;
+    if (!items || items.length === 0) return false;
+
+    // Validate stock for all items upfront
+    type PartInfo = { part_name: string; sell_price: number; stock_quantity: number };
+    const partInfoMap: Record<string, PartInfo> = {};
+    for (const item of items) {
+      const { data: part, error: partError } = await supabase
+        .from('parts')
+        .select('part_name, sell_price, stock_quantity')
+        .eq('part_id', item.partId)
+        .single();
+      if (partError || !part) return false;
+      if (part.stock_quantity < item.quantity) return false;
+      partInfoMap[item.partId] = part;
     }
 
-    const { data: part, error: partError } = await supabase
-      .from('parts')
-      .select('part_name, sell_price, stock_quantity')
-      .eq('part_id', partId)
-      .single();
-
-    if (partError || !part) {
-      return false;
+    // ATOMIC stock reservation — reserve all, rollback on any failure
+    const reserved: Array<{ partId: string; quantity: number }> = [];
+    for (const item of items) {
+      const { data: stockReserved, error: stockError } = await supabase
+        .rpc('reserve_part_stock', { p_part_id: item.partId, p_quantity: item.quantity });
+      if (stockError || !stockReserved) {
+        console.warn('Stock reservation failed:', stockError?.message || 'insufficient stock');
+        for (const r of reserved) {
+          await supabase.rpc('rollback_part_stock', { p_part_id: r.partId, p_quantity: r.quantity });
+        }
+        return false;
+      }
+      reserved.push(item);
     }
 
-    if (part.stock_quantity < quantity) {
-      return false;
-    }
-
-    // ATOMIC stock reservation using database function
-    // Prevents race conditions with row-level locking
-    const { data: stockReserved, error: stockError } = await supabase
-      .rpc('reserve_part_stock', { p_part_id: partId, p_quantity: quantity });
-
-    if (stockError || !stockReserved) {
-      // Stock was modified by another request or insufficient
-      console.warn('Stock reservation failed:', stockError?.message || 'insufficient stock');
-      return false;
-    }
-
-    // Approve = complete action: add part to job + auto-confirm + mark as issued.
-    // No separate "issue" step needed.
     const now = new Date().toISOString();
+    const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0);
+    const firstItem = items[0];
+    // Backward compat: store first item in dedicated columns; full list in notes as JSON (if multi-part)
+    const storedNotes = items.length > 1
+      ? JSON.stringify({ parts: items.map(i => ({ partId: i.partId, quantity: i.quantity })), notes: notes || null })
+      : (notes || null);
 
     const { error: updateError } = await supabase
       .from('job_requests')
       .update({
         status: 'issued',
-        admin_response_part_id: partId,
-        admin_response_quantity: quantity,
-        admin_response_notes: notes || null,
+        admin_response_part_id: firstItem.partId,
+        admin_response_quantity: totalQuantity,
+        admin_response_notes: storedNotes,
         responded_by: adminUserId,
         responded_at: now,
         issued_by: adminUserId,
@@ -78,24 +84,27 @@ export const approveSparePartRequest = async (
       .eq('request_id', requestId);
 
     if (updateError) {
-      await supabase.rpc('rollback_part_stock', { p_part_id: partId, p_quantity: quantity });
+      for (const r of reserved) {
+        await supabase.rpc('rollback_part_stock', { p_part_id: r.partId, p_quantity: r.quantity });
+      }
       return false;
     }
 
-    // Add part to job
-    const { error: insertError } = await supabase
-      .from('job_parts')
-      .insert({
-        job_id: request.job_id,
-        part_id: partId,
-        part_name: part.part_name,
-        quantity,
-        sell_price_at_time: part.sell_price,
-      });
+    // Add all parts to job
+    const jobPartsInserts = items.map(item => ({
+      job_id: request.job_id,
+      part_id: item.partId,
+      part_name: partInfoMap[item.partId].part_name,
+      quantity: item.quantity,
+      sell_price_at_time: partInfoMap[item.partId].sell_price,
+    }));
+
+    const { error: insertError } = await supabase.from('job_parts').insert(jobPartsInserts);
 
     if (insertError) {
-      // Rollback
-      await supabase.rpc('rollback_part_stock', { p_part_id: partId, p_quantity: quantity });
+      for (const r of reserved) {
+        await supabase.rpc('rollback_part_stock', { p_part_id: r.partId, p_quantity: r.quantity });
+      }
       await supabase.from('job_requests').update({ status: 'pending', responded_by: null, responded_at: null, issued_by: null, issued_at: null }).eq('request_id', requestId);
       return false;
     }
@@ -123,11 +132,12 @@ export const approveSparePartRequest = async (
       await supabase.from('jobs').update({ status: 'In Progress' }).eq('job_id', request.job_id);
     }
 
+    const partSummary = items.map(i => `${i.quantity}x ${partInfoMap[i.partId].part_name}`).join(', ');
     await notifyRequestApproved(
       request.requested_by,
       'spare_part',
       request.job_id,
-      notes || `${quantity}x ${part.part_name} approved and added to your job`
+      notes || `${partSummary} approved and added to your job`
     );
 
     return true;

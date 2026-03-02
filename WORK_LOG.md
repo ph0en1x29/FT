@@ -72,3 +72,10 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 
 [Sonnet] [2026-03-01 00:47] Fixed VanLedgerTab.tsx: removed is_liquid filter, added is_liquid to PartInfo, solid/liquid qty logic, unit display
 [Sonnet] [2026-03-01 00:47] Fixed FlaggedMovementsTab.tsx: empty state message, formatQty for liquid/solid, is_liquid from parts join
+
+[2026-03-01 21:14] [Sonnet] Multi-part approval for spare part requests:
+- ApproveRequestModal.tsx: replaced single part picker with dynamic multi-row form (items array state, add/remove rows, each row has Combobox + qty input). onApprove prop now takes items array.
+- jobRequestApprovalService.ts: approveSparePartRequest now accepts items array, reserves stock atomically for all items with full rollback on failure, inserts multiple job_parts rows, backward-compat first item in admin_response_part_id/quantity.
+- useJobRequestActions.ts: handleApproveRequest passes items array; handleBulkApproveRequests wraps single-part in array.
+- StoreQueuePage.tsx: updated inline approveSparePartRequest call to items array format.
+[2026-03-01 21:14] [Sonnet] Also updated PartRequestsPage.tsx: wrap single-part approveSparePartRequest call in items array

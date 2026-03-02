@@ -377,7 +377,8 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
     markProcessing(item.id);
     try {
       const ok = await approveSparePartRequest(
-        item.requestId, currentUser.user_id, state.partId, qty,
+        item.requestId, currentUser.user_id,
+        [{ partId: state.partId, quantity: qty }],
         undefined, currentUser.full_name || currentUser.name, currentUser.role
       );
       if (ok) {

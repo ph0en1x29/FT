@@ -48,8 +48,7 @@ export const useJobRequestActions = ({
   }, [job, currentUserId, state, loadJob]);
 
   const handleApproveRequest = useCallback(async (
-    partId: string,
-    quantity: number,
+    items: Array<{ partId: string; quantity: number }>,
     notes?: string
   ) => {
     const request = state.approvalRequest;
@@ -60,8 +59,7 @@ export const useJobRequestActions = ({
       const success = await approveSparePartRequest(
         request.request_id,
         currentUserId,
-        partId,
-        quantity,
+        items,
         notes,
         currentUserName,
         currentUserRole
@@ -203,8 +201,7 @@ export const useJobRequestActions = ({
         const ok = await approveSparePartRequest(
           item.requestId,
           currentUserId,
-          item.partId,
-          item.quantity,
+          [{ partId: item.partId, quantity: item.quantity }],
           item.notes,
           currentUserName,
           currentUserRole

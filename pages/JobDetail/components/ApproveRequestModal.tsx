@@ -8,7 +8,7 @@ interface ApproveRequestModalProps {
   show: boolean;
   request: JobRequest | null;
   submitting: boolean;
-  onApprove: (partId: string, quantity: number, notes?: string) => void;
+  onApprove: (items: Array<{ partId: string; quantity: number }>, notes?: string) => void;
   onReject: (notes: string) => void;
   onOutOfStock?: (partId: string, supplierNotes?: string) => void;
   onIssue?: (requestId: string) => void;
@@ -29,8 +29,8 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
   onClose,
   isStoreAdmin,
 }) => {
+  const [items, setItems] = useState<Array<{ partId: string; quantity: number }>>([{ partId: '', quantity: 1 }]);
   const [selectedPartId, setSelectedPartId] = useState('');
-  const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
   const [mode, setMode] = useState<'review' | 'approve' | 'reject' | 'out_of_stock'>('review');
 
@@ -46,8 +46,8 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
   if (!show || !request) return null;
 
   const handleApprove = () => {
-    if (!selectedPartId || quantity < 1) return;
-    onApprove(selectedPartId, quantity, notes || undefined);
+    if (items.some(i => !i.partId || i.quantity < 1)) return;
+    onApprove(items, notes || undefined);
   };
 
   const handleReject = () => {
@@ -61,8 +61,8 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
   };
 
   const handleClose = () => {
+    setItems([{ partId: '', quantity: 1 }]);
     setSelectedPartId('');
-    setQuantity(1);
     setNotes('');
     setMode('review');
     onClose();
@@ -248,30 +248,52 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
         {/* Approve Mode */}
         {mode === 'approve' && request.request_type === 'spare_part' && (
           <div className="space-y-4 mt-4 pt-4 border-t border-[var(--border)]">
-            <div>
-              <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">
-                Select Part *
-              </label>
-              <Combobox
-                options={partOptions}
-                value={selectedPartId}
-                onChange={setSelectedPartId}
-                placeholder="Search parts..."
-              />
+            <div className="space-y-3">
+              {items.map((item, idx) => (
+                <div key={idx} className="flex gap-2 items-start">
+                  <div className="flex-1">
+                    {idx === 0 && (
+                      <label className="text-sm font-medium text-[var(--text-muted)] mb-1 block">Part *</label>
+                    )}
+                    <Combobox
+                      options={partOptions}
+                      value={item.partId}
+                      onChange={(val) => setItems(prev => prev.map((r, i) => i === idx ? { ...r, partId: val } : r))}
+                      placeholder="Search parts..."
+                    />
+                  </div>
+                  <div className="w-20 flex-shrink-0">
+                    {idx === 0 && (
+                      <label className="text-sm font-medium text-[var(--text-muted)] mb-1 block">Qty *</label>
+                    )}
+                    <input
+                      type="number"
+                      min={1}
+                      value={item.quantity}
+                      onChange={(e) => setItems(prev => prev.map((r, i) => i === idx ? { ...r, quantity: parseInt(e.target.value) || 1 } : r))}
+                      className="input-premium w-full"
+                    />
+                  </div>
+                  {items.length > 1 && (
+                    <button
+                      onClick={() => setItems(prev => prev.filter((_, i) => i !== idx))}
+                      className="mt-auto p-2 hover:bg-[var(--bg-subtle)] rounded-lg text-[var(--text-muted)]"
+                      title="Remove"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">
-                Quantity *
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                className="input-premium w-24"
-              />
-            </div>
+            <button
+              type="button"
+              onClick={() => setItems(prev => [...prev, { partId: '', quantity: 1 }])}
+              className="text-sm text-[var(--accent)] hover:underline flex items-center gap-1"
+            >
+              ＋ Add another part
+            </button>
 
             <div>
               <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">
@@ -295,7 +317,7 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
               </button>
               <button
                 onClick={handleApprove}
-                disabled={!selectedPartId || quantity < 1 || submitting}
+                disabled={items.some(i => !i.partId || i.quantity < 1) || submitting}
                 className="btn-premium btn-premium-primary flex-1 disabled:opacity-50"
               >
                 <CheckCircle className="w-4 h-4" />
@@ -329,7 +351,7 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
                 Back
               </button>
               <button
-                onClick={() => onApprove('', 0, notes || undefined)}
+                onClick={() => onApprove([], notes || undefined)}
                 disabled={submitting}
                 className="btn-premium btn-premium-primary flex-1 disabled:opacity-50"
               >

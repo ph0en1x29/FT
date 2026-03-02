@@ -190,8 +190,7 @@ export default function PartRequestsPage({ currentUser, hideHeader = false }: Pa
       const ok = await approveSparePartRequest(
         req.request_id,
         currentUser.user_id,
-        state.partId,
-        qty,
+        [{ partId: state.partId, quantity: qty }],
         undefined,
         currentUser.full_name || currentUser.name,
         currentUser.role
