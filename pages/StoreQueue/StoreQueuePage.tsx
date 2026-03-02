@@ -157,7 +157,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
 
   // Inline approve state for part requests
-  const [inlineState, setInlineState] = useState<Record<string, { partId: string; quantity: string }>>({});
+  const [inlineState, setInlineState] = useState<Record<string, Array<{ partId: string; quantity: string }>>>({});
   // Reject modal
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -197,9 +197,11 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
 
       // 1. Part requests (pending → need approval)
       const requests = requestsResult.data || [];
+      // Filter out orphaned requests (job was deleted)
+      const validRequests = requests.filter(r => r.job != null);
       const autoMatched: Record<string, { partId: string; quantity: string }> = {};
 
-      for (const r of requests) {
+      for (const r of validRequests) {
         const user = r.requested_by_user as Record<string, unknown> | null;
         const job = r.job as Record<string, unknown> | null;
         const customer = job?.customer as Record<string, unknown> | null;
@@ -328,7 +330,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
       .map(group => {
         const allPartRequests = group.items.every(item => item.type === 'part_request');
         const allPartRequestsSelected = allPartRequests
-          && group.items.every(item => item.requestId && inlineState[item.requestId]?.partId);
+          && group.items.every(item => item.requestId && (inlineState[item.requestId] || []).some(r => r.partId));
         const singleConfirmJob = group.items.length === 1 && group.items[0].type === 'confirm_job';
 
         return {
@@ -369,16 +371,16 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
     options?: { skipReload?: boolean; suppressSuccessToast?: boolean }
   ): Promise<boolean> => {
     if (!item.requestId) return false;
-    const state = inlineState[item.requestId];
-    if (!state?.partId) { showToast.error('Select a part first'); return false; }
-    const qty = parseFloat(state.quantity) || 1;
-    if (qty <= 0) { showToast.error('Invalid quantity'); return false; }
+    const rows = inlineState[item.requestId] || [{ partId: '', quantity: '1' }];
+    const validRows = rows.filter(r => r.partId);
+    if (validRows.length === 0) { showToast.error('Select a part first'); return false; }
+    const items = validRows.map(r => ({ partId: r.partId, quantity: parseFloat(r.quantity) || 1 }));
 
     markProcessing(item.id);
     try {
       const ok = await approveSparePartRequest(
         item.requestId, currentUser.user_id,
-        [{ partId: state.partId, quantity: qty }],
+        items,
         undefined, currentUser.full_name || currentUser.name, currentUser.role
       );
       if (ok) {
@@ -475,8 +477,27 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
     } finally { clearProcessing(rejectingId); }
   };
 
-  const updateInline = (requestId: string, updates: Partial<{ partId: string; quantity: string }>) => {
-    setInlineState(prev => ({ ...prev, [requestId]: { ...prev[requestId], ...updates } }));
+  const updateInline = (requestId: string, index: number, updates: Partial<{ partId: string; quantity: string }>) => {
+    setInlineState(prev => {
+      const rows = prev[requestId] || [{ partId: '', quantity: '1' }];
+      const newRows = rows.map((r, i) => i === index ? { ...r, ...updates } : r);
+      return { ...prev, [requestId]: newRows };
+    });
+  };
+
+  const addInlineRow = (requestId: string) => {
+    setInlineState(prev => {
+      const rows = prev[requestId] || [{ partId: '', quantity: '1' }];
+      return { ...prev, [requestId]: [...rows, { partId: '', quantity: '1' }] };
+    });
+  };
+
+  const removeInlineRow = (requestId: string, index: number) => {
+    setInlineState(prev => {
+      const rows = prev[requestId] || [{ partId: '', quantity: '1' }];
+      const newRows = rows.filter((_, i) => i !== index);
+      return { ...prev, [requestId]: newRows.length ? newRows : [{ partId: '', quantity: '1' }] };
+    });
   };
 
   const handleSwipeApprove = (item: QueueItem) => {
@@ -703,47 +724,68 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                             </button>
                           </div>
 
-                          {item.type === 'part_request' && item.requestId && (
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)] overflow-visible">
-                              <div className="flex-1 w-full sm:w-auto relative z-20">
-                                <Combobox
-                                  options={partOptions}
-                                  value={state?.partId || ''}
-                                  onChange={(val) => updateInline(item.requestId!, { partId: val })}
-                                  placeholder="Select part..."
-                                />
+                          {item.type === 'part_request' && item.requestId && (() => {
+                            const rows = inlineState[item.requestId] || [{ partId: '', quantity: '1' }];
+                            const hasAnyPart = rows.some(r => r.partId);
+                            return (
+                              <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] overflow-visible space-y-2">
+                                {rows.map((row, idx) => (
+                                  <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                    <div className="flex-1 w-full sm:w-auto relative z-20">
+                                      <Combobox
+                                        options={partOptions}
+                                        value={row.partId || ''}
+                                        onChange={(val) => updateInline(item.requestId!, idx, { partId: val })}
+                                        placeholder="Select part..."
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                      <input
+                                        type="number" min="0.1" step="any"
+                                        inputMode="numeric"
+                                        value={row.quantity || '1'}
+                                        onChange={e => updateInline(item.requestId!, idx, { quantity: e.target.value })}
+                                        className="w-16 px-2 py-1.5 h-10 sm:h-auto text-sm border border-[var(--border)] rounded-lg text-center bg-[var(--surface)]"
+                                      />
+                                      {rows.length > 1 && (
+                                        <button
+                                          onClick={() => removeInlineRow(item.requestId!, idx)}
+                                          className="p-2 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                                          title="Remove row"
+                                        >
+                                          <X className="w-4 h-4" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                                <div className="flex items-center gap-2 mt-1">
+                                  <button
+                                    onClick={() => addInlineRow(item.requestId!)}
+                                    className="text-xs text-[var(--accent)] hover:underline"
+                                  >
+                                    + Add part
+                                  </button>
+                                  <div className="flex-1" />
+                                  <button
+                                    onClick={() => handleApproveRequest(item)}
+                                    disabled={isProc || !hasAnyPart}
+                                    className="inline-flex items-center justify-center gap-1 px-3 py-1.5 h-10 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+                                  >
+                                    {isProc ? <Spinner /> : <Check className="w-3.5 h-3.5" />}
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => { setRejectingId(item.id); setRejectType('request'); setRejectReason(''); }}
+                                    disabled={isProc}
+                                    className="p-2.5 h-10 min-w-[44px] text-red-500 hover:bg-red-50 rounded-lg transition flex items-center justify-center"
+                                  >
+                                    <XCircle className="w-5 h-5 sm:w-4 sm:h-4" />
+                                  </button>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <input
-                                  type="number" min="0.1" step="any"
-                                  inputMode="numeric"
-                                  value={state?.quantity || '1'}
-                                  onChange={e => updateInline(item.requestId!, { quantity: e.target.value })}
-                                  className="w-16 px-2 py-1.5 h-10 sm:h-auto text-sm border border-[var(--border)] rounded-lg text-center bg-[var(--surface)]"
-                                />
-                                <button
-                                  onClick={() => handleApproveRequest(item)}
-                                  disabled={isProc || !state?.partId}
-                                  className="inline-flex items-center justify-center gap-1 px-3 py-1.5 h-12 sm:h-auto text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition flex-1 sm:flex-none"
-                                >
-                                  {isProc ? <Spinner /> : <Check className="w-3.5 h-3.5" />}
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() => { setRejectingId(item.id); setRejectType('request'); setRejectReason(''); }}
-                                  disabled={isProc}
-                                  className="p-2.5 h-12 sm:h-auto min-w-[44px] text-red-500 hover:bg-red-50 rounded-lg transition flex items-center justify-center"
-                                >
-                                  <XCircle className="w-5 h-5 sm:w-4 sm:h-4" />
-                                </button>
-                                {matchedPart && (
-                                  <span className="text-xs text-[var(--text-muted)] hidden sm:inline">
-                                    Stock: {matchedPart.stock_quantity}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          )}
+                            );
+                          })()}
 
                           {item.type === 'confirm_job' && (
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)]">
