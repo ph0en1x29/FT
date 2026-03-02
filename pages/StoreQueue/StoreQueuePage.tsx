@@ -183,7 +183,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
           .select(`
             *,
             requested_by_user:users!job_requests_requested_by_fkey(user_id, name, full_name),
-            job:jobs(job_id, title, status, assigned_technician_name, completed_at,
+            job:jobs(job_id, title, status, assigned_technician_name, completed_at, deleted_at,
               customer:customers(name),
               forklift:forklifts!forklift_id(serial_number))
           `)
@@ -198,7 +198,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
       // 1. Part requests (pending → need approval)
       const requests = requestsResult.data || [];
       // Filter out orphaned requests (job was deleted)
-      const validRequests = requests.filter(r => r.job != null);
+      const validRequests = requests.filter(r => r.job != null && !(r.job as any).deleted_at);
       const autoMatched: Record<string, Array<{ partId: string; quantity: string }>> = {};
 
       for (const r of validRequests) {
