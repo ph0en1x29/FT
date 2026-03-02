@@ -143,6 +143,7 @@ export const checkExpiredJobResponses = async (): Promise<{ alertedJobs: string[
     const { data: expiredJobs, error } = await supabase
       .from('jobs')
       .select(`job_id, title, assigned_technician_id, assigned_technician_name, technician_response_deadline, customer:customers(name)`)
+      .is('deleted_at', null)
       .eq('status', JobStatusEnum.ASSIGNED)
       .is('technician_accepted_at', null)
       .is('technician_rejected_at', null)
@@ -171,6 +172,7 @@ export const getJobsPendingResponse = async (): Promise<Job[]> => {
     const { data, error } = await supabase
       .from('jobs')
       .select(`*, customer:customers(*), forklift:forklifts!forklift_id(*)`)
+      .is('deleted_at', null)
       .eq('status', JobStatusEnum.ASSIGNED)
       .is('technician_accepted_at', null)
       .is('technician_rejected_at', null)
@@ -202,6 +204,7 @@ export const reassignJob = async (
     const { data: currentJob } = await supabase
       .from('jobs')
       .select('assigned_technician_id')
+      .is('deleted_at', null)
       .eq('job_id', jobId)
       .single();
 

@@ -22,6 +22,7 @@ export const updateJobConditionChecklist = async (jobId: string, checklist: Fork
     .from('jobs')
     .update({ condition_checklist: checklist })
     .eq('job_id', jobId)
+    .is('deleted_at', null)
     .select(`
       *,
       customer:customers(*),
@@ -41,6 +42,7 @@ export const updateJobCarriedOut = async (jobId: string, jobCarriedOut: string, 
     .from('jobs')
     .update({ job_carried_out: jobCarriedOut, recommendation: recommendation })
     .eq('job_id', jobId)
+    .is('deleted_at', null)
     .select(`
       *,
       customer:customers(*),
@@ -70,6 +72,7 @@ export const updateConditionChecklist = async (jobId: string, checklist: Forklif
     .from('jobs')
     .update({ condition_checklist: checklist })
     .eq('job_id', jobId)
+    .is('deleted_at', null)
     .select(`
       *,
       customer:customers(*),
@@ -126,6 +129,7 @@ export const updateJobRepairTimes = async (jobId: string, startTime?: string, en
     .from('jobs')
     .update(updates)
     .eq('job_id', jobId)
+    .is('deleted_at', null)
     .select(`
       *,
       customer:customers(*),
@@ -152,6 +156,7 @@ export const startJobWithCondition = async (
   const { data: jobData, error: fetchError } = await supabase
     .from('jobs')
     .select('forklift_id, forklift:forklifts!forklift_id(hourmeter)')
+    .is('deleted_at', null)
     .eq('job_id', jobId)
     .single();
   
@@ -175,6 +180,7 @@ export const startJobWithCondition = async (
       started_by_name: startedByName || null,
     })
     .eq('job_id', jobId)
+    .is('deleted_at', null)
     .select(`
       *,
       customer:customers(*),

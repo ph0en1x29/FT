@@ -113,6 +113,7 @@ async function hydrateMatches(matches: MatchJobRow[]): Promise<SearchResult[]> {
     .from('jobs')
     .select('job_id, title, description, status, created_at')
     .in('job_id', uniqueIds);
+    .is('deleted_at', null)
 
   if (error) {
     throw new Error(`Failed to load job details: ${error.message}`);

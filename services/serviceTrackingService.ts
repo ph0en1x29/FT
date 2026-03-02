@@ -131,6 +131,7 @@ export const upgradeToFullService = async (
   const { data: job, error: jobError } = await supabase
     .from('jobs')
     .select('forklift_id, job_type, forklift:forklifts(hourmeter, next_target_service_hour)')
+    .is('deleted_at', null)
     .eq('job_id', jobId)
     .single();
 
@@ -150,6 +151,7 @@ export const upgradeToFullService = async (
       notes: `Upgraded from Minor Service by ${technicianName}. Unit was ${currentHourmeter - targetHourmeter} hours overdue for Full Service.`,
       updated_at: new Date().toISOString()
     })
+    .is('deleted_at', null)
     .eq('job_id', jobId);
 
   if (updateError) throw new Error(`Failed to upgrade job: ${updateError.message}`);

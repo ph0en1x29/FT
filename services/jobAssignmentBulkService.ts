@@ -177,6 +177,7 @@ export const getUserAssignmentType = async (jobId: string, userId: string): Prom
     const { data: job } = await supabase
       .from('jobs')
       .select('assigned_technician_id')
+      .is('deleted_at', null)
       .eq('job_id', jobId)
       .single();
 
