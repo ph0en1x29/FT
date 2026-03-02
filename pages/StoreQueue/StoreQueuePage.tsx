@@ -199,7 +199,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
       const requests = requestsResult.data || [];
       // Filter out orphaned requests (job was deleted)
       const validRequests = requests.filter(r => r.job != null);
-      const autoMatched: Record<string, { partId: string; quantity: string }> = {};
+      const autoMatched: Record<string, Array<{ partId: string; quantity: string }>> = {};
 
       for (const r of validRequests) {
         const user = r.requested_by_user as Record<string, unknown> | null;
@@ -229,10 +229,10 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
 
         // Auto-match requests to parts
         const match = findBestPartMatch(r.description as string, parts);
-        autoMatched[r.request_id as string] = {
+        autoMatched[r.request_id as string] = [{
           partId: match?.part_id || '',
           quantity: '1',
-        };
+        }];
       }
 
       setInlineState(prev => ({ ...prev, ...autoMatched }));
