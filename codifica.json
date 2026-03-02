@@ -1,0 +1,11 @@
+{
+  "protocol": "codifica",
+  "version": "0.2",
+  "spec": "codifica-spec.md",
+  "state": "work.md",
+  "rules": {
+    "allowed_agents": ["phoenix", "sonnet", "codex"],
+    "max_concurrent_tasks_per_agent": 1,
+    "stale_claim_hours": 1
+  }
+}
