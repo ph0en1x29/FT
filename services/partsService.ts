@@ -9,25 +9,50 @@ import { supabase } from './supabaseClient';
 import { isLikelyLiquid } from '../types/inventory.types';
 
 export const getParts = async (): Promise<Part[]> => {
-  const { data, error } = await supabase
-    .from('parts')
-    .select('*')
-    .order('category')
-    .order('part_name');
+  // Supabase default limit is 1000 — fetch all parts in pages
+  const allParts: Part[] = [];
+  const PAGE_SIZE = 1000;
+  let from = 0;
+  
+  while (true) {
+    const { data, error } = await supabase
+      .from('parts')
+      .select('*')
+      .order('category')
+      .order('part_name')
+      .range(from, from + PAGE_SIZE - 1);
 
-  if (error) throw new Error(error.message);
-  return data as Part[];
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+    allParts.push(...(data as Part[]));
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  
+  return allParts;
 };
 
 export const getPartsForList = async (): Promise<Part[]> => {
-  const { data, error } = await supabase
-    .from('parts')
-    .select('part_id, part_name, part_code, category, sell_price, stock_quantity, is_liquid, base_unit, container_unit, container_size, container_quantity, bulk_quantity')
-    .order('category')
-    .order('part_name');
+  const allParts: Part[] = [];
+  const PAGE_SIZE = 1000;
+  let from = 0;
+  
+  while (true) {
+    const { data, error } = await supabase
+      .from('parts')
+      .select('part_id, part_name, part_code, category, sell_price, stock_quantity, is_liquid, base_unit, container_unit, container_size, container_quantity, bulk_quantity')
+      .order('category')
+      .order('part_name')
+      .range(from, from + PAGE_SIZE - 1);
 
-  if (error) throw new Error(error.message);
-  return data as Part[];
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+    allParts.push(...(data as Part[]));
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  
+  return allParts;
 };
 
 export const createPart = async (partData: Partial<Part>): Promise<Part> => {
