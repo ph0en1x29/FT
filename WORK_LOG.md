@@ -79,3 +79,9 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 - useJobRequestActions.ts: handleApproveRequest passes items array; handleBulkApproveRequests wraps single-part in array.
 - StoreQueuePage.tsx: updated inline approveSparePartRequest call to items array format.
 [2026-03-01 21:14] [Sonnet] Also updated PartRequestsPage.tsx: wrap single-part approveSparePartRequest call in items array
+
+## 2026-03-03 16:24 [Sonnet] null-safe toFixed for prices
+- Fixed PartsTable.tsx: sell_price/cost_price .toFixed() crash when NULL
+- Fixed useInventoryData.ts: same null-safe pattern for CSV export
+- sell_price shows '—' when NULL, cost_price defaults to 0
+

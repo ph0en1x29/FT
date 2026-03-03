@@ -115,8 +115,8 @@ const PartsTable: React.FC<PartsTableProps> = ({
                       </div>
                       <div className="text-xs text-theme-muted">Min: {p.min_stock_level || 10}</div>
                     </td>
-                    {canViewPricing && <td className="p-4 text-slate-600">{p.cost_price.toFixed(2)}</td>}
-                    {canViewPricing && <td className="p-4 font-medium">{p.sell_price.toFixed(2)}</td>}
+                    {canViewPricing && <td className="p-4 text-slate-600">{(p.cost_price ?? 0).toFixed(2)}</td>}
+                    {canViewPricing && <td className="p-4 font-medium">{p.sell_price != null ? p.sell_price.toFixed(2) : '—'}</td>}
                     <td className="p-4 text-slate-500 text-sm">{p.warranty_months} mo</td>
                     <td className="p-4">
                       {p.last_updated_by_name ? (
@@ -184,8 +184,8 @@ const PartsTable: React.FC<PartsTableProps> = ({
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-theme-muted">
-                  {canViewPricing && <span>Cost: RM{p.cost_price.toFixed(2)}</span>}
-                  {canViewPricing && <span>Price: RM{p.sell_price.toFixed(2)}</span>}
+                  {canViewPricing && <span>Cost: RM{(p.cost_price ?? 0).toFixed(2)}</span>}
+                  {canViewPricing && <span>Price: {p.sell_price != null ? `RM${p.sell_price.toFixed(2)}` : '—'}</span>}
                   <span>{p.warranty_months} mo warranty</span>
                   <span>Min: {p.min_stock_level || 10}</span>
                 </div>
