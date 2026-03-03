@@ -73,9 +73,45 @@ export const useRealtimeNotifications = (
     }
   }, [showBrowserNotifications]);
 
+  // Helper: filter out notifications for soft-deleted jobs
+  const filterDeletedJobNotifications = useCallback(async (notifs: AppNotification[]): Promise<AppNotification[]> => {
+    const jobIds = notifs
+      .filter(n => n.reference_type === 'job' && n.reference_id)
+      .map(n => n.reference_id as string);
+
+    if (jobIds.length === 0) return notifs;
+
+    const { data: jobs } = await supabase
+      .from('jobs')
+      .select('job_id, deleted_at')
+      .in('job_id', jobIds);
+
+    if (!jobs) return notifs;
+
+    const deletedJobIds = new Set(
+      (jobs as { job_id: string; deleted_at: string | null }[])
+        .filter(j => j.deleted_at)
+        .map(j => j.job_id)
+    );
+
+    return notifs.filter(
+      n => !(n.reference_type === 'job' && n.reference_id && deletedJobIds.has(n.reference_id))
+    );
+  }, []);
+
   // Handle new notification - extracted to avoid duplication
-  const handleNewNotification = useCallback((newNotification: AppNotification) => {
+  const handleNewNotification = useCallback(async (newNotification: AppNotification) => {
     if (!mountedRef.current) return;
+
+    // Check if notification references a soft-deleted job
+    if (newNotification.reference_type === 'job' && newNotification.reference_id) {
+      const { data: job } = await supabase
+        .from('jobs')
+        .select('deleted_at')
+        .eq('job_id', newNotification.reference_id)
+        .single();
+      if (job?.deleted_at) return; // Silently ignore notifications for deleted jobs
+    }
 
     // Update state
     setNotifications(prev => {
@@ -172,8 +208,9 @@ export const useRealtimeNotifications = (
           .limit(50);
 
         if (!error && data && mountedRef.current) {
-          setNotifications(data as AppNotification[]);
-          setUnreadCount(data.filter((n: AppNotification) => !n.is_read).length);
+          const filtered = await filterDeletedJobNotifications(data as AppNotification[]);
+          setNotifications(filtered);
+          setUnreadCount(filtered.filter((n: AppNotification) => !n.is_read).length);
         }
       } catch (_e) {
         /* Silently ignore */
@@ -181,7 +218,7 @@ export const useRealtimeNotifications = (
     };
 
     loadNotifications();
-  }, [currentUser?.user_id]);
+  }, [currentUser?.user_id, filterDeletedJobNotifications]);
 
   // Mark notification as read
   const markAsRead = useCallback(async (notificationId: string) => {
@@ -226,10 +263,11 @@ export const useRealtimeNotifications = (
       .limit(50);
 
     if (data && mountedRef.current) {
-      setNotifications(data as AppNotification[]);
-      setUnreadCount(data.filter((n: AppNotification) => !n.is_read).length);
+      const filtered = await filterDeletedJobNotifications(data as AppNotification[]);
+      setNotifications(filtered);
+      setUnreadCount(filtered.filter((n: AppNotification) => !n.is_read).length);
     }
-  }, [currentUser?.user_id]);
+  }, [currentUser?.user_id, filterDeletedJobNotifications]);
 
   return {
     notifications,
