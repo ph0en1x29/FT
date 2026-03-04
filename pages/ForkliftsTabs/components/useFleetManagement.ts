@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import React,{ useCallback,useEffect,useMemo,useState } from 'react';
+import { supabase } from '../../../services/supabaseClient';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { Customer,Forklift,ForkliftStatus,ForkliftType,User,UserRole } from '../../../types';
@@ -16,7 +17,7 @@ const initialFormData = {
   last_hourmeter_update: new Date().toISOString().split('T')[0],
   last_service_hourmeter: 0,
   last_service_date: '',
-  year: new Date().getFullYear(),
+  year: null,
   capacity_kg: 0,
   site: '',
   status: ForkliftStatus.ACTIVE,
@@ -61,6 +62,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
   const [endDate, setEndDate] = useState('');
   const [rentalNotes, setRentalNotes] = useState('');
   const [monthlyRentalRate, setMonthlyRentalRate] = useState('');
+  const [lastServiceHourmeter, setLastServiceHourmeter] = useState('');
   const [bulkEndDate, setBulkEndDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Permission check

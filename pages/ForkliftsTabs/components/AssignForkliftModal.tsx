@@ -18,6 +18,8 @@ interface AssignForkliftModalProps {
   setRentalNotes: (notes: string) => void;
   monthlyRentalRate: string;
   setMonthlyRentalRate: (rate: string) => void;
+  lastServiceHourmeter: string;
+  setLastServiceHourmeter: (value: string) => void;
   onSubmit: () => void;
   isProcessing?: boolean;
 }
@@ -40,6 +42,8 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
   setRentalNotes,
   monthlyRentalRate,
   setMonthlyRentalRate,
+  lastServiceHourmeter,
+  setLastServiceHourmeter,
   onSubmit,
   isProcessing = false,
 }) => {
@@ -95,6 +99,18 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
               onChange={(e) => setMonthlyRentalRate(e.target.value)} 
               placeholder="e.g., 2500.00" 
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service Hourmeter (Optional)</label>
+            <input 
+              type="number" 
+              className={inputClassName} 
+              value={lastServiceHourmeter} 
+              onChange={(e) => setLastServiceHourmeter(e.target.value)} 
+              placeholder="e.g., 17503" 
+            />
+            <p className="text-xs text-slate-400 mt-1">Fill in to reset service interval from this reading</p>
           </div>
 
           <div>

@@ -98,3 +98,6 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-03 21:40] Fixed ForkliftCard.tsx: updated ForkliftType enum refs (ELECTRIC→BATTERY_ELECTRICAL, PETROL→OTHERS, added REACH_TRUCK)
 [Sonnet] [2026-03-03 22:24] Fixed ServiceDueTab.tsx: read current_hourmeter from prediction view with fallback to hourmeter
 [Sonnet] [2026-03-03 22:24] Fixed types.ts: added current_hourmeter to ForkliftDue interface
+[Sonnet] [2026-03-03 23:24] Fixed AddEditForkliftModal.tsx + useFleetManagement.ts: year field optional (number|null), empty default, placeholder
+[Sonnet] [2026-03-03 23:24] Updated AssignForkliftModal.tsx: added optional last service hourmeter field with service reset logic
+[Sonnet] [2026-03-03 23:24] Updated FleetTab.tsx: pass lastServiceHourmeter props to AssignForkliftModal

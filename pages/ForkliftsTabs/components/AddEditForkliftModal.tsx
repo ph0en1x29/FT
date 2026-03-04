@@ -22,7 +22,7 @@ interface FormData {
   last_hourmeter_update: string;  // date string YYYY-MM-DD
   last_service_hourmeter: number;
   last_service_date: string;      // date string YYYY-MM-DD
-  year: number;
+  year: number | null;
   capacity_kg: number;
   site: string;
   status: ForkliftStatus;
@@ -204,10 +204,11 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
               <input 
                 type="number" 
                 className={inputClassName} 
-                value={formData.year} 
-                onChange={e => setFormData({...formData, year: parseInt(e.target.value) || new Date().getFullYear()})} 
+                value={formData.year ?? ''} 
+                onChange={e => setFormData({...formData, year: e.target.value ? parseInt(e.target.value) : null})} 
                 min="1980" 
-                max={new Date().getFullYear() + 1} 
+                max={new Date().getFullYear() + 1}
+                placeholder="e.g., 2020" 
               />
             </div>
             <div>
