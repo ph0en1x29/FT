@@ -40,10 +40,10 @@ export default defineConfig(({ mode }) => {
                 },
               },
               {
-                urlPattern: /\.(js|css|woff2)/,
+                urlPattern: /\.(woff2|woff|ttf)/,
                 handler: 'CacheFirst',
                 options: {
-                  cacheName: 'static-cache',
+                  cacheName: 'font-cache',
                   expiration: { maxAgeSeconds: 2592000 },
                 },
               },

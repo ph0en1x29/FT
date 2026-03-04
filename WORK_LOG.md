@@ -110,3 +110,4 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-04 00:07] Created BulkServiceResetModal.tsx: post-bulk-rent service reset table for individual forklift hourmeter updates
 [Sonnet] [2026-03-04 00:07] Updated FleetTab.tsx: render BulkServiceResetModal
 [Sonnet] [2026-03-04 00:07] Updated useFleetManagement.ts: bulk service reset state + trigger after successful bulk rent
+[Sonnet] [2026-03-04 00:10] Fixed vite.config.ts: removed JS/CSS from CacheFirst strategy, keep fonts only — fixes stale service worker cache on deploys
