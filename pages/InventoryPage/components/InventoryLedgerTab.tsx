@@ -36,6 +36,25 @@ interface RecentRow extends InventoryMovement {
   parts: { part_name: string; is_liquid: boolean; container_size: number | null } | null;
 }
 
+interface PurchaseGroup {
+  key: string;
+  reference: string;
+  date: string;
+  invoicePath?: string;
+  items: Array<{
+    movement_id: string;
+    part_code: string;
+    part_name: string;
+    qty: number;
+    unit: string;
+    unit_cost: number;
+    total_cost: number;
+    is_liquid: boolean;
+  }>;
+  totalCost: number;
+  itemCount: number;
+}
+
 // ── Searchable Part LOV ──────────────────────────────────────────────────────
 interface PartLOVProps {
   parts: Part[];
@@ -212,6 +231,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ rows, loading }) => {
 
 // ── Main Component ───────────────────────────────────────────────────────────
 const InventoryLedgerTab: React.FC = () => {
+  const [view, setView] = useState<'recent' | 'purchases' | 'ledger'>('recent');
   const [allParts, setAllParts] = useState<Part[]>([]);
   const [selectedPartId, setSelectedPartId] = useState<string>('');
   const [rows, setRows] = useState<LedgerRow[]>([]);
@@ -219,6 +239,9 @@ const InventoryLedgerTab: React.FC = () => {
   const [partsLoading, setPartsLoading] = useState(true);
   const [recentRows, setRecentRows] = useState<RecentRow[]>([]);
   const [recentLoading, setRecentLoading] = useState(true);
+  const [purchaseGroups, setPurchaseGroups] = useState<PurchaseGroup[]>([]);
+  const [purchasesLoading, setPurchasesLoading] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const load = async () => {
@@ -246,6 +269,79 @@ const InventoryLedgerTab: React.FC = () => {
     };
     load();
   }, []);
+
+  useEffect(() => {
+    if (view !== 'purchases') return;
+    const load = async () => {
+      setPurchasesLoading(true);
+      const { data } = await supabase
+        .from('inventory_movements')
+        .select('*, parts(part_name, part_code, is_liquid, container_size)')
+        .in('movement_type', ['purchase', 'initial_stock'])
+        .order('performed_at', { ascending: false })
+        .limit(200);
+
+      if (data) {
+        const grouped = new Map<string, PurchaseGroup>();
+        
+        for (const mov of data) {
+          const date = new Date(mov.performed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+          const ref = mov.reference_number || 'No Reference';
+          const key = `${ref}_${date}`;
+          
+          const isLiquid = mov.parts?.is_liquid ?? true;
+          const containerSize = mov.parts?.container_size ?? 1;
+          const cQty = mov.container_qty_change ?? 0;
+          const bQty = mov.bulk_qty_change ?? 0;
+          const qty = isLiquid ? (cQty * containerSize + bQty) : cQty;
+          const unit = isLiquid ? 'L' : 'pcs';
+          
+          const item = {
+            movement_id: mov.movement_id,
+            part_code: mov.parts?.part_code ?? '—',
+            part_name: mov.parts?.part_name ?? '—',
+            qty,
+            unit,
+            unit_cost: mov.unit_cost ?? 0,
+            total_cost: mov.total_cost ?? 0,
+            is_liquid: isLiquid,
+          };
+          
+          if (!grouped.has(key)) {
+            let invoicePath: string | undefined;
+            if (mov.reference_number && mov.reference_number.startsWith('receipt:')) {
+              invoicePath = mov.reference_number.replace('receipt:', '');
+            }
+            
+            grouped.set(key, {
+              key,
+              reference: ref,
+              date,
+              invoicePath,
+              items: [item],
+              totalCost: mov.total_cost ?? 0,
+              itemCount: 1,
+            });
+          } else {
+            const group = grouped.get(key)!;
+            group.items.push(item);
+            group.totalCost += mov.total_cost ?? 0;
+            group.itemCount += 1;
+          }
+        }
+        
+        const groups = Array.from(grouped.values());
+        setPurchaseGroups(groups);
+        
+        // Expand first group by default
+        if (groups.length > 0) {
+          setExpandedGroups(new Set([groups[0].key]));
+        }
+      }
+      setPurchasesLoading(false);
+    };
+    load();
+  }, [view]);
 
   const loadLedger = useCallback(async (partId: string) => {
     setLoading(true);
@@ -303,93 +399,244 @@ const InventoryLedgerTab: React.FC = () => {
 
   const selectedPart = allParts.find(p => p.part_id === selectedPartId);
 
+  const toggleGroup = (key: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const getInvoiceUrl = async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from('invoices')
+      .createSignedUrl(path, 3600);
+    if (error) {
+      console.error('Error getting signed URL:', error);
+      return null;
+    }
+    return data.signedUrl;
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex-1 max-w-sm">
-          <label className="block text-xs font-medium text-theme-muted mb-1">Select Item</label>
-          {partsLoading ? (
-            <div className="h-10 bg-theme-surface-2 rounded-lg animate-pulse" />
-          ) : (
-            <PartLOV
-              parts={allParts}
-              selectedPartId={selectedPartId}
-              onSelect={setSelectedPartId}
-            />
-          )}
-        </div>
-        {selectedPart && (
-          <div className="flex items-center gap-3">
-            <div className="text-xs text-theme-muted">
-              Container size: <span className="font-medium">{selectedPart.container_size ?? '?'} {selectedPart.base_unit ?? 'L'}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedPartId('')}
-              className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1"
-            >
-              ← Back to Recent Activity
-            </button>
-          </div>
-        )}
+      {/* View Toggle */}
+      <div className="inline-flex rounded-lg border border-theme bg-theme-surface-2 p-0.5">
+        {(['recent', 'purchases', 'ledger'] as const).map(v => (
+          <button
+            key={v}
+            onClick={() => {
+              setView(v);
+              if (v !== 'ledger') setSelectedPartId('');
+            }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              view === v
+                ? 'bg-white dark:bg-slate-700 text-theme shadow-sm'
+                : 'text-theme-muted hover:text-theme'
+            }`}
+          >
+            {v === 'recent' ? 'Recent Activity' : v === 'purchases' ? 'Purchase History' : 'Item Ledger'}
+          </button>
+        ))}
       </div>
 
-      {!selectedPartId ? (
+      {/* Recent Activity View */}
+      {view === 'recent' && (
         <RecentActivity rows={recentRows} loading={recentLoading} />
-      ) : loading ? (
-        <div className="flex items-center justify-center py-16">
-          <div className="text-sm text-theme-muted">Loading ledger…</div>
-        </div>
-      ) : rows.length === 0 ? (
-        <div className="text-center py-16 text-theme-muted text-sm">No movements recorded for this item</div>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-theme">
-          <table className="w-full text-sm min-w-[640px]">
-            <thead>
-              <tr className="bg-theme-surface-2 border-b border-theme">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Date</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Action</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Reference</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Change</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Balance After</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Performed By</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-theme">
-              {rows.map(row => (
-                <tr key={row.movement_id} className="hover:bg-theme-surface-2/50 transition-colors">
-                  <td className="px-4 py-3 text-theme-muted whitespace-nowrap">
-                    {new Date(row.performed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    <span className="block text-xs text-theme-muted/60">
-                      {new Date(row.performed_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      row.is_positive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {row.action_label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-theme-muted text-xs max-w-[180px] truncate">
-                    {row.reference || '—'}
-                  </td>
-                  <td className={`px-4 py-3 text-right font-mono font-semibold ${
-                    row.is_positive ? 'text-green-600' : 'text-red-500'
-                  }`}>
-                    {row.is_positive && row.change_liters >= 0 ? '+' : ''}{Number(row.change_liters).toFixed(2)} {selectedPart?.is_liquid ? 'L' : 'pcs'}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-theme">
-                    {Number(row.balance_after).toFixed(2)} {selectedPart?.is_liquid ? 'L' : 'pcs'}
-                  </td>
-                  <td className="px-4 py-3 text-theme-muted text-sm">
-                    {row.performed_by_name ?? '—'}
-                  </td>
-                </tr>
+      )}
+
+      {/* Purchase History View */}
+      {view === 'purchases' && (
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold text-theme-muted uppercase tracking-wide mb-3">Purchase History</h3>
+          {purchasesLoading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-16 bg-theme-surface-2 rounded-lg animate-pulse" />
               ))}
-            </tbody>
-          </table>
+            </div>
+          ) : purchaseGroups.length === 0 ? (
+            <div className="text-center py-12 text-sm text-theme-muted">No purchase history recorded yet</div>
+          ) : (
+            <div className="space-y-3">
+              {purchaseGroups.map(group => {
+                const isExpanded = expandedGroups.has(group.key);
+                return (
+                  <div key={group.key} className="border border-theme rounded-lg overflow-hidden bg-theme-surface">
+                    {/* Card Header */}
+                    <button
+                      onClick={() => toggleGroup(group.key)}
+                      className="w-full px-4 py-3 flex items-center justify-between hover:bg-theme-surface-2 transition-colors"
+                    >
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-theme">{group.reference}</span>
+                            {group.invoicePath && (
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const url = await getInvoiceUrl(group.invoicePath!);
+                                  if (url) window.open(url, '_blank');
+                                }}
+                                className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1"
+                              >
+                                📎 View Invoice
+                              </button>
+                            )}
+                          </div>
+                          <div className="text-xs text-theme-muted mt-0.5">{group.date}</div>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs">
+                          <div className="text-theme-muted">
+                            <span className="font-medium text-theme">{group.itemCount}</span> items
+                          </div>
+                          <div className="text-theme-muted">
+                            Total: <span className="font-semibold text-theme">${group.totalCost.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <svg
+                        className={`w-5 h-5 text-theme-muted flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {/* Expanded Table */}
+                    {isExpanded && (
+                      <div className="border-t border-theme">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-theme-surface-2 border-b border-theme">
+                                <th className="text-left px-4 py-2 text-xs font-semibold text-theme-muted uppercase tracking-wide">Part Code</th>
+                                <th className="text-left px-4 py-2 text-xs font-semibold text-theme-muted uppercase tracking-wide">Part Name</th>
+                                <th className="text-right px-4 py-2 text-xs font-semibold text-theme-muted uppercase tracking-wide">Qty Received</th>
+                                <th className="text-center px-4 py-2 text-xs font-semibold text-theme-muted uppercase tracking-wide">Unit</th>
+                                <th className="text-right px-4 py-2 text-xs font-semibold text-theme-muted uppercase tracking-wide">Unit Cost</th>
+                                <th className="text-right px-4 py-2 text-xs font-semibold text-theme-muted uppercase tracking-wide">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-theme">
+                              {group.items.map(item => (
+                                <tr key={item.movement_id} className="hover:bg-theme-surface-2/50 transition-colors">
+                                  <td className="px-4 py-2 text-theme-muted font-mono text-xs">{item.part_code}</td>
+                                  <td className="px-4 py-2 text-theme">{item.part_name}</td>
+                                  <td className="px-4 py-2 text-right font-mono text-theme">{item.qty.toFixed(2)}</td>
+                                  <td className="px-4 py-2 text-center">
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+                                      item.is_liquid
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                    }`}>
+                                      {item.unit}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-2 text-right font-mono text-theme-muted">${item.unit_cost.toFixed(2)}</td>
+                                  <td className="px-4 py-2 text-right font-mono font-semibold text-theme">${item.total_cost.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
+      )}
+
+      {/* Item Ledger View */}
+      {view === 'ledger' && (
+        <>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1 max-w-sm">
+              <label className="block text-xs font-medium text-theme-muted mb-1">Select Item</label>
+              {partsLoading ? (
+                <div className="h-10 bg-theme-surface-2 rounded-lg animate-pulse" />
+              ) : (
+                <PartLOV
+                  parts={allParts}
+                  selectedPartId={selectedPartId}
+                  onSelect={setSelectedPartId}
+                />
+              )}
+            </div>
+            {selectedPart && (
+              <div className="flex items-center gap-3">
+                <div className="text-xs text-theme-muted">
+                  Container size: <span className="font-medium">{selectedPart.container_size ?? '?'} {selectedPart.base_unit ?? 'L'}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {!selectedPartId ? (
+            <div className="text-center py-12 text-sm text-theme-muted">Select a part to view its ledger</div>
+          ) : loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-sm text-theme-muted">Loading ledger…</div>
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="text-center py-16 text-theme-muted text-sm">No movements recorded for this item</div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-theme">
+              <table className="w-full text-sm min-w-[640px]">
+                <thead>
+                  <tr className="bg-theme-surface-2 border-b border-theme">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Date</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Action</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Reference</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Change</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Balance After</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-theme-muted uppercase tracking-wide">Performed By</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-theme">
+                  {rows.map(row => (
+                    <tr key={row.movement_id} className="hover:bg-theme-surface-2/50 transition-colors">
+                      <td className="px-4 py-3 text-theme-muted whitespace-nowrap">
+                        {new Date(row.performed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        <span className="block text-xs text-theme-muted/60">
+                          {new Date(row.performed_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          row.is_positive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {row.action_label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-theme-muted text-xs max-w-[180px] truncate">
+                        {row.reference || '—'}
+                      </td>
+                      <td className={`px-4 py-3 text-right font-mono font-semibold ${
+                        row.is_positive ? 'text-green-600' : 'text-red-500'
+                      }`}>
+                        {row.is_positive && row.change_liters >= 0 ? '+' : ''}{Number(row.change_liters).toFixed(2)} {selectedPart?.is_liquid ? 'L' : 'pcs'}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-theme">
+                        {Number(row.balance_after).toFixed(2)} {selectedPart?.is_liquid ? 'L' : 'pcs'}
+                      </td>
+                      <td className="px-4 py-3 text-theme-muted text-sm">
+                        {row.performed_by_name ?? '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
