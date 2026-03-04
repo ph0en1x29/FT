@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkServiceUpgradeNeeded,declineServiceUpgrade,upgradeToFullService } from '../../../services/serviceTrackingService';
 import { CHECKLIST_CATEGORIES } from '../constants';
-import { SupabaseDb as MockDb } from '../../../services/supabaseService';
+import { SupabaseDb as MockDb, supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { ForkliftConditionChecklist,Job,JobStatus,User } from '../../../types';
 import { getMissingMandatoryItems } from '../utils';
@@ -140,6 +140,7 @@ export const useJobActions = ({
     
     setStartJobHourmeter((job.forklift?.hourmeter || 0).toString());
     setConditionChecklist({});
+    state.setBeforePhotos([]);
     setShowStartJobModal(true);
   }, [job, state, setStartJobHourmeter, setConditionChecklist, setShowStartJobModal]);
 
@@ -183,6 +184,72 @@ export const useJobActions = ({
       setJob({ ...updated } as Job);
       setShowStartJobModal(false);
       showToast.success('Job started', 'Status changed to In Progress');
+      
+      // Upload before photos after job is started
+      if (state.beforePhotos.length > 0) {
+        const uploadPromises = state.beforePhotos.map(async (file, index) => {
+          try {
+            // Convert File to base64 for upload
+            const base64Data = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+
+            // Upload to storage
+            const arr = base64Data.split(',');
+            const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+              u8arr[n] = bstr.charCodeAt(n);
+            }
+            const blob = new Blob([u8arr], { type: mime });
+            
+            const timestamp = Date.now();
+            const fileName = `${job.job_id}/before_${timestamp}_${index}.jpg`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('job-photos')
+              .upload(fileName, blob, {
+                contentType: mime,
+                upsert: false,
+              });
+            
+            if (uploadError) throw uploadError;
+            
+            const { data: { publicUrl } } = supabase.storage
+              .from('job-photos')
+              .getPublicUrl(fileName);
+            
+            // Create job_media record
+            await MockDb.addMedia(
+              job.job_id,
+              {
+                type: 'photo',
+                url: publicUrl,
+                description: 'Before condition photo',
+                created_at: new Date().toISOString(),
+                category: 'before',
+                source: 'camera',
+              },
+              currentUserId,
+              currentUserName,
+              false
+            );
+          } catch (error) {
+            console.error('Failed to upload before photo:', error);
+            showToast.warning('Some photos failed to upload', 'Job started successfully');
+          }
+        });
+
+        await Promise.all(uploadPromises);
+        if (uploadPromises.length === state.beforePhotos.length) {
+          showToast.success(`${state.beforePhotos.length} before photo(s) uploaded`);
+        }
+      }
     } catch (error) {
       showToast.error('Failed to start job', (error as Error).message);
     }
@@ -200,6 +267,7 @@ export const useJobActions = ({
       // Now open the start job modal
       setStartJobHourmeter((job.forklift?.hourmeter || 0).toString());
       setConditionChecklist({});
+      state.setBeforePhotos([]);
       setShowStartJobModal(true);
     } catch (error) {
       showToast.error('Failed to upgrade job', (error as Error).message);
@@ -224,6 +292,7 @@ export const useJobActions = ({
       // Open the start job modal
       setStartJobHourmeter((job.forklift?.hourmeter || 0).toString());
       setConditionChecklist({});
+      state.setBeforePhotos([]);
       setShowStartJobModal(true);
     } catch (error) {
       showToast.error('Failed to log decision', (error as Error).message);

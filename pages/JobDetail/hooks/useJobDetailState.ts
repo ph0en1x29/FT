@@ -92,6 +92,7 @@ export const useJobDetailState = () => {
   // Start job states
   const [startJobHourmeter, setStartJobHourmeter] = useState<string>('');
   const [conditionChecklist, setConditionChecklist] = useState<ForkliftConditionChecklist>({});
+  const [beforePhotos, setBeforePhotos] = useState<File[]>([]);
 
   // Reassignment states
   const [reassignTechId, setReassignTechId] = useState('');
@@ -214,6 +215,7 @@ export const useJobDetailState = () => {
     // Start job
     startJobHourmeter, setStartJobHourmeter,
     conditionChecklist, setConditionChecklist,
+    beforePhotos, setBeforePhotos,
 
     // Reassignment
     reassignTechId, setReassignTechId,

@@ -1054,3 +1054,95 @@ To reconcile system stock with actual physical stock:
 ### Cost Alerts
 - When entering a new purchase, if the cost per liter differs more than 10% from the average, a warning appears
 - This helps catch supplier price changes early
+
+### CSV Import
+Import inventory items from CSV files (standard or ACWER format):
+
+**How to Use:**
+1. Go to **Inventory** page
+2. Click the **Import** button in the header
+3. Select your CSV file
+4. System auto-detects the format:
+   - **Standard format** — Header row with columns: part_code, name, category, etc.
+   - **ACWER format** — 3 header rows (company info, headers, units), 7 columns (Item Code, Description, Category, Unit, Stock Balance, Avg Cost, Price)
+5. Preview the items to be imported
+6. Click **Confirm Import**
+
+**What Happens:**
+- **New items** — Created with initial stock and purchase audit trail
+- **Existing items** — Updated (stock, price, category) with adjustment audit trail
+- **Junk rows** — Auto-filtered (empty codes, non-numeric stock, header rows)
+- **Smart liquid detection** — Items with units like "L", "kg", "litre" auto-flagged as liquid
+- **Category mapping** — ACWER categories auto-mapped to FieldPro categories
+
+**Batch Processing:**
+- Large files imported in batches of 100 items
+- Progress indicator shows import status
+- Success/error count displayed after completion
+
+### Purchase History
+Track all inventory purchases with batch grouping and invoice viewer:
+
+**How to Access:**
+1. Go to **Inventory** page → **Ledger** tab
+2. Use the **3-way toggle** to switch between:
+   - **Recent Activity** — All recent inventory movements
+   - **Purchase History** — Grouped purchases with invoices
+   - **Item Ledger** — Item-specific movement history
+
+**Purchase History View:**
+- Batches grouped by **PO number + date**
+- Each batch shows:
+  - PO reference number
+  - Purchase date
+  - Total items purchased
+  - Total cost
+  - Invoice/receipt icon (if uploaded)
+- **Search filter** — Find specific purchases by PO, supplier, or item name
+
+**Invoice Viewer:**
+- Click the 📄 **invoice icon** to view uploaded receipt/invoice
+- Invoices stored in private Supabase bucket
+- Access via **signed URLs** (secure, 1-hour expiry)
+- Supports PDF, images (JPG, PNG), and other document formats
+
+**Use Cases:**
+- Verify purchase costs against invoices
+- Audit inventory procurement
+- Track supplier pricing trends
+
+### Batch Receive Stock
+Streamlined workflow for receiving inventory purchases:
+
+**How to Use:**
+1. Go to **Inventory** page
+2. Click **Receive Stock** button
+3. **Search and select items** — No more scrolling through dropdown:
+   - Type item name or code
+   - Results filter in real-time
+   - Select one or multiple items
+4. For each item, enter:
+   - Quantity received
+   - Unit cost (optional)
+   - PO reference (optional)
+5. **Upload invoice/receipt** (optional):
+   - Click **Upload Invoice** button
+   - Select PDF or image file
+   - File uploaded to private Supabase bucket
+   - Linked to the purchase batch
+6. **Liquid items** show container context:
+   - Container size (e.g., 20L drum, 5L bottle)
+   - Bulk quantity (total liters)
+   - Unit vs liquid quantity clearly displayed
+7. Click **Confirm** to complete the receipt
+
+**Benefits:**
+- **Faster item selection** — Search beats dropdown for large inventories
+- **Invoice tracking** — Attach proof of purchase for audit
+- **Liquid clarity** — Container context prevents unit confusion
+- **Batch grouping** — All items received together linked to one PO
+
+**Security:**
+- Invoices stored in private bucket (not publicly accessible)
+- Access via signed URLs with automatic expiry
+- Full audit trail of who received what and when

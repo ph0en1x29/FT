@@ -259,8 +259,11 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         onSave={actions.handleCustomerSignature} onClose={() => state.setShowCustSigPad(false)} />
       <StartJobModal show={state.showStartJobModal} startJobHourmeter={state.startJobHourmeter} 
         lastRecordedHourmeter={job?.forklift?.hourmeter || 0} conditionChecklist={state.conditionChecklist}
+        beforePhotos={state.beforePhotos}
         onHourmeterChange={state.setStartJobHourmeter} onChecklistToggle={actions.handleChecklistToggle}
         onCheckAll={actions.handleConditionCheckAll} onUncheckAll={actions.handleConditionUncheckAll}
+        onAddPhotos={(files) => state.setBeforePhotos(prev => [...prev, ...files])}
+        onRemovePhoto={(index) => state.setBeforePhotos(prev => prev.filter((_, i) => i !== index))}
         onStartJob={actions.handleStartJobWithCondition} onClose={() => state.setShowStartJobModal(false)} />
       <FinalizeModal show={state.showFinalizeModal} job={job} currentUserName={currentUserName}
         onFinalize={actions.handleFinalizeInvoice} onClose={() => state.setShowFinalizeModal(false)} />

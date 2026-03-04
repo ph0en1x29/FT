@@ -114,3 +114,8 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-04 00:20] Updated InventoryLedgerTab.tsx: added Purchase History view with 3-way toggle, batch grouping by PO/date, collapsible cards, invoice signed URL links
 [Sonnet] [2026-03-04 00:26] Fixed InventoryLedgerTab.tsx: $ → RM currency, added purchase history search filter
 [Sonnet] [2026-03-04 00:26] Fixed ImportPartsModal.tsx: $ → RM currency in cost preview
+
+[Sonnet] [2026-03-04 01:29] pages/JobDetail/JobDetailPage.tsx
+[Sonnet] [2026-03-04 01:29] pages/JobDetail/components/JobDetailModals.tsx
+[Sonnet] [2026-03-04 01:29] pages/JobDetail/hooks/useJobActions.ts
+[Sonnet] [2026-03-04 01:29] pages/JobDetail/hooks/useJobDetailState.ts

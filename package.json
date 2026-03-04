@@ -1,8 +1,15 @@
 {
   "name": "fieldpro-prototype",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.4.0",
   "type": "module",
+  "description": "Field service management platform for equipment service operations",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ph0en1x29/FT.git"
+  },
+  "author": "Athenix Technologies",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

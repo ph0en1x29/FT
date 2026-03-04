@@ -713,6 +713,37 @@ Split large page components into maintainable modules:
 
 ---
 
+## [2026-03-03] — Inventory Data Quality + Forklift Form Redesign
+
+### Added
+- **ACWER CSV self-import** — In-app CSV import with ACWER format auto-detection (3 header rows, 7 columns). Batch upserts (100/batch), audit trail (purchase for new, adjustment for changes), junk row filtering, smart liquid detection, category auto-mapping
+- **Forklift form redesign** — New fields: Customer Forklift No (alphanumeric), Site (free text). DB migration added columns. Brand dropdown (Toyota, Nichiyu, Hangcha, BT, EP, Noblelift, TCM, Unicarries, Yale, Nissan, Others). Updated ForkliftType enum: Battery/Electrical, Diesel, Reach Truck, LPG, Others
+- **Last Service Hourmeter in rental modals** — Optional field in both AssignForkliftModal instances (fleet list + forklift profile). Sets last_service_hourmeter, recalculates next_target_service_hour
+- **Post-bulk-rent Service Reset Modal** — After bulk rent, shows table of rented forklifts with editable Last Service HRS column for batch hourmeter updates
+
+### Fixed
+- **Service Due tab** — Prediction view returns `current_hourmeter` not `hourmeter`; fixed ServiceDueTab.tsx
+- **Category filter overflow** — InventoryFilters.tsx fixed with `lg:w-48`, `truncate`, `min-w-0`
+- **Search service query chain** — Fixed stacked `.is()` bug in searchService.ts
+- **Year field** — Changed from required (defaulting to current year) to optional (null default)
+- **Bulk rent modal** — Last Service Hourmeter field hidden on bulk rent (only shows for single forklift)
+- **Pagination** — Parts queries now paginate to fetch all 3200+ items
+- **Null-safe toFixed** — Fixed crash on null sell_price/cost_price
+
+## [2026-03-04] — Batch Receive Stock + Purchase History + Security Hardening
+
+### Added
+- **Batch Receive Stock redesign** — Search-based item selection (replaces dropdown), invoice/receipt upload to private Supabase bucket with signed URLs, liquid container context display
+- **Purchase History** — 3-way toggle in Ledger tab: Recent Activity / Purchase History / Item Ledger. Batch grouping by PO+date, invoice viewer via signed URLs (1-hour expiry), search filter
+- **Before-condition photo step** — Mandatory camera/gallery photo capture (min 1 photo) before entering hourmeter/checklist on job start. 2-step wizard in StartJobModal
+
+### Fixed  
+- **Service Worker cache** — Removed JS/CSS from CacheFirst runtime caching. Root cause: CacheFirst served stale JS chunks after new deploys
+- **Currency** — Fixed `$` → `RM` (Malaysian Ringgit) across all inventory views
+- **Supabase security** — Enabled RLS on `stocktakes` and `purchase_batches` tables. Set `search_path = public` on all 19 custom plpgsql functions. Hardened 53 RLS policies from `USING(true)` to `USING(auth.uid() IS NOT NULL)`. Restricted 3 overly-broad policies (job_audit_log, van_access_requests, van_audit_log) from all-roles to authenticated-only
+
+---
+
 ## Archive
 
 Detailed historical changelogs are available in `docs/archive/`.

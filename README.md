@@ -1,8 +1,8 @@
 # FieldPro
 
-![Status](https://img.shields.io/badge/Status-v1.3%20Active%20Development-green)
+![Status](https://img.shields.io/badge/Status-v1.4.0-green)
 ![Client](https://img.shields.io/badge/Client-ACWER%20Industrial-blue)
-![Last Updated](https://img.shields.io/badge/Updated-February%202026-lightgrey)
+![Last Updated](https://img.shields.io/badge/Updated-March%202026-lightgrey)
 
 **Field Service Management Platform** for equipment service operations.
 
@@ -36,9 +36,12 @@
 - Job lifecycle management with full audit trails
 - Auto-generated job numbers (`JOB-YYYYMMDD-XXXX`) with DB trigger
 - Customer signature capture + deferred acknowledgement
+- Before-condition photo capture on job start (mandatory step before checklist)
 - 48-item tri-state condition checklist (OK / Not OK / blank)
 - Invoice, Service Report & Quotation PDF generation
 - Fleet (forklift) management + hourmeter tracking
+- **Forklift form redesign** — Customer Forklift No, Site field, Brand dropdown (Toyota, Nichiyu, etc.)
+- **Service reset modal** — Post-bulk-rent hourmeter updates for batch service tracking
 - Helper Technician system + multi-day job support
 - Real-time notification system with sound alerts
 - Light/Dark theme (auto system preference)
@@ -47,7 +50,11 @@
 - **Dual-unit inventory** — Parts tracked in discrete units AND liquid/bulk (L, kg, m)
 - **Liquid inventory service** — Liquid-aware stock deduction in job flow
 - **Bulk parts import** — CSV/JSON upload with upsert by part code
+- **ACWER CSV self-import** — In-app CSV import with ACWER format auto-detection, batch upserts, audit trail
+- **Purchase history** — Batch tracking with invoice viewer and signed URLs (1-hour expiry)
+- **Batch receive stock** — Search-based item selection with invoice upload to private Supabase bucket
 - **Inventory movement logging** — Full audit trail for all stock changes
+- **Audit trail** — Immutable movements, stocktake workflow, adjustments with approval
 - **Low stock alerts** — Threshold-based alerts on admin dashboard
 - **Van Stock** — Per-technician van inventory with history tab and decimal quantity input
 
@@ -114,6 +121,16 @@ npm run dev
 
 ### Test Accounts
 See [User Guide → Test Accounts](./docs/USER_GUIDE.md#test-accounts)
+
+---
+
+## 🛠️ Tech Stack
+
+- **React 18** + **TypeScript** — Modern component architecture with full type safety
+- **Vite** — Lightning-fast dev server and optimized production builds
+- **Tailwind CSS** — Utility-first styling with responsive design
+- **Supabase** — PostgreSQL database with real-time subscriptions, RLS, and authentication
+- **PWA (Workbox)** — Progressive Web App with offline caching and installable experience
 
 ---
 
