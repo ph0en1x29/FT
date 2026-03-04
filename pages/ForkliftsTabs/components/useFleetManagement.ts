@@ -49,6 +49,8 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
   const [showBulkRentModal, setShowBulkRentModal] = useState(false);
   const [showBulkEndRentalModal, setShowBulkEndRentalModal] = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [showBulkServiceResetModal, setShowBulkServiceResetModal] = useState(false);
+  const [bulkRentedForklifts, setBulkRentedForklifts] = useState<any[]>([]);
 
   // Result modal
   const [resultModal, setResultModal] = useState<ResultModalState>({
@@ -315,6 +317,14 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
         details.push(`✗ ${forklift?.serial_number || f.forkliftId} - ${f.error}`);
       });
 
+      // If there are successful rentals, show service reset modal
+      if (result.success.length > 0) {
+        const successfulForkliftIds = result.success.map((r) => r.forklift_id);
+        const rentedForklifts = forklifts.filter((f) => successfulForkliftIds.includes(f.forklift_id));
+        setBulkRentedForklifts(rentedForklifts);
+        setShowBulkServiceResetModal(true);
+      }
+
       setResultModal({
         show: true,
         type: result.failed.length === 0 ? 'success' : result.success.length === 0 ? 'error' : 'mixed',
@@ -418,6 +428,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     editingForklift, assigningForklift, resultModal, bulkProcessing,
     closeAddModal, closeAssignModal, closeResultModal,
     setShowBulkRentModal, setShowBulkEndRentalModal,
+    showBulkServiceResetModal, setShowBulkServiceResetModal, bulkRentedForklifts,
     // Forms
     formData, setFormData, selectedCustomerId, setSelectedCustomerId,
     startDate, setStartDate, endDate, setEndDate,

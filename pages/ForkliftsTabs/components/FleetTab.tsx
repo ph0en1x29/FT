@@ -6,6 +6,7 @@ import AddEditForkliftModal from './AddEditForkliftModal';
 import AssignForkliftModal from './AssignForkliftModal';
 import BulkActionsBar from './BulkActionsBar';
 import BulkEndRentalModal from './BulkEndRentalModal';
+import BulkServiceResetModal from './BulkServiceResetModal';
 import ForkliftFilters from './ForkliftFilters';
 import ForkliftGrid from './ForkliftGrid';
 import ResultModal from './ResultModal';
@@ -166,6 +167,12 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         setEndDate={fleet.setBulkEndDate}
         onSubmit={fleet.handleBulkEndRental}
         isProcessing={fleet.bulkProcessing}
+      />
+
+      <BulkServiceResetModal
+        isOpen={fleet.showBulkServiceResetModal}
+        onClose={() => fleet.setShowBulkServiceResetModal(false)}
+        forklifts={fleet.bulkRentedForklifts}
       />
 
       <ResultModal

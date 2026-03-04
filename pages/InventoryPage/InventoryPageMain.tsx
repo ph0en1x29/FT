@@ -270,7 +270,6 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
       {/* Batch Receive Stock Modal */}
       <BatchReceiveStockModal
         show={showBatchReceive}
-        parts={parts}
         currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
         onClose={() => setShowBatchReceive(false)}
         onSuccess={() => { setShowBatchReceive(false); loadParts(); }}

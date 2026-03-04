@@ -105,3 +105,8 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-03 23:54] Updated FleetTab.tsx: pass lastServiceHourmeter props
 [Sonnet] [2026-03-03 23:54] Updated useFleetManagement.ts: lastServiceHourmeter state and reset logic
 [Sonnet] [2026-03-03 23:57] Fixed AssignForkliftModal.tsx: hide last service hourmeter on bulk rent (isBulk guard)
+[Sonnet] [2026-03-04 00:07] Rewrote BatchReceiveStockModal.tsx: search-based item selection, invoice/receipt upload to Supabase storage, fixed liquid stock display (container×size+bulk), container context for liquids
+[Sonnet] [2026-03-04 00:07] Updated InventoryPageMain.tsx: removed parts prop from BatchReceiveStockModal (now self-contained)
+[Sonnet] [2026-03-04 00:07] Created BulkServiceResetModal.tsx: post-bulk-rent service reset table for individual forklift hourmeter updates
+[Sonnet] [2026-03-04 00:07] Updated FleetTab.tsx: render BulkServiceResetModal
+[Sonnet] [2026-03-04 00:07] Updated useFleetManagement.ts: bulk service reset state + trigger after successful bulk rent
