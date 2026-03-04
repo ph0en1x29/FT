@@ -667,7 +667,7 @@ export default function ImportPartsModal({
                           {part.stock_quantity || 0}
                         </td>
                         <td className="px-2 py-2 border-b text-right">
-                          {part.cost_price ? `$${part.cost_price.toFixed(2)}` : '-'}
+                          {part.cost_price ? `RM ${part.cost_price.toFixed(2)}` : '-'}
                         </td>
                         <td className="px-2 py-2 border-b text-gray-600">
                           {part.location || '-'}

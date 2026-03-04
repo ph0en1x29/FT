@@ -242,6 +242,7 @@ const InventoryLedgerTab: React.FC = () => {
   const [purchaseGroups, setPurchaseGroups] = useState<PurchaseGroup[]>([]);
   const [purchasesLoading, setPurchasesLoading] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [purchaseSearch, setPurchaseSearch] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -449,7 +450,16 @@ const InventoryLedgerTab: React.FC = () => {
       {/* Purchase History View */}
       {view === 'purchases' && (
         <div className="mt-4">
-          <h3 className="text-sm font-semibold text-theme-muted uppercase tracking-wide mb-3">Purchase History</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <h3 className="text-sm font-semibold text-theme-muted uppercase tracking-wide">Purchase History</h3>
+            <input
+              type="text"
+              value={purchaseSearch}
+              onChange={e => setPurchaseSearch(e.target.value)}
+              placeholder="Search by PO, part name, or code..."
+              className="w-full sm:w-64 px-3 py-2 text-sm rounded-lg border border-theme bg-theme-surface focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-theme-muted"
+            />
+          </div>
           {purchasesLoading ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
@@ -460,7 +470,12 @@ const InventoryLedgerTab: React.FC = () => {
             <div className="text-center py-12 text-sm text-theme-muted">No purchase history recorded yet</div>
           ) : (
             <div className="space-y-3">
-              {purchaseGroups.map(group => {
+              {purchaseGroups.filter(group => {
+                if (!purchaseSearch) return true;
+                const q = purchaseSearch.toLowerCase();
+                return group.reference.toLowerCase().includes(q) ||
+                  group.items.some(i => i.part_name.toLowerCase().includes(q) || i.part_code.toLowerCase().includes(q));
+              }).map(group => {
                 const isExpanded = expandedGroups.has(group.key);
                 return (
                   <div key={group.key} className="border border-theme rounded-lg overflow-hidden bg-theme-surface">
@@ -493,7 +508,7 @@ const InventoryLedgerTab: React.FC = () => {
                             <span className="font-medium text-theme">{group.itemCount}</span> items
                           </div>
                           <div className="text-theme-muted">
-                            Total: <span className="font-semibold text-theme">${group.totalCost.toFixed(2)}</span>
+                            Total: <span className="font-semibold text-theme">RM {group.totalCost.toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
@@ -537,8 +552,8 @@ const InventoryLedgerTab: React.FC = () => {
                                       {item.unit}
                                     </span>
                                   </td>
-                                  <td className="px-4 py-2 text-right font-mono text-theme-muted">${item.unit_cost.toFixed(2)}</td>
-                                  <td className="px-4 py-2 text-right font-mono font-semibold text-theme">${item.total_cost.toFixed(2)}</td>
+                                  <td className="px-4 py-2 text-right font-mono text-theme-muted">RM {item.unit_cost.toFixed(2)}</td>
+                                  <td className="px-4 py-2 text-right font-mono font-semibold text-theme">RM {item.total_cost.toFixed(2)}</td>
                                 </tr>
                               ))}
                             </tbody>
