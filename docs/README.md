@@ -1,6 +1,8 @@
 # FieldPro Documentation
 
-> Field Service Management System for ACWER
+> Field Service Management Platform — v1.4.0  
+> Client: ACWER Industrial Services Sdn Bhd  
+> Live: [ft-kappa.vercel.app](https://ft-kappa.vercel.app)
 
 ---
 

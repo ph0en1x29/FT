@@ -80,18 +80,21 @@
 
 ---
 
-## 🚀 Release Notes
+## 🚀 Releases
 
-### v1.3 (February 26, 2026)
+### [v1.4.0](https://github.com/ph0en1x29/FT/releases/tag/v1.4.0) — March 4, 2026
+Inventory overhaul (ACWER CSV import, purchase history, batch receive), forklift form redesign, before-photo job start, 53 RLS policies hardened — [View details →](https://github.com/ph0en1x29/FT/releases/tag/v1.4.0)
+
+### v1.3 — February 26, 2026
 Job numbers, liquid inventory, bulk parts import, checklist tri-state, semantic search, E2E tests, mobile UX overhaul — [View details →](./docs/CHANGELOG.md)
 
-### v1.2 (February 17, 2026)
+### v1.2 — February 17, 2026
 Full mobile + PWA overhaul, command palette, role-aware navigation, FAB, dark mode — [View details →](./docs/CHANGELOG.md)
 
-### v1.1 (January 2026)
+### v1.1 — January 2026
 ACWER Industrial workflow implementation — [View details →](./docs/CHANGELOG.md)
 
-### v1.0 (December 2025)
+### v1.0 — December 2025
 Initial release with full FSM capabilities
 
 ---
@@ -99,25 +102,31 @@ Initial release with full FSM capabilities
 ## 🛠️ Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- Supabase account
+- Node.js 18+ (20 recommended)
+- npm 9+
+- Supabase project ([supabase.com](https://supabase.com))
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone [your-repo-url]
+git clone https://github.com/ph0en1x29/FT.git
 cd FT
-
-# Install dependencies
 npm install
-
-# Set up environment
-# Edit .env.local with your Supabase credentials
-
-# Run development server
-npm run dev
+cp .env.example .env.local   # Edit with your Supabase credentials
+npm run dev                   # http://localhost:5173
 ```
+
+### Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server (Vite HMR) |
+| `npm run build` | Production build + PWA service worker |
+| `npm run preview` | Preview production build locally |
+| `npm run typecheck` | TypeScript type checking |
+| `npm run lint` | ESLint + TypeScript checks |
+| `npm test` | Run Playwright E2E tests |
+| `npm run test:ui` | Playwright interactive UI mode |
 
 ### Test Accounts
 See [User Guide → Test Accounts](./docs/USER_GUIDE.md#test-accounts)
@@ -126,11 +135,28 @@ See [User Guide → Test Accounts](./docs/USER_GUIDE.md#test-accounts)
 
 ## 🛠️ Tech Stack
 
-- **React 18** + **TypeScript** — Modern component architecture with full type safety
-- **Vite** — Lightning-fast dev server and optimized production builds
-- **Tailwind CSS** — Utility-first styling with responsive design
-- **Supabase** — PostgreSQL database with real-time subscriptions, RLS, and authentication
-- **PWA (Workbox)** — Progressive Web App with offline caching and installable experience
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18 + TypeScript |
+| Build | Vite 6 |
+| Styling | Tailwind CSS |
+| Database | Supabase (PostgreSQL + RLS + Realtime) |
+| Auth | Supabase Auth (email/password) |
+| Storage | Supabase Storage (invoices, job photos) |
+| Search | pgvector (gte-small 384d embeddings) |
+| PWA | Workbox (vite-plugin-pwa) |
+| Testing | Playwright E2E |
+| CI/CD | GitHub Actions → Vercel auto-deploy |
+| Charts | Recharts |
+| Icons | Lucide React |
+| Error Tracking | Sentry |
+
+### Deployment
+
+- **Hosting:** [Vercel](https://vercel.com) — auto-deploys from `main` branch
+- **Live URL:** [ft-kappa.vercel.app](https://ft-kappa.vercel.app)
+- **Database:** Supabase (managed PostgreSQL)
+- **CI:** GitHub Actions runs build + smoke tests on every push/PR
 
 ---
 
@@ -147,13 +173,41 @@ Before making changes, please read:
 
 ---
 
+## 📁 Project Structure
+
+```
+FT/
+├── src/
+│   ├── components/       # Shared UI components
+│   ├── contexts/         # React contexts (auth, theme, notifications)
+│   ├── hooks/            # Custom hooks
+│   ├── pages/            # Page components (route-based)
+│   │   ├── Dashboard/
+│   │   ├── JobDetail/
+│   │   ├── ForkliftsTabs/
+│   │   ├── ForkliftProfile/
+│   │   ├── Inventory/
+│   │   └── ...
+│   ├── services/         # Supabase service layer
+│   ├── types/            # TypeScript type definitions
+│   └── utils/            # Utility functions
+├── docs/                 # Project documentation
+├── tests/                # Playwright E2E tests
+├── .github/workflows/    # CI pipeline
+└── public/               # Static assets + PWA manifest
+```
+
 ## 🔗 Links
 
-- **Live Demo:** https://ft-kappa.vercel.app/
-- **AI Studio:** https://ai.studio/apps/drive/1myzJ8ssh9kCG1wrt_2wQD9OMNOuWkWKW
+| | |
+|---|---|
+| **Live** | [ft-kappa.vercel.app](https://ft-kappa.vercel.app) |
+| **Repo** | [github.com/ph0en1x29/FT](https://github.com/ph0en1x29/FT) |
+| **Docs** | [docs/](./docs/) |
+| **Releases** | [GitHub Releases](https://github.com/ph0en1x29/FT/releases) |
 
 ---
 
 ## 📄 License
 
-Proprietary — All rights reserved.
+Proprietary — All rights reserved. © 2025-2026 Athenix Technologies.
