@@ -177,6 +177,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     setStartDate(new Date().toISOString().split('T')[0]);
     setEndDate('');
     setRentalNotes('');
+    setLastServiceHourmeter('');
     setShowAssignModal(true);
   }, []);
 
@@ -215,6 +216,24 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
         currentUser?.user_id, currentUser?.name,
         monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined
       );
+
+      // If last service hourmeter provided, reset service interval
+      if (lastServiceHourmeter) {
+        const newHm = parseInt(lastServiceHourmeter);
+        if (!isNaN(newHm) && newHm > 0) {
+          const interval = assigningForklift.service_interval_hours || 500;
+          await supabase
+            .from('forklifts')
+            .update({
+              last_service_hourmeter: newHm,
+              last_serviced_hourmeter: newHm,
+              next_target_service_hour: newHm + interval,
+              last_service_date: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('forklift_id', assigningForklift.forklift_id);
+        }
+      }
 
       const customer = customers.find((c) => c.customer_id === selectedCustomerId);
       setShowAssignModal(false);
@@ -403,6 +422,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     formData, setFormData, selectedCustomerId, setSelectedCustomerId,
     startDate, setStartDate, endDate, setEndDate,
     rentalNotes, setRentalNotes, monthlyRentalRate, setMonthlyRentalRate,
+    lastServiceHourmeter, setLastServiceHourmeter,
     bulkEndDate, setBulkEndDate,
     // Handlers
     canEditForklifts, handleAddNew, handleEdit, handleAssign,

@@ -128,6 +128,8 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
           setRentalNotes={fleet.setRentalNotes}
           monthlyRentalRate={fleet.monthlyRentalRate}
           setMonthlyRentalRate={fleet.setMonthlyRentalRate}
+          lastServiceHourmeter={fleet.lastServiceHourmeter}
+          setLastServiceHourmeter={fleet.setLastServiceHourmeter}
           onSubmit={fleet.handleAssignSubmit}
         />
       )}
@@ -149,6 +151,8 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
           setRentalNotes={fleet.setRentalNotes}
           monthlyRentalRate={fleet.monthlyRentalRate}
           setMonthlyRentalRate={fleet.setMonthlyRentalRate}
+          lastServiceHourmeter={fleet.lastServiceHourmeter}
+          setLastServiceHourmeter={fleet.setLastServiceHourmeter}
           onSubmit={fleet.handleBulkRentOut}
           isProcessing={fleet.bulkProcessing}
         />

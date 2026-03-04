@@ -1,5 +1,6 @@
 import { DollarSign,Save,X } from 'lucide-react';
 import React,{ useState } from 'react';
+import { supabase } from '../../../services/supabaseClient';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { Customer,Forklift,User } from '../../../types';
 
@@ -23,6 +24,7 @@ export const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
   const [endDate, setEndDate] = useState('');
   const [rentalNotes, setRentalNotes] = useState('');
   const [monthlyRentalRate, setMonthlyRentalRate] = useState('');
+  const [lastServiceHourmeter, setLastServiceHourmeter] = useState('');
 
   const handleSubmit = async () => {
     if (!selectedCustomerId || !startDate) {
@@ -41,6 +43,23 @@ export const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
         currentUser.name,
         monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined
       );
+      // If last service hourmeter provided, reset service interval
+      if (lastServiceHourmeter) {
+        const newHm = parseInt(lastServiceHourmeter);
+        if (!isNaN(newHm) && newHm > 0) {
+          const interval = forklift.service_interval_hours || 500;
+          await supabase
+            .from('forklifts')
+            .update({
+              last_service_hourmeter: newHm,
+              last_serviced_hourmeter: newHm,
+              next_target_service_hour: newHm + interval,
+              last_service_date: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('forklift_id', forklift.forklift_id);
+        }
+      }
       onSuccess();
     } catch (error) {
       alert((error as Error).message);
@@ -90,6 +109,19 @@ export const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
                 placeholder="e.g., 2500.00"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service Hourmeter (Optional)</label>
+            <input
+              type="number"
+              className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-blue-500"
+              value={lastServiceHourmeter}
+              onChange={(e) => setLastServiceHourmeter(e.target.value)}
+              placeholder="e.g., 17503"
+              min="0"
+            />
+            <p className="text-xs text-slate-400 mt-1">Fill in to reset service interval from this reading</p>
           </div>
 
           <div>
