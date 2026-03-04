@@ -36,11 +36,11 @@ const InventoryFilters: React.FC<InventoryFiltersProps> = ({
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-3">
-          <div className="flex items-center gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
             <select
-              className="w-full lg:w-auto px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm h-10"
+              className="w-full lg:w-48 px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm h-10 truncate"
               value={filterCategory}
               onChange={(e) => onCategoryChange(e.target.value)}
             >
@@ -52,7 +52,7 @@ const InventoryFilters: React.FC<InventoryFiltersProps> = ({
           </div>
 
           <select
-            className="w-full lg:w-auto px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm h-10"
+            className="w-full lg:w-48 px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm h-10 truncate"
             value={filterStock}
             onChange={(e) => onStockChange(e.target.value as 'all' | 'low' | 'out')}
           >

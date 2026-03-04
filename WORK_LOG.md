@@ -85,3 +85,8 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 - Fixed useInventoryData.ts: same null-safe pattern for CSV export
 - sell_price shows '—' when NULL, cost_price defaults to 0
 
+
+
+
+[Sonnet] [2026-03-03 19:09] Fixed InventoryFilters.tsx: cap dropdown lg:w-48, truncate, min-w-0 for 37 categories overflow
+[Sonnet] [2026-03-03 19:09] Fixed searchService.ts: stacked query chain semicolon typo on line 115

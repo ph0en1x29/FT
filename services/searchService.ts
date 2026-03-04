@@ -112,7 +112,7 @@ async function hydrateMatches(matches: MatchJobRow[]): Promise<SearchResult[]> {
   const { data, error } = await supabase
     .from('jobs')
     .select('job_id, title, description, status, created_at')
-    .in('job_id', uniqueIds);
+    .in('job_id', uniqueIds)
     .is('deleted_at', null)
 
   if (error) {
