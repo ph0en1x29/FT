@@ -90,3 +90,9 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 
 [Sonnet] [2026-03-03 19:09] Fixed InventoryFilters.tsx: cap dropdown lg:w-48, truncate, min-w-0 for 37 categories overflow
 [Sonnet] [2026-03-03 19:09] Fixed searchService.ts: stacked query chain semicolon typo on line 115
+
+[Sonnet] [2026-03-03 21:40] Redesigned AddEditForkliftModal.tsx: new fields (forklift_no, customer_forklift_no, site, brand dropdown, current_date, last_service_date), updated form layout per client wireframe
+[Sonnet] [2026-03-03 21:40] Updated useFleetManagement.ts: new initialFormData fields, handleEdit populates new fields, location→site migration
+[Sonnet] [2026-03-03 21:40] Updated forklift.types.ts: ForkliftType enum (Battery/Electrical, Reach Truck, Others), FORKLIFT_BRANDS constant, Forklift interface new fields
+[Sonnet] [2026-03-03 21:40] Rewrote ImportPartsModal.tsx: ACWER CSV format support, proper CSV parsing, batch upserts, audit trail, format auto-detection
+[Sonnet] [2026-03-03 21:40] Fixed ForkliftCard.tsx: updated ForkliftType enum refs (ELECTRIC→BATTERY_ELECTRICAL, PETROL→OTHERS, added REACH_TRUCK)

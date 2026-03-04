@@ -60,10 +60,11 @@ const ForkliftCard: React.FC<ForkliftCardProps> = ({
 
   const getTypeBadge = (type: ForkliftType) => {
     const styles = {
-      [ForkliftType.ELECTRIC]: 'bg-blue-100 text-blue-700',
+      [ForkliftType.BATTERY_ELECTRICAL]: 'bg-blue-100 text-blue-700',
       [ForkliftType.DIESEL]: 'bg-slate-100 text-slate-700',
       [ForkliftType.LPG]: 'bg-purple-100 text-purple-700',
-      [ForkliftType.PETROL]: 'bg-orange-100 text-orange-700',
+      [ForkliftType.REACH_TRUCK]: 'bg-teal-100 text-teal-700',
+      [ForkliftType.OTHERS]: 'bg-orange-100 text-orange-700',
     };
     return styles[type] || 'bg-slate-100 text-slate-700';
   };

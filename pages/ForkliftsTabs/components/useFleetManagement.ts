@@ -7,14 +7,18 @@ import { ResultModalState } from '../types';
 
 const initialFormData = {
   serial_number: '',
+  forklift_no: '',
+  customer_forklift_no: '',
   make: '',
   model: '',
   type: ForkliftType.DIESEL,
   hourmeter: 0,
+  last_hourmeter_update: new Date().toISOString().split('T')[0],
   last_service_hourmeter: 0,
+  last_service_date: '',
   year: new Date().getFullYear(),
   capacity_kg: 0,
-  location: '',
+  site: '',
   status: ForkliftStatus.ACTIVE,
   notes: '',
 };
@@ -145,14 +149,18 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     e.stopPropagation();
     setFormData({
       serial_number: forklift.serial_number,
+      forklift_no: forklift.forklift_no || '',
+      customer_forklift_no: forklift.customer_forklift_no || '',
       make: forklift.make,
       model: forklift.model,
       type: forklift.type,
       hourmeter: forklift.hourmeter,
+      last_hourmeter_update: forklift.last_hourmeter_update ? forklift.last_hourmeter_update.split('T')[0] : new Date().toISOString().split('T')[0],
       last_service_hourmeter: forklift.last_service_hourmeter || 0,
+      last_service_date: forklift.last_service_date ? forklift.last_service_date.split('T')[0] : '',
       year: forklift.year || new Date().getFullYear(),
       capacity_kg: forklift.capacity_kg || 0,
-      location: forklift.location || '',
+      site: forklift.site || forklift.location || '',
       status: forklift.status,
       notes: forklift.notes || '',
     });

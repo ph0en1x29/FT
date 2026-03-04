@@ -2,16 +2,29 @@ import { Save,X } from 'lucide-react';
 import React from 'react';
 import { ForkliftStatus,ForkliftType } from '../../../types';
 
+// Try to import FORKLIFT_BRANDS, fallback if not available
+let FORKLIFT_BRANDS: readonly string[];
+try {
+  const imported = require('../../../types/forklift.types');
+  FORKLIFT_BRANDS = imported.FORKLIFT_BRANDS;
+} catch {
+  FORKLIFT_BRANDS = ['Toyota', 'Nichiyu', 'Hangcha', 'BT', 'EP', 'Noblelift', 'TCM', 'Unicarries', 'Yale', 'Nissan', 'Others'];
+}
+
 interface FormData {
   serial_number: string;
-  make: string;
+  forklift_no: string;
+  customer_forklift_no: string;
+  make: string;           // maps to Brand dropdown
   model: string;
   type: ForkliftType;
   hourmeter: number;
+  last_hourmeter_update: string;  // date string YYYY-MM-DD
   last_service_hourmeter: number;
+  last_service_date: string;      // date string YYYY-MM-DD
   year: number;
   capacity_kg: number;
-  location: string;
+  site: string;
   status: ForkliftStatus;
   notes: string;
 }
@@ -48,6 +61,7 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
         </div>
 
         <form onSubmit={onSubmit} className="p-6 space-y-4">
+          {/* 1. Serial Number */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Serial Number *</label>
             <input 
@@ -60,31 +74,59 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
             />
           </div>
 
+          {/* 2. Row: Forklift No + Customer Forklift No */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Make *</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Forklift No</label>
               <input 
                 type="text" 
                 className={inputClassName} 
-                value={formData.make} 
-                onChange={e => setFormData({...formData, make: e.target.value})} 
-                placeholder="e.g., Toyota" 
-                required 
+                value={formData.forklift_no} 
+                onChange={e => setFormData({...formData, forklift_no: e.target.value})} 
+                placeholder="e.g., A123" 
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Model *</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Customer Forklift No</label>
+              <input 
+                type="text" 
+                className={inputClassName} 
+                value={formData.customer_forklift_no} 
+                onChange={e => setFormData({...formData, customer_forklift_no: e.target.value})} 
+                placeholder="e.g., WH-FL-003" 
+              />
+            </div>
+          </div>
+
+          {/* 3. Row: Brand + Model */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Brand *</label>
+              <select 
+                className={inputClassName} 
+                value={formData.make} 
+                onChange={e => setFormData({...formData, make: e.target.value})}
+                required
+              >
+                <option value="">Select Brand</option>
+                {FORKLIFT_BRANDS.map(brand => (
+                  <option key={brand} value={brand}>{brand}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Model</label>
               <input 
                 type="text" 
                 className={inputClassName} 
                 value={formData.model} 
                 onChange={e => setFormData({...formData, model: e.target.value})} 
                 placeholder="e.g., 8FGU25" 
-                required 
               />
             </div>
           </div>
 
+          {/* 4. Row: Type + Status */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type *</label>
@@ -108,9 +150,10 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
             </div>
           </div>
 
+          {/* 5. Row: Current Hourmeter + Current Date */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Current Hourmeter (hrs)</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Current Hourmeter (HRS)</label>
               <input 
                 type="number" 
                 className={inputClassName} 
@@ -120,7 +163,20 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service Hourmeter (hrs)</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Current Date</label>
+              <input 
+                type="date" 
+                className={inputClassName} 
+                value={formData.last_hourmeter_update} 
+                onChange={e => setFormData({...formData, last_hourmeter_update: e.target.value})} 
+              />
+            </div>
+          </div>
+
+          {/* 6. Row: Last Service Hourmeter + Last Service Date */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service Hourmeter (HRS)</label>
               <input 
                 type="number" 
                 className={inputClassName} 
@@ -130,8 +186,18 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
                 placeholder="Set to current if unknown"
               />
             </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service Date</label>
+              <input 
+                type="date" 
+                className={inputClassName} 
+                value={formData.last_service_date} 
+                onChange={e => setFormData({...formData, last_service_date: e.target.value})} 
+              />
+            </div>
           </div>
 
+          {/* 7. Row: Year + Capacity */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Year</label>
@@ -144,11 +210,8 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
                 max={new Date().getFullYear() + 1} 
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Capacity (kg)</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Capacity (KG)</label>
               <input 
                 type="number" 
                 className={inputClassName} 
@@ -158,18 +221,21 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
                 placeholder="e.g., 2500" 
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Location</label>
-              <input 
-                type="text" 
-                className={inputClassName} 
-                value={formData.location} 
-                onChange={e => setFormData({...formData, location: e.target.value})} 
-                placeholder="e.g., Warehouse A" 
-              />
-            </div>
           </div>
 
+          {/* 8. Site */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Site</label>
+            <input 
+              type="text" 
+              className={inputClassName} 
+              value={formData.site} 
+              onChange={e => setFormData({...formData, site: e.target.value})} 
+              placeholder="e.g., North Gate Warehouse" 
+            />
+          </div>
+
+          {/* 9. Notes */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes</label>
             <textarea 

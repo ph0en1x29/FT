@@ -8,10 +8,16 @@ import type { Job,JobPriority } from './job.types';
 
 // Forklift/Asset types
 export enum ForkliftType {
-  ELECTRIC = 'Electric',
+  BATTERY_ELECTRICAL = 'Battery/Electrical',
   DIESEL = 'Diesel',
+  REACH_TRUCK = 'Reach Truck',
   LPG = 'LPG',
-  PETROL = 'Petrol',
+  OTHERS = 'Others',
+  
+  // @deprecated - use BATTERY_ELECTRICAL instead
+  // ELECTRIC = 'Electric',
+  // @deprecated - use OTHERS instead
+  // PETROL = 'Petrol',
 }
 
 export enum ForkliftStatus {
@@ -35,6 +41,12 @@ export enum ForkliftOwnership {
   COMPANY = 'company',   // ACWER-owned forklift
   CUSTOMER = 'customer', // Customer-owned forklift (Van Stock usage requires approval)
 }
+
+// Forklift Brands
+export const FORKLIFT_BRANDS = [
+  'Toyota', 'Nichiyu', 'Hangcha', 'BT', 'EP',
+  'Noblelift', 'TCM', 'Unicarries', 'Yale', 'Nissan', 'Others'
+] as const;
 
 // Forklift Condition Checklist Items
 export interface ForkliftConditionChecklist {
@@ -120,7 +132,8 @@ export interface Forklift {
   hourmeter: number;
   year?: number;
   capacity_kg?: number;
-  location?: string;
+  location?: string; // @deprecated use site
+  site?: string;
   status: ForkliftStatus;
   last_service_date?: string;
   next_service_due?: string;
@@ -132,6 +145,7 @@ export interface Forklift {
   // Customer relationship for rental tracking
   customer_id?: string;
   forklift_no?: string; // Internal forklift number (e.g., FLT 5)
+  customer_forklift_no?: string; // Customer's forklift number reference
   // Current rental assignment (denormalized for quick lookup)
   current_customer_id?: string;
   current_customer?: Customer; // Populated when fetched with joins
