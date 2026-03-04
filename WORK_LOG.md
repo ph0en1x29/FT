@@ -96,3 +96,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-03 21:40] Updated forklift.types.ts: ForkliftType enum (Battery/Electrical, Reach Truck, Others), FORKLIFT_BRANDS constant, Forklift interface new fields
 [Sonnet] [2026-03-03 21:40] Rewrote ImportPartsModal.tsx: ACWER CSV format support, proper CSV parsing, batch upserts, audit trail, format auto-detection
 [Sonnet] [2026-03-03 21:40] Fixed ForkliftCard.tsx: updated ForkliftType enum refs (ELECTRIC→BATTERY_ELECTRICAL, PETROL→OTHERS, added REACH_TRUCK)
+[Sonnet] [2026-03-03 22:24] Fixed ServiceDueTab.tsx: read current_hourmeter from prediction view with fallback to hourmeter
+[Sonnet] [2026-03-03 22:24] Fixed types.ts: added current_hourmeter to ForkliftDue interface

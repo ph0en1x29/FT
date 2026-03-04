@@ -33,6 +33,7 @@ export interface ForkliftDue {
   model: string;
   type: string;
   hourmeter: number;
+  current_hourmeter?: number;
   next_service_due: string | null;
   next_service_hourmeter: number | null;
   days_until_due: number | null;

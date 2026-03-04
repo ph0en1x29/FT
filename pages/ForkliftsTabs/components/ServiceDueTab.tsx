@@ -144,7 +144,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
     if (!overview?.next_target_service_hour || !overview?.last_serviced_hourmeter) return null;
     const total = overview.next_target_service_hour - overview.last_serviced_hourmeter;
     if (total <= 0) return null;
-    const used = (forklift.hourmeter || 0) - overview.last_serviced_hourmeter;
+    const used = ((forklift.current_hourmeter ?? forklift.hourmeter) || 0) - overview.last_serviced_hourmeter;
     const pct = Math.min(Math.max((used / total) * 100, 0), 120); // allow >100% for overdue
     return pct;
   };
@@ -326,8 +326,8 @@ const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
                   const overview = getOverview(forklift.forklift_id);
                   const usage = dailyUsage[forklift.forklift_id];
                   const progress = getServiceProgress(forklift, overview);
-                  const hoursRemaining = overview?.next_target_service_hour != null && forklift.hourmeter != null
-                    ? overview.next_target_service_hour - forklift.hourmeter
+                  const hoursRemaining = overview?.next_target_service_hour != null && (forklift.current_hourmeter ?? forklift.hourmeter) != null
+                    ? overview.next_target_service_hour - (forklift.current_hourmeter ?? forklift.hourmeter)
                     : null;
 
                   return (
@@ -369,7 +369,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-sm">
-                          <p className="font-medium">{forklift.hourmeter?.toLocaleString() ?? '—'} hrs</p>
+                          <p className="font-medium">{(forklift.current_hourmeter ?? forklift.hourmeter)?.toLocaleString() ?? '—'} hrs</p>
                           {overview?.hours_overdue != null && overview.hours_overdue > 0 && (
                             <p className="text-xs text-red-600 font-medium">+{overview.hours_overdue} overdue</p>
                           )}
