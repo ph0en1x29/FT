@@ -104,3 +104,4 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-03 23:54] Updated ForkliftProfile/AssignForkliftModal.tsx: added optional last service hourmeter field with service reset logic
 [Sonnet] [2026-03-03 23:54] Updated FleetTab.tsx: pass lastServiceHourmeter props
 [Sonnet] [2026-03-03 23:54] Updated useFleetManagement.ts: lastServiceHourmeter state and reset logic
+[Sonnet] [2026-03-03 23:57] Fixed AssignForkliftModal.tsx: hide last service hourmeter on bulk rent (isBulk guard)

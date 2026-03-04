@@ -101,6 +101,7 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
             />
           </div>
 
+          {!isBulk && (
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service Hourmeter (Optional)</label>
             <input 
@@ -112,6 +113,7 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
             />
             <p className="text-xs text-slate-400 mt-1">Fill in to reset service interval from this reading</p>
           </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rental Start Date *</label>
