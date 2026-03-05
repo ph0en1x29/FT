@@ -48,12 +48,12 @@ const InventoryFilters: React.FC<InventoryFiltersProps> = ({
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center">
           <Filter className="w-3.5 h-3.5 text-slate-400 hidden lg:block" />
-          <div className="w-32">
+          <div>
             <Combobox compact options={categoryOptions} value={filterCategory} onChange={onCategoryChange} placeholder="All Categories" />
           </div>
-          <div className="w-32">
+          <div>
             <Combobox compact options={stockOptions} value={filterStock} onChange={(v) => onStockChange(v as 'all' | 'low' | 'out')} placeholder="All Stock Levels" />
           </div>
         </div>

@@ -150,7 +150,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
                     setQuery('');
                   }}
                   className={compact
-                    ? "px-3 py-2 hover:bg-blue-500/10 cursor-pointer flex justify-between items-center group border-b border-white/20 last:border-0 text-xs"
+                    ? "px-2.5 py-1.5 hover:bg-blue-500/10 cursor-pointer flex justify-between items-center group border-b border-white/20 last:border-0 text-xs"
                     : "px-4 py-3 hover:bg-blue-50 cursor-pointer text-slate-700 hover:text-blue-700 flex justify-between items-center group border-b border-slate-50 last:border-0"
                   }
                   style={{ color: 'var(--text)' }}

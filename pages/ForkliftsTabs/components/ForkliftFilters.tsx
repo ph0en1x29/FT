@@ -65,19 +65,19 @@ const ForkliftFilters: React.FC<ForkliftFiltersProps> = ({
           />
         </div>
 
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="grid grid-cols-4 gap-2 lg:flex lg:items-center">
           <Filter className="w-3.5 h-3.5 text-theme-muted hidden lg:block" />
-          <div className="w-28">
+          <div>
             <Combobox compact options={typeOptions} value={filterType} onChange={setFilterType} placeholder="All Types" />
           </div>
-          <div className="w-28">
+          <div>
             <Combobox compact options={statusOptions} value={filterStatus} onChange={setFilterStatus} placeholder="All Status" />
           </div>
-          <div className="w-28">
+          <div>
             <Combobox compact options={rentalOptions} value={filterAssigned} onChange={setFilterAssigned} placeholder="All Rentals" />
           </div>
           {uniqueMakes.length > 0 && (
-            <div className="w-28">
+            <div>
               <Combobox compact options={makeOptions} value={filterMake} onChange={setFilterMake} placeholder="All Makes" />
             </div>
           )}
