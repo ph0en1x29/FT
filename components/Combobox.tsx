@@ -87,7 +87,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   );
 
   const inputClassName = compact
-    ? "w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-300/60 shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/50 placeholder-slate-400"
+    ? "w-full px-3 py-2 text-sm rounded-xl border border-slate-300/60 shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/50 placeholder-slate-400"
     : "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/25 placeholder-slate-400 transition-all duration-200";
 
   const inputStyle = compact ? {
@@ -150,13 +150,13 @@ export const Combobox: React.FC<ComboboxProps> = ({
                     setQuery('');
                   }}
                   className={compact
-                    ? "px-2.5 py-1.5 hover:bg-blue-500/10 cursor-pointer flex justify-between items-center group border-b border-white/20 last:border-0 text-xs"
+                    ? "px-3 py-2 hover:bg-blue-500/10 cursor-pointer flex justify-between items-center group border-b border-white/20 last:border-0 text-sm"
                     : "px-4 py-3 hover:bg-blue-50 cursor-pointer text-slate-700 hover:text-blue-700 flex justify-between items-center group border-b border-slate-50 last:border-0"
                   }
                   style={{ color: 'var(--text)' }}
                 >
                   <div>
-                    <div className={compact ? 'font-medium text-xs' : 'font-medium'}>{opt.label}</div>
+                    <div className={compact ? 'font-medium text-sm' : 'font-medium'}>{opt.label}</div>
                     {opt.subLabel && <div className={`text-xs ${compact ? 'text-slate-400' : 'text-slate-400 group-hover:text-blue-400'}`}>{opt.subLabel}</div>}
                   </div>
                   {value === opt.id && <Check className={compact ? 'w-3 h-3 text-blue-500' : 'w-4 h-4 text-blue-600'} />}
@@ -164,7 +164,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
               ))}
             </ul>
           ) : (
-            <div className={`${compact ? 'p-3 text-xs' : 'p-4 text-sm'} text-center text-slate-500`}>
+            <div className={`${compact ? 'p-3 text-sm' : 'p-4 text-sm'} text-center text-slate-500`}>
               No results for &ldquo;{query}&rdquo;
             </div>
           )}

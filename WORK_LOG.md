@@ -234,3 +234,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 17:19M] Fleet filters tighter layout: ForkliftFilters.tsx — search full width, filters compact row below
 
 [Sonnet] [2026-03-05 17:20] Edit Forklift selects to Combobox: AddEditForkliftModal.tsx Combobox.tsx — Brand/Type/Status searchable
+
+[Sonnet] [2026-03-05 17:21] Compact Combobox size bump: Combobox.tsx — text-xs→text-sm, py-1.5→py-2
