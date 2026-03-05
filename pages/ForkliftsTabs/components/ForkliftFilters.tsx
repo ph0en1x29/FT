@@ -52,24 +52,27 @@ const ForkliftFilters: React.FC<ForkliftFiltersProps> = ({
   ], [uniqueMakes]);
 
   return (
-    <div className="bg-[var(--surface)] rounded-xl shadow-sm p-3 space-y-2">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Search by S/N, make, model, location, customer..."
-          className="w-full pl-9 pr-4 py-2 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-theme placeholder-slate-400"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-      <div className="grid grid-cols-4 gap-1.5">
-        <Combobox compact options={typeOptions} value={filterType} onChange={setFilterType} placeholder="All Types" />
-        <Combobox compact options={statusOptions} value={filterStatus} onChange={setFilterStatus} placeholder="All Status" />
-        <Combobox compact options={rentalOptions} value={filterAssigned} onChange={setFilterAssigned} placeholder="All Rentals" />
-        {uniqueMakes.length > 0 ? (
-          <Combobox compact options={makeOptions} value={filterMake} onChange={setFilterMake} placeholder="All Makes" />
-        ) : <div />}
+    <div className="bg-[var(--surface)] rounded-xl shadow-sm p-3">
+      {/* Desktop: search + filters on one row */}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search by S/N, make, model, location, customer..."
+            className="w-full pl-9 pr-4 py-2 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-theme placeholder-slate-400"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="grid grid-cols-4 gap-1.5 lg:flex lg:gap-1.5 lg:shrink-0">
+          <Combobox compact options={typeOptions} value={filterType} onChange={setFilterType} placeholder="All Types" />
+          <Combobox compact options={statusOptions} value={filterStatus} onChange={setFilterStatus} placeholder="All Status" />
+          <Combobox compact options={rentalOptions} value={filterAssigned} onChange={setFilterAssigned} placeholder="All Rentals" />
+          {uniqueMakes.length > 0 ? (
+            <Combobox compact options={makeOptions} value={filterMake} onChange={setFilterMake} placeholder="All Makes" />
+          ) : <div className="hidden lg:block" />}
+        </div>
       </div>
     </div>
   );
