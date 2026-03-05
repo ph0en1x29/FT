@@ -150,3 +150,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 14:42] Modal overflow fix + Edit Customer modal + Site field reorder: AssignForkliftModal.tsx (fleet+profile) EditCustomerModal.tsx CustomerProfilePage.tsx index.ts
 
 [Sonnet] [2026-03-05 14:46] Fix RM currency + overflow: AssignForkliftModal.tsx (fleet+profile)
+
+[Sonnet] [2026-03-05 14:47] Fix modal top clipping: AssignForkliftModal.tsx (fleet+profile)
