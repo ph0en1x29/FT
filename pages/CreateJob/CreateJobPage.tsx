@@ -66,7 +66,7 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
           label="Customer"
           options={customerOptions}
           value={formData.customer_id}
-          onChange={(val) => setFormData(prev => ({...prev, customer_id: val}))}
+          onChange={(val) => setFormData(prev => ({...prev, customer_id: val, forklift_id: ''}))}
           placeholder="Search customer..."
           onAddNew={openNewCustomerModal}
           addNewLabel="Create New Customer"
@@ -76,7 +76,7 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
         <ForkliftSelectionSection
           formData={formData}
           setFormData={setFormData}
-          forklifts={forklifts}
+          forklifts={formData.customer_id ? forklifts.filter(f => f.current_customer_id === formData.customer_id) : forklifts}
           selectedForklift={selectedForklift}
           inputClassName={INPUT_CLASS_NAME}
         />
