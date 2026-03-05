@@ -183,9 +183,9 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
             <>
               {/* Customer Card */}
               <div className="bg-[var(--surface)] rounded-xl shadow-sm overflow-hidden">
-                <div className="px-4 py-3 bg-slate-800 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-slate-300" />
-                  <span className="text-sm font-semibold text-white">Customer</span>
+                <div className="px-4 py-3 bg-slate-100 border-b border-slate-200 flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-slate-500" />
+                  <span className="text-sm font-semibold text-slate-700">Customer</span>
                 </div>
                 <div className="p-4 space-y-3">
                   <div className="flex items-start gap-3">
@@ -222,9 +222,9 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
               {/* Active Rentals */}
               {customerForklifts.length > 0 && (
                 <div className="bg-[var(--surface)] rounded-xl shadow-sm overflow-hidden">
-                  <div className="px-4 py-3 bg-amber-600 flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-amber-100" />
-                    <span className="text-sm font-semibold text-white">Active Rentals ({customerForklifts.length})</span>
+                  <div className="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-amber-500" />
+                    <span className="text-sm font-semibold text-amber-800">Active Rentals ({customerForklifts.length})</span>
                   </div>
                   <div className="divide-y divide-slate-100">
                     {customerForklifts.map(f => (
