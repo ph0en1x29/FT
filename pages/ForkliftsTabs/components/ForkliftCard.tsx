@@ -25,6 +25,7 @@ interface ForkliftCardProps {
   onEdit: (forklift: Forklift, e: React.MouseEvent) => void;
   onDelete: (forklift: Forklift, e: React.MouseEvent) => void;
   onAssign: (forklift: Forklift, e: React.MouseEvent) => void;
+  onReturn?: (forklift: Forklift, e: React.MouseEvent) => void;
 }
 
 const ForkliftCard: React.FC<ForkliftCardProps> = ({
@@ -37,6 +38,7 @@ const ForkliftCard: React.FC<ForkliftCardProps> = ({
   onEdit,
   onDelete,
   onAssign,
+  onReturn,
 }) => {
   const currentCustomer = forklift.current_customer;
 
@@ -144,12 +146,18 @@ const ForkliftCard: React.FC<ForkliftCardProps> = ({
       {/* Actions */}
       {!isSelectionMode && (
         <div className="px-4 py-3 bg-theme-surface-2 border-t border-theme flex justify-between items-center">
-          {!currentCustomer && (
-            <button onClick={(e) => onAssign(forklift, e)} className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium">
-              <Building2 className="w-4 h-4" /> Rent Out
-            </button>
-          )}
-          {currentCustomer && <div />}
+          <div>
+            {!currentCustomer && (
+              <button onClick={(e) => onAssign(forklift, e)} className="flex items-center gap-1.5 text-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 font-medium shadow-sm">
+                <Building2 className="w-4 h-4" /> Rent Out
+              </button>
+            )}
+            {currentCustomer && onReturn && (
+              <button onClick={(e) => onReturn(forklift, e)} className="flex items-center gap-1.5 text-sm bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 font-medium shadow-sm">
+                <Building2 className="w-4 h-4" /> Return
+              </button>
+            )}
+          </div>
           {canEdit && (
             <div className="flex gap-2">
               <button onClick={(e) => onEdit(forklift, e)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit">

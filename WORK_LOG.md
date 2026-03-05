@@ -156,3 +156,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 14:48] Fix bottom cutoff: AssignForkliftModal.tsx (fleet+profile)
 
 [Sonnet] [2026-03-05 14:53] Filter forklifts by customer on Create Job: CreateJobPage.tsx
+
+[Sonnet] [2026-03-05 14:59] Rent Out + Return buttons on forklift cards: ForkliftCard.tsx ForkliftGrid.tsx FleetTab.tsx useFleetManagement.ts

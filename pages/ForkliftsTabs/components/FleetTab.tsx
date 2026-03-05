@@ -100,6 +100,7 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         onEdit={fleet.handleEdit}
         onDelete={fleet.handleDelete}
         onAssign={fleet.handleAssign}
+        onReturn={fleet.handleReturn}
       />
 
       {fleet.showAddModal && (

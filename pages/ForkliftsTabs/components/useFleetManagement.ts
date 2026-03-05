@@ -185,6 +185,21 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     setShowAssignModal(true);
   }, []);
 
+  const handleReturn = useCallback(async (forklift: Forklift, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(`Return ${forklift.make} ${forklift.model} (${forklift.serial_number})? This will end the active rental and mark it as Available.`)) return;
+    try {
+      const { getActiveRentalForForklift, endRental } = await import('../../../services/forkliftService');
+      const rental = await getActiveRentalForForklift(forklift.forklift_id);
+      if (!rental) throw new Error('No active rental found for this forklift');
+      await endRental(rental.rental_id, undefined, currentUser?.user_id, currentUser?.name);
+      await loadData();
+      setResultModal({ show: true, type: 'success', title: 'Forklift Returned', message: `${forklift.make} ${forklift.model} has been returned and is now Available.` });
+    } catch (error) {
+      setResultModal({ show: true, type: 'error', title: 'Error', message: (error as Error).message });
+    }
+  }, [currentUser, loadData]);
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.serial_number || !formData.make || !formData.model) {
@@ -444,7 +459,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     lastServiceHourmeter, setLastServiceHourmeter,
     bulkEndDate, setBulkEndDate,
     // Handlers
-    canEditForklifts, handleAddNew, handleEdit, handleAssign,
+    canEditForklifts, handleAddNew, handleEdit, handleAssign, handleReturn,
     handleSubmit, handleAssignSubmit, handleDelete,
     handleBulkRentOut, handleBulkEndRental,
     openBulkRentModal, openBulkEndRentalModal,

@@ -14,6 +14,7 @@ interface ForkliftGridProps {
   onEdit: (forklift: Forklift, e: React.MouseEvent) => void;
   onDelete: (forklift: Forklift, e: React.MouseEvent) => void;
   onAssign: (forklift: Forklift, e: React.MouseEvent) => void;
+  onReturn?: (forklift: Forklift, e: React.MouseEvent) => void;
 }
 
 const ForkliftGrid: React.FC<ForkliftGridProps> = ({
@@ -26,6 +27,7 @@ const ForkliftGrid: React.FC<ForkliftGridProps> = ({
   onEdit,
   onDelete,
   onAssign,
+  onReturn,
 }) => {
   const navigate = useNavigate();
 
@@ -66,6 +68,7 @@ const ForkliftGrid: React.FC<ForkliftGridProps> = ({
           onEdit={onEdit}
           onDelete={onDelete}
           onAssign={onAssign}
+          onReturn={onReturn}
         />
       ))}
     </div>
