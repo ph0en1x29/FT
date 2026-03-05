@@ -82,8 +82,9 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'pending' | 'acquired' | 'failed'>('pending');
 
   // Cleanup object URLs on unmount or photo changes
   useEffect(() => {
@@ -102,6 +103,34 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
     }
   }, [show]);
 
+  // Request geolocation when modal opens
+  useEffect(() => {
+    if (show && locationStatus === 'pending') {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            });
+            setLocationStatus('acquired');
+          },
+          (error) => {
+            console.error('Geolocation error:', error);
+            setLocationStatus('failed');
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+          }
+        );
+      } else {
+        setLocationStatus('failed');
+      }
+    }
+  }, [show, locationStatus]);
+
   if (!show) return null;
 
   // Count checked items
@@ -110,14 +139,6 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
   const allChecked = checkedItems === totalItems;
 
   const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      onAddPhotos(files);
-    }
-    e.target.value = '';
-  };
-
-  const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
       onAddPhotos(files);
@@ -161,7 +182,7 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
               <Camera className="w-5 h-5 text-[var(--accent)]" /> 📸 Before Condition Photos
             </h4>
             <p className="text-sm text-[var(--text-muted)] mb-6">
-              Take photos of the forklift's current condition before starting work
+              Take on-site photos of the forklift's current condition. Photos must be taken with camera.
             </p>
 
             {/* Photo Upload Area */}
@@ -184,22 +205,27 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
                   onChange={handleCameraCapture}
                 />
 
-                {/* Gallery Upload */}
-                <button
-                  onClick={() => galleryInputRef.current?.click()}
-                  className="btn-premium btn-premium-secondary w-full py-3 text-sm flex items-center justify-center gap-2"
-                >
-                  <Camera className="w-4 h-4" />
-                  Upload from Gallery
-                </button>
-                <input
-                  ref={galleryInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleGalleryUpload}
-                />
+                {/* Location Status Indicator */}
+                <div className="flex items-center justify-center gap-2 text-xs text-[var(--text-muted)]">
+                  {locationStatus === 'pending' && (
+                    <>
+                      <span className="inline-block w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                      <span>Getting location...</span>
+                    </>
+                  )}
+                  {locationStatus === 'acquired' && (
+                    <>
+                      <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                      <span className="text-green-600">📍 Location captured</span>
+                    </>
+                  )}
+                  {locationStatus === 'failed' && (
+                    <>
+                      <span className="inline-block w-2 h-2 rounded-full bg-orange-500" />
+                      <span className="text-orange-600">⚠️ Location unavailable</span>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Photo Count */}
@@ -215,21 +241,38 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
               {/* Photo Grid */}
               {beforePhotos.length > 0 && (
                 <div className="grid grid-cols-4 gap-2">
-                  {beforePhotos.map((file, index) => (
-                    <div key={index} className="relative aspect-square group">
-                      <img
-                        src={photoUrls[index]}
-                        alt={`Before ${index + 1}`}
-                        className="w-full h-full object-cover rounded-lg border border-[var(--border)]"
-                      />
-                      <button
-                        onClick={() => onRemovePhoto(index)}
-                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                  {beforePhotos.map((file, index) => {
+                    const timestamp = new Date(file.lastModified).toLocaleTimeString('en-US', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    });
+                    
+                    return (
+                      <div key={index} className="relative aspect-square group">
+                        <img
+                          src={photoUrls[index]}
+                          alt={`Before ${index + 1}`}
+                          className="w-full h-full object-cover rounded-lg border border-[var(--border)]"
+                        />
+                        {/* Timestamp Overlay */}
+                        <div 
+                          className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[10px] text-white font-medium"
+                          style={{
+                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                            backdropFilter: 'blur(4px)',
+                          }}
+                        >
+                          {timestamp}
+                        </div>
+                        <button
+                          onClick={() => onRemovePhoto(index)}
+                          className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

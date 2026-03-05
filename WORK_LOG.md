@@ -206,3 +206,7 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 16:47] Technician dashboard improvements: TechnicianDashboard.tsx — Quick Actions + Weekly Summary
 
 [Sonnet] [2026-03-05 16:48] Mobile-friendly technician dashboard: TechnicianDashboard.tsx — fix overflow, compact layout
+
+[Sonnet] [2026-03-05 16:54] Equipment card mobile compact: EquipmentCard.tsx — 2-col grid on mobile, tighter spacing
+
+[Sonnet] [2026-03-05 16:54] Camera-only photos with timestamp+location: JobDetailModals.tsx — remove gallery, add geolocation

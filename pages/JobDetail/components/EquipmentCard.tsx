@@ -45,28 +45,28 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
   );
 
   return (
-    <div className="card-premium card-tint-warning p-5">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-[var(--warning-bg)] flex items-center justify-center">
-          <Truck className="w-5 h-5 text-[var(--warning)]" />
+    <div className="card-premium card-tint-warning p-4">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-9 h-9 rounded-xl bg-[var(--warning-bg)] flex items-center justify-center shrink-0">
+          <Truck className="w-4 h-4 text-[var(--warning)]" />
         </div>
-        <div>
-          <h3 className="font-semibold text-[var(--text)]">Equipment</h3>
-          <p className="text-xs text-[var(--text-muted)]">{job.forklift.make} {job.forklift.model}</p>
+        <div className="min-w-0">
+          <h3 className="font-semibold text-sm text-[var(--text)]">Equipment</h3>
+          <p className="text-xs text-[var(--text-muted)] truncate">{job.forklift.make} {job.forklift.model}</p>
         </div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <div>
-          <p className="label-premium mb-1">Serial Number</p>
-          <p className="font-mono value-premium">{job.forklift.serial_number}</p>
+          <p className="label-premium mb-0.5">Serial Number</p>
+          <p className="font-mono value-premium text-sm">{job.forklift.serial_number}</p>
         </div>
         <div>
-          <p className="label-premium mb-1">Type</p>
-          <p className="value-premium-secondary">{job.forklift.type}</p>
+          <p className="label-premium mb-0.5">Type</p>
+          <p className="value-premium-secondary text-sm">{job.forklift.type}</p>
         </div>
         <div>
-          <p className="label-premium mb-1 flex items-center gap-1">
+          <p className="label-premium mb-0.5 flex items-center gap-1">
             <Gauge className="w-3 h-3" /> Hourmeter
           </p>
           {editingHourmeter ? (
@@ -143,23 +143,23 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
         
         {job.forklift.last_service_hourmeter != null && job.forklift.last_service_hourmeter > 0 && (
           <div>
-            <p className="label-premium mb-1 flex items-center gap-1">
-              <Gauge className="w-3 h-3" /> Last Serviced Hour
+            <p className="label-premium mb-0.5 flex items-center gap-1">
+              <Gauge className="w-3 h-3" /> Last Service
             </p>
-            <p className="font-semibold text-[var(--text)]">
+            <p className="font-semibold text-sm text-[var(--text)]">
               {job.forklift.last_service_hourmeter.toLocaleString()} hrs
             </p>
             {job.forklift.last_service_date && (
-              <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+              <p className="text-[10px] text-[var(--text-muted)]">
                 {new Date(job.forklift.last_service_date).toLocaleDateString()}
               </p>
             )}
           </div>
         )}
         {activeRental && (
-          <div>
-            <p className="label-premium mb-1">Location</p>
-            <p className="text-[var(--text-secondary)] text-sm">{activeRental.rental_location || activeRental.customer_name}</p>
+          <div className="col-span-2 md:col-span-1">
+            <p className="label-premium mb-0.5">Location</p>
+            <p className="text-[var(--text-secondary)] text-xs leading-tight">{activeRental.rental_location || activeRental.customer_name}</p>
           </div>
         )}
       </div>
