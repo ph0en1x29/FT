@@ -73,9 +73,9 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
         <form onSubmit={handleSubmit} className="flex-1 bg-[var(--surface)] rounded-xl shadow-sm overflow-hidden">
           {/* Section 1: Customer & Equipment */}
           <div className="border-b border-slate-100">
-            <div className="px-4 md:px-6 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
-              <Truck className="w-4 h-4 text-amber-600" />
-              <span className="text-sm font-semibold text-amber-800">Customer & Equipment</span>
+            <div className="px-4 md:px-6 py-3 bg-amber-100 border-b border-amber-200 flex items-center gap-2">
+              <Truck className="w-4 h-4 text-amber-700" />
+              <span className="text-sm font-semibold text-amber-900">Customer & Equipment</span>
             </div>
             <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               <Combobox 
@@ -100,9 +100,9 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
 
           {/* Section 2: Job Details */}
           <div className="border-b border-slate-100">
-            <div className="px-4 md:px-6 py-3 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-semibold text-blue-800">Job Details</span>
+            <div className="px-4 md:px-6 py-3 bg-blue-100 border-b border-blue-200 flex items-center gap-2">
+              <ClipboardList className="w-4 h-4 text-blue-700" />
+              <span className="text-sm font-semibold text-blue-900">Job Details</span>
             </div>
             <div className="p-4 md:p-6 space-y-4 md:space-y-5">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
