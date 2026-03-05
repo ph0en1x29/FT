@@ -29,11 +29,11 @@ const ForkliftSelectionSection: React.FC<ForkliftSelectionSectionProps> = ({
       />
 
       {selectedForklift && (
-        <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-sm grid grid-cols-2 gap-2">
-          <div><span className="text-slate-400">S/N</span> <span className="font-mono font-medium block">{selectedForklift.serial_number}</span></div>
-          <div><span className="text-slate-400">Type</span> <span className="font-medium block">{selectedForklift.type}</span></div>
-          <div><span className="text-slate-400">Make/Model</span> <span className="font-medium block">{selectedForklift.make} {selectedForklift.model}</span></div>
-          <div><span className="text-slate-400">Hourmeter</span> <span className="font-medium block">{selectedForklift.hourmeter.toLocaleString()} hrs</span></div>
+        <div className="bg-amber-50 rounded-lg p-3 border border-amber-200 text-sm grid grid-cols-2 gap-2">
+          <div><span className="text-amber-500 text-xs">S/N</span> <span className="font-mono font-medium block text-slate-800">{selectedForklift.serial_number}</span></div>
+          <div><span className="text-amber-500 text-xs">Type</span> <span className="font-medium block text-slate-800">{selectedForklift.type}</span></div>
+          <div><span className="text-amber-500 text-xs">Make/Model</span> <span className="font-medium block text-slate-800">{selectedForklift.make} {selectedForklift.model}</span></div>
+          <div><span className="text-amber-500 text-xs">Hourmeter</span> <span className="font-medium block text-slate-800">{selectedForklift.hourmeter.toLocaleString()} hrs</span></div>
         </div>
       )}
 
