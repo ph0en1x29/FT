@@ -174,3 +174,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 15:57] Desktop layout improvements: AssignForkliftModal.tsx CreateJobPage.tsx ForkliftSelectionSection.tsx
 
 [Sonnet] [2026-03-05 16:01] Redesign Create Job page layout: CreateJobPage.tsx ForkliftSelectionSection.tsx — clean 2-col grid, no decorative boxes, max-w-5xl
+
+[Sonnet] [2026-03-05 16:05] Desktop 2-col layout for profile Rent modal: AssignForkliftModal.tsx (profile version)
