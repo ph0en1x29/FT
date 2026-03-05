@@ -87,11 +87,11 @@ export const Combobox: React.FC<ComboboxProps> = ({
   );
 
   const inputClassName = compact
-    ? "w-full px-2.5 py-1.5 text-xs rounded-xl border border-white/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/50 placeholder-slate-400"
+    ? "w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-300/60 shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/50 placeholder-slate-400"
     : "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/25 placeholder-slate-400 transition-all duration-200";
 
   const inputStyle = compact ? {
-    background: 'rgba(255, 255, 255, 0.6)',
+    background: 'rgba(255, 255, 255, 0.75)',
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
     color: 'var(--text)',

@@ -220,3 +220,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 17:06] Edit Customer modal desktop-friendly: EditCustomerModal.tsx — rounded-2xl, 2-col, sticky footer, sections
 
 [Sonnet] [2026-03-05 17:08] Combobox compact mode + liquid glass filters: Combobox.tsx ForkliftFilters.tsx
+
+[Sonnet] [2026-03-05 17:10] Compact Combobox visibility fix: Combobox.tsx — stronger border + opacity
