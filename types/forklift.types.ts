@@ -174,6 +174,7 @@ export interface ForkliftRental {
   end_date?: string;
   status: RentalStatus;
   rental_location?: string;
+  site?: string;
   notes?: string;
   monthly_rental_rate?: number;
   currency?: string;

@@ -224,9 +224,9 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
             </div>
           </div>
 
-          {/* 8. Site */}
+          {/* 8. Location */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Site</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Location</label>
             <input 
               type="text" 
               className={inputClassName} 

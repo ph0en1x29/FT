@@ -119,3 +119,30 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-04 01:29] pages/JobDetail/components/JobDetailModals.tsx
 [Sonnet] [2026-03-04 01:29] pages/JobDetail/hooks/useJobActions.ts
 [Sonnet] [2026-03-04 01:29] pages/JobDetail/hooks/useJobDetailState.ts
+
+## 2026-03-05 14:24 [Sonnet] — SITE vs LOCATION separation
+- types/forklift.types.ts: added site to ForkliftRental
+- pages/ForkliftsTabs/components/AddEditForkliftModal.tsx: Site → Location label
+- pages/ForkliftsTabs/components/AssignForkliftModal.tsx: added SITE input
+- pages/ForkliftsTabs/components/FleetTab.tsx: wired rentalSite props
+- pages/ForkliftsTabs/components/useFleetManagement.ts: rentalSite state + submit
+- pages/ForkliftProfile/components/AssignForkliftModal.tsx: added SITE input
+- services/rentalService.ts: site param, customer name → forklifts.site
+
+## [2026-03-05 14:24] [Sonnet] SITE vs LOCATION separation
+- AddEditForkliftModal.tsx: Site → Location label
+- AssignForkliftModal.tsx: added SITE free-text input (both fleet + profile)
+- FleetTab.tsx: wired rentalSite props
+- useFleetManagement.ts: rentalSite state + submit logic
+- rentalService.ts: site param, customer name → forklifts.site
+- forklift.types.ts: added site to ForkliftRental
+
+## [2026-03-05 14:31] [Sonnet] SITE vs LOCATION separation (commit)
+- AddEditForkliftModal.tsx: Site → Location label
+- AssignForkliftModal.tsx: added SITE free-text input (both fleet + profile)  
+- FleetTab.tsx: wired rentalSite props
+- useFleetManagement.ts: rentalSite state + submit logic
+- rentalService.ts: site param, customer name → forklifts.site
+- forklift.types.ts: added site to ForkliftRental
+
+[Sonnet] [2026-03-05 14:31] SITE/LOCATION separation: AddEditForkliftModal.tsx AssignForkliftModal.tsx FleetTab.tsx useFleetManagement.ts rentalService.ts forklift.types.ts — renamed Site→Location, added SITE field to rental modal, auto-capture customer name

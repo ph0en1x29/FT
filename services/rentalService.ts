@@ -139,7 +139,8 @@ export const assignForkliftToCustomer = async (
   notes?: string,
   createdById?: string,
   createdByName?: string,
-  monthlyRentalRate?: number
+  monthlyRentalRate?: number,
+  site?: string
 ): Promise<ForkliftRental> => {
   const { data: existingRental } = await supabase
     .from('forklift_rentals')
@@ -154,7 +155,7 @@ export const assignForkliftToCustomer = async (
 
   const { data: customer } = await supabase
     .from('customers')
-    .select('address')
+    .select('name, address')
     .eq('customer_id', customerId)
     .single();
 
@@ -168,6 +169,7 @@ export const assignForkliftToCustomer = async (
       status: 'active',
       notes: notes || null,
       rental_location: customer?.address || null,
+      site: site || null,
       created_by_id: createdById || null,
       created_by_name: createdByName || null,
       monthly_rental_rate: monthlyRentalRate || 0,
@@ -182,7 +184,7 @@ export const assignForkliftToCustomer = async (
     .from('forklifts')
     .update({
       current_customer_id: customerId,
-      location: customer?.address || null,
+      site: customer?.name || null,
       status: 'Rented Out',  // Update status when rental starts
       updated_at: new Date().toISOString(),
     })
@@ -283,7 +285,8 @@ export const bulkAssignForkliftsToCustomer = async (
   notes?: string,
   createdById?: string,
   createdByName?: string,
-  monthlyRentalRate?: number
+  monthlyRentalRate?: number,
+  site?: string
 ): Promise<{ success: ForkliftRental[]; failed: { forkliftId: string; error: string }[] }> => {
   const results: { success: ForkliftRental[]; failed: { forkliftId: string; error: string }[] } = {
     success: [],
@@ -292,7 +295,7 @@ export const bulkAssignForkliftsToCustomer = async (
 
   const { data: customer } = await supabase
     .from('customers')
-    .select('address')
+    .select('name, address')
     .eq('customer_id', customerId)
     .single();
 
@@ -320,6 +323,7 @@ export const bulkAssignForkliftsToCustomer = async (
           status: 'active',
           notes: notes || null,
           rental_location: customer?.address || null,
+          site: site || null,
           created_by_id: createdById || null,
           created_by_name: createdByName || null,
           monthly_rental_rate: monthlyRentalRate || 0,
@@ -337,7 +341,7 @@ export const bulkAssignForkliftsToCustomer = async (
         .from('forklifts')
         .update({
           current_customer_id: customerId,
-          location: customer?.address || null,
+          site: customer?.name || null,
           status: 'Rented Out',  // Update status when rental starts
           updated_at: new Date().toISOString(),
         })

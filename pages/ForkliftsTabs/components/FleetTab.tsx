@@ -127,6 +127,8 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
           setEndDate={fleet.setEndDate}
           rentalNotes={fleet.rentalNotes}
           setRentalNotes={fleet.setRentalNotes}
+          rentalSite={fleet.rentalSite}
+          setRentalSite={fleet.setRentalSite}
           monthlyRentalRate={fleet.monthlyRentalRate}
           setMonthlyRentalRate={fleet.setMonthlyRentalRate}
           lastServiceHourmeter={fleet.lastServiceHourmeter}
@@ -150,6 +152,8 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
           setEndDate={fleet.setEndDate}
           rentalNotes={fleet.rentalNotes}
           setRentalNotes={fleet.setRentalNotes}
+          rentalSite={fleet.rentalSite}
+          setRentalSite={fleet.setRentalSite}
           monthlyRentalRate={fleet.monthlyRentalRate}
           setMonthlyRentalRate={fleet.setMonthlyRentalRate}
           lastServiceHourmeter={fleet.lastServiceHourmeter}

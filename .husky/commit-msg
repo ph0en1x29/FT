@@ -1,0 +1,10 @@
+#!/bin/bash
+# Enforce conventional commits format
+FIRST_LINE=$(head -1 "$1")
+if ! echo "$FIRST_LINE" | grep -qE "^(feat|fix|chore|docs|style|refactor|perf|test|ci|build|revert)(\(.+\))?: .+"; then
+  echo "❌ Commit blocked: message doesn't follow conventional commits."
+  echo "  Expected: type(scope): description"
+  echo "  Examples: feat: add batch receive, fix(scanner): dedup alerts"
+  echo "  Got: $FIRST_LINE"
+  exit 1
+fi

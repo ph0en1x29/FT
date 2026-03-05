@@ -23,6 +23,7 @@ export const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState('');
   const [rentalNotes, setRentalNotes] = useState('');
+  const [rentalSite, setRentalSite] = useState('');
   const [monthlyRentalRate, setMonthlyRentalRate] = useState('');
   const [lastServiceHourmeter, setLastServiceHourmeter] = useState('');
 
@@ -41,7 +42,8 @@ export const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
         rentalNotes || undefined,
         currentUser.user_id,
         currentUser.name,
-        monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined
+        monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined,
+        rentalSite || undefined
       );
       // If last service hourmeter provided, reset service interval
       if (lastServiceHourmeter) {
@@ -153,6 +155,18 @@ export const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
               onChange={(e) => setRentalNotes(e.target.value)}
               placeholder="Optional notes about this rental..."
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Site</label>
+            <input
+              type="text"
+              className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-blue-500"
+              value={rentalSite}
+              onChange={(e) => setRentalSite(e.target.value)}
+              placeholder="e.g., Port Klang Warehouse 4"
+            />
+            <p className="text-xs text-slate-400 mt-1">Physical location where forklift will be used</p>
           </div>
 
           <div className="pt-4 flex gap-3">

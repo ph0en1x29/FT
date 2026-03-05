@@ -63,6 +63,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState('');
   const [rentalNotes, setRentalNotes] = useState('');
+  const [rentalSite, setRentalSite] = useState('');
   const [monthlyRentalRate, setMonthlyRentalRate] = useState('');
   const [lastServiceHourmeter, setLastServiceHourmeter] = useState('');
   const [bulkEndDate, setBulkEndDate] = useState(new Date().toISOString().split('T')[0]);
@@ -179,6 +180,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     setStartDate(new Date().toISOString().split('T')[0]);
     setEndDate('');
     setRentalNotes('');
+    setRentalSite('');
     setLastServiceHourmeter('');
     setShowAssignModal(true);
   }, []);
@@ -216,7 +218,8 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
         assigningForklift.forklift_id, selectedCustomerId, startDate,
         endDate || undefined, rentalNotes || undefined,
         currentUser?.user_id, currentUser?.name,
-        monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined
+        monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined,
+        rentalSite || undefined
       );
 
       // If last service hourmeter provided, reset service interval
@@ -241,6 +244,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
       setShowAssignModal(false);
       setAssigningForklift(null);
       setMonthlyRentalRate('');
+      setRentalSite('');
       await loadData();
 
       setResultModal({
@@ -306,7 +310,8 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
       const result = await MockDb.bulkAssignForkliftsToCustomer(
         forkliftIds, selectedCustomerId, startDate, endDate || undefined,
         rentalNotes || undefined, currentUser?.user_id, currentUser?.name,
-        monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined
+        monthlyRentalRate ? parseFloat(monthlyRentalRate) : undefined,
+        rentalSite || undefined
       );
 
       const customer = customers.find((c) => c.customer_id === selectedCustomerId);
@@ -339,6 +344,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
       setSelectedCustomerId('');
       setMonthlyRentalRate('');
       setRentalNotes('');
+      setRentalSite('');
       await loadData();
     } catch (error) {
       setResultModal({ show: true, type: 'error', title: 'Error', message: (error as Error).message });
@@ -389,6 +395,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     setStartDate(new Date().toISOString().split('T')[0]);
     setEndDate('');
     setRentalNotes('');
+    setRentalSite('');
     setMonthlyRentalRate('');
     setShowBulkRentModal(true);
   }, []);
@@ -432,7 +439,8 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     // Forms
     formData, setFormData, selectedCustomerId, setSelectedCustomerId,
     startDate, setStartDate, endDate, setEndDate,
-    rentalNotes, setRentalNotes, monthlyRentalRate, setMonthlyRentalRate,
+    rentalNotes, setRentalNotes, rentalSite, setRentalSite,
+    monthlyRentalRate, setMonthlyRentalRate,
     lastServiceHourmeter, setLastServiceHourmeter,
     bulkEndDate, setBulkEndDate,
     // Handlers

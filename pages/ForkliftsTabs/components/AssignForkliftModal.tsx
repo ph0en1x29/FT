@@ -16,6 +16,8 @@ interface AssignForkliftModalProps {
   setEndDate: (date: string) => void;
   rentalNotes: string;
   setRentalNotes: (notes: string) => void;
+  rentalSite: string;
+  setRentalSite: (site: string) => void;
   monthlyRentalRate: string;
   setMonthlyRentalRate: (rate: string) => void;
   lastServiceHourmeter: string;
@@ -40,6 +42,8 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
   setEndDate,
   rentalNotes,
   setRentalNotes,
+  rentalSite,
+  setRentalSite,
   monthlyRentalRate,
   setMonthlyRentalRate,
   lastServiceHourmeter,
@@ -144,6 +148,18 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
               onChange={(e) => setRentalNotes(e.target.value)} 
               placeholder="Optional notes..." 
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Site</label>
+            <input 
+              type="text" 
+              className={inputClassName} 
+              value={rentalSite} 
+              onChange={(e) => setRentalSite(e.target.value)} 
+              placeholder="e.g., Port Klang Warehouse 4" 
+            />
+            <p className="text-xs text-slate-400 mt-1">Physical location where forklift will be used</p>
           </div>
 
           <div className="pt-4 flex gap-3">
