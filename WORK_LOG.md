@@ -152,3 +152,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 14:46] Fix RM currency + overflow: AssignForkliftModal.tsx (fleet+profile)
 
 [Sonnet] [2026-03-05 14:47] Fix modal top clipping: AssignForkliftModal.tsx (fleet+profile)
+
+[Sonnet] [2026-03-05 14:48] Fix bottom cutoff: AssignForkliftModal.tsx (fleet+profile)

@@ -58,7 +58,7 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md my-auto">
         <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
           <h3 className="font-bold text-lg text-slate-800">{title}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
