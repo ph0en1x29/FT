@@ -37,7 +37,7 @@ interface AddEditForkliftModalProps {
   isEditing: boolean;
 }
 
-const inputClassName = "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25 placeholder-slate-400 transition-all duration-200";
+const inputClassName = "w-full px-3 py-2 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25 placeholder-slate-400 transition-all duration-200";
 
 const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
   isOpen,
@@ -52,135 +52,135 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4">
-      <div className="bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-lg md:max-w-3xl">
-        {/* Header */}
-        <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl">
+      <div className="bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-lg md:max-w-3xl flex flex-col max-h-[90vh]">
+        {/* Header — sticky */}
+        <div className="px-5 py-3 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
               <Truck className="w-3.5 h-3.5 text-white" />
             </div>
-            <h3 className="font-bold text-lg text-slate-800">{isEditing ? 'Edit Forklift' : 'Add New Forklift'}</h3>
+            <h3 className="font-bold text-base text-slate-800">{isEditing ? 'Edit Forklift' : 'Add New Forklift'}</h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={onSubmit}>
-          {/* Section 1: Identity */}
-          <div className="border-b border-slate-100">
-            <div className="px-4 md:px-6 py-2.5 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
-              <Truck className="w-3.5 h-3.5 text-blue-600" />
-              <span className="text-xs font-semibold text-blue-800 uppercase tracking-wide">Identity</span>
-            </div>
-            <div className="p-4 md:p-6 space-y-4">
-              {/* Row: Serial + Forklift No + Customer No */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Serial Number *</label>
-                  <input type="text" className={inputClassName} value={formData.serial_number} onChange={e => setFormData({...formData, serial_number: e.target.value})} placeholder="e.g., FL-001234" required />
+        <form onSubmit={onSubmit} className="flex flex-col min-h-0 flex-1">
+          {/* Scrollable form body */}
+          <div className="overflow-y-auto flex-1">
+            {/* Section 1: Identity */}
+            <div className="border-b border-slate-100">
+              <div className="px-4 md:px-5 py-1.5 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
+                <Truck className="w-3 h-3 text-blue-600" />
+                <span className="text-[10px] font-semibold text-blue-800 uppercase tracking-wide">Identity</span>
+              </div>
+              <div className="p-3 md:p-4 space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Serial Number *</label>
+                    <input type="text" className={inputClassName} value={formData.serial_number} onChange={e => setFormData({...formData, serial_number: e.target.value})} placeholder="FL-001234" required />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Forklift No</label>
+                    <input type="text" className={inputClassName} value={formData.forklift_no} onChange={e => setFormData({...formData, forklift_no: e.target.value})} placeholder="A123" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Customer No</label>
+                    <input type="text" className={inputClassName} value={formData.customer_forklift_no} onChange={e => setFormData({...formData, customer_forklift_no: e.target.value})} placeholder="WH-FL-003" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Forklift No</label>
-                  <input type="text" className={inputClassName} value={formData.forklift_no} onChange={e => setFormData({...formData, forklift_no: e.target.value})} placeholder="e.g., A123" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Customer Forklift No</label>
-                  <input type="text" className={inputClassName} value={formData.customer_forklift_no} onChange={e => setFormData({...formData, customer_forklift_no: e.target.value})} placeholder="e.g., WH-FL-003" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Brand *</label>
+                    <select className={inputClassName} value={formData.make} onChange={e => setFormData({...formData, make: e.target.value})} required>
+                      <option value="">Select</option>
+                      {FORKLIFT_BRANDS.map(brand => <option key={brand} value={brand}>{brand}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Model</label>
+                    <input type="text" className={inputClassName} value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} placeholder="8FGU25" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Type *</label>
+                    <select className={inputClassName} value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as ForkliftType})}>
+                      {Object.values(ForkliftType).map(type => <option key={type} value={type}>{type}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Status</label>
+                    <select className={inputClassName} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as ForkliftStatus})}>
+                      {Object.values(ForkliftStatus).map(status => <option key={status} value={status}>{status}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              {/* Row: Brand + Model + Type + Status */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Brand *</label>
-                  <select className={inputClassName} value={formData.make} onChange={e => setFormData({...formData, make: e.target.value})} required>
-                    <option value="">Select</option>
-                    {FORKLIFT_BRANDS.map(brand => <option key={brand} value={brand}>{brand}</option>)}
-                  </select>
+            {/* Section 2: Hourmeter & Service */}
+            <div className="border-b border-slate-100">
+              <div className="px-4 md:px-5 py-1.5 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+                <Gauge className="w-3 h-3 text-amber-600" />
+                <span className="text-[10px] font-semibold text-amber-800 uppercase tracking-wide">Hourmeter & Service</span>
+              </div>
+              <div className="p-3 md:p-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Current HRS</label>
+                    <input type="number" className={inputClassName} value={formData.hourmeter} onChange={e => setFormData({...formData, hourmeter: parseInt(e.target.value) || 0})} min="0" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Reading Date</label>
+                    <input type="date" className={inputClassName} value={formData.last_hourmeter_update} onChange={e => setFormData({...formData, last_hourmeter_update: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Last Service HRS</label>
+                    <input type="number" className={inputClassName} value={formData.last_service_hourmeter} onChange={e => setFormData({...formData, last_service_hourmeter: parseInt(e.target.value) || 0})} min="0" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Last Service Date</label>
+                    <input type="date" className={inputClassName} value={formData.last_service_date} onChange={e => setFormData({...formData, last_service_date: e.target.value})} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Specs & Notes */}
+            <div>
+              <div className="px-4 md:px-5 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
+                <Settings className="w-3 h-3 text-slate-500" />
+                <span className="text-[10px] font-semibold text-slate-700 uppercase tracking-wide">Specs & Notes</span>
+              </div>
+              <div className="p-3 md:p-4 space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Year</label>
+                    <input type="number" className={inputClassName} value={formData.year ?? ''} onChange={e => setFormData({...formData, year: e.target.value ? parseInt(e.target.value) : null})} min="1980" max={new Date().getFullYear() + 1} placeholder="2020" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Capacity (KG)</label>
+                    <input type="number" className={inputClassName} value={formData.capacity_kg} onChange={e => setFormData({...formData, capacity_kg: parseInt(e.target.value) || 0})} min="0" placeholder="2500" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Location</label>
+                    <input type="text" className={inputClassName} value={formData.site} onChange={e => setFormData({...formData, site: e.target.value})} placeholder="Warehouse" />
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Model</label>
-                  <input type="text" className={inputClassName} value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} placeholder="e.g., 8FGU25" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type *</label>
-                  <select className={inputClassName} value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as ForkliftType})}>
-                    {Object.values(ForkliftType).map(type => <option key={type} value={type}>{type}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
-                  <select className={inputClassName} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as ForkliftStatus})}>
-                    {Object.values(ForkliftStatus).map(status => <option key={status} value={status}>{status}</option>)}
-                  </select>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Notes</label>
+                  <textarea className={`${inputClassName} h-14 resize-none`} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Additional notes..." />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Section 2: Hourmeter & Service */}
-          <div className="border-b border-slate-100">
-            <div className="px-4 md:px-6 py-2.5 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
-              <Gauge className="w-3.5 h-3.5 text-amber-600" />
-              <span className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Hourmeter & Service</span>
-            </div>
-            <div className="p-4 md:p-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Current HRS</label>
-                  <input type="number" className={inputClassName} value={formData.hourmeter} onChange={e => setFormData({...formData, hourmeter: parseInt(e.target.value) || 0})} min="0" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Reading Date</label>
-                  <input type="date" className={inputClassName} value={formData.last_hourmeter_update} onChange={e => setFormData({...formData, last_hourmeter_update: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service HRS</label>
-                  <input type="number" className={inputClassName} value={formData.last_service_hourmeter} onChange={e => setFormData({...formData, last_service_hourmeter: parseInt(e.target.value) || 0})} min="0" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service Date</label>
-                  <input type="date" className={inputClassName} value={formData.last_service_date} onChange={e => setFormData({...formData, last_service_date: e.target.value})} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Specs & Notes */}
-          <div className="border-b border-slate-100">
-            <div className="px-4 md:px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
-              <Settings className="w-3.5 h-3.5 text-slate-500" />
-              <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Specs & Notes</span>
-            </div>
-            <div className="p-4 md:p-6 space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Year</label>
-                  <input type="number" className={inputClassName} value={formData.year ?? ''} onChange={e => setFormData({...formData, year: e.target.value ? parseInt(e.target.value) : null})} min="1980" max={new Date().getFullYear() + 1} placeholder="e.g., 2020" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Capacity (KG)</label>
-                  <input type="number" className={inputClassName} value={formData.capacity_kg} onChange={e => setFormData({...formData, capacity_kg: parseInt(e.target.value) || 0})} min="0" placeholder="e.g., 2500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Location</label>
-                  <input type="text" className={inputClassName} value={formData.site} onChange={e => setFormData({...formData, site: e.target.value})} placeholder="e.g., North Gate Warehouse" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes</label>
-                <textarea className={`${inputClassName} h-16 resize-none`} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Additional notes..." />
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="p-4 md:p-6 flex gap-3 justify-end bg-slate-50/50 rounded-b-2xl">
-            <button type="button" onClick={onClose} className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 font-medium">
+          {/* Footer — sticky at bottom */}
+          <div className="px-4 md:px-5 py-3 flex gap-3 justify-end border-t border-slate-200 bg-slate-50/80 rounded-b-2xl shrink-0">
+            <button type="button" onClick={onClose} className="px-5 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 font-medium text-sm">
               Cancel
             </button>
-            <button type="submit" className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium shadow-sm flex items-center justify-center gap-2">
+            <button type="submit" className="px-5 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium shadow-sm flex items-center justify-center gap-2 text-sm">
               <Save className="w-4 h-4" /> {isEditing ? 'Update' : 'Add Forklift'}
             </button>
           </div>

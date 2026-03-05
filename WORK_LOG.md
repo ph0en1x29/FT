@@ -210,3 +210,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 16:54] Equipment card mobile compact: EquipmentCard.tsx — 2-col grid on mobile, tighter spacing
 
 [Sonnet] [2026-03-05 16:54] Camera-only photos with timestamp+location: JobDetailModals.tsx — remove gallery, add geolocation
+
+[Sonnet] [2026-03-05 16:58] Edit Forklift modal sticky footer + compact: AddEditForkliftModal.tsx
