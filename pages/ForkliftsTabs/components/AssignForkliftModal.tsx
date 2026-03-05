@@ -95,14 +95,17 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
 
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Monthly Rental Rate (RM)</label>
-            <input 
-              type="number" 
-              step="0.01" 
-              className={inputClassName} 
-              value={monthlyRentalRate} 
-              onChange={(e) => setMonthlyRentalRate(e.target.value)} 
-              placeholder="e.g., 2500.00" 
-            />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">RM</span>
+              <input 
+                type="text" 
+                inputMode="decimal" 
+                className={`${inputClassName} pl-10`} 
+                value={monthlyRentalRate} 
+                onChange={(e) => { const v = e.target.value; if (v === '' || /^\d*\.?\d{0,2}$/.test(v)) setMonthlyRentalRate(v); }} 
+                placeholder="e.g., 2500.00" 
+              />
+            </div>
           </div>
 
           {!isBulk && (

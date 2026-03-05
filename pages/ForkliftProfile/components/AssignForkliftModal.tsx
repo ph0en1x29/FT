@@ -1,4 +1,4 @@
-import { DollarSign,Save,X } from 'lucide-react';
+import { Save,X } from 'lucide-react';
 import React,{ useState } from 'react';
 import { supabase } from '../../../services/supabaseClient';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
@@ -70,7 +70,7 @@ export const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
+      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 sticky top-0">
           <h3 className="font-bold text-lg text-slate-800">Rent Forklift to Customer</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
@@ -101,13 +101,13 @@ export const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Monthly Rental Rate (RM)</label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">RM</span>
               <input
-                type="number"
-                step="0.01"
-                className="w-full pl-9 pr-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-blue-500"
+                type="text"
+                inputMode="decimal"
+                className="w-full pl-10 pr-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-blue-500"
                 value={monthlyRentalRate}
-                onChange={(e) => setMonthlyRentalRate(e.target.value)}
+                onChange={(e) => { const v = e.target.value; if (v === '' || /^\d*\.?\d{0,2}$/.test(v)) setMonthlyRentalRate(v); }}
                 placeholder="e.g., 2500.00"
               />
             </div>
