@@ -162,3 +162,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 15:44] Fix modal top clipping on mobile: AssignForkliftModal.tsx (fleet+profile) ReturnForkliftModal.tsx
 
 [Sonnet] [2026-03-05 15:44] Return modal + modal fixes: ReturnForkliftModal.tsx AssignForkliftModal.tsx FleetTab.tsx useFleetManagement.ts ForkliftCard.tsx ForkliftGrid.tsx
+
+[Sonnet] [2026-03-05 15:46] Fix forklift filter on Create Job: forkliftService.ts — add current_customer_id to getForkliftsForList select

@@ -48,16 +48,16 @@ export const getForklifts = async (): Promise<Forklift[]> => {
   return data as Forklift[];
 };
 
-export const getForkliftsForList = async (): Promise<Pick<Forklift, 'forklift_id' | 'serial_number' | 'make' | 'model' | 'type' | 'status' | 'hourmeter' | 'location'>[]> => {
+export const getForkliftsForList = async (): Promise<Pick<Forklift, 'forklift_id' | 'serial_number' | 'make' | 'model' | 'type' | 'status' | 'hourmeter' | 'location' | 'current_customer_id'>[]> => {
   const { data, error } = await supabase
     .from('forklifts')
-    .select('forklift_id, serial_number, make, model, type, status, hourmeter, location')
+    .select('forklift_id, serial_number, make, model, type, status, hourmeter, location, current_customer_id')
     .neq('status', 'Out of Service')
     .neq('status', 'Inactive')
     .order('serial_number');
 
   if (error) throw new Error(error.message);
-  return data as Pick<Forklift, 'forklift_id' | 'serial_number' | 'make' | 'model' | 'type' | 'status' | 'hourmeter' | 'location'>[];
+  return data as Pick<Forklift, 'forklift_id' | 'serial_number' | 'make' | 'model' | 'type' | 'status' | 'hourmeter' | 'location' | 'current_customer_id'>[];
 };
 
 export const getForkliftById = async (forkliftId: string): Promise<Forklift | null> => {
