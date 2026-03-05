@@ -65,20 +65,20 @@ const ForkliftFilters: React.FC<ForkliftFiltersProps> = ({
           />
         </div>
 
-        <div className="flex flex-wrap gap-3 items-center">
-          <Filter className="w-4 h-4 text-theme-muted hidden lg:block" />
-          <div className="w-36">
-            <Combobox options={typeOptions} value={filterType} onChange={setFilterType} placeholder="All Types" />
+        <div className="flex flex-wrap gap-2 items-center">
+          <Filter className="w-3.5 h-3.5 text-theme-muted hidden lg:block" />
+          <div className="w-28">
+            <Combobox compact options={typeOptions} value={filterType} onChange={setFilterType} placeholder="All Types" />
           </div>
-          <div className="w-36">
-            <Combobox options={statusOptions} value={filterStatus} onChange={setFilterStatus} placeholder="All Status" />
+          <div className="w-28">
+            <Combobox compact options={statusOptions} value={filterStatus} onChange={setFilterStatus} placeholder="All Status" />
           </div>
-          <div className="w-36">
-            <Combobox options={rentalOptions} value={filterAssigned} onChange={setFilterAssigned} placeholder="All Rentals" />
+          <div className="w-28">
+            <Combobox compact options={rentalOptions} value={filterAssigned} onChange={setFilterAssigned} placeholder="All Rentals" />
           </div>
           {uniqueMakes.length > 0 && (
-            <div className="w-36">
-              <Combobox options={makeOptions} value={filterMake} onChange={setFilterMake} placeholder="All Makes" />
+            <div className="w-28">
+              <Combobox compact options={makeOptions} value={filterMake} onChange={setFilterMake} placeholder="All Makes" />
             </div>
           )}
         </div>

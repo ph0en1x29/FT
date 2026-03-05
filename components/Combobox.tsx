@@ -16,10 +16,12 @@ interface ComboboxProps {
   placeholder?: string;
   onAddNew?: (query: string) => void;
   addNewLabel?: string;
+  /** Compact mode for filter bars — smaller, frosted glass style */
+  compact?: boolean;
 }
 
 export const Combobox: React.FC<ComboboxProps> = ({ 
-  label, options, value, onChange, placeholder = "Select...", onAddNew, addNewLabel = "Add New"
+  label, options, value, onChange, placeholder = "Select...", onAddNew, addNewLabel = "Add New", compact = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -84,7 +86,16 @@ export const Combobox: React.FC<ComboboxProps> = ({
     (opt.subLabel && opt.subLabel.toLowerCase().includes(query.toLowerCase()))
   );
 
-  const inputClassName = "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/25 placeholder-slate-400 transition-all duration-200";
+  const inputClassName = compact
+    ? "w-full px-2.5 py-1.5 text-xs rounded-xl border border-white/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/50 placeholder-slate-400"
+    : "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/25 placeholder-slate-400 transition-all duration-200";
+
+  const inputStyle = compact ? {
+    background: 'rgba(255, 255, 255, 0.6)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    color: 'var(--text)',
+  } : undefined;
 
   return (
     <div className="relative" ref={containerRef}>
@@ -93,7 +104,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
       <div className="relative" ref={inputWrapperRef}>
         <input 
           type="text"
-          className={`${inputClassName} pr-10 cursor-pointer`}
+          className={`${inputClassName} ${compact ? 'pr-7' : 'pr-10'} cursor-pointer`}
+          style={inputStyle}
           placeholder={selectedItem ? selectedItem.label : placeholder}
           value={isOpen ? query : (selectedItem?.label || '')}
           onChange={(e) => {
@@ -106,23 +118,25 @@ export const Combobox: React.FC<ComboboxProps> = ({
             setQuery(''); // Reset query on click to show all
           }}
         />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-           {isOpen ? <Search className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        <div className={`absolute ${compact ? 'right-2' : 'right-3'} top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none`}>
+           {isOpen ? <Search className={compact ? 'w-3 h-3' : 'w-4 h-4'} /> : <ChevronDown className={compact ? 'w-3 h-3' : 'w-4 h-4'} />}
         </div>
       </div>
 
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
-          className={`fixed bg-[var(--surface)] border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto z-[9999]${opensUpward ? ' mb-1' : ' mt-1'}`}
+          className={`fixed ${compact ? 'rounded-xl border border-white/30' : 'rounded-lg border border-slate-200'} shadow-xl max-h-60 overflow-y-auto z-[9999]${opensUpward ? ' mb-1' : ' mt-1'}`}
           style={opensUpward ? {
             bottom: `${dropdownPosition.bottom}px`,
             left: `${dropdownPosition.left}px`,
-            width: `${dropdownPosition.width}px`
+            width: `${dropdownPosition.width}px`,
+            ...(compact ? { background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } : { background: 'var(--surface)' }),
           } : {
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
-            width: `${dropdownPosition.width}px`
+            width: `${dropdownPosition.width}px`,
+            ...(compact ? { background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } : { background: 'var(--surface)' }),
           }}
         >
           {filteredOptions.length > 0 ? (
@@ -135,19 +149,23 @@ export const Combobox: React.FC<ComboboxProps> = ({
                     setIsOpen(false);
                     setQuery('');
                   }}
-                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-slate-700 hover:text-blue-700 flex justify-between items-center group border-b border-slate-50 last:border-0"
+                  className={compact
+                    ? "px-3 py-2 hover:bg-blue-500/10 cursor-pointer flex justify-between items-center group border-b border-white/20 last:border-0 text-xs"
+                    : "px-4 py-3 hover:bg-blue-50 cursor-pointer text-slate-700 hover:text-blue-700 flex justify-between items-center group border-b border-slate-50 last:border-0"
+                  }
+                  style={{ color: 'var(--text)' }}
                 >
                   <div>
-                    <div className="font-medium">{opt.label}</div>
-                    {opt.subLabel && <div className="text-xs text-slate-400 group-hover:text-blue-400">{opt.subLabel}</div>}
+                    <div className={compact ? 'font-medium text-xs' : 'font-medium'}>{opt.label}</div>
+                    {opt.subLabel && <div className={`text-xs ${compact ? 'text-slate-400' : 'text-slate-400 group-hover:text-blue-400'}`}>{opt.subLabel}</div>}
                   </div>
-                  {value === opt.id && <Check className="w-4 h-4 text-blue-600" />}
+                  {value === opt.id && <Check className={compact ? 'w-3 h-3 text-blue-500' : 'w-4 h-4 text-blue-600'} />}
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="p-4 text-center text-slate-500 text-sm">
-              No results for "{query}"
+            <div className={`${compact ? 'p-3 text-xs' : 'p-4 text-sm'} text-center text-slate-500`}>
+              No results for &ldquo;{query}&rdquo;
             </div>
           )}
 
