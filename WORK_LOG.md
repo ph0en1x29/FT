@@ -204,3 +204,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 16:47] Desktop-friendly Edit Forklift modal: AddEditForkliftModal.tsx — rounded-2xl, 3 sections, 3-4 col grids
 
 [Sonnet] [2026-03-05 16:47] Technician dashboard improvements: TechnicianDashboard.tsx — Quick Actions + Weekly Summary
+
+[Sonnet] [2026-03-05 16:48] Mobile-friendly technician dashboard: TechnicianDashboard.tsx — fix overflow, compact layout

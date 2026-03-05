@@ -49,33 +49,31 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser, 
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>My Jobs</h1>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{today.toLocaleDateString('en-MY', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h1 className="text-lg font-semibold truncate" style={{ color: 'var(--text)' }}>My Jobs</h1>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{today.toLocaleDateString('en-MY', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
         </div>
-        <button onClick={onRefresh} className="p-2 rounded-xl transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <button onClick={onRefresh} className="p-2 rounded-xl shrink-0 transition-all active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
           <RefreshCw className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
         </button>
       </div>
 
       {/* Current Job Banner */}
       {inProgressJob && (
-        <div className="p-4 rounded-2xl" style={{ background: 'linear-gradient(135deg, rgba(255, 149, 0, 0.12) 0%, rgba(255, 149, 0, 0.06) 100%)', border: '1px solid rgba(255, 149, 0, 0.2)' }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255, 149, 0, 0.15)' }}>
-                <Play className="w-6 h-6" style={{ color: '#FF9500' }} />
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide" style={{ color: '#FF9500' }}>Currently Working</p>
-                <p className="font-semibold text-lg" style={{ color: 'var(--text)' }}>{inProgressJob.job_number || inProgressJob.title}</p>
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{inProgressJob.customer?.name}</p>
-              </div>
+        <div onClick={() => navigate(`/jobs/${inProgressJob.job_id}`)} className="p-4 rounded-2xl cursor-pointer transition-all active:scale-[0.98]" style={{ background: 'linear-gradient(135deg, rgba(255, 149, 0, 0.12) 0%, rgba(255, 149, 0, 0.06) 100%)', border: '1px solid rgba(255, 149, 0, 0.2)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(255, 149, 0, 0.15)' }}>
+              <Play className="w-5 h-5" style={{ color: '#FF9500' }} />
             </div>
-            <button onClick={() => navigate(`/jobs/${inProgressJob.job_id}`)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all hover:scale-105" style={{ background: '#FF9500', color: 'white' }}>
-              Continue <ArrowRight className="w-4 h-4" />
-            </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: '#FF9500' }}>Currently Working</p>
+              <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>{inProgressJob.job_number || inProgressJob.title}</p>
+              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{inProgressJob.customer?.name}</p>
+            </div>
+            <div className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: '#FF9500' }}>
+              <ArrowRight className="w-4 h-4" style={{ color: 'white' }} />
+            </div>
           </div>
         </div>
       )}
@@ -111,37 +109,45 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser, 
       {/* Quick Actions */}
       <div>
         <h3 className="font-semibold text-sm mb-3" style={{ color: 'var(--text)' }}>Quick Actions</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => navigate('/jobs')} className="p-4 rounded-2xl text-left transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'rgba(0, 122, 255, 0.15)' }}>
-              <Briefcase className="w-5 h-5" style={{ color: '#007AFF' }} />
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => navigate('/jobs')} className="flex items-center gap-3 p-3 rounded-2xl text-left transition-all active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(0, 122, 255, 0.15)' }}>
+              <Briefcase className="w-4 h-4" style={{ color: '#007AFF' }} />
             </div>
-            <p className="font-semibold text-sm mb-1" style={{ color: 'var(--text)' }}>All Jobs</p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>View all assignments</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>All Jobs</p>
+              <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>View assignments</p>
+            </div>
           </button>
 
-          <button onClick={() => navigate('/my-van-stock')} className="p-4 rounded-2xl text-left transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'rgba(255, 149, 0, 0.15)' }}>
-              <Package className="w-5 h-5" style={{ color: '#FF9500' }} />
+          <button onClick={() => navigate('/my-van-stock')} className="flex items-center gap-3 p-3 rounded-2xl text-left transition-all active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(255, 149, 0, 0.15)' }}>
+              <Package className="w-4 h-4" style={{ color: '#FF9500' }} />
             </div>
-            <p className="font-semibold text-sm mb-1" style={{ color: 'var(--text)' }}>Van Stock</p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Check inventory</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>Van Stock</p>
+              <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>Check inventory</p>
+            </div>
           </button>
 
-          <button onClick={() => navigate('/forklifts')} className="p-4 rounded-2xl text-left transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'rgba(175, 82, 222, 0.15)' }}>
-              <Truck className="w-5 h-5" style={{ color: '#AF52DE' }} />
+          <button onClick={() => navigate('/forklifts')} className="flex items-center gap-3 p-3 rounded-2xl text-left transition-all active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(175, 82, 222, 0.15)' }}>
+              <Truck className="w-4 h-4" style={{ color: '#AF52DE' }} />
             </div>
-            <p className="font-semibold text-sm mb-1" style={{ color: 'var(--text)' }}>Fleet</p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Manage vehicles</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>Fleet</p>
+              <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>Manage vehicles</p>
+            </div>
           </button>
 
-          <button onClick={() => navigate('/customers')} className="p-4 rounded-2xl text-left transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'rgba(52, 199, 89, 0.15)' }}>
-              <MapPin className="w-5 h-5" style={{ color: '#34C759' }} />
+          <button onClick={() => navigate('/customers')} className="flex items-center gap-3 p-3 rounded-2xl text-left transition-all active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(52, 199, 89, 0.15)' }}>
+              <MapPin className="w-4 h-4" style={{ color: '#34C759' }} />
             </div>
-            <p className="font-semibold text-sm mb-1" style={{ color: 'var(--text)' }}>Customers</p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>View locations</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>Customers</p>
+              <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>View locations</p>
+            </div>
           </button>
         </div>
       </div>
