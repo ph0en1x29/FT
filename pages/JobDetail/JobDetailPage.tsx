@@ -118,7 +118,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   );
 
   return (
-    <div className={`max-w-7xl mx-auto pb-24 md:pb-8 ${(statusFlags.isNew || statusFlags.isAssigned || statusFlags.isInProgress || statusFlags.isCompleted) && !hasModalOpen ? 'pt-16 md:pt-0' : ''} fade-in`}>
+    <div className={`max-w-7xl mx-auto pb-24 md:pb-8 ${(statusFlags.isInProgress || statusFlags.isCompleted) && !hasModalOpen ? 'pt-16 md:pt-0' : ''} fade-in`}>
       <JobHeader job={job} isRealtimeConnected={true} roleFlags={roleFlags} statusFlags={statusFlags}
         exportingToAutoCount={state.exportingToAutoCount} onAcceptJob={actions.handleAcceptJob}
         onRejectJob={() => state.setShowRejectJobModal(true)} onStartJob={actions.handleOpenStartJobModal}
@@ -344,18 +344,9 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         onClose={() => state.setServiceUpgradePrompt(prev => ({ ...prev, show: false }))}
       />
 
-      {(statusFlags.isNew || statusFlags.isAssigned || statusFlags.isInProgress || statusFlags.isCompleted) && (
+      {(statusFlags.isInProgress || statusFlags.isCompleted) && (
         <div className={`fixed top-16 left-0 right-0 z-30 md:hidden bg-[var(--surface)]/95 backdrop-blur-sm border-b border-[var(--border)] px-4 py-3${hasModalOpen ? ' hidden' : ''}`}>
           <div className="flex flex-col gap-2">
-            {(statusFlags.isNew || statusFlags.isAssigned) && (
-              <button
-                onClick={actions.handleOpenStartJobModal}
-                className="w-full bg-[var(--accent)] text-white h-12 rounded-xl font-medium"
-              >
-                Start Job
-              </button>
-            )}
-
             {statusFlags.isInProgress && (
               <>
                 {/* Hourmeter quick-input row */}
