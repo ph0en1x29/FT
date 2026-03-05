@@ -184,3 +184,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 16:15] Add context sidebar to Create Job page: CreateJobPage.tsx — customer info + active rentals panel fills side blank space
 
 [Sonnet] [2026-03-05 16:18] Soften sidebar banner colors: CreateJobPage.tsx — desaturated customer+rentals headers
+
+[Sonnet] [2026-03-05 16:19] Desktop-friendly Schedule Service modal: ScheduleServiceModal.tsx — 2-col grid, searchable Combobox, proper modal pattern
