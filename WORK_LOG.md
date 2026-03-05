@@ -188,3 +188,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 16:19] Desktop-friendly Schedule Service modal: ScheduleServiceModal.tsx — 2-col grid, searchable Combobox, proper modal pattern
 
 [Sonnet] [2026-03-05 16:20] Increase section banner visibility: CreateJobPage.tsx — amber-50→100, blue-50→100
+
+[Sonnet] [2026-03-05 16:23] Change section banners to sky-200 azzurro: CreateJobPage.tsx
