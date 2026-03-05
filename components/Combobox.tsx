@@ -131,12 +131,12 @@ export const Combobox: React.FC<ComboboxProps> = ({
             bottom: `${dropdownPosition.bottom}px`,
             left: `${dropdownPosition.left}px`,
             width: `${dropdownPosition.width}px`,
-            ...(compact ? { background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } : { background: 'var(--surface)' }),
+            ...(compact ? { background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', minWidth: '180px' } : { background: 'var(--surface)' }),
           } : {
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
             width: `${dropdownPosition.width}px`,
-            ...(compact ? { background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } : { background: 'var(--surface)' }),
+            ...(compact ? { background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', minWidth: '180px' } : { background: 'var(--surface)' }),
           }}
         >
           {filteredOptions.length > 0 ? (
