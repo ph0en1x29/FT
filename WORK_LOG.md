@@ -230,3 +230,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 17:16] Filter overflow fix: ForkliftFilters.tsx InventoryFilters.tsx Combobox.tsx — grid layout + tighter dropdown
 
 [Sonnet] [2026-03-05 17:18] Job page filters to compact Combobox: SearchFilterBar.tsx FilterBar.tsx — liquid glass dropdowns
+
+[Sonnet] [2026-03-05 17:19M] Fleet filters tighter layout: ForkliftFilters.tsx — search full width, filters compact row below
