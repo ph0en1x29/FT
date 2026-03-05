@@ -196,3 +196,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 16:26] Revert form banners to original, premium sidebar banners: CreateJobPage.tsx
 
 [Sonnet] [2026-03-05 16:27] Desktop-friendly Return modal with rounded design: ReturnForkliftModal.tsx — 2-col grid, rounded-2xl, Combobox condition, amber accent
+
+[Sonnet] [2026-03-05 16:31] Widen Job Detail page layout: JobDetailPage.tsx — max-w-7xl, xl:grid-cols-4 for better space usage

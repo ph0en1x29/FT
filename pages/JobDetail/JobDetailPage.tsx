@@ -103,13 +103,13 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const selectedPartIsLiquid = parts.find(p => p.part_id === state.selectedPartId)?.is_liquid ?? false;
 
   if (loading) return (
-    <div className="max-w-5xl mx-auto p-6 fade-in">
+    <div className="max-w-7xl mx-auto p-6 fade-in">
       <SkeletonJobDetail />
     </div>
   );
 
   if (!job) return (
-    <div className="max-w-5xl mx-auto p-6 fade-in"><div className="text-center py-20">
+    <div className="max-w-7xl mx-auto p-6 fade-in"><div className="text-center py-20">
       <AlertTriangle className="w-12 h-12 text-[var(--error)] mx-auto mb-4" />
       <h2 className="text-xl font-semibold text-[var(--text)]">Job not found</h2>
       <p className="text-[var(--text-muted)] mt-2">This job may have been deleted or you don't have access.</p>
@@ -118,7 +118,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   );
 
   return (
-    <div className={`max-w-5xl mx-auto pb-24 md:pb-8 ${(statusFlags.isNew || statusFlags.isAssigned || statusFlags.isInProgress || statusFlags.isCompleted) && !hasModalOpen ? 'pt-16 md:pt-0' : ''} fade-in`}>
+    <div className={`max-w-7xl mx-auto pb-24 md:pb-8 ${(statusFlags.isNew || statusFlags.isAssigned || statusFlags.isInProgress || statusFlags.isCompleted) && !hasModalOpen ? 'pt-16 md:pt-0' : ''} fade-in`}>
       <JobHeader job={job} isRealtimeConnected={true} roleFlags={roleFlags} statusFlags={statusFlags}
         exportingToAutoCount={state.exportingToAutoCount} onAcceptJob={actions.handleAcceptJob}
         onRejectJob={() => state.setShowRejectJobModal(true)} onStartJob={actions.handleOpenStartJobModal}
@@ -129,8 +129,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         onExportToAutoCount={actions.handleExportToAutoCount} onDeleteJob={() => state.setShowDeleteModal(true)}
         onAcknowledgeJob={actions.handleAcknowledgeJob} />
 
-      <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 mt-2">
-        <div className="lg:col-span-2 space-y-5">
+      <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-2">
+        <div className="lg:col-span-2 xl:col-span-3 space-y-5">
           {job.forklift && <EquipmentCard job={job} activeRental={state.activeRental} currentUserId={currentUserId}
             roleFlags={roleFlags} statusFlags={statusFlags} editingHourmeter={state.editingHourmeter}
             hourmeterInput={state.hourmeterInput} onHourmeterInputChange={state.setHourmeterInput}
