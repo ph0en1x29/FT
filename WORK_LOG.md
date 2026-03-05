@@ -200,3 +200,7 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 16:31] Widen Job Detail page layout: JobDetailPage.tsx — max-w-7xl, xl:grid-cols-4 for better space usage
 
 [Sonnet] [2026-03-05 16:41] Remove redundant sticky Start Job bar on mobile: JobDetailPage.tsx — JobHeader already has Start Job button
+
+[Sonnet] [2026-03-05 16:47] Desktop-friendly Edit Forklift modal: AddEditForkliftModal.tsx — rounded-2xl, 3 sections, 3-4 col grids
+
+[Sonnet] [2026-03-05 16:47] Technician dashboard improvements: TechnicianDashboard.tsx — Quick Actions + Weekly Summary

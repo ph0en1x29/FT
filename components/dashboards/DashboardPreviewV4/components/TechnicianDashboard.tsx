@@ -1,10 +1,14 @@
 import {
 ArrowRight,
+Briefcase,
 Calendar,
 CheckCircle,
+MapPin,
+Package,
 Play,
 RefreshCw,
-TrendingUp
+TrendingUp,
+Truck
 } from 'lucide-react';
 import React from 'react';
 import { Job,User } from '../../../../types';
@@ -36,9 +40,11 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser, 
 
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
-  const completedThisWeek = jobs.filter(j =>
+  const completedJobsThisWeek = jobs.filter(j =>
     ['Completed', 'Completed Awaiting Ack'].includes(j.status) && j.completed_at && new Date(j.completed_at) >= weekAgo && j.assigned_technician_id === currentUser.user_id
-  ).length;
+  );
+  const completedThisWeek = completedJobsThisWeek.length;
+  const totalHoursThisWeek = completedJobsThisWeek.reduce((sum, j) => sum + (j.actual_duration_hours || 0), 0);
 
   return (
     <div className="space-y-5">
@@ -99,6 +105,59 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser, 
               <QueueItem key={job.job_id} type="assigned" jobNumber={job.job_number || job.title} customer={job.customer?.name || 'Unknown'} detail={job.job_type || ''} onClick={() => navigate(`/jobs/${job.job_id}`)} />
             ))
           )}
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div>
+        <h3 className="font-semibold text-sm mb-3" style={{ color: 'var(--text)' }}>Quick Actions</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => navigate('/jobs')} className="p-4 rounded-2xl text-left transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'rgba(0, 122, 255, 0.15)' }}>
+              <Briefcase className="w-5 h-5" style={{ color: '#007AFF' }} />
+            </div>
+            <p className="font-semibold text-sm mb-1" style={{ color: 'var(--text)' }}>All Jobs</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>View all assignments</p>
+          </button>
+
+          <button onClick={() => navigate('/my-van-stock')} className="p-4 rounded-2xl text-left transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'rgba(255, 149, 0, 0.15)' }}>
+              <Package className="w-5 h-5" style={{ color: '#FF9500' }} />
+            </div>
+            <p className="font-semibold text-sm mb-1" style={{ color: 'var(--text)' }}>Van Stock</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Check inventory</p>
+          </button>
+
+          <button onClick={() => navigate('/forklifts')} className="p-4 rounded-2xl text-left transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'rgba(175, 82, 222, 0.15)' }}>
+              <Truck className="w-5 h-5" style={{ color: '#AF52DE' }} />
+            </div>
+            <p className="font-semibold text-sm mb-1" style={{ color: 'var(--text)' }}>Fleet</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Manage vehicles</p>
+          </button>
+
+          <button onClick={() => navigate('/customers')} className="p-4 rounded-2xl text-left transition-all hover:scale-105 active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'rgba(52, 199, 89, 0.15)' }}>
+              <MapPin className="w-5 h-5" style={{ color: '#34C759' }} />
+            </div>
+            <p className="font-semibold text-sm mb-1" style={{ color: 'var(--text)' }}>Customers</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>View locations</p>
+          </button>
+        </div>
+      </div>
+
+      {/* Weekly Summary */}
+      <div className="p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <h3 className="font-semibold text-sm mb-4" style={{ color: 'var(--text)' }}>This Week</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>{completedThisWeek}</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Jobs Completed</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold mb-1" style={{ color: 'var(--text)' }}>{totalHoursThisWeek.toFixed(1)}h</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Total Hours</p>
+          </div>
         </div>
       </div>
     </div>
