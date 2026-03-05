@@ -1,5 +1,6 @@
 import { Gauge,Save,Settings,Truck,X } from 'lucide-react';
-import React from 'react';
+import React, { useMemo } from 'react';
+import { Combobox, ComboboxOption } from '../../../components/Combobox';
 import { ForkliftStatus,ForkliftType } from '../../../types';
 
 let FORKLIFT_BRANDS: readonly string[];
@@ -47,6 +48,19 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
   onSubmit,
   isEditing,
 }) => {
+  const brandOptions: ComboboxOption[] = useMemo(() => [
+    { id: '', label: 'Select' },
+    ...FORKLIFT_BRANDS.map(b => ({ id: b, label: b })),
+  ], []);
+
+  const typeOptions: ComboboxOption[] = useMemo(() =>
+    Object.values(ForkliftType).map(t => ({ id: t, label: t })),
+  []);
+
+  const statusOptions: ComboboxOption[] = useMemo(() =>
+    Object.values(ForkliftStatus).map(s => ({ id: s, label: s })),
+  []);
+
   if (!isOpen) return null;
 
   return (
@@ -92,27 +106,17 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Brand *</label>
-                    <select className={inputClassName} value={formData.make} onChange={e => setFormData({...formData, make: e.target.value})} required>
-                      <option value="">Select</option>
-                      {FORKLIFT_BRANDS.map(brand => <option key={brand} value={brand}>{brand}</option>)}
-                    </select>
+                    <Combobox label="Brand *" options={brandOptions} value={formData.make} onChange={v => setFormData({...formData, make: v})} placeholder="Select" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Model</label>
                     <input type="text" className={inputClassName} value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} placeholder="8FGU25" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type *</label>
-                    <select className={inputClassName} value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as ForkliftType})}>
-                      {Object.values(ForkliftType).map(type => <option key={type} value={type}>{type}</option>)}
-                    </select>
+                    <Combobox label="Type *" options={typeOptions} value={formData.type} onChange={v => setFormData({...formData, type: v as ForkliftType})} placeholder="Select" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
-                    <select className={inputClassName} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as ForkliftStatus})}>
-                      {Object.values(ForkliftStatus).map(status => <option key={status} value={status}>{status}</option>)}
-                    </select>
+                    <Combobox label="Status" options={statusOptions} value={formData.status} onChange={v => setFormData({...formData, status: v as ForkliftStatus})} placeholder="Select" />
                   </div>
                 </div>
               </div>

@@ -99,7 +99,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
 
   return (
     <div className="relative" ref={containerRef}>
-      {label && <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>}
+      {label && <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{label}</label>}
       
       <div className="relative" ref={inputWrapperRef}>
         <input 
