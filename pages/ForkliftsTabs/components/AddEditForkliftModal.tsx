@@ -37,7 +37,7 @@ interface AddEditForkliftModalProps {
   isEditing: boolean;
 }
 
-const inputClassName = "w-full px-3 py-2 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25 placeholder-slate-400 transition-all duration-200";
+const inputClassName = "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25 placeholder-slate-400 transition-all duration-200";
 
 const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
   isOpen,
@@ -71,45 +71,45 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
           <div className="overflow-y-auto flex-1">
             {/* Section 1: Identity */}
             <div className="border-b border-slate-100">
-              <div className="px-4 md:px-5 py-1.5 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
+              <div className="px-4 md:px-5 py-2 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
                 <Truck className="w-3 h-3 text-blue-600" />
-                <span className="text-[10px] font-semibold text-blue-800 uppercase tracking-wide">Identity</span>
+                <span className="text-xs font-semibold text-blue-800 uppercase tracking-wide">Identity</span>
               </div>
-              <div className="p-3 md:p-4 space-y-3">
+              <div className="p-4 md:p-5 space-y-3">
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Serial Number *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Serial Number *</label>
                     <input type="text" className={inputClassName} value={formData.serial_number} onChange={e => setFormData({...formData, serial_number: e.target.value})} placeholder="FL-001234" required />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Forklift No</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Forklift No</label>
                     <input type="text" className={inputClassName} value={formData.forklift_no} onChange={e => setFormData({...formData, forklift_no: e.target.value})} placeholder="A123" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Customer No</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Customer No</label>
                     <input type="text" className={inputClassName} value={formData.customer_forklift_no} onChange={e => setFormData({...formData, customer_forklift_no: e.target.value})} placeholder="WH-FL-003" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Brand *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Brand *</label>
                     <select className={inputClassName} value={formData.make} onChange={e => setFormData({...formData, make: e.target.value})} required>
                       <option value="">Select</option>
                       {FORKLIFT_BRANDS.map(brand => <option key={brand} value={brand}>{brand}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Model</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Model</label>
                     <input type="text" className={inputClassName} value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} placeholder="8FGU25" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Type *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type *</label>
                     <select className={inputClassName} value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as ForkliftType})}>
                       {Object.values(ForkliftType).map(type => <option key={type} value={type}>{type}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Status</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
                     <select className={inputClassName} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as ForkliftStatus})}>
                       {Object.values(ForkliftStatus).map(status => <option key={status} value={status}>{status}</option>)}
                     </select>
@@ -120,26 +120,26 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
 
             {/* Section 2: Hourmeter & Service */}
             <div className="border-b border-slate-100">
-              <div className="px-4 md:px-5 py-1.5 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+              <div className="px-4 md:px-5 py-2 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
                 <Gauge className="w-3 h-3 text-amber-600" />
-                <span className="text-[10px] font-semibold text-amber-800 uppercase tracking-wide">Hourmeter & Service</span>
+                <span className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Hourmeter & Service</span>
               </div>
-              <div className="p-3 md:p-4">
+              <div className="p-4 md:p-5">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Current HRS</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Current HRS</label>
                     <input type="number" className={inputClassName} value={formData.hourmeter} onChange={e => setFormData({...formData, hourmeter: parseInt(e.target.value) || 0})} min="0" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Reading Date</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Reading Date</label>
                     <input type="date" className={inputClassName} value={formData.last_hourmeter_update} onChange={e => setFormData({...formData, last_hourmeter_update: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Last Service HRS</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service HRS</label>
                     <input type="number" className={inputClassName} value={formData.last_service_hourmeter} onChange={e => setFormData({...formData, last_service_hourmeter: parseInt(e.target.value) || 0})} min="0" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Last Service Date</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service Date</label>
                     <input type="date" className={inputClassName} value={formData.last_service_date} onChange={e => setFormData({...formData, last_service_date: e.target.value})} />
                   </div>
                 </div>
@@ -148,28 +148,28 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
 
             {/* Section 3: Specs & Notes */}
             <div>
-              <div className="px-4 md:px-5 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
+              <div className="px-4 md:px-5 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
                 <Settings className="w-3 h-3 text-slate-500" />
-                <span className="text-[10px] font-semibold text-slate-700 uppercase tracking-wide">Specs & Notes</span>
+                <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Specs & Notes</span>
               </div>
-              <div className="p-3 md:p-4 space-y-3">
+              <div className="p-4 md:p-5 space-y-3">
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Year</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Year</label>
                     <input type="number" className={inputClassName} value={formData.year ?? ''} onChange={e => setFormData({...formData, year: e.target.value ? parseInt(e.target.value) : null})} min="1980" max={new Date().getFullYear() + 1} placeholder="2020" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Capacity (KG)</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Capacity (KG)</label>
                     <input type="number" className={inputClassName} value={formData.capacity_kg} onChange={e => setFormData({...formData, capacity_kg: parseInt(e.target.value) || 0})} min="0" placeholder="2500" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Location</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Location</label>
                     <input type="text" className={inputClassName} value={formData.site} onChange={e => setFormData({...formData, site: e.target.value})} placeholder="Warehouse" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Notes</label>
-                  <textarea className={`${inputClassName} h-14 resize-none`} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Additional notes..." />
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes</label>
+                  <textarea className={`${inputClassName} h-16 resize-none`} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Additional notes..." />
                 </div>
               </div>
             </div>
