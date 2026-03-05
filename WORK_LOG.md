@@ -224,3 +224,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 17:10] Compact Combobox visibility fix: Combobox.tsx — stronger border + opacity
 
 [Sonnet] [2026-03-05 17:13] Compact Combobox dropdown min-width fix: Combobox.tsx — prevent text wrapping
+
+[Sonnet] [2026-03-05 17:15] Inventory filters to compact Combobox: InventoryFilters.tsx — liquid glass dropdowns

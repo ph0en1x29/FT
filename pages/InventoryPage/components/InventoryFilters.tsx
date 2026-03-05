@@ -1,5 +1,6 @@
 import { Filter,Search } from 'lucide-react';
-import React from 'react';
+import React, { useMemo } from 'react';
+import { Combobox, ComboboxOption } from '../../../components/Combobox';
 
 interface InventoryFiltersProps {
   searchQuery: string;
@@ -20,6 +21,17 @@ const InventoryFilters: React.FC<InventoryFiltersProps> = ({
   onCategoryChange,
   onStockChange,
 }) => {
+  const categoryOptions: ComboboxOption[] = useMemo(() => [
+    { id: 'all', label: 'All Categories' },
+    ...categories.map(cat => ({ id: cat, label: cat })),
+  ], [categories]);
+
+  const stockOptions: ComboboxOption[] = useMemo(() => [
+    { id: 'all', label: 'All Stock Levels' },
+    { id: 'low', label: 'Low Stock' },
+    { id: 'out', label: 'Out of Stock' },
+  ], []);
+
   return (
     <div className="bg-[var(--surface)] rounded-xl shadow-sm p-3 md:p-4 space-y-3 md:space-y-4">
       <div className="flex flex-col lg:flex-row gap-3 md:gap-4">
@@ -36,30 +48,14 @@ const InventoryFilters: React.FC<InventoryFiltersProps> = ({
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-3 min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
-            <select
-              className="w-full lg:w-48 px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm h-10 truncate"
-              value={filterCategory}
-              onChange={(e) => onCategoryChange(e.target.value)}
-            >
-              <option value="all">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+        <div className="flex flex-wrap gap-2 items-center">
+          <Filter className="w-3.5 h-3.5 text-slate-400 hidden lg:block" />
+          <div className="w-32">
+            <Combobox compact options={categoryOptions} value={filterCategory} onChange={onCategoryChange} placeholder="All Categories" />
           </div>
-
-          <select
-            className="w-full lg:w-48 px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm h-10 truncate"
-            value={filterStock}
-            onChange={(e) => onStockChange(e.target.value as 'all' | 'low' | 'out')}
-          >
-            <option value="all">All Stock Levels</option>
-            <option value="low">Low Stock</option>
-            <option value="out">Out of Stock</option>
-          </select>
+          <div className="w-32">
+            <Combobox compact options={stockOptions} value={filterStock} onChange={(v) => onStockChange(v as 'all' | 'low' | 'out')} placeholder="All Stock Levels" />
+          </div>
         </div>
       </div>
     </div>
