@@ -214,3 +214,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 16:58] Edit Forklift modal sticky footer + compact: AddEditForkliftModal.tsx
 
 [Sonnet] [2026-03-05 17:01] Edit Forklift modal size bump: AddEditForkliftModal.tsx — half-step larger inputs/labels/spacing
+
+[Sonnet] [2026-03-05 17:04] Fleet filter dropdowns to Combobox: ForkliftFilters.tsx — searchable LOV for Type/Status/Rental/Make

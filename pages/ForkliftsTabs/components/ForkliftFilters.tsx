@@ -1,5 +1,6 @@
 import { Filter,Search } from 'lucide-react';
-import React from 'react';
+import React, { useMemo } from 'react';
+import { Combobox, ComboboxOption } from '../../../components/Combobox';
 import { ForkliftStatus,ForkliftType } from '../../../types';
 
 interface ForkliftFiltersProps {
@@ -29,6 +30,27 @@ const ForkliftFilters: React.FC<ForkliftFiltersProps> = ({
   setFilterMake,
   uniqueMakes,
 }) => {
+  const typeOptions: ComboboxOption[] = useMemo(() => [
+    { id: 'all', label: 'All Types' },
+    ...Object.values(ForkliftType).map(t => ({ id: t, label: t })),
+  ], []);
+
+  const statusOptions: ComboboxOption[] = useMemo(() => [
+    { id: 'all', label: 'All Status' },
+    ...Object.values(ForkliftStatus).map(s => ({ id: s, label: s })),
+  ], []);
+
+  const rentalOptions: ComboboxOption[] = useMemo(() => [
+    { id: 'all', label: 'All Rentals' },
+    { id: 'assigned', label: 'Rented' },
+    { id: 'unassigned', label: 'Available' },
+  ], []);
+
+  const makeOptions: ComboboxOption[] = useMemo(() => [
+    { id: 'all', label: 'All Makes' },
+    ...uniqueMakes.map(m => ({ id: m, label: m })),
+  ], [uniqueMakes]);
+
   return (
     <div className="bg-[var(--surface)] rounded-xl shadow-sm p-4 space-y-4">
       <div className="flex flex-col lg:flex-row gap-4">
@@ -43,59 +65,21 @@ const ForkliftFilters: React.FC<ForkliftFiltersProps> = ({
           />
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-theme-muted" />
-            <select
-              className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme"
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-            >
-              <option value="all">All Types</option>
-              {Object.values(ForkliftType).map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+        <div className="flex flex-wrap gap-3 items-center">
+          <Filter className="w-4 h-4 text-theme-muted hidden lg:block" />
+          <div className="w-36">
+            <Combobox options={typeOptions} value={filterType} onChange={setFilterType} placeholder="All Types" />
           </div>
-
-          <select
-            className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="all">All Status</option>
-            {Object.values(ForkliftStatus).map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme"
-            value={filterAssigned}
-            onChange={(e) => setFilterAssigned(e.target.value)}
-          >
-            <option value="all">All Rentals</option>
-            <option value="assigned">Rented</option>
-            <option value="unassigned">Available</option>
-          </select>
-
+          <div className="w-36">
+            <Combobox options={statusOptions} value={filterStatus} onChange={setFilterStatus} placeholder="All Status" />
+          </div>
+          <div className="w-36">
+            <Combobox options={rentalOptions} value={filterAssigned} onChange={setFilterAssigned} placeholder="All Rentals" />
+          </div>
           {uniqueMakes.length > 0 && (
-            <select
-              className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme"
-              value={filterMake}
-              onChange={(e) => setFilterMake(e.target.value)}
-            >
-              <option value="all">All Makes</option>
-              {uniqueMakes.map((make) => (
-                <option key={make} value={make}>
-                  {make}
-                </option>
-              ))}
-            </select>
+            <div className="w-36">
+              <Combobox options={makeOptions} value={filterMake} onChange={setFilterMake} placeholder="All Makes" />
+            </div>
           )}
         </div>
       </div>
