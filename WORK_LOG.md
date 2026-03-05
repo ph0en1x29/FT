@@ -180,3 +180,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 16:07] Add visual polish to Create Job page: CreateJobPage.tsx ForkliftSelectionSection.tsx — section headers with icons+color, amber forklift card, blue wrench header icon
 
 [Sonnet] [2026-03-05 16:11] Fix blank space under Customer: ForkliftSelectionSection.tsx — info card spans full width, hourmeter inline
+
+[Sonnet] [2026-03-05 16:15] Add context sidebar to Create Job page: CreateJobPage.tsx — customer info + active rentals panel fills side blank space
