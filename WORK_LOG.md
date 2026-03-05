@@ -146,3 +146,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 - forklift.types.ts: added site to ForkliftRental
 
 [Sonnet] [2026-03-05 14:31] SITE/LOCATION separation: AddEditForkliftModal.tsx AssignForkliftModal.tsx FleetTab.tsx useFleetManagement.ts rentalService.ts forklift.types.ts — renamed Site→Location, added SITE field to rental modal, auto-capture customer name
+
+[Sonnet] [2026-03-05 14:42] Modal overflow fix + Edit Customer modal + Site field reorder: AssignForkliftModal.tsx (fleet+profile) EditCustomerModal.tsx CustomerProfilePage.tsx index.ts

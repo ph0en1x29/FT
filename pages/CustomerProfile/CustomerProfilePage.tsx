@@ -4,6 +4,7 @@ import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import {
 BulkEndRentalModal,
 CustomerHeader,CustomerKPIStrip,
+EditCustomerModal,
 EditRentalModal,
 InsightsSidebar,
 RentalsSection,
@@ -33,6 +34,10 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
   const [serviceTab, setServiceTab] = useState<ServiceTab>('all');
   const [showCancelledJobs, setShowCancelledJobs] = useState(false);
   
+  // Edit customer modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  
   // Role checks
   const isAdmin = currentUser.role.toString().toLowerCase() === 'admin';
   const isSupervisor = currentUser.role.toString().toLowerCase() === 'supervisor';
@@ -61,6 +66,41 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
   }, [serviceTab, activeJobs, openJobs, completedJobs]);
 
   // Handlers
+  const handleSaveCustomerEdit = async (data: any) => {
+    if (!customer) return;
+    setSavingCustomer(true);
+    try {
+      const { updateCustomer } = await import('../../services/customerService');
+      await updateCustomer(customer.customer_id, {
+        name: data.name,
+        address: data.address,
+        phone: data.phone,
+        email: data.email,
+        notes: data.notes,
+        contact_person: data.contact_person,
+        account_number: data.account_number
+      });
+
+            setShowEditModal(false);
+      await loadCustomerData();
+      setResultModal({
+        show: true,
+        type: 'success',
+        title: 'Customer Updated',
+        message: 'Customer information has been successfully updated.',
+      });
+    } catch (e) {
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update customer: ' + (e as Error).message,
+      });
+    } finally {
+      setSavingCustomer(false);
+    }
+  };
+
   const handleDeleteCustomer = async () => {
     if (!customer) return;
     if (!confirm(`Are you sure you want to delete customer: "${customer.name}"?\n\nThis action cannot be undone.`)) return;
@@ -84,7 +124,7 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
         onNavigateBack={() => navigate(-1)}
         onRentForklift={rentForklifts.openRentModal}
         onCreateJob={() => navigate(`/jobs/new?customer_id=${customer.customer_id}`)}
-        onEditCustomer={() => navigate(`/customers/${customer.customer_id}/edit`)}
+        onEditCustomer={() => setShowEditModal(true)}
         onDeleteCustomer={handleDeleteCustomer}
       />
 
@@ -177,6 +217,15 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
           onSetMonthlyRate={rentForklifts.setRentMonthlyRate}
           onSetSearchQuery={rentForklifts.setForkliftSearchQuery}
           onConfirm={rentForklifts.handleRentForklifts}
+        />
+      )}
+
+      {showEditModal && customer && (
+        <EditCustomerModal
+          customer={customer}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleSaveCustomerEdit}
+          saving={savingCustomer}
         />
       )}
 
