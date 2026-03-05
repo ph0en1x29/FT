@@ -166,3 +166,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 15:46] Fix forklift filter on Create Job: forkliftService.ts — add current_customer_id to getForkliftsForList select
 
 [Sonnet] [2026-03-05 15:49] Fix modal layout pattern — proper scroll container: AssignForkliftModal.tsx (fleet+profile) ReturnForkliftModal.tsx
+
+[Sonnet] [2026-03-05 15:52] Replace select with Combobox search LOV: AssignForkliftModal.tsx (fleet+profile)

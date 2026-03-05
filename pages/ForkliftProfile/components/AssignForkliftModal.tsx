@@ -1,4 +1,5 @@
 import { Save,X } from 'lucide-react';
+import { Combobox,ComboboxOption } from '../../../components/Combobox';
 import React,{ useState } from 'react';
 import { supabase } from '../../../services/supabaseClient';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
@@ -86,17 +87,13 @@ export const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Select Customer *</label>
-            <select
-              className="w-full px-3 py-2.5 bg-[#f5f5f5] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-blue-500"
+            <Combobox
+              label="Select Customer *"
+              options={customers.map((c): ComboboxOption => ({ id: c.customer_id, label: c.name, subLabel: c.address || '' }))}
               value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-            >
-              <option value="">-- Select Customer --</option>
-              {customers.map(c => (
-                <option key={c.customer_id} value={c.customer_id}>{c.name}</option>
-              ))}
-            </select>
+              onChange={setSelectedCustomerId}
+              placeholder="Search customer..."
+            />
           </div>
 
           <div>

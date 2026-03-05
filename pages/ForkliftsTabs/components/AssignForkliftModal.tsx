@@ -1,5 +1,6 @@
 import { Building2,Loader2,X } from 'lucide-react';
 import React from 'react';
+import { Combobox,ComboboxOption } from '../../../components/Combobox';
 import { Customer,Forklift } from '../../../types';
 
 interface AssignForkliftModalProps {
@@ -83,15 +84,13 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
           )}
 
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Select Customer *</label>
-            <select 
-              className={inputClassName} 
-              value={selectedCustomerId} 
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-            >
-              <option value="">-- Select Customer --</option>
-              {customers.map(c => <option key={c.customer_id} value={c.customer_id}>{c.name}</option>)}
-            </select>
+            <Combobox
+              label="Select Customer *"
+              options={customers.map((c): ComboboxOption => ({ id: c.customer_id, label: c.name, subLabel: c.address || '' }))}
+              value={selectedCustomerId}
+              onChange={setSelectedCustomerId}
+              placeholder="Search customer..."
+            />
           </div>
 
           <div>
