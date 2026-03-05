@@ -190,3 +190,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 16:20] Increase section banner visibility: CreateJobPage.tsx — amber-50→100, blue-50→100
 
 [Sonnet] [2026-03-05 16:23] Change section banners to sky-200 azzurro: CreateJobPage.tsx
+
+[Sonnet] [2026-03-05 16:25] Restructure Job Details layout — full-width fields, 3-col row: CreateJobPage.tsx

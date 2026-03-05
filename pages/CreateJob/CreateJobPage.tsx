@@ -105,47 +105,35 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
               <span className="text-sm font-semibold text-sky-900">Job Details</span>
             </div>
             <div className="p-4 md:p-6 space-y-4 md:space-y-5">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Job Title</label>
-                  <input 
-                    type="text"
-                    className={INPUT_CLASS_NAME}
-                    value={formData.title}
-                    onChange={e => setFormData(prev => ({...prev, title: e.target.value}))}
-                    placeholder="e.g., PM Service, Hydraulic Repair"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Combobox
-                    label="Job Type"
-                    options={Object.values(JobType).map(t => ({ id: t, label: t }))}
-                    value={formData.job_type}
-                    onChange={(val) => setFormData(prev => ({...prev, job_type: val as JobType}))}
-                    placeholder="Select..."
-                  />
-                  <Combobox
-                    label="Priority"
-                    options={Object.values(JobPriority).map(p => ({ id: p, label: p }))}
-                    value={formData.priority}
-                    onChange={(val) => setFormData(prev => ({...prev, priority: val as JobPriority}))}
-                    placeholder="Select..."
-                  />
-                </div>
+              {/* Job Title — full width */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Job Title</label>
+                <input 
+                  type="text"
+                  className={INPUT_CLASS_NAME}
+                  value={formData.title}
+                  onChange={e => setFormData(prev => ({...prev, title: e.target.value}))}
+                  placeholder="e.g., PM Service, Hydraulic Repair"
+                  required
+                />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Description</label>
-                  <textarea 
-                    className={`${INPUT_CLASS_NAME} h-24 resize-none`}
-                    value={formData.description}
-                    onChange={e => setFormData(prev => ({...prev, description: e.target.value}))}
-                    placeholder="Describe the issue or service required..."
-                    required
-                  />
-                </div>
+              {/* Type + Priority + Technician — 3 columns on desktop */}
+              <div className={`grid grid-cols-1 sm:grid-cols-2 ${canCreateJobs ? 'lg:grid-cols-3' : ''} gap-4`}>
+                <Combobox
+                  label="Job Type"
+                  options={Object.values(JobType).map(t => ({ id: t, label: t }))}
+                  value={formData.job_type}
+                  onChange={(val) => setFormData(prev => ({...prev, job_type: val as JobType}))}
+                  placeholder="Select..."
+                />
+                <Combobox
+                  label="Priority"
+                  options={Object.values(JobPriority).map(p => ({ id: p, label: p }))}
+                  value={formData.priority}
+                  onChange={(val) => setFormData(prev => ({...prev, priority: val as JobPriority}))}
+                  placeholder="Select..."
+                />
                 {canCreateJobs && (
                   <Combobox
                     label="Assign Technician (Optional)"
@@ -155,6 +143,18 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
                     placeholder="Search technician..."
                   />
                 )}
+              </div>
+
+              {/* Description — full width */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Description</label>
+                <textarea 
+                  className={`${INPUT_CLASS_NAME} h-28 resize-none`}
+                  value={formData.description}
+                  onChange={e => setFormData(prev => ({...prev, description: e.target.value}))}
+                  placeholder="Describe the issue or service required..."
+                  required
+                />
               </div>
             </div>
           </div>
