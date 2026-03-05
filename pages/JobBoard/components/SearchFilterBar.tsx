@@ -1,5 +1,6 @@
-import { ChevronDown,Filter,Search,X } from 'lucide-react';
-import React from 'react';
+import { Filter,Search,X } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Combobox, ComboboxOption } from '../../../components/Combobox';
 import { JobStatus } from '../../../types';
 import { DateFilter } from '../types';
 
@@ -22,9 +23,6 @@ interface SearchFilterBarProps {
   filteredCount: number;
 }
 
-/**
- * Search and filter bar with expandable advanced filters
- */
 export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   searchQuery,
   onSearchChange,
@@ -43,6 +41,28 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   totalJobs,
   filteredCount,
 }) => {
+  const dateOptions: ComboboxOption[] = useMemo(() => [
+    { id: 'unfinished', label: '🔄 Unfinished' },
+    { id: 'today', label: '📅 Today' },
+    { id: 'week', label: '📆 This Week' },
+    { id: 'month', label: '🗓️ This Month' },
+    { id: 'all', label: '📋 All Jobs' },
+    { id: 'custom', label: '🔍 Custom Range' },
+  ], []);
+
+  const statusOptions: ComboboxOption[] = useMemo(() => [
+    { id: 'all', label: 'All Statuses' },
+    { id: JobStatus.NEW, label: 'New' },
+    { id: JobStatus.ASSIGNED, label: 'Assigned' },
+    { id: JobStatus.IN_PROGRESS, label: 'In Progress' },
+    { id: JobStatus.AWAITING_FINALIZATION, label: 'Awaiting Finalization' },
+    { id: JobStatus.COMPLETED, label: 'Completed' },
+    { id: JobStatus.COMPLETED_AWAITING_ACK, label: 'Awaiting Customer Ack' },
+    { id: JobStatus.INCOMPLETE_CONTINUING, label: 'Incomplete - Continuing' },
+    { id: JobStatus.INCOMPLETE_REASSIGNED, label: 'Incomplete - Reassigned' },
+    { id: JobStatus.DISPUTED, label: 'Disputed' },
+  ], []);
+
   return (
     <div className="card-theme p-4 rounded-xl space-y-4">
       <div className="flex flex-col sm:flex-row gap-3">
@@ -66,21 +86,9 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
           )}
         </div>
 
-        {/* Date Filter Dropdown */}
-        <div className="relative">
-          <select
-            value={dateFilter}
-            onChange={(e) => onDateFilterChange(e.target.value as DateFilter)}
-            className="appearance-none pl-4 pr-10 py-2.5 rounded-lg border border-theme bg-theme-surface text-theme focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer min-w-[160px]"
-          >
-            <option value="unfinished">🔄 Unfinished</option>
-            <option value="today">📅 Today</option>
-            <option value="week">📆 This Week</option>
-            <option value="month">🗓️ This Month</option>
-            <option value="all">📋 All Jobs</option>
-            <option value="custom">🔍 Custom Range</option>
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none" />
+        {/* Date Filter */}
+        <div className="w-36">
+          <Combobox compact options={dateOptions} value={dateFilter} onChange={(v) => onDateFilterChange(v as DateFilter)} placeholder="Unfinished" />
         </div>
 
         {/* Toggle Filters Button */}
@@ -93,7 +101,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
           }`}
         >
           <Filter className="w-4 h-4" />
-          <span className="hidden sm:inline">Filters</span>
+          <span className="hidden sm:inline text-sm">Filters</span>
         </button>
 
         {/* Clear Filters */}
@@ -103,7 +111,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
             className="px-4 py-2.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition flex items-center gap-2"
           >
             <X className="w-4 h-4" />
-            <span className="hidden sm:inline">Clear</span>
+            <span className="hidden sm:inline text-sm">Clear</span>
           </button>
         )}
       </div>
@@ -134,25 +142,10 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
 
       {/* Additional Filters (expandable) */}
       {showFilters && (
-        <div className="flex flex-wrap gap-3 pt-2 border-t border-theme-muted">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-theme-muted">Status:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => onStatusFilterChange(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-theme bg-theme-surface text-theme text-sm"
-            >
-              <option value="all">All Statuses</option>
-              <option value={JobStatus.NEW}>New</option>
-              <option value={JobStatus.ASSIGNED}>Assigned</option>
-              <option value={JobStatus.IN_PROGRESS}>In Progress</option>
-              <option value={JobStatus.AWAITING_FINALIZATION}>Awaiting Finalization</option>
-              <option value={JobStatus.COMPLETED}>Completed</option>
-              <option value={JobStatus.COMPLETED_AWAITING_ACK}>Awaiting Customer Ack</option>
-              <option value={JobStatus.INCOMPLETE_CONTINUING}>Incomplete - Continuing</option>
-              <option value={JobStatus.INCOMPLETE_REASSIGNED}>Incomplete - Reassigned</option>
-              <option value={JobStatus.DISPUTED}>Disputed</option>
-            </select>
+        <div className="flex flex-wrap gap-3 pt-2 border-t border-theme-muted items-center">
+          <label className="text-sm text-theme-muted">Status:</label>
+          <div className="w-44">
+            <Combobox compact options={statusOptions} value={statusFilter} onChange={onStatusFilterChange} placeholder="All Statuses" />
           </div>
         </div>
       )}

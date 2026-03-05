@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { Combobox, ComboboxOption } from '../../../components/Combobox';
 import { JobStatus,JobType } from '../../../types';
 import { FilterMode } from '../hooks/useJobFilters';
 
@@ -44,6 +45,24 @@ const FilterBar: React.FC<FilterBarProps> = ({
         : 'text-theme-muted hover:text-[var(--text)]'
     }`;
 
+  const statusOptions: ComboboxOption[] = useMemo(() => [
+    { id: 'all', label: 'All Status' },
+    { id: JobStatus.NEW, label: 'New' },
+    { id: JobStatus.ASSIGNED, label: 'Assigned' },
+    { id: JobStatus.IN_PROGRESS, label: 'In Progress' },
+    { id: JobStatus.AWAITING_FINALIZATION, label: 'Awaiting Finalization' },
+    { id: JobStatus.COMPLETED, label: 'Completed' },
+  ], []);
+
+  const typeOptions: ComboboxOption[] = useMemo(() => [
+    { id: 'all', label: 'All Types' },
+    { id: JobType.SERVICE, label: 'Service' },
+    { id: JobType.REPAIR, label: 'Repair' },
+    { id: JobType.CHECKING, label: 'Checking' },
+    { id: JobType.SLOT_IN, label: 'Slot-In' },
+    { id: JobType.COURIER, label: 'Courier' },
+  ], []);
+
   return (
     <div className="flex flex-wrap items-center gap-4">
       {/* Mode Tabs */}
@@ -61,52 +80,31 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
       {/* Additional Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme"
-        >
-          <option value="all">All Status</option>
-          <option value={JobStatus.NEW}>New</option>
-          <option value={JobStatus.ASSIGNED}>Assigned</option>
-          <option value={JobStatus.IN_PROGRESS}>In Progress</option>
-          <option value={JobStatus.AWAITING_FINALIZATION}>Awaiting Finalization</option>
-          <option value={JobStatus.COMPLETED}>Completed</option>
-        </select>
-
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme"
-        >
-          <option value="all">All Types</option>
-          <option value={JobType.SERVICE}>Service</option>
-          <option value={JobType.REPAIR}>Repair</option>
-          <option value={JobType.CHECKING}>Checking</option>
-          <option value={JobType.SLOT_IN}>Slot-In</option>
-          <option value={JobType.COURIER}>Courier</option>
-        </select>
+        <div>
+          <Combobox compact options={statusOptions} value={statusFilter} onChange={setStatusFilter} placeholder="All Status" />
+        </div>
+        <div>
+          <Combobox compact options={typeOptions} value={typeFilter} onChange={setTypeFilter} placeholder="All Types" />
+        </div>
 
         <input
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme"
-          placeholder="From"
+          className="px-2.5 py-1.5 bg-theme-surface border border-slate-300/60 rounded-xl text-xs text-theme shadow-sm"
         />
-        <span className="text-theme-muted">-</span>
+        <span className="text-theme-muted text-xs">-</span>
         <input
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme"
-          placeholder="To"
+          className="px-2.5 py-1.5 bg-theme-surface border border-slate-300/60 rounded-xl text-xs text-theme shadow-sm"
         />
 
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="px-3 py-2 text-sm text-[var(--error)] hover:bg-[var(--error-bg)] rounded-lg transition-colors"
+            className="px-3 py-1.5 text-xs text-[var(--error)] hover:bg-[var(--error-bg)] rounded-xl transition-colors"
           >
             Clear
           </button>
