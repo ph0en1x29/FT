@@ -238,3 +238,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 17:21] Compact Combobox size bump: Combobox.tsx — text-xs→text-sm, py-1.5→py-2
 
 [Sonnet] [2026-03-05 17:23] Fleet filters hybrid layout: ForkliftFilters.tsx — side-by-side on desktop, stacked on mobile
+
+[Sonnet] [2026-03-05 17:27] Job Board date filter pill tabs: SearchFilterBar.tsx — visible pills for primary nav, Combobox for status

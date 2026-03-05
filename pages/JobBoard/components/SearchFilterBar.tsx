@@ -23,6 +23,15 @@ interface SearchFilterBarProps {
   filteredCount: number;
 }
 
+const dateFilters: { id: DateFilter; label: string }[] = [
+  { id: 'unfinished', label: 'Unfinished' },
+  { id: 'today', label: 'Today' },
+  { id: 'week', label: 'Week' },
+  { id: 'month', label: 'Month' },
+  { id: 'all', label: 'All' },
+  { id: 'custom', label: 'Custom' },
+];
+
 export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   searchQuery,
   onSearchChange,
@@ -41,15 +50,6 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   totalJobs,
   filteredCount,
 }) => {
-  const dateOptions: ComboboxOption[] = useMemo(() => [
-    { id: 'unfinished', label: '🔄 Unfinished' },
-    { id: 'today', label: '📅 Today' },
-    { id: 'week', label: '📆 This Week' },
-    { id: 'month', label: '🗓️ This Month' },
-    { id: 'all', label: '📋 All Jobs' },
-    { id: 'custom', label: '🔍 Custom Range' },
-  ], []);
-
   const statusOptions: ComboboxOption[] = useMemo(() => [
     { id: 'all', label: 'All Statuses' },
     { id: JobStatus.NEW, label: 'New' },
@@ -64,86 +64,98 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   ], []);
 
   return (
-    <div className="card-theme p-4 rounded-xl space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search Input */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted" />
-          <input
-            type="text"
-            placeholder="Search jobs, customers, forklifts, job numbers..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-theme bg-theme-surface text-theme focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => onSearchChange('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-muted hover:text-theme"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+    <div className="card-theme p-3 rounded-xl space-y-3">
+      {/* Date pill tabs */}
+      <div className="flex items-center gap-1 overflow-x-auto">
+        {dateFilters.map(df => (
+          <button
+            key={df.id}
+            onClick={() => onDateFilterChange(df.id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+              dateFilter === df.id
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-[var(--text-muted)] hover:bg-[var(--bg-subtle)]'
+            }`}
+          >
+            {df.label}
+          </button>
+        ))}
 
-        {/* Date Filter */}
-        <div className="w-36">
-          <Combobox compact options={dateOptions} value={dateFilter} onChange={(v) => onDateFilterChange(v as DateFilter)} placeholder="Unfinished" />
-        </div>
+        {/* Spacer */}
+        <div className="flex-1" />
 
-        {/* Toggle Filters Button */}
+        {/* Filter + Clear buttons */}
         <button
           onClick={onToggleFilters}
-          className={`px-4 py-2.5 rounded-lg border transition flex items-center gap-2 ${
-            showFilters 
-              ? 'bg-blue-50 border-blue-200 text-blue-600' 
-              : 'border-theme text-theme-muted hover:bg-theme-surface-2'
+          className={`px-3 py-1.5 rounded-full border transition flex items-center gap-1.5 text-xs font-medium shrink-0 ${
+            showFilters
+              ? 'bg-blue-50 border-blue-200 text-blue-600'
+              : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--bg-subtle)]'
           }`}
         >
-          <Filter className="w-4 h-4" />
-          <span className="hidden sm:inline text-sm">Filters</span>
+          <Filter className="w-3 h-3" />
+          Filters
         </button>
 
-        {/* Clear Filters */}
         {hasActiveFilters && (
           <button
             onClick={onClearFilters}
-            className="px-4 py-2.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition flex items-center gap-2"
+            className="px-3 py-1.5 rounded-full border border-red-200 text-red-500 hover:bg-red-50 transition flex items-center gap-1.5 text-xs font-medium shrink-0"
+          >
+            <X className="w-3 h-3" />
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Search bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+        <input
+          type="text"
+          placeholder="Search jobs, customers, forklifts..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="w-full pl-9 pr-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text)] focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-400"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => onSearchChange('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)]"
           >
             <X className="w-4 h-4" />
-            <span className="hidden sm:inline text-sm">Clear</span>
           </button>
         )}
       </div>
 
       {/* Custom Date Range */}
       {dateFilter === 'custom' && (
-        <div className="flex flex-wrap gap-3 pt-2 border-t border-theme-muted">
+        <div className="flex flex-wrap gap-3 pt-2 border-t border-[var(--border)]">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-theme-muted">From:</label>
+            <label className="text-xs text-[var(--text-muted)]">From:</label>
             <input
               type="date"
               value={customDateFrom}
               onChange={(e) => onCustomDateFromChange(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-theme bg-theme-surface text-theme text-sm"
+              className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)]"
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-theme-muted">To:</label>
+            <label className="text-xs text-[var(--text-muted)]">To:</label>
             <input
               type="date"
               value={customDateTo}
               onChange={(e) => onCustomDateToChange(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-theme bg-theme-surface text-theme text-sm"
+              className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)]"
             />
           </div>
         </div>
       )}
 
-      {/* Additional Filters (expandable) */}
+      {/* Expandable status filter */}
       {showFilters && (
-        <div className="flex flex-wrap gap-3 pt-2 border-t border-theme-muted items-center">
-          <label className="text-sm text-theme-muted">Status:</label>
+        <div className="flex flex-wrap gap-3 pt-2 border-t border-[var(--border)] items-center">
+          <label className="text-xs text-[var(--text-muted)]">Status:</label>
           <div className="w-44">
             <Combobox compact options={statusOptions} value={statusFilter} onChange={onStatusFilterChange} placeholder="All Statuses" />
           </div>
@@ -151,7 +163,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
       )}
 
       {/* Results count */}
-      <div className="text-sm text-theme-muted">
+      <div className="text-xs text-[var(--text-muted)]">
         Showing {filteredCount} of {totalJobs} jobs
       </div>
     </div>
