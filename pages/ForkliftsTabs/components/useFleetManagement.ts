@@ -42,6 +42,8 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [editingForklift, setEditingForklift] = useState<Forklift | null>(null);
   const [assigningForklift, setAssigningForklift] = useState<Forklift | null>(null);
+  const [returningForklift, setReturningForklift] = useState<Forklift | null>(null);
+  const [isReturning, setIsReturning] = useState(false);
 
   // Selection mode
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -185,20 +187,85 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     setShowAssignModal(true);
   }, []);
 
-  const handleReturn = useCallback(async (forklift: Forklift, e: React.MouseEvent) => {
+  const handleReturn = useCallback((forklift: Forklift, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(`Return ${forklift.make} ${forklift.model} (${forklift.serial_number})? This will end the active rental and mark it as Available.`)) return;
+    setReturningForklift(forklift);
+  }, []);
+
+  const handleReturnSubmit = useCallback(async (data: {
+    returnDate: string;
+    hourmeter: number;
+    condition: string;
+    notes: string;
+  }) => {
+    if (!returningForklift) return;
+
+    setIsReturning(true);
     try {
       const { getActiveRentalForForklift, endRental } = await import('../../../services/forkliftService');
-      const rental = await getActiveRentalForForklift(forklift.forklift_id);
+      
+      // 1. Fetch active rental
+      const rental = await getActiveRentalForForklift(returningForklift.forklift_id);
       if (!rental) throw new Error('No active rental found for this forklift');
-      await endRental(rental.rental_id, undefined, currentUser?.user_id, currentUser?.name);
+
+      // 2. End the rental
+      await endRental(rental.rental_id, data.returnDate, currentUser?.user_id, currentUser?.name);
+
+      // 3. Update forklift_rentals row with hourmeter and condition (in notes)
+      const conditionNote = `Condition: ${data.condition}`;
+      const finalNotes = data.notes ? `${conditionNote}\n${data.notes}` : conditionNote;
+      
+      await supabase
+        .from('forklift_rentals')
+        .update({
+          hourmeter_at_end: data.hourmeter,
+          notes: finalNotes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('rental_id', rental.rental_id);
+
+      // 4. Update forklifts row with hourmeter and status
+      const newStatus = (data.condition === 'Requires Service' || data.condition === 'Damaged')
+        ? 'Service Due'
+        : 'Available';
+
+      await supabase
+        .from('forklifts')
+        .update({
+          hourmeter: data.hourmeter,
+          last_hourmeter_update: new Date().toISOString(),
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('forklift_id', returningForklift.forklift_id);
+
+      // 5. Close modal and reload data
+      setReturningForklift(null);
       await loadData();
-      setResultModal({ show: true, type: 'success', title: 'Forklift Returned', message: `${forklift.make} ${forklift.model} has been returned and is now Available.` });
+
+      // 6. Show success result
+      setResultModal({
+        show: true,
+        type: 'success',
+        title: 'Forklift Returned Successfully',
+        message: `${returningForklift.make} ${returningForklift.model} (${returningForklift.serial_number}) has been returned.`,
+        details: [
+          `✓ Final hourmeter: ${data.hourmeter} hours`,
+          `✓ Condition: ${data.condition}`,
+          `✓ Status: ${newStatus}`,
+        ],
+      });
     } catch (error) {
-      setResultModal({ show: true, type: 'error', title: 'Error', message: (error as Error).message });
+      setResultModal({
+        show: true,
+        type: 'error',
+        title: 'Error',
+        message: (error as Error).message,
+      });
+    } finally {
+      setIsReturning(false);
     }
-  }, [currentUser, loadData]);
+  }, [returningForklift, currentUser, loadData]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -451,6 +518,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     closeAddModal, closeAssignModal, closeResultModal,
     setShowBulkRentModal, setShowBulkEndRentalModal,
     showBulkServiceResetModal, setShowBulkServiceResetModal, bulkRentedForklifts,
+    returningForklift, setReturningForklift, isReturning,
     // Forms
     formData, setFormData, selectedCustomerId, setSelectedCustomerId,
     startDate, setStartDate, endDate, setEndDate,
@@ -461,7 +529,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     // Handlers
     canEditForklifts, handleAddNew, handleEdit, handleAssign, handleReturn,
     handleSubmit, handleAssignSubmit, handleDelete,
-    handleBulkRentOut, handleBulkEndRental,
+    handleBulkRentOut, handleBulkEndRental, handleReturnSubmit,
     openBulkRentModal, openBulkEndRentalModal,
   };
 }

@@ -10,6 +10,7 @@ import BulkServiceResetModal from './BulkServiceResetModal';
 import ForkliftFilters from './ForkliftFilters';
 import ForkliftGrid from './ForkliftGrid';
 import ResultModal from './ResultModal';
+import ReturnForkliftModal from './ReturnForkliftModal';
 import { useFleetManagement } from './useFleetManagement';
 
 const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
@@ -135,6 +136,16 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
           lastServiceHourmeter={fleet.lastServiceHourmeter}
           setLastServiceHourmeter={fleet.setLastServiceHourmeter}
           onSubmit={fleet.handleAssignSubmit}
+        />
+      )}
+
+      {fleet.returningForklift && (
+        <ReturnForkliftModal
+          isOpen
+          forklift={fleet.returningForklift}
+          onClose={() => fleet.setReturningForklift(null)}
+          onSubmit={fleet.handleReturnSubmit}
+          isProcessing={fleet.isReturning}
         />
       )}
 
