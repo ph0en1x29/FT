@@ -60,15 +60,16 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4">
-      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md">
-        <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md md:max-w-2xl">
+        <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50 rounded-t-xl">
           <h3 className="font-bold text-lg text-slate-800">{title}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 md:p-6 space-y-4">
+          {/* Forklift info + Customer */}
           {forklift && (
             <div className="p-3 bg-blue-50 rounded-lg">
               <p className="text-sm font-medium text-blue-800">{forklift.make} {forklift.model}</p>
@@ -83,93 +84,101 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
             </div>
           )}
 
-          <div>
-            <Combobox
-              label="Select Customer *"
-              options={customers.map((c): ComboboxOption => ({ id: c.customer_id, label: c.name, subLabel: c.address || '' }))}
-              value={selectedCustomerId}
-              onChange={setSelectedCustomerId}
-              placeholder="Search customer..."
-            />
+          <Combobox
+            label="Select Customer *"
+            options={customers.map((c): ComboboxOption => ({ id: c.customer_id, label: c.name, subLabel: c.address || '' }))}
+            value={selectedCustomerId}
+            onChange={setSelectedCustomerId}
+            placeholder="Search customer..."
+          />
+
+          {/* Row 1: Rate + Hourmeter */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Monthly Rental Rate (RM)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">RM</span>
+                <input 
+                  type="text" 
+                  inputMode="decimal" 
+                  className={`${inputClassName} pl-10`} 
+                  value={monthlyRentalRate} 
+                  onChange={(e) => { const v = e.target.value; if (v === '' || /^\d*\.?\d{0,2}$/.test(v)) setMonthlyRentalRate(v); }} 
+                  placeholder="e.g., 2500.00" 
+                />
+              </div>
+            </div>
+
+            {!isBulk && (
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service Hourmeter</label>
+              <input 
+                type="number" 
+                className={inputClassName} 
+                value={lastServiceHourmeter} 
+                onChange={(e) => setLastServiceHourmeter(e.target.value)} 
+                placeholder="e.g., 17503" 
+              />
+              <p className="text-xs text-slate-400 mt-1">Optional — resets service interval</p>
+            </div>
+            )}
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Monthly Rental Rate (RM)</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">RM</span>
+          {/* Row 2: Start Date + End Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rental Start Date *</label>
+              <input 
+                type="date" 
+                className={inputClassName} 
+                value={startDate} 
+                onChange={(e) => setStartDate(e.target.value)} 
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rental End Date (Optional)</label>
+              <input 
+                type="date" 
+                className={inputClassName} 
+                value={endDate} 
+                onChange={(e) => setEndDate(e.target.value)} 
+              />
+              <p className="text-xs text-slate-400 mt-1">Leave empty for ongoing rental</p>
+            </div>
+          </div>
+
+          {/* Row 3: Site + Notes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Site</label>
               <input 
                 type="text" 
-                inputMode="decimal" 
-                className={`${inputClassName} pl-10`} 
-                value={monthlyRentalRate} 
-                onChange={(e) => { const v = e.target.value; if (v === '' || /^\d*\.?\d{0,2}$/.test(v)) setMonthlyRentalRate(v); }} 
-                placeholder="e.g., 2500.00" 
+                className={inputClassName} 
+                value={rentalSite} 
+                onChange={(e) => setRentalSite(e.target.value)} 
+                placeholder="e.g., Port Klang Warehouse 4" 
+              />
+              <p className="text-xs text-slate-400 mt-1">Physical location where forklift will be used</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes</label>
+              <textarea 
+                className={`${inputClassName} h-[42px] resize-none`} 
+                value={rentalNotes} 
+                onChange={(e) => setRentalNotes(e.target.value)} 
+                placeholder="Optional notes..." 
               />
             </div>
           </div>
 
-          {!isBulk && (
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Service Hourmeter (Optional)</label>
-            <input 
-              type="number" 
-              className={inputClassName} 
-              value={lastServiceHourmeter} 
-              onChange={(e) => setLastServiceHourmeter(e.target.value)} 
-              placeholder="e.g., 17503" 
-            />
-            <p className="text-xs text-slate-400 mt-1">Fill in to reset service interval from this reading</p>
-          </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rental Start Date *</label>
-            <input 
-              type="date" 
-              className={inputClassName} 
-              value={startDate} 
-              onChange={(e) => setStartDate(e.target.value)} 
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Rental End Date (Optional)</label>
-            <input 
-              type="date" 
-              className={inputClassName} 
-              value={endDate} 
-              onChange={(e) => setEndDate(e.target.value)} 
-            />
-            <p className="text-xs text-slate-400 mt-1">Leave empty for ongoing rental</p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Site</label>
-            <input 
-              type="text" 
-              className={inputClassName} 
-              value={rentalSite} 
-              onChange={(e) => setRentalSite(e.target.value)} 
-              placeholder="e.g., Port Klang Warehouse 4" 
-            />
-            <p className="text-xs text-slate-400 mt-1">Physical location where forklift will be used</p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Notes</label>
-            <textarea 
-              className={`${inputClassName} h-20 resize-none`} 
-              value={rentalNotes} 
-              onChange={(e) => setRentalNotes(e.target.value)} 
-              placeholder="Optional notes..." 
-            />
-          </div>
-
-          <div className="pt-4 flex gap-3">
+          {/* Actions */}
+          <div className="pt-4 border-t border-slate-100 flex gap-3 justify-end">
             <button 
               type="button" 
               onClick={onClose} 
-              className="flex-1 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
+              className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
               disabled={isProcessing}
             >
               Cancel
@@ -177,7 +186,7 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
             <button 
               type="button" 
               onClick={onSubmit} 
-              className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
               disabled={isProcessing}
             >
               {isProcessing ? (

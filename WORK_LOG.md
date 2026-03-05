@@ -168,3 +168,7 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 15:49] Fix modal layout pattern — proper scroll container: AssignForkliftModal.tsx (fleet+profile) ReturnForkliftModal.tsx
 
 [Sonnet] [2026-03-05 15:52] Replace select with Combobox search LOV: AssignForkliftModal.tsx (fleet+profile)
+
+[Sonnet] [2026-03-05 15:57] Desktop-friendly Rent modal layout: AssignForkliftModal.tsx
+
+[Sonnet] [2026-03-05 15:57] Desktop layout improvements: AssignForkliftModal.tsx CreateJobPage.tsx ForkliftSelectionSection.tsx
