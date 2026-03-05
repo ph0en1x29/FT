@@ -192,3 +192,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 16:23] Change section banners to sky-200 azzurro: CreateJobPage.tsx
 
 [Sonnet] [2026-03-05 16:25] Restructure Job Details layout — full-width fields, 3-col row: CreateJobPage.tsx
+
+[Sonnet] [2026-03-05 16:26] Revert form banners to original, premium sidebar banners: CreateJobPage.tsx
