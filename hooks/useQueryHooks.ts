@@ -39,19 +39,19 @@ export const useCustomersForList = () => {
   return useQuery({
     queryKey: queryKeys.customersForList,
     queryFn: () => SupabaseDb.getCustomersForList(),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes — customer data changes rarely
   });
 };
 
 /**
  * Cached forklift list for dropdowns
- * Stale time: 2 minutes
+ * Stale time: 5 minutes
  */
 export const useForkliftsForList = () => {
   return useQuery({
     queryKey: queryKeys.forkliftsForList,
     queryFn: () => SupabaseDb.getForkliftsForList(),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes — fleet changes rarely
   });
 };
 
@@ -125,7 +125,7 @@ export const useNotificationCount = (userId: string) => {
   return useQuery({
     queryKey: queryKeys.notificationCount(userId),
     queryFn: () => SupabaseDb.getUnreadNotificationCount(userId),
-    staleTime: 10 * 1000, // 10 seconds
+    staleTime: 30 * 1000, // 30 seconds — cuts polling 3x vs 10s
     enabled: !!userId,
   });
 };

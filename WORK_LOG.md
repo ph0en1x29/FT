@@ -240,3 +240,9 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 17:23] Fleet filters hybrid layout: ForkliftFilters.tsx — side-by-side on desktop, stacked on mobile
 
 [Sonnet] [2026-03-05 17:27] Job Board date filter pill tabs: SearchFilterBar.tsx — visible pills for primary nav, Combobox for status
+
+[Sonnet] [2026-03-05 18:50] Stale time tuning: useQueryHooks.ts QueryProvider.tsx — reduce refetches, cut egress
+
+[Sonnet] [2026-03-05 17:35] E2E test suites: tests/e2e/admin.spec.ts tests/e2e/supervisor.spec.ts tests/e2e/technician.spec.ts tests/e2e/accountant.spec.ts — 4-role comprehensive Playwright tests
+
+[Sonnet] [2026-03-05 18:50] E2E test suites: tests/e2e/admin.spec.ts tests/e2e/supervisor.spec.ts tests/e2e/technician.spec.ts tests/e2e/accountant.spec.ts — 4-role comprehensive Playwright tests (written by sub-agents)
