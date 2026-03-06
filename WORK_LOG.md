@@ -287,3 +287,4 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-06 01:34] Added customer_contacts and customer_sites migration: database/migrations/20260306_customer_contacts_sites.sql
 [Sonnet] [2026-03-06 01:56] Added PIC and Site selection to Create Job: pages/CreateJob/types.ts pages/CreateJob/hooks/useCreateJobForm.ts pages/CreateJob/CreateJobPage.tsx services/jobService.ts types/job-core.types.ts
 [Sonnet] [2026-03-06 02:34] Price fallback sell_price → cost_price: services/jobInvoiceService.ts
+[Sonnet] [2026-03-06 02:36] Fixed deleted_by UUID type mismatch in deleteJob: services/jobCrudService.ts

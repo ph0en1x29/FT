@@ -79,7 +79,7 @@ export const deleteJob = async (
     .from('jobs')
     .update({
       deleted_at: now,
-      deleted_by: deletedById || null,
+      deleted_by: deletedById && deletedById.length > 0 ? deletedById : null,
       deleted_by_name: deletedByName || null,
       deletion_reason: deletionReason || null,
       hourmeter_before_delete: job?.hourmeter_reading || null,
