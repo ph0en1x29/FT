@@ -22,7 +22,6 @@ ConfirmationStatusCard,
 ContinueTomorrowModal,
 CreateRequestModal,
 CustomerAssignmentCard,
-CustomerSignatureModal,
 DeferredCompletionModal,
 DeleteModal,
 EquipmentCard,
@@ -41,7 +40,6 @@ NotesSection,
 PartsSection,
 ReassignModal,
 RejectJobModal,
-SignatureModal,
 SignaturesCard,
 StartJobModal,
 } from './components';
@@ -101,7 +99,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
 
   // Hide sticky action bar when any modal is open (prevents overlap)
   const hasModalOpen =
-    state.showTechSigPad || state.showCustSigPad || state.showStartJobModal ||
+    state.showStartJobModal ||
     state.showFinalizeModal || state.showReassignModal || state.showContinueTomorrowModal ||
     state.showDeleteModal || state.showRejectJobModal || state.showHourmeterAmendmentModal ||
     state.showChecklistWarningModal || state.showRequestModal || state.showApprovalModal ||
@@ -274,15 +272,11 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             <JobTimeline job={job} />
           </CollapsibleCard>
           <SignaturesCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
-            onOpenTechSignature={() => state.setShowTechSigPad(true)} onOpenCustomerSignature={() => state.setShowCustSigPad(true)} />
+            onTechSign={actions.handleTechnicianSwipeSign} onCustomerSign={actions.handleCustomerSwipeSign} />
         </div>
       </div>
 
       {/* Modals */}
-      <SignatureModal show={state.showTechSigPad} title="Technician Signature" subtitle="I certify that this work has been completed according to standards."
-        onSave={actions.handleTechnicianSignature} onClose={() => state.setShowTechSigPad(false)} />
-      <CustomerSignatureModal show={state.showCustSigPad} defaultName={job?.customer?.name || ''} 
-        onSave={actions.handleCustomerSignature} onClose={() => state.setShowCustSigPad(false)} />
       <StartJobModal show={state.showStartJobModal} startJobHourmeter={state.startJobHourmeter} 
         lastRecordedHourmeter={job?.forklift?.hourmeter || 0} conditionChecklist={state.conditionChecklist}
         beforePhotos={state.beforePhotos}

@@ -212,6 +212,134 @@ export const bulkSignJobs = async (
   return await Promise.all(updatePromises);
 };
 
+/**
+ * Sign a job with swipe-based signature (no image upload)
+ * Creates SignatureEntry with empty signature_url
+ */
+export const swipeSignJob = async (
+  jobId: string,
+  type: 'technician' | 'customer',
+  signerName: string,
+  icNo?: string
+): Promise<Job> => {
+  const now = new Date().toISOString();
+
+  const signatureEntry: SignatureEntry = {
+    signed_by_name: signerName,
+    signed_at: now,
+    signature_url: '', // No image for swipe signatures
+    ...(icNo && { ic_no: icNo }),
+  };
+
+  const field = type === 'technician' ? 'technician_signature' : 'customer_signature';
+  const timestampField = type === 'technician' ? 'technician_signature_at' : 'customer_signature_at';
+
+  const { data, error } = await supabase
+    .from('jobs')
+    .update({ [field]: signatureEntry })
+    .eq('job_id', jobId)
+    .select(`
+      *,
+      customer:customers(*),
+      forklift:forklifts!forklift_id(*),
+      parts_used:job_parts(*),
+      media:job_media(*),
+      extra_charges:extra_charges(*)
+    `)
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  const { error: serviceRecordError } = await supabase
+    .from('job_service_records')
+    .update({ 
+      [field]: signatureEntry,
+      [timestampField]: now,
+      updated_at: now
+    })
+    .eq('job_id', jobId);
+
+  if (serviceRecordError) {
+    await supabase
+      .from('job_service_records')
+      .upsert({
+        job_id: jobId,
+        [field]: signatureEntry,
+        [timestampField]: now,
+        updated_at: now
+      }, { onConflict: 'job_id' });
+  }
+
+  return data as Job;
+};
+
+/**
+ * Bulk sign multiple jobs with swipe-based signature (no image upload)
+ * Applies the same signature entry to all jobs in the array
+ */
+export const bulkSwipeSignJobs = async (
+  jobIds: string[],
+  type: 'technician' | 'customer',
+  signerName: string,
+  icNo?: string
+): Promise<Job[]> => {
+  const now = new Date().toISOString();
+
+  const signatureEntry: SignatureEntry = {
+    signed_by_name: signerName,
+    signed_at: now,
+    signature_url: '', // No image for swipe signatures
+    ...(icNo && { ic_no: icNo }),
+  };
+
+  const field = type === 'technician' ? 'technician_signature' : 'customer_signature';
+  const timestampField = type === 'technician' ? 'technician_signature_at' : 'customer_signature_at';
+
+  const updatePromises = jobIds.map(async (jobId) => {
+    // Update job
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ [field]: signatureEntry })
+      .eq('job_id', jobId)
+      .select(`
+        *,
+        customer:customers(*),
+        forklift:forklifts!forklift_id(*),
+        parts_used:job_parts(*),
+        media:job_media(*),
+        extra_charges:extra_charges(*)
+      `)
+      .single();
+
+    if (error) throw new Error(`Failed to sign job ${jobId}: ${error.message}`);
+
+    // Update job_service_records
+    const { error: serviceRecordError } = await supabase
+      .from('job_service_records')
+      .update({ 
+        [field]: signatureEntry,
+        [timestampField]: now,
+        updated_at: now
+      })
+      .eq('job_id', jobId);
+
+    if (serviceRecordError) {
+      await supabase
+        .from('job_service_records')
+        .upsert({
+          job_id: jobId,
+          [field]: signatureEntry,
+          [timestampField]: now,
+          updated_at: now
+        }, { onConflict: 'job_id' });
+    }
+
+    return data as Job;
+  });
+
+  return await Promise.all(updatePromises);
+};
+
 export const deleteMedia = async (jobId: string, mediaId: string): Promise<Job> => {
   // Get media URL to delete from storage
   const { data: media } = await supabase

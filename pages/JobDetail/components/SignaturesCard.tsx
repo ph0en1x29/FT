@@ -1,25 +1,46 @@
-import { CheckCircle,PenTool,ShieldCheck,UserCheck } from 'lucide-react';
-import React from 'react';
+import { CheckCircle, PenTool, ShieldCheck, UserCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { SwipeToSign } from '../../../components/SwipeToSign';
 import { Job } from '../../../types';
-import { RoleFlags,StatusFlags } from '../types';
+import { RoleFlags, StatusFlags } from '../types';
 
 interface SignaturesCardProps {
   job: Job;
   roleFlags: RoleFlags;
   statusFlags: StatusFlags;
-  onOpenTechSignature: () => void;
-  onOpenCustomerSignature: () => void;
+  onTechSign: () => void;
+  onCustomerSign: (customerName: string, icNo?: string) => void;
 }
 
 export const SignaturesCard: React.FC<SignaturesCardProps> = ({
   job,
   roleFlags,
   statusFlags,
-  onOpenTechSignature,
-  onOpenCustomerSignature,
+  onTechSign,
+  onCustomerSign,
 }) => {
   const { isTechnician, isHelperOnly } = roleFlags;
   const { isInProgress, isAwaitingFinalization, hasBothSignatures } = statusFlags;
+
+  const [customerName, setCustomerName] = useState(job.customer?.name || '');
+  const [icNo, setIcNo] = useState('');
+
+  const handleCustomerSwipe = () => {
+    if (customerName.trim()) {
+      onCustomerSign(customerName.trim(), icNo.trim() || undefined);
+    }
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    return new Date(timestamp).toLocaleString('en-MY', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
 
   return (
     <div className="card-premium p-5">
@@ -43,69 +64,93 @@ export const SignaturesCard: React.FC<SignaturesCardProps> = ({
       <div className="space-y-4">
         {/* Technician Signature */}
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <ShieldCheck className="w-4 h-4 text-[var(--accent)]" />
-            <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">Technician</span>
+            <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">
+              Technician
+            </span>
           </div>
           {job.technician_signature ? (
-            <div>
-              <div className="flex items-center gap-1 text-[var(--success)] text-xs font-medium mb-2">
-                <CheckCircle className="w-3.5 h-3.5" /> Signed
+            <div className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-[var(--text)] font-medium">
+                  Signed by {job.technician_signature.signed_by_name}
+                </p>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  {formatTimestamp(job.technician_signature.signed_at)}
+                </p>
               </div>
-              <img 
-                src={job.technician_signature.signature_url} 
-                loading="lazy" 
-                decoding="async" 
-                alt="Tech Signature" 
-                className="w-full h-16 object-contain bg-[var(--surface)] rounded border border-[var(--border)]" 
-              />
-              <p className="text-[10px] text-[var(--text-muted)] mt-1">{job.technician_signature.signed_by_name}</p>
             </div>
+          ) : isTechnician && !isHelperOnly && (isInProgress || isAwaitingFinalization) ? (
+            <SwipeToSign onSign={onTechSign} label="Swipe to Sign" />
           ) : (
-            isTechnician && !isHelperOnly && (isInProgress || isAwaitingFinalization) ? (
-              <button 
-                onClick={onOpenTechSignature} 
-                className="w-full py-3 border-2 border-dashed border-[var(--border)] rounded-xl text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors flex items-center justify-center gap-2"
-              >
-                <PenTool className="w-4 h-4" /> Sign
-              </button>
-            ) : (
-              <div className="text-center py-3 text-[var(--text-muted)] text-xs">Waiting...</div>
-            )
+            <div className="text-center py-3 text-[var(--text-muted)] text-xs">Waiting...</div>
           )}
         </div>
 
         {/* Customer Signature */}
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <UserCheck className="w-4 h-4 text-[var(--success)]" />
-            <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">Customer</span>
+            <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">
+              Customer
+            </span>
           </div>
           {job.customer_signature ? (
-            <div>
-              <div className="flex items-center gap-1 text-[var(--success)] text-xs font-medium mb-2">
-                <CheckCircle className="w-3.5 h-3.5" /> Signed
+            <div className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-[var(--text)] font-medium">
+                  Signed by {job.customer_signature.signed_by_name}
+                </p>
+                {job.customer_signature.ic_no && (
+                  <p className="text-xs text-[var(--text-muted)]">IC: {job.customer_signature.ic_no}</p>
+                )}
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  {formatTimestamp(job.customer_signature.signed_at)}
+                </p>
               </div>
-              <img 
-                src={job.customer_signature.signature_url} 
-                loading="lazy" 
-                decoding="async" 
-                alt="Customer Signature" 
-                className="w-full h-16 object-contain bg-[var(--surface)] rounded border border-[var(--border)]" 
+            </div>
+          ) : !isHelperOnly && (isInProgress || isAwaitingFinalization) ? (
+            <div className="space-y-3">
+              {/* Customer Name Input */}
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">
+                  Customer Name <span className="text-[var(--error)]">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Enter customer name"
+                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                />
+              </div>
+
+              {/* IC Number Input */}
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">
+                  IC Number (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={icNo}
+                  onChange={(e) => setIcNo(e.target.value)}
+                  placeholder="Enter IC number"
+                  className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                />
+              </div>
+
+              {/* Swipe to Sign */}
+              <SwipeToSign
+                onSign={handleCustomerSwipe}
+                label="Swipe to Confirm"
+                disabled={!customerName.trim()}
               />
-              <p className="text-[10px] text-[var(--text-muted)] mt-1">{job.customer_signature.signed_by_name}</p>
             </div>
           ) : (
-            !isHelperOnly && (isInProgress || isAwaitingFinalization) ? (
-              <button 
-                onClick={onOpenCustomerSignature} 
-                className="w-full py-3 border-2 border-dashed border-[var(--border)] rounded-xl text-[var(--text-muted)] hover:text-[var(--success)] hover:border-[var(--success)] transition-colors flex items-center justify-center gap-2"
-              >
-                <PenTool className="w-4 h-4" /> Collect Signature
-              </button>
-            ) : (
-              <div className="text-center py-3 text-[var(--text-muted)] text-xs">Waiting...</div>
-            )
+            <div className="text-center py-3 text-[var(--text-muted)] text-xs">Waiting...</div>
           )}
         </div>
       </div>

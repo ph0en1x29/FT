@@ -600,7 +600,7 @@ export const useJobActions = ({
     }
   }, [job, state, currentUserId, currentUserName, navigate]);
 
-  // Signature handlers
+  // Signature handlers (legacy - kept for backward compatibility if needed)
   const handleTechnicianSignature = useCallback(async (dataUrl: string) => {
     if (!job) return;
     const updated = await MockDb.signJob(job.job_id, 'technician', currentUserName, dataUrl);
@@ -616,6 +616,19 @@ export const useJobActions = ({
     setShowCustSigPad(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job, setJob, setShowRejectJobModal, setRejectJobReason]);
+
+  // Swipe signature handlers
+  const handleTechnicianSwipeSign = useCallback(async () => {
+    if (!job) return;
+    const updated = await MockDb.swipeSignJob(job.job_id, 'technician', currentUserName);
+    setJob({ ...updated } as Job);
+  }, [job, currentUserName, setJob]);
+
+  const handleCustomerSwipeSign = useCallback(async (customerName: string, icNo?: string) => {
+    if (!job) return;
+    const updated = await MockDb.swipeSignJob(job.job_id, 'customer', customerName, icNo);
+    setJob({ ...updated } as Job);
+  }, [job, setJob]);
 
   // Condition Checklist handlers
   const handleStartEditChecklist = useCallback(() => {
@@ -867,6 +880,8 @@ export const useJobActions = ({
     // Signatures
     handleTechnicianSignature,
     handleCustomerSignature,
+    handleTechnicianSwipeSign,
+    handleCustomerSwipeSign,
     
     // AI
     

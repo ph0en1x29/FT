@@ -50,8 +50,11 @@ getPendingRequests,getRequestCounts,rejectRequest,updateJobRequest
 // Media Service
 export {
 addMedia,
+bulkSignJobs,
+bulkSwipeSignJobs,
 deleteMedia,
-signJob
+signJob,
+swipeSignJob
 } from './jobMediaService';
 
 // Checklist Service
