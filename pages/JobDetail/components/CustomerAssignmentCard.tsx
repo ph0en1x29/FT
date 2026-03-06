@@ -38,7 +38,7 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
 }) => {
   const contactPhone = jobContact?.phone || job.customer?.phone;
   const contactName = jobContact?.name || job.customer?.contact_person;
-  const siteAddress = jobSite?.address || job.customer?.address;
+  const siteAddress = jobSite?.address;
 
   return (
     <div className="card-premium card-tint-accent p-4">
