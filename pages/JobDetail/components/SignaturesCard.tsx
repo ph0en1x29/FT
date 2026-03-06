@@ -131,22 +131,25 @@ export const SignaturesCard: React.FC<SignaturesCardProps> = ({
               {/* IC Number Input */}
               <div>
                 <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">
-                  IC Number (Optional)
+                  IC Number <span className="text-[var(--error)]">*</span>
                 </label>
                 <input
                   type="text"
                   value={icNo}
                   onChange={(e) => setIcNo(e.target.value)}
-                  placeholder="Enter IC number"
+                  placeholder="e.g. 901234-10-5678"
                   className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 />
               </div>
 
-              {/* Swipe to Sign */}
+              {/* Swipe to Sign — requires both name and IC */}
+              {(!customerName.trim() || !icNo.trim()) && (
+                <p className="text-xs text-[var(--warning)]">Fill in name and IC number to sign</p>
+              )}
               <SwipeToSign
                 onSign={handleCustomerSwipe}
                 label="Swipe to Confirm"
-                disabled={!customerName.trim()}
+                disabled={!customerName.trim() || !icNo.trim()}
               />
             </div>
           ) : (

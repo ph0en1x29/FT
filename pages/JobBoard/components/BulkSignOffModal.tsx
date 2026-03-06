@@ -256,13 +256,13 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
 
                 <div>
                   <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">
-                    IC Number (Optional)
+                    IC Number <span className="text-[var(--error)]">*</span>
                   </label>
                   <input
                     type="text"
                     value={icNumber}
                     onChange={(e) => setIcNumber(e.target.value)}
-                    placeholder="Enter IC number"
+                    placeholder="e.g. 901234-10-5678"
                     className="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   />
                 </div>
@@ -276,11 +276,14 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
                 <p className="text-xs text-[var(--text-muted)] mb-4">
                   I acknowledge that the work has been completed to my satisfaction.
                 </p>
+                {(!customerName.trim() || !icNumber.trim()) && (
+                  <p className="text-xs text-[var(--warning)] mb-2">Fill in name and IC number to sign</p>
+                )}
                 <SwipeToSign
                   onSign={handleCustomerSwipe}
                   signed={customerSigned}
                   label="Swipe to Confirm"
-                  disabled={!customerName.trim()}
+                  disabled={!customerName.trim() || !icNumber.trim()}
                 />
               </div>
             </div>
