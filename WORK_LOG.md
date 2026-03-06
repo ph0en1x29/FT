@@ -280,3 +280,4 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-06 01:24] Fixed password_hash phantom column in select queries (column doesn't exist in DB): services/authService.ts services/userService.ts services/hrService.ts
 [Sonnet] [2026-03-06 01:24] Fixed assign button error handling, technician complete redirect: pages/JobDetail/hooks/useJobActions.ts
 [Sonnet] [2026-03-06 01:24] Removed technician access to main inventory (canManageInventory: false): types/user.types.ts
+[Sonnet] [2026-03-06 01:28] Removed no_response_alerted_at phantom column references: services/jobAssignmentCrudService.ts

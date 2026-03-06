@@ -37,7 +37,6 @@ export const assignJob = async (jobId: string, technicianId: string, technicianN
       technician_accepted_at: null,
       technician_rejected_at: null,
       technician_rejection_reason: null,
-      no_response_alerted_at: null,
     })
     .eq('job_id', jobId)
     .select(`
@@ -147,7 +146,6 @@ export const checkExpiredJobResponses = async (): Promise<{ alertedJobs: string[
       .eq('status', JobStatusEnum.ASSIGNED)
       .is('technician_accepted_at', null)
       .is('technician_rejected_at', null)
-      .is('no_response_alerted_at', null)
       .not('technician_response_deadline', 'is', null)
       .lt('technician_response_deadline', now.toISOString());
 
@@ -157,7 +155,7 @@ export const checkExpiredJobResponses = async (): Promise<{ alertedJobs: string[
 
     for (const job of (expiredJobs || [])) {
       await notifyNoResponseFromTech(job.job_id, job.title, job.assigned_technician_name || 'Unknown');
-      await supabase.from('jobs').update({ no_response_alerted_at: now.toISOString() }).eq('job_id', job.job_id);
+      // Note: no_response_alerted_at column not in DB — skipping update
       alertedJobs.push(job.job_id);
     }
 
@@ -225,7 +223,6 @@ export const reassignJob = async (
         technician_accepted_at: null,
         technician_rejected_at: null,
         technician_rejection_reason: null,
-        no_response_alerted_at: null,
       })
       .eq('job_id', jobId)
       .select(`
