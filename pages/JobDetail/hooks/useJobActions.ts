@@ -609,10 +609,9 @@ export const useJobActions = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job, currentUserName, setJob, setShowRejectJobModal, setRejectJobReason]);
 
-  const handleCustomerSignature = useCallback(async (dataUrl: string) => {
+  const handleCustomerSignature = useCallback(async (dataUrl: string, customerName: string, icNo?: string) => {
     if (!job) return;
-    const customerName = job.customer?.name || 'Customer';
-    const updated = await MockDb.signJob(job.job_id, 'customer', customerName, dataUrl);
+    const updated = await MockDb.signJob(job.job_id, 'customer', customerName, dataUrl, icNo);
     setJob({ ...updated } as Job);
     setShowCustSigPad(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps

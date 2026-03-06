@@ -22,6 +22,7 @@ ConfirmationStatusCard,
 ContinueTomorrowModal,
 CreateRequestModal,
 CustomerAssignmentCard,
+CustomerSignatureModal,
 DeferredCompletionModal,
 DeleteModal,
 EquipmentCard,
@@ -280,7 +281,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       {/* Modals */}
       <SignatureModal show={state.showTechSigPad} title="Technician Signature" subtitle="I certify that this work has been completed according to standards."
         onSave={actions.handleTechnicianSignature} onClose={() => state.setShowTechSigPad(false)} />
-      <SignatureModal show={state.showCustSigPad} title="Customer Acceptance" subtitle="I acknowledge the service performed and agree to the charges."
+      <CustomerSignatureModal show={state.showCustSigPad} defaultName={job?.customer?.name || ''} 
         onSave={actions.handleCustomerSignature} onClose={() => state.setShowCustSigPad(false)} />
       <StartJobModal show={state.showStartJobModal} startJobHourmeter={state.startJobHourmeter} 
         lastRecordedHourmeter={job?.forklift?.hourmeter || 0} conditionChecklist={state.conditionChecklist}

@@ -63,7 +63,8 @@ export const signJob = async (
   jobId: string,
   type: 'technician' | 'customer',
   signerName: string,
-  signatureDataUrl: string
+  signatureDataUrl: string,
+  icNo?: string
 ): Promise<Job> => {
   const now = new Date().toISOString();
   
@@ -82,6 +83,7 @@ export const signJob = async (
     signed_by_name: signerName,
     signed_at: now,
     signature_url: signatureUrl,
+    ...(icNo && { ic_no: icNo }),
   };
 
   const field = type === 'technician' ? 'technician_signature' : 'customer_signature';

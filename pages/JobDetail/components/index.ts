@@ -26,4 +26,5 @@ export {
 ChecklistWarningModal,ContinueTomorrowModal,DeferredCompletionModal,DeleteModal,FinalizeModal,HelperModal,ReassignModal,RejectJobModal,SignatureModal,
 StartJobModal
 } from './JobDetailModals';
+export { CustomerSignatureModal } from './CustomerSignatureModal';
 export { default as HourmeterAmendmentModal } from '../../../components/HourmeterAmendmentModal';
