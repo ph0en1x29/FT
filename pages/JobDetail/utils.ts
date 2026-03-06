@@ -77,7 +77,7 @@ export function getRoleFlags(
   const isSupervisor = normalizedRole === 'supervisor';
   const isTechnician = normalizedRole === 'technician';
   const isAccountant = normalizedRole === 'accountant';
-  const canReassign = isAdmin || isSupervisor;
+  const canReassign = isAdminService || isSupervisor;
   const isHelperOnly = isCurrentUserHelper && !isAdmin && !isSupervisor;
   
   // Pricing visibility - Hide from technicians per customer feedback

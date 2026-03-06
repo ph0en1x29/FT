@@ -271,6 +271,18 @@ const MobileNav = ({ currentUser: _currentUser, onOpenDrawer, navRole }: { curre
           { to: '/jobs', icon: List, label: 'Jobs' },
           { to: '/invoices', icon: FileText, label: 'Billing', showBadge: true },
         ];
+      case UserRole.ADMIN_SERVICE:
+        return [
+          { to: '/', icon: LayoutDashboard, label: 'Home' },
+          { to: '/jobs', icon: List, label: 'Jobs' },
+          { to: '/forklifts', icon: Truck, label: 'Fleet' },
+        ];
+      case UserRole.ADMIN_STORE:
+        return [
+          { to: '/', icon: LayoutDashboard, label: 'Home' },
+          { to: '/jobs', icon: List, label: 'Jobs' },
+          { to: '/inventory', icon: Package, label: 'Inventory', showBadge: true },
+        ];
       default:
         return [
           { to: '/', icon: LayoutDashboard, label: 'Home' },

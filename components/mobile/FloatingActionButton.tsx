@@ -48,7 +48,21 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser
       return [{ icon: FileText, label: 'Billing', to: '/invoices' }];
     }
 
-    if (ADMIN_ROLES.has(role)) {
+    if (role === 'admin_store') {
+      return [
+        { icon: ClipboardCheck, label: 'Approvals', to: '/jobs?tab=approvals' },
+        { icon: PackageIcon, label: 'Inventory', to: '/inventory' },
+      ];
+    }
+
+    if (role === 'admin_service') {
+      return [
+        { icon: Plus, label: 'New Job', to: '/jobs/new' },
+        { icon: ClipboardCheck, label: 'Approvals', to: '/jobs?tab=approvals' },
+      ];
+    }
+
+    if (role === 'admin') {
       return [
         { icon: Plus, label: 'New Job', to: '/jobs/new' },
         { icon: ClipboardCheck, label: 'Approvals', to: '/jobs?tab=approvals' },

@@ -61,7 +61,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const {
-    isAdmin, isSupervisor, isTechnician, isAccountant, isHelperOnly
+    isAdmin, isAdminService, isSupervisor, isTechnician, isAccountant, isHelperOnly
   } = roleFlags;
   
   const {
@@ -156,15 +156,15 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
             </>
           )}
           
-          {/* Start Job button - only after technician accepts (or for admin/supervisor) */}
+          {/* Start Job button - only after technician accepts (or for admin service/supervisor) */}
           {((isTechnician && isAssigned && !isHelperOnly && hasAccepted) || 
-            ((isAdmin || isSupervisor) && isAssigned && !isHelperOnly)) && (
+            ((isAdminService || isSupervisor) && isAssigned && !isHelperOnly)) && (
             <button onClick={onStartJob} className="btn-premium btn-premium-primary">
               <Play className="w-4 h-4" /> Start Job
             </button>
           )}
           
-          {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && (
+          {(isTechnician || isAdminService || isSupervisor) && isInProgress && !isHelperOnly && (
             <div className="relative group">
               <button 
                 onClick={onCompleteJob} 
@@ -181,19 +181,19 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
             </div>
           )}
           
-          {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && (
+          {(isTechnician || isAdminService || isSupervisor) && isInProgress && !isHelperOnly && (
             <button onClick={onContinueTomorrow} className="btn-premium btn-premium-secondary">
               <Clock className="w-4 h-4" /> Continue Tomorrow
             </button>
           )}
           
-          {(isTechnician || isAdmin || isSupervisor) && isIncompleteContinuing && !isHelperOnly && (
+          {(isTechnician || isAdminService || isSupervisor) && isIncompleteContinuing && !isHelperOnly && (
             <button onClick={onResumeJob} className="btn-premium btn-premium-primary">
               <Play className="w-4 h-4" /> Resume Job
             </button>
           )}
           
-          {(isTechnician || isAdmin || isSupervisor) && isInProgress && !isHelperOnly && job.technician_signature && !job.customer_signature && (
+          {(isTechnician || isAdminService || isSupervisor) && isInProgress && !isHelperOnly && job.technician_signature && !job.customer_signature && (
             <button
               onClick={onCustomerUnavailable}
               className="btn-premium btn-premium-secondary border-[var(--warning)] text-[var(--warning)] hover:bg-[var(--warning-bg)] hover:border-[var(--warning)] hover:text-[var(--warning)]"
@@ -231,7 +231,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
             </button>
           )}
           
-          {(isAdmin || isSupervisor) && (
+          {(isAdminService || isSupervisor) && (
             <button
               onClick={() => {
                 const params = new URLSearchParams();
@@ -247,7 +247,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
               <Copy className="w-4 h-4" />
             </button>
           )}
-          {(isAdmin || isSupervisor) && !isCompleted && (
+          {(isAdminService || isSupervisor) && !isCompleted && (
             <button onClick={onDeleteJob} className="btn-premium btn-premium-ghost text-[var(--error)] hover:bg-[var(--error-bg)] hover:text-[var(--error)]">
               <Trash2 className="w-4 h-4" />
             </button>
