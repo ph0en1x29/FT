@@ -68,7 +68,7 @@ export const addPartToJob = async (
       part_id: partId,
       part_name: part.part_name,
       quantity,
-      sell_price_at_time: customPrice !== undefined ? customPrice : part.sell_price,
+      sell_price_at_time: customPrice !== undefined ? customPrice : (part.sell_price ?? part.cost_price ?? 0),
     });
 
   if (insertError) throw new Error(insertError.message);
