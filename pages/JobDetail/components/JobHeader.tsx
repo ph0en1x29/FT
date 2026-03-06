@@ -1,6 +1,7 @@
 import {
 ArrowLeft,CheckCircle,
 Clock,
+Copy,
 FileCheck,
 FileDown,
 Play,
@@ -230,6 +231,22 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
             </button>
           )}
           
+          {(isAdmin || isSupervisor) && (
+            <button
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (job.customer_id) params.set('customer_id', job.customer_id);
+                if (job.forklift_id) params.set('forklift_id', job.forklift_id);
+                if (job.contact_id) params.set('contact_id', job.contact_id);
+                if (job.site_id) params.set('site_id', job.site_id);
+                navigate(`/create-job?${params.toString()}`);
+              }}
+              className="btn-premium btn-premium-ghost text-[var(--text-muted)]"
+              title="Duplicate Job"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+          )}
           {(isAdmin || isSupervisor) && !isCompleted && (
             <button onClick={onDeleteJob} className="btn-premium btn-premium-ghost text-[var(--error)] hover:bg-[var(--error-bg)] hover:text-[var(--error)]">
               <Trash2 className="w-4 h-4" />

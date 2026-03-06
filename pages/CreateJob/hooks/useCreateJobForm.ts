@@ -35,6 +35,8 @@ export function useCreateJobForm(currentUser: User) {
   const prefilledForkliftId = searchParams.get('forklift_id');
   const prefilledServiceType = searchParams.get('service_type');
   const prefilledCustomerId = searchParams.get('customer_id');
+  const prefilledContactId = searchParams.get('contact_id');
+  const prefilledSiteId = searchParams.get('site_id');
   
   // Form state
   const [formData, setFormData] = useState<CreateJobFormData>({
@@ -46,8 +48,8 @@ export function useCreateJobForm(currentUser: User) {
     assigned_technician_id: '',
     forklift_id: prefilledForkliftId || '',
     hourmeter_reading: '',
-    contact_id: '',
-    site_id: '',
+    contact_id: prefilledContactId || '',
+    site_id: prefilledSiteId || '',
   });
 
   // Fetch contacts and sites for selected customer
