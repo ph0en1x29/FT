@@ -1,6 +1,6 @@
 # FieldPro Project Structure
 
-> **Last Updated:** 2026-02-19  
+> **Last Updated:** 2026-03-05  
 > **Author:** Phoenix (Clawdbot)
 
 This document describes the codebase architecture and folder patterns used in FieldPro.
@@ -62,8 +62,7 @@ components/
 ├── layout/
 │   ├── AuthenticatedApp.tsx
 │   └── NavigationComponents.tsx
-├── mobile/                       # Mobile-first interaction primitives (NEW)
-│   ├── BottomSheet.tsx
+├── mobile/                       # Mobile-first interaction primitives
 │   ├── FilterSheet.tsx
 │   ├── FloatingActionButton.tsx
 │   └── SwipeableRow.tsx
@@ -77,7 +76,6 @@ components/
 
 | Component | Purpose |
 |-----------|---------|
-| `BottomSheet.tsx` | Slide-up modal on mobile; centered modal behavior on desktop. |
 | `FilterSheet.tsx` | Filter panel that renders as a bottom sheet on mobile and inline on desktop. |
 | `FloatingActionButton.tsx` | Role-aware FAB exposing quick actions on mobile. |
 | `SwipeableRow.tsx` | Swipe-to-action row interactions (e.g., approve/reject). |
@@ -87,9 +85,9 @@ components/
 | Hook | Purpose |
 |------|---------|
 | `useDevMode.ts` | Development-mode state/helpers. |
-| `useFeatureFlags.ts` | Feature flag consumption logic (NEW). |
-| `usePullToRefresh.tsx` | Pull-to-refresh gesture handling (NEW). |
-| `useQueryHooks.ts` | Shared TanStack Query wrappers/helpers. |
+| `useFeatureFlags.ts` | Feature flag consumption logic. |
+| `usePullToRefresh.tsx` | Pull-to-refresh gesture handling. |
+| `useQueryHooks.ts` | Shared TanStack Query wrappers/helpers (cached hooks for customers, forklifts, jobs, notifications). |
 
 ### Context Providers (`contexts/`)
 
@@ -345,11 +343,17 @@ Migrations are applied via:
 ```
 tests/
 ├── smoke.spec.ts                  # Basic smoke tests
+├── e2e/                           # Comprehensive role-based E2E suites
+│   ├── admin.spec.ts              # Full admin access tests
+│   ├── supervisor.spec.ts         # Supervisor access tests
+│   ├── technician.spec.ts         # Technician limited access tests
+│   └── accountant.spec.ts         # Accountant focused access tests
+├── critical-path/                 # Critical user journey tests
 ├── customer-feedback.spec.ts      # Feature tests
 ├── mutations/
 │   └── form-validation.spec.ts    # Form tests
-└── interactive/
-    └── [feature].spec.ts          # Interactive tests
+└── fixtures/
+    └── auth.fixture.ts            # Login helpers for all 4 roles
 ```
 
 Run tests:
