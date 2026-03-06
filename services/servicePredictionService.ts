@@ -304,6 +304,18 @@ export function requiresHourmeterTracking(type: ForkliftType | string): boolean 
   return engineTypes.includes(type);
 }
 
+export function isElectricType(type: string): boolean {
+  return ['Electric', 'Battery/Electrical', 'Reach Truck'].includes(type);
+}
+
+export function getServiceIntervalType(type: string): string {
+  if (type === 'Reach Truck' || type === 'Battery/Electrical') {
+    return 'Electric';
+  }
+
+  return type;
+}
+
 /**
  * Format days remaining for display
  */
@@ -380,7 +392,7 @@ export async function getForkliftsDueForService(withinDays: number = 7): Promise
     const fallbackResults = (allForklifts || [])
       .filter(f => !allPredictionIds.has(f.forklift_id))
       .map(f => {
-        const isElectric = f.type === 'Electric';
+        const isElectric = isElectricType(f.type);
         let daysRemaining: number | null = null;
         let hoursUntil: number | null = null;
 

@@ -4,6 +4,7 @@ export const FORKLIFT_TYPES = ['Diesel', 'Electric', 'LPG'];
 
 export const PRIORITIES = ['Low', 'Medium', 'High', 'Emergency'];
 
+// Reach Truck and Battery/Electrical use the Electric service interval category.
 export const ACWER_DEFAULTS: AcwerDefault[] = [
   { type: 'Electric', interval: '3 months (calendar)', hours: null },
   { type: 'Diesel', interval: '500 hours', hours: 500 },

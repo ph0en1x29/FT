@@ -1,5 +1,6 @@
 import { CheckSquare,Loader2,Plus,Search,Square,Truck,X } from 'lucide-react';
 import React,{ useMemo } from 'react';
+import { isElectricType } from '../../../services/hourmeterService';
 import { RentForkliftModalProps } from '../types';
 
 const RentForkliftModal: React.FC<RentForkliftModalProps> = ({
@@ -95,7 +96,7 @@ const RentForkliftModal: React.FC<RentForkliftModalProps> = ({
                               {forklift.make} {forklift.model}
                             </span>
                             <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                              forklift.type === 'Electric' ? 'bg-blue-100 text-blue-700' :
+                              isElectricType(forklift.type) ? 'bg-blue-100 text-blue-700' :
                               forklift.type === 'Diesel' ? 'bg-slate-100 text-slate-700' :
                               'bg-purple-100 text-purple-700'
                             }`}>

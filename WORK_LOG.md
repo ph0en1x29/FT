@@ -6,6 +6,8 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 [2026-03-06 01:33] [Sonnet] Customer contacts (PICs) and sites feature: types/customer.types.ts services/customerService.ts services/supabaseService.ts pages/CustomerProfile/components/ContactsSection.tsx pages/CustomerProfile/components/SitesSection.tsx pages/CustomerProfile/components/AddEditContactModal.tsx pages/CustomerProfile/components/AddEditSiteModal.tsx pages/CustomerProfile/components/index.ts pages/CustomerProfile/CustomerProfilePage.tsx
 
+[2026-03-06 10:05] [Codex] Added electric forklift helper mapping for Battery/Electrical and Reach Truck across service prediction, service due, rental badge UI, and service interval config note.
+
 [2026-03-06 00:55] [Sonnet] Trimmed select('*') to explicit columns in 15 service files (27 queries total):
 - services/forkliftService.ts (5 queries)
 - services/serviceTrackingService.ts (3 queries)
@@ -294,3 +296,4 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-06 02:56] Customer card matches Equipment card grid layout: pages/JobDetail/components/CustomerAssignmentCard.tsx
 [Sonnet] [2026-03-06 03:00] Added Duplicate Job button to JobHeader + prefill support: pages/JobDetail/components/JobHeader.tsx pages/CreateJob/hooks/useCreateJobForm.ts
 [Sonnet] [2026-03-06 03:08] Fix duplicate job route /create-job → /jobs/create: pages/JobDetail/components/JobHeader.tsx
+[Codex] [2026-03-06 10:02] Reach Truck forklift type mapping: services/servicePredictionService.ts services/hourmeterService.ts pages/ServiceDue/ServiceDue.tsx pages/CustomerProfile/components/RentForkliftModal.tsx pages/ServiceIntervalsConfig/constants.ts — Added isElectricType() and getServiceIntervalType() helpers to treat Reach Truck and Battery/Electrical as Electric for service tracking

@@ -1,6 +1,7 @@
 import { Clock, Play, RefreshCw } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { isElectricType } from '../../services/hourmeterService';
 import { supabase } from '../../services/supabaseClient';
 import { SupabaseDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
@@ -122,7 +123,7 @@ const ServiceDue: React.FC = () => {
 
       // 5. Map fallback forklifts (calendar-based OR hourmeter from forklifts table)
       const electricForklifts: ForkliftDue[] = electricData.map(f => {
-        const isElectric = f.type === 'Electric';
+        const isElectric = isElectricType(f.type);
         const today = new Date();
         
         let daysRem: number | null = null;

@@ -256,6 +256,8 @@ export {
   completeForkliftService,
   updateServiceInterval,
   requiresHourmeterTracking,
+  isElectricType,
+  getServiceIntervalType,
   formatDaysRemaining,
   getUrgencyColor,
   getForkliftsDueForService,
