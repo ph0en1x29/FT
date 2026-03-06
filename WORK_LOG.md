@@ -246,3 +246,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 17:35] E2E test suites: tests/e2e/admin.spec.ts tests/e2e/supervisor.spec.ts tests/e2e/technician.spec.ts tests/e2e/accountant.spec.ts — 4-role comprehensive Playwright tests
 
 [Sonnet] [2026-03-05 18:50] E2E test suites: tests/e2e/admin.spec.ts tests/e2e/supervisor.spec.ts tests/e2e/technician.spec.ts tests/e2e/accountant.spec.ts — 4-role comprehensive Playwright tests (written by sub-agents)
+
+[Sonnet] [2026-03-05 19:23] Notification dedup: notificationService.ts — prevent duplicate notifications within 5-min window

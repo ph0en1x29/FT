@@ -68,6 +68,22 @@ export const getUnreadNotificationCount = async (userId: string): Promise<number
  */
 export const createNotification = async (notification: Partial<Notification>): Promise<boolean> => {
   try {
+    // Dedup: skip if same user+type+reference exists within last 5 minutes
+    if (notification.user_id && notification.reference_id && notification.type) {
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { count } = await supabase
+        .from('notifications')
+        .select('notification_id', { count: 'exact', head: true })
+        .eq('user_id', notification.user_id)
+        .eq('type', notification.type)
+        .eq('reference_id', notification.reference_id)
+        .gte('created_at', fiveMinAgo);
+
+      if (count && count > 0) {
+        return true; // Already notified, skip duplicate
+      }
+    }
+
     const { error } = await supabase
       .from('notifications')
       .insert({
