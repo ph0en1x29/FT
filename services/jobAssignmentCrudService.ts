@@ -22,7 +22,6 @@ import { supabase } from './supabaseClient';
 
 export const assignJob = async (jobId: string, technicianId: string, technicianName: string, assignedById?: string, assignedByName?: string): Promise<Job> => {
   const now = new Date();
-  const responseDeadline = new Date(now.getTime() + 15 * 60 * 1000);
 
   const { data, error } = await supabase
     .from('jobs')
@@ -33,7 +32,6 @@ export const assignJob = async (jobId: string, technicianId: string, technicianN
       assigned_at: now.toISOString(),
       assigned_by_id: assignedById || null,
       assigned_by_name: assignedByName || null,
-      technician_response_deadline: responseDeadline.toISOString(),
       technician_accepted_at: null,
       technician_rejected_at: null,
       technician_rejection_reason: null,
@@ -112,7 +110,6 @@ export const rejectJobAssignment = async (
       assigned_technician_id: null,
       assigned_technician_name: null,
       assigned_at: null,
-      technician_response_deadline: null,
     })
     .eq('job_id', jobId)
     .eq('assigned_technician_id', technicianId)
@@ -141,13 +138,11 @@ export const checkExpiredJobResponses = async (): Promise<{ alertedJobs: string[
   try {
     const { data: expiredJobs, error } = await supabase
       .from('jobs')
-      .select(`job_id, title, assigned_technician_id, assigned_technician_name, technician_response_deadline, customer:customers(name)`)
+      .select(`job_id, title, assigned_technician_id, assigned_technician_name, assigned_at, customer:customers(name)`)
       .is('deleted_at', null)
       .eq('status', JobStatusEnum.ASSIGNED)
       .is('technician_accepted_at', null)
-      .is('technician_rejected_at', null)
-      .not('technician_response_deadline', 'is', null)
-      .lt('technician_response_deadline', now.toISOString());
+      .is('technician_rejected_at', null);
 
     if (error) {
       return { alertedJobs };
@@ -174,8 +169,7 @@ export const getJobsPendingResponse = async (): Promise<Job[]> => {
       .eq('status', JobStatusEnum.ASSIGNED)
       .is('technician_accepted_at', null)
       .is('technician_rejected_at', null)
-      .not('technician_response_deadline', 'is', null)
-      .order('technician_response_deadline', { ascending: true });
+      .order('assigned_at', { ascending: true });
 
     if (error) {
       return [];
@@ -209,7 +203,6 @@ export const reassignJob = async (
     const oldTechnicianId = currentJob?.assigned_technician_id;
 
     const now = new Date();
-    const responseDeadline = new Date(now.getTime() + 15 * 60 * 1000);
 
     const { data, error } = await supabase
       .from('jobs')
@@ -219,7 +212,6 @@ export const reassignJob = async (
         assigned_at: now.toISOString(),
         assigned_by_id: reassignedById,
         assigned_by_name: reassignedByName,
-        technician_response_deadline: responseDeadline.toISOString(),
         technician_accepted_at: null,
         technician_rejected_at: null,
         technician_rejection_reason: null,

@@ -51,10 +51,21 @@ getUsersLightweight,updateUser
 // =====================
 
 export {
-createCustomer,deleteCustomer,
+addCustomerContact,
+addCustomerSite,
+createCustomer,
+deleteCustomer,
+deleteCustomerContact,
+deleteCustomerSite,
+getCustomerContacts,
 getCustomerFinancialSummary,
-getCustomerJobsWithCancelled,getCustomers,
-getCustomersForList,updateCustomer
+getCustomerJobsWithCancelled,
+getCustomers,
+getCustomersForList,
+getCustomerSites,
+updateCustomer,
+updateCustomerContact,
+updateCustomerSite
 } from './customerService';
 
 // =====================
@@ -178,6 +189,14 @@ export const SupabaseDb = {
   deleteCustomer: customers.deleteCustomer,
   getCustomerFinancialSummary: customers.getCustomerFinancialSummary,
   getCustomerJobsWithCancelled: customers.getCustomerJobsWithCancelled,
+  getCustomerContacts: customers.getCustomerContacts,
+  addCustomerContact: customers.addCustomerContact,
+  updateCustomerContact: customers.updateCustomerContact,
+  deleteCustomerContact: customers.deleteCustomerContact,
+  getCustomerSites: customers.getCustomerSites,
+  addCustomerSite: customers.addCustomerSite,
+  updateCustomerSite: customers.updateCustomerSite,
+  deleteCustomerSite: customers.deleteCustomerSite,
 
   // Forklifts
   getForklifts: forklifts.getForklifts,

@@ -225,7 +225,6 @@ export const JOB_SELECT = {
     repair_end_time,
     technician_accepted_at,
     technician_rejected_at,
-    technician_response_deadline,
     acknowledged_at,
     created_at,
     scheduled_date,

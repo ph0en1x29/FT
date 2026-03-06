@@ -256,7 +256,7 @@ export const getJobByIdFast = async (jobId: string): Promise<Job | null> => {
   // Step 2: Fetch related data in parallel (these are simple indexed queries)
   const partsPromise = supabase
     .from('job_parts')
-    .select('job_part_id, part_id, part_name, quantity, unit_cost')
+    .select('job_part_id, part_id, part_name, quantity, sell_price_at_time')
     .eq('job_id', jobId);
 
   const mediaPromise = supabase
@@ -329,7 +329,7 @@ export const getJobById = async (jobId: string): Promise<Job | null> => {
 
   const mediaPromise = supabase
     .from('job_media')
-    .select('media_id, job_id, type, url, description, created_at, uploaded_by_id, uploaded_by_name, category, is_helper_photo, uploaded_by_assignment_id, gps_latitude, gps_longitude, gps_accuracy, gps_captured_at, device_timestamp, server_timestamp, timestamp_mismatch, timestamp_mismatch_minutes, source, is_camera_fallback, fallback_description, fallback_approved, fallback_approved_by_id, fallback_approved_by_name, fallback_approved_at, is_start_photo, is_end_photo, timer_triggered_at, job_day_number, flagged_for_review, flagged_reason, reviewed_by_id, reviewed_by_name, reviewed_at, review_notes')
+    .select('media_id, job_id, type, url, description, created_at, uploaded_by_id, uploaded_by_name, category, is_helper_photo, gps_latitude, gps_longitude, gps_accuracy, gps_captured_at, device_timestamp, server_timestamp, timestamp_mismatch, timestamp_mismatch_minutes, source, is_camera_fallback, fallback_description, fallback_approved, fallback_approved_by_id, fallback_approved_by_name, fallback_approved_at, is_start_photo, is_end_photo, timer_triggered_at, job_day_number, flagged_for_review, flagged_reason, reviewed_by_id, reviewed_by_name, reviewed_at, review_notes')
     .eq('job_id', jobId);
 
   const chargesPromise = supabase

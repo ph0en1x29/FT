@@ -4,7 +4,7 @@
  * Handles customer CRUD operations
  */
 
-import type { Customer,ExtraCharge,Job,JobPartUsed } from '../types';
+import type { Customer, CustomerContact, CustomerSite, ExtraCharge, Job, JobPartUsed } from '../types';
 import { supabase } from './supabaseClient';
 
 // Database row types for query results
@@ -197,4 +197,101 @@ export const getCustomerJobsWithCancelled = async (customerId: string): Promise<
   } catch (_e) {
     return [];
   }
+};
+
+/**
+ * Get customer contacts (PICs)
+ */
+export const getCustomerContacts = async (customerId: string): Promise<CustomerContact[]> => {
+  const { data, error } = await supabase
+    .from('customer_contacts')
+    .select('contact_id, customer_id, name, phone, email, role, is_primary, created_at, updated_at')
+    .eq('customer_id', customerId)
+    .order('is_primary', { ascending: false })
+    .order('name');
+  if (error) throw new Error(error.message);
+  return data as CustomerContact[];
+};
+
+/**
+ * Add a new customer contact
+ */
+export const addCustomerContact = async (contact: Omit<CustomerContact, 'contact_id' | 'created_at' | 'updated_at'>): Promise<CustomerContact> => {
+  const { data, error } = await supabase
+    .from('customer_contacts')
+    .insert(contact)
+    .select('contact_id, customer_id, name, phone, email, role, is_primary, created_at, updated_at')
+    .single();
+  if (error) throw new Error(error.message);
+  return data as CustomerContact;
+};
+
+/**
+ * Update a customer contact
+ */
+export const updateCustomerContact = async (contactId: string, updates: Partial<CustomerContact>): Promise<CustomerContact> => {
+  const { data, error } = await supabase
+    .from('customer_contacts')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('contact_id', contactId)
+    .select('contact_id, customer_id, name, phone, email, role, is_primary, created_at, updated_at')
+    .single();
+  if (error) throw new Error(error.message);
+  return data as CustomerContact;
+};
+
+/**
+ * Delete a customer contact
+ */
+export const deleteCustomerContact = async (contactId: string): Promise<void> => {
+  const { error } = await supabase.from('customer_contacts').delete().eq('contact_id', contactId);
+  if (error) throw new Error(error.message);
+};
+
+/**
+ * Get customer sites
+ */
+export const getCustomerSites = async (customerId: string): Promise<CustomerSite[]> => {
+  const { data, error } = await supabase
+    .from('customer_sites')
+    .select('site_id, customer_id, site_name, address, notes, is_active, created_at, updated_at')
+    .eq('customer_id', customerId)
+    .order('site_name');
+  if (error) throw new Error(error.message);
+  return data as CustomerSite[];
+};
+
+/**
+ * Add a new customer site
+ */
+export const addCustomerSite = async (site: Omit<CustomerSite, 'site_id' | 'created_at' | 'updated_at'>): Promise<CustomerSite> => {
+  const { data, error } = await supabase
+    .from('customer_sites')
+    .insert(site)
+    .select('site_id, customer_id, site_name, address, notes, is_active, created_at, updated_at')
+    .single();
+  if (error) throw new Error(error.message);
+  return data as CustomerSite;
+};
+
+/**
+ * Update a customer site
+ */
+export const updateCustomerSite = async (siteId: string, updates: Partial<CustomerSite>): Promise<CustomerSite> => {
+  const { data, error } = await supabase
+    .from('customer_sites')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('site_id', siteId)
+    .select('site_id, customer_id, site_name, address, notes, is_active, created_at, updated_at')
+    .single();
+  if (error) throw new Error(error.message);
+  return data as CustomerSite;
+};
+
+/**
+ * Delete a customer site
+ */
+export const deleteCustomerSite = async (siteId: string): Promise<void> => {
+  const { error } = await supabase.from('customer_sites').delete().eq('site_id', siteId);
+  if (error) throw new Error(error.message);
 };

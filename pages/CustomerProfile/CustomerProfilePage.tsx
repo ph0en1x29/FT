@@ -2,14 +2,20 @@ import React,{ useMemo,useState } from 'react';
 import { useNavigate,useParams } from 'react-router-dom';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import {
+AddEditContactModal,
+AddEditSiteModal,
 BulkEndRentalModal,
-CustomerHeader,CustomerKPIStrip,
+ContactsSection,
+CustomerHeader,
+CustomerKPIStrip,
 EditCustomerModal,
 EditRentalModal,
 InsightsSidebar,
 RentalsSection,
-RentForkliftModal,ResultModal,
+RentForkliftModal,
+ResultModal,
 ServiceHistory,
+SitesSection,
 } from './components';
 import {
 useBulkEndRentals,
@@ -175,6 +181,11 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
             topIssues={stats.topIssues}
           />
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ContactsSection customerId={customer.customer_id} />
+        <SitesSection customerId={customer.customer_id} />
       </div>
 
       {rentalActions.editingRental && (

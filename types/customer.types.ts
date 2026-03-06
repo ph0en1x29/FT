@@ -43,3 +43,28 @@ export interface CustomerFinancialSummary {
   active_rentals: number;
   total_forklifts_rented: number;
 }
+
+// Customer Contacts (PICs - Persons In Charge)
+export interface CustomerContact {
+  contact_id: string;
+  customer_id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  role?: string;
+  is_primary: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Customer Sites
+export interface CustomerSite {
+  site_id: string;
+  customer_id: string;
+  site_name: string;
+  address: string;
+  notes?: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}

@@ -4,6 +4,8 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-01 trimmed — see git history -->
 
+[2026-03-06 01:33] [Sonnet] Customer contacts (PICs) and sites feature: types/customer.types.ts services/customerService.ts services/supabaseService.ts pages/CustomerProfile/components/ContactsSection.tsx pages/CustomerProfile/components/SitesSection.tsx pages/CustomerProfile/components/AddEditContactModal.tsx pages/CustomerProfile/components/AddEditSiteModal.tsx pages/CustomerProfile/components/index.ts pages/CustomerProfile/CustomerProfilePage.tsx
+
 [2026-03-06 00:55] [Sonnet] Trimmed select('*') to explicit columns in 15 service files (27 queries total):
 - services/forkliftService.ts (5 queries)
 - services/serviceTrackingService.ts (3 queries)
@@ -281,3 +283,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-06 01:24] Fixed assign button error handling, technician complete redirect: pages/JobDetail/hooks/useJobActions.ts
 [Sonnet] [2026-03-06 01:24] Removed technician access to main inventory (canManageInventory: false): types/user.types.ts
 [Sonnet] [2026-03-06 01:28] Removed no_response_alerted_at phantom column references: services/jobAssignmentCrudService.ts
+[Sonnet] [2026-03-06 01:34] Removed phantom columns (technician_response_deadline, uploaded_by_assignment_id, unit_cost) from queries: services/jobAssignmentCrudService.ts services/jobService.ts services/supabaseClient.ts
+[Sonnet] [2026-03-06 01:34] Added customer_contacts and customer_sites migration: database/migrations/20260306_customer_contacts_sites.sql
