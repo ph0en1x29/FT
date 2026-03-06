@@ -156,12 +156,7 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
             )}
           </div>
         )}
-        {activeRental && (
-          <div className="col-span-2 md:col-span-1">
-            <p className="label-premium mb-0.5">Location</p>
-            <p className="text-[var(--text-secondary)] text-xs leading-tight">{activeRental.rental_location || activeRental.customer_name}</p>
-          </div>
-        )}
+
       </div>
     </div>
   );
