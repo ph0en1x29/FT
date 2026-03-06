@@ -276,3 +276,7 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 21:57] Documentation update: docs/CHANGELOG.md docs/USER_GUIDE.md docs/README.md — March 2026 entries, removed stale doc refs
 
 [Sonnet] [2026-03-06 01:05] Trimmed select('*') to explicit columns across all service files: services/authService.ts services/customerService.ts services/forkliftService.ts services/hourmeterService.ts services/hrService.ts services/inventoryService.ts services/jobChecklistService.ts services/jobInvoiceService.ts services/jobService.ts services/leaveService.ts services/partsService.ts services/servicePredictionService.ts services/serviceScheduleService.ts services/serviceTrackingService.ts services/userService.ts
+
+[Sonnet] [2026-03-06 01:24] Fixed password_hash phantom column in select queries (column doesn't exist in DB): services/authService.ts services/userService.ts services/hrService.ts
+[Sonnet] [2026-03-06 01:24] Fixed assign button error handling, technician complete redirect: pages/JobDetail/hooks/useJobActions.ts
+[Sonnet] [2026-03-06 01:24] Removed technician access to main inventory (canManageInventory: false): types/user.types.ts

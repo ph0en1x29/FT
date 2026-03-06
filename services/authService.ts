@@ -13,7 +13,7 @@ import { supabase } from './supabaseClient';
 export const fetchUserByAuthId = async (authId: string): Promise<User | null> => {
   const { data: userData, error: userError } = await supabase
     .from('users')
-    .select('user_id, name, role, email, password_hash, is_active, avatar, auth_id, created_at, employee_code, full_name, phone, ic_number, address, department, position, joined_date, employment_type, employment_status, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, profile_photo_url, updated_at, created_by_id, created_by_name, updated_by_id, updated_by_name, notes')
+    .select('user_id, name, role, email, is_active, avatar, auth_id, created_at, employee_code, full_name, phone, ic_number, address, department, position, joined_date, employment_type, employment_status, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, profile_photo_url, updated_at, created_by_id, created_by_name, updated_by_id, updated_by_name, notes')
     .eq('auth_id', authId)
     .maybeSingle();
 

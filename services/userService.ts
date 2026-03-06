@@ -18,7 +18,7 @@ const USER_SELECT_LIGHTWEIGHT = 'user_id, name, full_name, email, role, is_activ
 export const getUsers = async (): Promise<User[]> => {
   const { data, error } = await supabase
     .from('users')
-    .select('user_id, name, role, email, password_hash, is_active, avatar, auth_id, created_at, employee_code, full_name, phone, ic_number, address, department, position, joined_date, employment_type, employment_status, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, profile_photo_url, updated_at, created_by_id, created_by_name, updated_by_id, updated_by_name, notes')
+    .select('user_id, name, role, email, is_active, avatar, auth_id, created_at, employee_code, full_name, phone, ic_number, address, department, position, joined_date, employment_type, employment_status, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, profile_photo_url, updated_at, created_by_id, created_by_name, updated_by_id, updated_by_name, notes')
     .order('name');
 
   if (error) throw new Error(error.message);

@@ -336,6 +336,11 @@ export const useJobActions = ({
       const updated = await MockDb.updateJobStatus(job.job_id, newStatus, currentUserId, currentUserName);
       setJob({ ...updated } as Job);
       showToast.success(`Status updated to ${newStatus}`);
+      
+      // Redirect technician to dashboard after completing job
+      if (newStatus === JobStatus.AWAITING_FINALIZATION && currentUserRole === 'technician') {
+        navigate('/');
+      }
     } catch (error) {
       showToast.error('Failed to update status', (error as Error).message);
     }
@@ -346,10 +351,17 @@ export const useJobActions = ({
   const handleAssignJob = useCallback(async () => {
     if (!job || !state.selectedTechId) return;
     const tech = technicians.find(t => t.user_id === state.selectedTechId);
-    if (tech) {
+    if (!tech) {
+      showToast.error('Assignment failed', 'Technician not found');
+      return;
+    }
+    try {
       const updated = await MockDb.assignJob(job.job_id, tech.user_id, tech.name, currentUserId, currentUserName);
       setJob({ ...updated } as Job);
       state.setSelectedTechId('');
+      showToast.success('Job assigned', `Assigned to ${tech.name}`);
+    } catch (error) {
+      showToast.error('Assignment failed', (error as Error).message);
     }
   }, [job, state, technicians, currentUserId, currentUserName, setJob]);
 

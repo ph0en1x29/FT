@@ -231,7 +231,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canFinalizeInvoices: false,
     canViewKPI: false,
     canManageUsers: false,
-    canManageInventory: true,
+    canManageInventory: false,
     canEditInventory: false,
     canViewCustomers: true,
     canEditCustomers: false,
