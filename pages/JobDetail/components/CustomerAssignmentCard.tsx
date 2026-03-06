@@ -41,94 +41,145 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
   const siteAddress = jobSite?.address || job.customer?.address;
 
   return (
-    <div className="card-premium p-4">
-      {/* Top row: Customer + PIC + Call — all inline */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Building2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
-          <span className="font-bold text-sm text-[var(--text)] truncate">{job.customer?.name || 'No customer'}</span>
-          {contactName && (
-            <>
-              <span className="text-[var(--text-muted)]">·</span>
-              <UserCheck className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-              <span className="text-sm text-[var(--text-secondary)] truncate">{contactName}</span>
-              {jobContact?.role && <span className="text-xs text-[var(--text-muted)]">({jobContact.role})</span>}
-            </>
+    <div className="card-premium card-tint-accent p-4">
+      {/* Header — same pattern as Equipment card */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+          <Building2 className="w-4 h-4 text-blue-600" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="font-semibold text-sm text-[var(--text)]">{job.customer?.name || 'No customer'}</h3>
+          {job.customer?.account_number && (
+            <p className="text-xs text-[var(--text-muted)]">A/C: {job.customer.account_number}</p>
           )}
         </div>
-        {contactPhone && (
-          <a
-            href={`tel:${contactPhone}`}
-            className="inline-flex items-center gap-1 shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold bg-green-50 text-green-700 hover:bg-green-100 active:bg-green-200 transition-colors"
-          >
-            <Phone className="w-3.5 h-3.5" /> {contactPhone}
-          </a>
-        )}
       </div>
 
-      {/* Site + Description — compact row */}
-      {(jobSite || siteAddress || job.description) && (
-        <div className="mt-2 flex items-start gap-4 text-xs text-[var(--text-muted)]">
-          {(jobSite || siteAddress) && (
-            <span className="inline-flex items-start gap-1 shrink-0">
-              <MapPin className="w-3 h-3 mt-0.5 text-amber-500" />
-              <span>{jobSite ? `${jobSite.site_name} — ${siteAddress}` : siteAddress}</span>
-            </span>
+      {/* Grid of fields — matches Equipment card layout */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        {/* PIC */}
+        <div>
+          <p className="label-premium mb-0.5 flex items-center gap-1">
+            <UserCheck className="w-3 h-3" /> PIC
+          </p>
+          {contactName ? (
+            <div>
+              <p className="value-premium text-sm">{contactName}</p>
+              {jobContact?.role && <p className="text-[10px] text-[var(--text-muted)]">{jobContact.role}</p>}
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--text-muted)]">—</p>
           )}
-          {job.description && (jobSite || siteAddress) && <span className="text-[var(--border-subtle)]">|</span>}
-          {job.description && <span className="truncate">{job.description}</span>}
+        </div>
+
+        {/* Phone */}
+        <div>
+          <p className="label-premium mb-0.5 flex items-center gap-1">
+            <Phone className="w-3 h-3" /> Phone
+          </p>
+          {contactPhone ? (
+            <a
+              href={`tel:${contactPhone}`}
+              className="inline-flex items-center gap-1 text-sm font-semibold text-green-700 hover:text-green-800 active:text-green-900"
+            >
+              {contactPhone}
+            </a>
+          ) : (
+            <p className="text-sm text-[var(--text-muted)]">—</p>
+          )}
+        </div>
+
+        {/* Site */}
+        <div>
+          <p className="label-premium mb-0.5 flex items-center gap-1">
+            <MapPin className="w-3 h-3" /> Site
+          </p>
+          {jobSite ? (
+            <p className="value-premium text-sm">{jobSite.site_name}</p>
+          ) : (
+            <p className="text-sm text-[var(--text-muted)]">—</p>
+          )}
+        </div>
+
+        {/* Address */}
+        <div>
+          <p className="label-premium mb-0.5">Address</p>
+          {siteAddress ? (
+            <p className="value-premium-secondary text-sm leading-tight">{siteAddress}</p>
+          ) : (
+            <p className="text-sm text-[var(--text-muted)]">—</p>
+          )}
+        </div>
+      </div>
+
+      {/* Description */}
+      {job.description && (
+        <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+          <p className="label-premium mb-0.5">Description</p>
+          <p className="text-[var(--text-secondary)] text-sm">{job.description}</p>
         </div>
       )}
 
       {/* Assign Technician */}
       {(roleFlags.isAdmin || roleFlags.isSupervisor) && statusFlags.isNew && (
         <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+          <p className="label-premium mb-2 flex items-center gap-1">
+            <UserPlus className="w-3 h-3" /> Assign Technician
+          </p>
           <div className="flex gap-2">
             <div className="flex-1">
-              <Combobox options={techOptions} value={selectedTechId} onChange={onSelectedTechIdChange} placeholder="Assign technician..." />
+              <Combobox options={techOptions} value={selectedTechId} onChange={onSelectedTechIdChange} placeholder="Select Technician..." />
             </div>
-            <button onClick={onAssignJob} disabled={!selectedTechId} className="btn-premium btn-premium-primary disabled:opacity-50 text-sm px-4">Assign</button>
+            <button onClick={onAssignJob} disabled={!selectedTechId} className="btn-premium btn-premium-primary disabled:opacity-50">Assign</button>
           </div>
         </div>
       )}
 
       {/* Current Assignment */}
       {roleFlags.canReassign && job.assigned_technician_id && !statusFlags.isCompleted && (
-        <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-[var(--text-muted)]">Tech:</span>
-            <span className="font-semibold text-[var(--text)]">{job.assigned_technician_name}</span>
+        <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--accent-subtle)] p-3 flex justify-between items-center">
+            <div>
+              <p className="label-premium mb-0.5">Assigned Technician</p>
+              <p className="value-premium">{job.assigned_technician_name}</p>
+            </div>
+            <button onClick={onOpenReassignModal} className="chip-premium chip-premium-accent">
+              <RefreshCw className="w-3.5 h-3.5" /> Reassign
+            </button>
           </div>
-          <button onClick={onOpenReassignModal} className="chip-premium chip-premium-accent text-xs">
-            <RefreshCw className="w-3 h-3" /> Reassign
-          </button>
         </div>
       )}
 
       {/* Helper Section */}
       {(statusFlags.isInProgress || statusFlags.isAwaitingFinalization) && (
-        <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-[var(--text-muted)]">Helper:</span>
-            {job.helper_assignment ? (
-              <span className="font-semibold text-[var(--text)]">{job.helper_assignment.technician?.name || 'Unknown'}</span>
-            ) : (
-              <span className="text-[var(--text-muted)] italic">None</span>
+        <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+          <div className={`rounded-xl border border-[var(--border-subtle)] p-3 flex justify-between items-center ${
+            job.helper_assignment ? 'bg-[var(--bg-subtle)]' : 'bg-[var(--warning-bg)]'
+          }`}>
+            <div>
+              <p className="label-premium mb-0.5">Helper Technician</p>
+              {job.helper_assignment ? (
+                <p className="value-premium">{job.helper_assignment.technician?.name || 'Unknown'}</p>
+              ) : (
+                <p className="text-[var(--text-muted)] text-sm">No helper assigned</p>
+              )}
+            </div>
+            {roleFlags.canReassign && (
+              job.helper_assignment ? (
+                <button onClick={onRemoveHelper} className="chip-premium chip-premium-danger">
+                  <X className="w-3.5 h-3.5" /> Remove
+                </button>
+              ) : (
+                <button onClick={onOpenHelperModal} className="chip-premium chip-premium-warning">
+                  <UserPlus className="w-3.5 h-3.5" /> Add Helper
+                </button>
+              )
             )}
           </div>
-          {roleFlags.canReassign && (
-            job.helper_assignment ? (
-              <button onClick={onRemoveHelper} className="chip-premium chip-premium-danger text-xs">
-                <X className="w-3 h-3" /> Remove
-              </button>
-            ) : (
-              <button onClick={onOpenHelperModal} className="chip-premium chip-premium-warning text-xs">
-                <UserPlus className="w-3 h-3" /> Add
-              </button>
-            )
-          )}
           {isCurrentUserHelper && (
-            <span className="text-xs text-[var(--warning)] ml-2">(You — photos only)</span>
+            <div className="mt-2 p-2 bg-[var(--warning-bg)] rounded-lg text-xs text-[var(--warning)]">
+              <strong>You are the helper.</strong> You can upload photos only.
+            </div>
           )}
         </div>
       )}

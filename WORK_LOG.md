@@ -291,3 +291,4 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-06 02:38] Wired PIC and Site into Job Detail page with call button: pages/JobDetail/JobDetailPage.tsx pages/JobDetail/components/CustomerAssignmentCard.tsx
 [Sonnet] [2026-03-06 02:50] Redesigned Customer card on Job Detail, removed Location from Equipment card: pages/JobDetail/components/CustomerAssignmentCard.tsx pages/JobDetail/components/EquipmentCard.tsx
 [Sonnet] [2026-03-06 02:54] Compacted Customer card on Job Detail — single dense card: pages/JobDetail/components/CustomerAssignmentCard.tsx
+[Sonnet] [2026-03-06 02:56] Customer card matches Equipment card grid layout: pages/JobDetail/components/CustomerAssignmentCard.tsx
