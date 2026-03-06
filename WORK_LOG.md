@@ -4,6 +4,28 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-01 trimmed — see git history -->
 
+[2026-03-06 00:55] [Sonnet] Trimmed select('*') to explicit columns in 15 service files (27 queries total):
+- services/forkliftService.ts (5 queries)
+- services/serviceTrackingService.ts (3 queries)
+- services/servicePredictionService.ts (3 queries)
+- services/jobService.ts (3 queries: job_parts, job_media, extra_charges)
+- services/serviceScheduleService.ts (2 queries)
+- services/inventoryService.ts (2 queries: van_access_requests, van_audit_log)
+- services/userService.ts (1 query)
+- services/partsService.ts (1 query)
+- services/leaveService.ts (1 query)
+- services/jobInvoiceService.ts (1 query)
+- services/jobChecklistService.ts (1 query: job_service_records)
+- services/hrService.ts (1 query)
+- services/hourmeterService.ts (1 query: hourmeter_amendments)
+- services/customerService.ts (1 query)
+- services/authService.ts (1 query)
+Build verified: npm run build passed successfully.
+
+[2026-03-06 00:58] [Sonnet] Photos always open for technician mobile, Timeline collapsible: pages/JobDetail/JobDetailPage.tsx
+
+[2026-03-06 00:58] [Sonnet] Added Brotli+gzip compression to vite.config.ts. Converted native selects to Combobox: pages/People/components/EmployeesTab.tsx
+
 - inventoryService: select only required columns in getAllVanStocks
 [2026-02-28 01:58] [Sonnet] Fix liquid display: VanStockDetailModal.tsx TransferItemsModal.tsx show total liters (container_qty × container_size + bulk_qty). inventoryService.ts getAllVanStocks optimized to select only required columns.
 [2026-02-28 01:59] [Sonnet] Fix TS errors from narrowed select: VanStockDetailModal.tsx TransferItemsModal.tsx inventoryService.ts — use unknown casts, fix technician reference
@@ -252,3 +274,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 21:29] Project cleanup: removed dead code (BottomSheet, SimilarJobs, searchService, offlineStorage, businessDays, vite-pwa.config, metadata.json, cross-review.sh, generate-embedding). Archived stale specs/reports. Updated PROJECT_STRUCTURE.md.
 
 [Sonnet] [2026-03-05 21:57] Documentation update: docs/CHANGELOG.md docs/USER_GUIDE.md docs/README.md — March 2026 entries, removed stale doc refs
+
+[Sonnet] [2026-03-06 01:05] Trimmed select('*') to explicit columns across all service files: services/authService.ts services/customerService.ts services/forkliftService.ts services/hourmeterService.ts services/hrService.ts services/inventoryService.ts services/jobChecklistService.ts services/jobInvoiceService.ts services/jobService.ts services/leaveService.ts services/partsService.ts services/servicePredictionService.ts services/serviceScheduleService.ts services/serviceTrackingService.ts services/userService.ts

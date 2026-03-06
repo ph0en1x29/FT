@@ -1,4 +1,4 @@
-import { AlertTriangle,ArrowLeft,Camera,ClipboardList,FileText,ImageIcon,Package,ShieldCheck,Wrench } from 'lucide-react';
+import { AlertTriangle,ArrowLeft,Camera,ClipboardList,Clock,FileText,ImageIcon,Package,ShieldCheck,Wrench } from 'lucide-react';
 import React, { useRef } from 'react';
 import { useNavigate,useParams } from 'react-router-dom';
 import { ComboboxOption } from '../../components/Combobox';
@@ -234,7 +234,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
           <CollapsibleCard
             title="Photos"
             icon={<ImageIcon className="w-5 h-5 text-[var(--text-muted)]" />}
-            defaultOpen={isDesktopDefault}
+            defaultOpen={currentUserRole === 'technician' || isDesktopDefault}
             summary={job.media && job.media.length > 0 ? `${job.media.length} photo${job.media.length !== 1 ? 's' : ''}` : 'No photos'}
           >
             <JobPhotosSection job={job} currentUserId={currentUserId} currentUserName={currentUserName}
@@ -246,7 +246,14 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
           <FinancialSummary job={job} roleFlags={roleFlags} editingLabor={state.editingLabor} laborCostInput={state.laborCostInput}
             onLaborInputChange={state.setLaborCostInput} onStartEditLabor={actions.handleStartEditLabor}
             onSaveLabor={actions.handleSaveLabor} onCancelLaborEdit={actions.handleCancelLaborEdit} />
-          <JobTimeline job={job} />
+          <CollapsibleCard
+            title="Timeline"
+            icon={<Clock className="w-5 h-5 text-[var(--text-muted)]" />}
+            defaultOpen={isDesktopDefault}
+            summary={`${job.status_history?.length || 0} events`}
+          >
+            <JobTimeline job={job} />
+          </CollapsibleCard>
           <SignaturesCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
             onOpenTechSignature={() => state.setShowTechSigPad(true)} onOpenCustomerSignature={() => state.setShowCustSigPad(true)} />
         </div>

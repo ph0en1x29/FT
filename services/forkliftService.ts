@@ -41,7 +41,7 @@ getServiceIntervalsByType,getUpcomingServices,hardDeleteServiceInterval,updateSc
 export const getForklifts = async (): Promise<Forklift[]> => {
   const { data, error } = await supabase
     .from('forklifts')
-    .select('*')
+    .select('forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update')
     .order('serial_number');
 
   if (error) throw new Error(error.message);
@@ -63,7 +63,7 @@ export const getForkliftsForList = async (): Promise<Pick<Forklift, 'forklift_id
 export const getForkliftById = async (forkliftId: string): Promise<Forklift | null> => {
   const { data, error } = await supabase
     .from('forklifts')
-    .select('*')
+    .select('forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update')
     .eq('forklift_id', forkliftId)
     .single();
 
@@ -78,7 +78,7 @@ export const getForkliftWithCustomer = async (forkliftId: string): Promise<Forkl
   try {
     const { data, error } = await supabase
       .from('forklifts')
-      .select(`*, current_customer:customers!forklifts_current_customer_id_fkey(*)`)
+      .select(`forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update, current_customer:customers!forklifts_current_customer_id_fkey(customer_id, name, phone, email, address, notes, contact_person, account_number)`)
       .eq('forklift_id', forkliftId)
       .single();
 
@@ -86,14 +86,14 @@ export const getForkliftWithCustomer = async (forkliftId: string): Promise<Forkl
       console.warn('Forklift with customer query failed, falling back:', error.message);
       const { data: basicData, error: basicError } = await supabase
         .from('forklifts')
-        .select('*')
+        .select('forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update')
         .eq('forklift_id', forkliftId)
         .single();
       
       if (basicError) return null;
       return basicData as Forklift;
     }
-    return data as Forklift;
+    return data as unknown as Forklift;
   } catch (e) {
     console.error('Error fetching forklift:', e);
     return null;
@@ -104,14 +104,14 @@ export const getForkliftsWithCustomers = async (): Promise<Forklift[]> => {
   try {
     const { data: forklifts, error: forkliftError } = await supabase
       .from('forklifts')
-      .select('*')
+      .select('forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update')
       .order('serial_number');
 
     if (forkliftError) throw new Error(forkliftError.message);
 
     const { data: activeRentals, error: rentalError } = await supabase
       .from('forklift_rentals')
-      .select(`forklift_id, customer_id, monthly_rental_rate, customer:customers(*)`)
+      .select(`forklift_id, customer_id, monthly_rental_rate, customer:customers(customer_id, name, phone, email, address, notes, contact_person, account_number)`)
       .eq('status', 'active');
 
     if (rentalError) {
@@ -141,7 +141,7 @@ export const getForkliftsWithCustomers = async (): Promise<Forklift[]> => {
     console.error('Error fetching forklifts:', e);
     const { data, error } = await supabase
       .from('forklifts')
-      .select('*')
+      .select('forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update')
       .order('serial_number');
     
     if (error) throw new Error(error.message);

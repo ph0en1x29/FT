@@ -17,7 +17,7 @@ export const LeaveService = {
   getLeaveTypes: async (): Promise<LeaveType[]> => {
     const { data, error } = await supabase
       .from('leave_types')
-      .select('*')
+      .select('leave_type_id, name, description, is_paid, requires_approval, requires_document, max_days_per_year, color, is_active, created_at')
       .eq('is_active', true)
       .order('name');
 

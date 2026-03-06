@@ -23,7 +23,7 @@ import { supabase } from './supabaseClient';
 export const getFleetServiceOverview = async (): Promise<FleetServiceOverview[]> => {
   const { data, error } = await supabase
     .from('fleet_service_overview')
-    .select('*')
+    .select('forklift_id, serial_number, make, model, type, status, current_hourmeter, last_serviced_hourmeter, next_target_service_hour, service_interval_hours, last_hourmeter_update, ownership, current_customer_id, is_service_overdue, hours_overdue, is_stale_data, days_since_update')
     .order('is_service_overdue', { ascending: false })
     .order('is_stale_data', { ascending: false })
     .order('serial_number');
@@ -210,7 +210,7 @@ export const declineServiceUpgrade = async (
 export const getStaleForklifts = async (): Promise<FleetServiceOverview[]> => {
   const { data, error } = await supabase
     .from('fleet_service_overview')
-    .select('*')
+    .select('forklift_id, serial_number, make, model, type, status, current_hourmeter, last_serviced_hourmeter, next_target_service_hour, service_interval_hours, last_hourmeter_update, ownership, current_customer_id, is_service_overdue, hours_overdue, is_stale_data, days_since_update')
     .eq('is_stale_data', true)
     .order('days_since_update', { ascending: false });
 
@@ -224,7 +224,7 @@ export const getStaleForklifts = async (): Promise<FleetServiceOverview[]> => {
 export const getServiceIntervals = async () => {
   const { data, error } = await supabase
     .from('service_intervals')
-    .select('*')
+    .select('interval_id, forklift_type, service_type, hourmeter_interval, calendar_interval_days, priority, checklist_items, estimated_duration_hours, is_active')
     .eq('is_active', true)
     .order('forklift_type')
     .order('service_type');

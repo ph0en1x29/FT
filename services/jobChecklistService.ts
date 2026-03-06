@@ -110,7 +110,7 @@ export const setNoPartsUsed = async (jobId: string, noPartsUsed: boolean): Promi
 export const getJobServiceRecord = async (jobId: string): Promise<any> => {
   const { data, error } = await supabase
     .from('job_service_records')
-    .select('*')
+    .select('service_record_id, job_id, started_at, completed_at, repair_start_time, repair_end_time, checklist_data, service_notes, job_carried_out, recommendation, hourmeter_reading, no_parts_used, parts_summary, photos, technician_signature, technician_signature_at, customer_signature, customer_signature_at, technician_id, created_at, updated_at, updated_by, locked_at, locked_by, lock_reason')
     .eq('job_id', jobId)
     .limit(1);
 

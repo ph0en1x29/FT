@@ -114,7 +114,7 @@ export const getServiceIntervals = async (): Promise<any[]> => {
   try {
     const { data, error } = await supabase
       .from('service_intervals')
-      .select('*')
+      .select('interval_id, forklift_type, service_type, hourmeter_interval, calendar_interval_days, priority, checklist_items, estimated_duration_hours, is_active')
       .order('forklift_type', { ascending: true })
       .order('hourmeter_interval', { ascending: true });
 
@@ -133,7 +133,7 @@ export const getServiceIntervalsByType = async (forkliftType: string): Promise<a
   try {
     const { data, error } = await supabase
       .from('service_intervals')
-      .select('*')
+      .select('interval_id, forklift_type, service_type, hourmeter_interval, calendar_interval_days, priority, checklist_items, estimated_duration_hours, is_active')
       .eq('forklift_type', forkliftType)
       .eq('is_active', true)
       .order('hourmeter_interval', { ascending: true });

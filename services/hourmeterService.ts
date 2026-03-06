@@ -181,7 +181,7 @@ export const getJobHourmeterAmendment = async (jobId: string): Promise<Hourmeter
   try {
     const { data, error } = await supabase
       .from('hourmeter_amendments')
-      .select('*')
+      .select('amendment_id, job_id, forklift_id, original_reading, amended_reading, reason, flag_reasons, requested_by_id, requested_by_name, requested_at, status, reviewed_by_id, reviewed_by_name, reviewed_at, review_notes, created_at, updated_at')
       .eq('job_id', jobId)
       .order('requested_at', { ascending: false })
       .limit(1)

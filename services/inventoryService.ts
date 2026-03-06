@@ -712,7 +712,7 @@ export const reviewVanAccessRequest = async (
 export const getPendingVanRequests = async (): Promise<VanAccessRequest[]> => {
   try {
     const { data, error } = await supabase.from('van_access_requests')
-      .select('*').eq('status', 'pending').order('created_at', { ascending: false });
+      .select('request_id, van_stock_id, requester_id, requester_name, reason, status, reviewed_by_id, reviewed_by_name, reviewed_at, created_at, van_plate, van_code, van_tech_name').eq('status', 'pending').order('created_at', { ascending: false });
     if (error) return [];
     return data as VanAccessRequest[];
   } catch (_e) {
@@ -724,7 +724,7 @@ export const getPendingVanRequests = async (): Promise<VanAccessRequest[]> => {
 export const getVanAuditLog = async (vanStockId: string): Promise<VanAuditLogEntry[]> => {
   try {
     const { data, error } = await supabase.from('van_audit_log')
-      .select('*').eq('van_stock_id', vanStockId)
+      .select('id, van_stock_id, action, performed_by_id, performed_by_name, target_tech_id, target_tech_name, reason, old_value, new_value, created_at').eq('van_stock_id', vanStockId)
       .order('created_at', { ascending: false }).limit(50);
     if (error) return [];
     return data as VanAuditLogEntry[];

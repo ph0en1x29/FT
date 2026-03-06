@@ -1,6 +1,7 @@
 import { ChevronRight,Loader2,Search,Users } from 'lucide-react';
 import React,{ useEffect,useMemo,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Combobox, ComboboxOption } from '../../../components/Combobox';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { User } from '../../../types';
@@ -67,6 +68,17 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ _currentUser, initialStatus
 
   const departments = useMemo(() => [...new Set(employees.map(e => e.department).filter(Boolean))], [employees]);
 
+  const statusOptions: ComboboxOption[] = [
+    { id: 'all', label: 'All Status' },
+    { id: 'active', label: 'Active' },
+    { id: 'inactive', label: 'Inactive' },
+  ];
+
+  const departmentOptions: ComboboxOption[] = [
+    { id: 'all', label: 'All Departments' },
+    ...departments.map(dept => ({ id: dept!, label: dept! })),
+  ];
+
   if (loading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>;
   }
@@ -85,16 +97,21 @@ const EmployeesTab: React.FC<EmployeesTabProps> = ({ _currentUser, initialStatus
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <select className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme" value={filterStatus} onChange={(e) => handleStatusFilter(e.target.value)}>
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
+        <Combobox
+          compact
+          options={statusOptions}
+          value={filterStatus}
+          onChange={handleStatusFilter}
+          placeholder="Filter by status..."
+        />
         {departments.length > 0 && (
-          <select className="px-3 py-2 bg-theme-surface border border-theme rounded-lg text-sm text-theme" value={filterDepartment} onChange={(e) => setFilterDepartment(e.target.value)}>
-            <option value="all">All Departments</option>
-            {departments.map(dept => <option key={dept} value={dept}>{dept}</option>)}
-          </select>
+          <Combobox
+            compact
+            options={departmentOptions}
+            value={filterDepartment}
+            onChange={setFilterDepartment}
+            placeholder="Filter by department..."
+          />
         )}
       </div>
 

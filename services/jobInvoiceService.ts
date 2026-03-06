@@ -50,7 +50,7 @@ export const addPartToJob = async (
 ): Promise<Job> => {
   const { data: part, error: partError } = await supabase
     .from('parts')
-    .select('*')
+    .select('part_id, part_name, part_code, category, cost_price, sell_price, warranty_months, stock_quantity, last_updated_by, last_updated_by_name, updated_at, min_stock_level, supplier, location, unit, base_unit, container_unit, container_size, container_quantity, bulk_quantity, price_per_base_unit, is_liquid, avg_cost_per_liter, last_purchase_cost_per_liter')
     .eq('part_id', partId)
     .single();
 
