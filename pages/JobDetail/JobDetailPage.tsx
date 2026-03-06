@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle,ArrowLeft,Camera,ClipboardList,Clock,FileText,ImageIcon,Package,ShieldCheck,Wrench } from 'lucide-react';
 import React, { useRef } from 'react';
 import { useNavigate,useParams } from 'react-router-dom';
@@ -6,7 +7,9 @@ import ServiceUpgradeModal from '../../components/ServiceUpgradeModal';
 import { SkeletonJobDetail } from '../../components/Skeleton';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { usePartsForList,useTechnicians } from '../../hooks/useQueryHooks';
+import { getCustomerContacts,getCustomerSites } from '../../services/customerService';
 import { JobRequest,JobStatus,MANDATORY_CHECKLIST_ITEMS,normalizeChecklistState,Part,User } from '../../types';
+import { CustomerContact,CustomerSite } from '../../types/customer.types';
 
 // Extracted components
 import {
@@ -63,6 +66,20 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const { data: cachedTechnicians = [] } = useTechnicians();
   const parts = cachedParts as unknown as Part[];
   const technicians = cachedTechnicians as User[];
+
+  // Fetch PIC and Site for this job's customer
+  const { data: customerContacts = [] } = useQuery({
+    queryKey: ['customer-contacts', job?.customer_id],
+    queryFn: () => getCustomerContacts(job!.customer_id),
+    enabled: !!job?.customer_id,
+  });
+  const { data: customerSites = [] } = useQuery({
+    queryKey: ['customer-sites', job?.customer_id],
+    queryFn: () => getCustomerSites(job!.customer_id),
+    enabled: !!job?.customer_id,
+  });
+  const jobContact = customerContacts.find((c: CustomerContact) => c.contact_id === job?.contact_id);
+  const jobSite = customerSites.find((s: CustomerSite) => s.site_id === job?.site_id);
 
   // Data loading with real-time
   const { loadJob } = useJobData({ jobId: id, currentUserId, currentUserRole, state });
@@ -139,6 +156,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
           {(statusFlags.isInProgress || statusFlags.isAwaitingFinalization || statusFlags.isCompleted) && <JobTimerCard job={job} />}
           <CustomerAssignmentCard job={job} roleFlags={roleFlags} statusFlags={statusFlags} techOptions={techOptions}
             selectedTechId={state.selectedTechId} isCurrentUserHelper={state.isCurrentUserHelper}
+            jobContact={jobContact} jobSite={jobSite}
             onSelectedTechIdChange={state.setSelectedTechId} onAssignJob={actions.handleAssignJob}
             onOpenReassignModal={() => state.setShowReassignModal(true)}
             onOpenHelperModal={() => state.setShowAssignHelperModal(true)} onRemoveHelper={actions.handleRemoveHelper} />

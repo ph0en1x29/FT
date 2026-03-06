@@ -1,7 +1,8 @@
-import { MapPin,Phone,RefreshCw,UserIcon,UserPlus,X } from 'lucide-react';
+import { MapPin,Phone,RefreshCw,UserCheck,UserIcon,UserPlus,X } from 'lucide-react';
 import React from 'react';
 import { Combobox,ComboboxOption } from '../../../components/Combobox';
 import { Job } from '../../../types';
+import { CustomerContact,CustomerSite } from '../../../types/customer.types';
 import { RoleFlags,StatusFlags } from '../types';
 
 interface CustomerAssignmentCardProps {
@@ -11,6 +12,8 @@ interface CustomerAssignmentCardProps {
   techOptions: ComboboxOption[];
   selectedTechId: string;
   isCurrentUserHelper?: boolean;
+  jobContact?: CustomerContact;
+  jobSite?: CustomerSite;
   onSelectedTechIdChange: (id: string) => void;
   onAssignJob: () => void;
   onOpenReassignModal: () => void;
@@ -25,6 +28,8 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
   techOptions,
   selectedTechId,
   isCurrentUserHelper = false,
+  jobContact,
+  jobSite,
   onSelectedTechIdChange,
   onAssignJob,
   onOpenReassignModal,
@@ -44,23 +49,59 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
           ) : (
             <p className="text-sm text-[var(--warning)]">No customer assigned</p>
           )}
-          {job.customer?.phone && (
+        </div>
+      </div>
+
+      {/* PIC (Person In Charge) */}
+      {jobContact && (
+        <div className="flex items-center gap-3 mb-3 p-3 rounded-xl bg-[var(--bg-subtle)]">
+          <div className="w-8 h-8 rounded-lg bg-[var(--accent-subtle)] flex items-center justify-center flex-shrink-0">
+            <UserCheck className="w-4 h-4 text-[var(--accent)]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold uppercase text-[var(--text-muted)]">PIC</p>
+            <p className="text-sm font-semibold text-[var(--text)]">{jobContact.name}</p>
+            {jobContact.role && <p className="text-xs text-[var(--text-muted)]">{jobContact.role}</p>}
+          </div>
+          {jobContact.phone && (
             <a
-              href={`tel:${job.customer.phone}`}
-              className="inline-flex items-center gap-1.5 mt-2 rounded-full px-3 min-h-[36px] text-xs font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-[var(--accent-subtle)] hover:text-[var(--accent)] transition-colors"
+              href={`tel:${jobContact.phone}`}
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
             >
-              <Phone className="w-3.5 h-3.5" /> Call
+              <Phone className="w-3.5 h-3.5" /> {jobContact.phone}
             </a>
           )}
         </div>
-      </div>
-      
-      {job.customer && (
-        <div className="space-y-2 mb-4">
-          <div className="flex items-start gap-2 text-sm">
-            <MapPin className="w-4 h-4 text-[var(--text-muted)] mt-0.5 flex-shrink-0" />
-            <span className="text-[var(--text-secondary)]">{job.customer.address}</span>
+      )}
+
+      {/* Site Location */}
+      {jobSite && (
+        <div className="flex items-start gap-2 mb-3 text-sm">
+          <MapPin className="w-4 h-4 text-[var(--accent)] mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-[var(--text)]">{jobSite.site_name}</p>
+            <p className="text-xs text-[var(--text-muted)]">{jobSite.address}</p>
           </div>
+        </div>
+      )}
+
+      {/* Fallback: customer address + phone if no PIC/Site */}
+      {!jobContact && !jobSite && job.customer && (
+        <div className="space-y-2 mb-4">
+          {job.customer.phone && (
+            <a
+              href={`tel:${job.customer.phone}`}
+              className="inline-flex items-center gap-1.5 rounded-full px-3 min-h-[36px] text-xs font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-[var(--accent-subtle)] hover:text-[var(--accent)] transition-colors"
+            >
+              <Phone className="w-3.5 h-3.5" /> {job.customer.phone}
+            </a>
+          )}
+          {job.customer.address && (
+            <div className="flex items-start gap-2 text-sm">
+              <MapPin className="w-4 h-4 text-[var(--text-muted)] mt-0.5 flex-shrink-0" />
+              <span className="text-[var(--text-secondary)]">{job.customer.address}</span>
+            </div>
+          )}
         </div>
       )}
 

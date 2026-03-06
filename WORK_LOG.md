@@ -288,3 +288,4 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-06 01:56] Added PIC and Site selection to Create Job: pages/CreateJob/types.ts pages/CreateJob/hooks/useCreateJobForm.ts pages/CreateJob/CreateJobPage.tsx services/jobService.ts types/job-core.types.ts
 [Sonnet] [2026-03-06 02:34] Price fallback sell_price → cost_price: services/jobInvoiceService.ts
 [Sonnet] [2026-03-06 02:36] Fixed deleted_by UUID type mismatch in deleteJob: services/jobCrudService.ts
+[Sonnet] [2026-03-06 02:38] Wired PIC and Site into Job Detail page with call button: pages/JobDetail/JobDetailPage.tsx pages/JobDetail/components/CustomerAssignmentCard.tsx
