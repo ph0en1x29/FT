@@ -9,7 +9,10 @@ JobCard,
 LoadingState,
 QuickStats,
 RejectJobModal,
-SearchFilterBar,SlotInAlertBanner,SpecialFilterBanner,
+SearchFilterBar,
+SiteSignOffBanner,
+SlotInAlertBanner,
+SpecialFilterBanner,
 } from './components';
 import { useJobAcceptance,useJobData,useJobFilters } from './hooks';
 import { JobBoardProps } from './types';
@@ -157,6 +160,11 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
               {myJobs.length > 0 && (
                 <div>
                   <h2 className="text-sm font-semibold text-theme-muted uppercase tracking-wide mb-3">My Jobs ({myJobs.length})</h2>
+                  <SiteSignOffBanner 
+                    jobs={myJobs} 
+                    currentUser={currentUser} 
+                    onComplete={fetchJobs} 
+                  />
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {myJobs.map(renderCard)}
                   </div>
