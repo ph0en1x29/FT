@@ -21,20 +21,9 @@
 |----------|-------------|
 | [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) | Codebase architecture and folder patterns |
 | [DB_SCHEMA.md](./DB_SCHEMA.md) | Database tables, columns, relationships |
-| [WORKFLOW_SPECIFICATION.md](./WORKFLOW_SPECIFICATION.md) | Business logic and API specs |
 | [SECURITY.md](./SECURITY.md) | Security guidelines and credential handling |
 | [TESTING_GUIDE.md](./TESTING_GUIDE.md) | How to write and run tests |
 | [DEVELOPMENT_PROCESS.md](./DEVELOPMENT_PROCESS.md) | Development workflow and golden rules |
-
----
-
-## Future Planning
-
-| Document | Description |
-|----------|-------------|
-| [ROADMAP.md](./ROADMAP.md) | Planned features and priorities |
-| [TELEGRAM_BOT_PLAN.md](./TELEGRAM_BOT_PLAN.md) | Telegram notification bot specification |
-| [SERVICE_AUTOMATION_SPEC.md](./SERVICE_AUTOMATION_SPEC.md) | Automated service scheduling |
 
 ---
 
@@ -53,4 +42,4 @@
 
 ## Archive
 
-Historical documents (investigations, old implementation notes, client feedback history) are in [`archive/`](./archive/).
+Historical documents (specs, investigations, old reports, client feedback) are in [`archive/`](./archive/).

@@ -4,6 +4,72 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-03-05] — March 2026 UX & Workflow Improvements
+
+### Features
+
+**Customer & Site Management**
+- **SITE/LOCATION separation** — Clear distinction between billing entity (LOCATION) and physical job site (SITE). Create Job page now shows both fields separately.
+- **Edit Customer modal redesign** — Full modal with tabbed Company/Contact sections, replaces broken inline edit. Desktop-optimized 2-column layout.
+- **Customer Forklift No field** — Added to forklift form (alphanumeric). Site field added (free text). Brand dropdown expanded (Toyota, Nichiyu, Hangcha, BT, EP, Noblelift, TCM, Unicarries, Yale, Nissan, Others). Updated ForkliftType enum: Battery/Electrical, Diesel, Reach Truck, LPG, Others.
+
+**Fleet & Rental**
+- **Rent Out / Return buttons** — Prominent action buttons on forklift cards for faster workflow.
+- **Return Forklift modal** — Desktop-friendly rounded design with clear layout.
+- **Forklift dropdown filter** — Create Job page now filters forklift list to show only customer's active rentals.
+- **Last Service Hourmeter in rental modals** — Optional field in both Rent and Return modals. Sets `last_service_hourmeter` and recalculates `next_target_service_hour`.
+- **Post-bulk-rent Service Reset Modal** — After bulk rent, shows table of rented forklifts with editable Last Service HRS column for batch hourmeter updates.
+
+**Job Management**
+- **Create Job page redesign** — Clean 2-column desktop layout with context sidebar showing customer info, active rentals, recent jobs. Mobile stacks single column.
+- **Job Board date filter pill tabs** — Replaced dropdown with pill navigation (Unfinished/Today/Week/Month/All).
+- **Job Detail page widened** — Eliminated thick side margins for better use of screen space.
+- **Schedule Service modal** — Desktop-friendly 2-column layout.
+- **Camera-only Start Job photos** — Mandatory before-condition photo capture (min 1 photo) before entering hourmeter/checklist. 2-step wizard. Camera/gallery mode, no upload from old photos. Prevents fake photos with timestamp + geolocation.
+
+**UI Components**
+- **Searchable Combobox dropdowns** — Replaced native select elements across fleet filters, inventory filters, job filters, forklift edit modal. Type to filter, keyboard navigation.
+- **Compact liquid glass Combobox** — Special variant for filter bars with glassmorphism effect, tighter spacing.
+- **Edit Forklift modal** — Desktop-optimized 3-section layout (Details/Service/History) with sticky footer. Brand/Type/Status fields use Combobox.
+
+**Mobile Optimizations**
+- **Technician dashboard compact** — Tighter card spacing, mobile-optimized layout.
+- **Equipment card mobile compact** — 2-column grid for equipment details.
+- **Fleet filter hybrid layout** — Inline on desktop, stacked on mobile.
+
+**Inventory**
+- **Batch Receive Stock redesign** — Search-based item selection (replaces dropdown). Invoice/receipt upload to private Supabase bucket with signed URLs. Liquid container context display.
+- **Purchase History** — 3-way toggle in Ledger tab: Recent Activity / Purchase History / Item Ledger. Batch grouping by PO+date. Invoice viewer via signed URLs (1-hour expiry). Search filter.
+- **ACWER CSV self-import** — In-app CSV import with ACWER format auto-detection (3 header rows, 7 columns). Batch upserts (100/batch), audit trail, junk row filtering, smart liquid detection, category auto-mapping.
+- **Currency RM fix** — Inventory views now display Malaysian Ringgit (RM) instead of $.
+
+### Fixes
+- **Modal overflow fix** — All modals now use 2-layer pattern (outer wrapper + inner scrollable). Prevents content clipping on small viewports and mobile.
+- **Modal clipping on mobile** — Fixed top clipping and screen flicker. Rental modal bottom buttons no longer cut off.
+- **Service Due tab** — Prediction view now returns `current_hourmeter` correctly (was showing `hourmeter`).
+- **Category filter overflow** — Fixed with proper width constraints, text truncation, min-width.
+- **Search service query chain** — Fixed stacked `.is()` bug causing search failures.
+- **Year field** — Changed from required (defaulting to current year) to optional (null default).
+- **Bulk rent modal** — Last Service Hourmeter field hidden on bulk rent (only shows for single forklift).
+- **Pagination** — Parts queries now paginate to fetch all 3200+ items.
+- **Null-safe toFixed** — Fixed crash on null `sell_price`/`cost_price`.
+- **Forklift dropdown empty** — Fixed missing `current_customer_id` in query.
+- **Notification dedup** — Skip if same user+type+ref exists within 5min window.
+- **Service Worker cache** — Removed JS/CSS from CacheFirst runtime caching. Prevents stale chunks after deploys.
+
+### Performance
+- **Stale time tuning** — Increased `staleTime` and `cacheTime` across query hooks to reduce Supabase egress and improve responsiveness.
+
+### Maintenance
+- **Project cleanup** — Removed 977 lines of dead code (orphaned components, unused services, stale exports).
+- **Codifica protocol** — Added multi-agent coordination spec for better context handoff.
+- **Documentation updates** — Comprehensive README overhaul, added LICENSE, SECURITY.md, CONTRIBUTING.md.
+
+### Testing
+- **E2E test suites** — Added role-based test suites for admin, supervisor, technician, and accountant workflows.
+
+---
+
 ## [2026-02-27] — Liquid Inventory Phase 1
 
 ### Features

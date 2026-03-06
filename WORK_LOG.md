@@ -250,3 +250,5 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 19:23] Notification dedup: notificationService.ts — prevent duplicate notifications within 5-min window
 
 [Sonnet] [2026-03-05 21:29] Project cleanup: removed dead code (BottomSheet, SimilarJobs, searchService, offlineStorage, businessDays, vite-pwa.config, metadata.json, cross-review.sh, generate-embedding). Archived stale specs/reports. Updated PROJECT_STRUCTURE.md.
+
+[Sonnet] [2026-03-05 21:57] Documentation update: docs/CHANGELOG.md docs/USER_GUIDE.md docs/README.md — March 2026 entries, removed stale doc refs

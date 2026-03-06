@@ -3,9 +3,21 @@
 
 ---
 
-> 📢 **What's New in February 2026?**
+> 📢 **What's New in March 2026?**
 >
-> **🆕 Latest Update (2026-02-18):**
+> **🆕 Latest Update (2026-03-05):**
+> - **🔍 Searchable dropdowns everywhere** — Type to filter customers, parts, forklifts, and other lists. No more endless scrolling.
+> - **📅 Job Board pill tabs** — Quick navigation by date range (Unfinished/Today/Week/month/All) replacing the old dropdown.
+> - **📸 Camera-only photos for Start Job** — Prevents fake photos with mandatory camera capture before starting work. Includes timestamp + location.
+> - **🔄 Return Forklift button** — Fleet cards now have prominent Rent Out and Return buttons for faster workflows.
+> - **✏️ Edit Customer button works now** — Previously broken, now opens full modal with Company and Contact sections.
+> - **📱 All modals scroll properly on mobile** — Fixed content clipping on small screens.
+> - **💻 Desktop modals use 2-column layouts** — Better use of screen space on larger displays (Create Job, Schedule Service, Edit Forklift, etc.).
+> - **⚡ Faster page transitions** — Improved caching means less waiting between pages.
+> - **RM currency display** — Inventory now correctly shows Malaysian Ringgit (RM) instead of $.
+> - **📦 Purchase History viewer** — See all inventory purchases grouped by invoice with document viewer.
+>
+> **Previous (February 2026):**
 > - **⌨️ Command Palette (Cmd/Ctrl+K)** - Role-aware quick navigation and actions from anywhere
 > - **📱 Mobile Bottom Navigation** - Role-specific tabs with unread notification badge support
 > - **🔵 Floating Action Button (FAB)** - Mobile quick actions menu by role
