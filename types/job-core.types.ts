@@ -209,6 +209,8 @@ export interface Job {
   forklift_id?: string;
   forklift?: Forklift;
   hourmeter_reading?: number;
+  contact_id?: string;
+  site_id?: string;
   first_hourmeter_recorded_by_id?: string;  // Technician who first recorded the hourmeter
   first_hourmeter_recorded_by_name?: string;
   first_hourmeter_recorded_at?: string;     // When the hourmeter was first recorded

@@ -10,6 +10,8 @@ export interface CreateJobFormData {
   assigned_technician_id: string;
   forklift_id: string;
   hourmeter_reading: string;
+  contact_id: string;
+  site_id: string;
 }
 
 export interface NewCustomerFormData {

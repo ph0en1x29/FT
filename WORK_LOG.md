@@ -285,3 +285,4 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-06 01:28] Removed no_response_alerted_at phantom column references: services/jobAssignmentCrudService.ts
 [Sonnet] [2026-03-06 01:34] Removed phantom columns (technician_response_deadline, uploaded_by_assignment_id, unit_cost) from queries: services/jobAssignmentCrudService.ts services/jobService.ts services/supabaseClient.ts
 [Sonnet] [2026-03-06 01:34] Added customer_contacts and customer_sites migration: database/migrations/20260306_customer_contacts_sites.sql
+[Sonnet] [2026-03-06 01:56] Added PIC and Site selection to Create Job: pages/CreateJob/types.ts pages/CreateJob/hooks/useCreateJobForm.ts pages/CreateJob/CreateJobPage.tsx services/jobService.ts types/job-core.types.ts

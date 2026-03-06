@@ -1,4 +1,4 @@
-import { ArrowLeft,Building2,ClipboardList,MapPin,Phone,Save,Truck,User,Wrench } from 'lucide-react';
+import { ArrowLeft,Building2,ClipboardList,MapPin,Phone,Save,Truck,User,UserCheck,Wrench } from 'lucide-react';
 import React,{ useMemo } from 'react';
 import { Combobox,ComboboxOption } from '../../components/Combobox';
 import { ForkliftStatus,JobPriority,JobType,User as UserType } from '../../types';
@@ -18,6 +18,8 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
     customers,
     forklifts,
     technicians,
+    contacts,
+    sites,
     canCreateJobs,
     showNewCustomerModal,
     setShowNewCustomerModal,
@@ -40,9 +42,31 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
     subLabel: t.email
   }));
 
+  const contactOptions: ComboboxOption[] = contacts.map(c => ({
+    id: c.contact_id,
+    label: c.name,
+    subLabel: [c.role, c.phone].filter(Boolean).join(' · ')
+  }));
+
+  const siteOptions: ComboboxOption[] = sites.filter(s => s.is_active).map(s => ({
+    id: s.site_id,
+    label: s.site_name,
+    subLabel: s.address
+  }));
+
   const selectedCustomer = useMemo(() => 
     customers.find(c => c.customer_id === formData.customer_id),
     [customers, formData.customer_id]
+  );
+
+  const selectedContact = useMemo(() =>
+    contacts.find(c => c.contact_id === formData.contact_id),
+    [contacts, formData.contact_id]
+  );
+
+  const selectedSite = useMemo(() =>
+    sites.find(s => s.site_id === formData.site_id),
+    [sites, formData.site_id]
   );
 
   const customerForklifts = useMemo(() => 
@@ -82,7 +106,7 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
                 label="Customer"
                 options={customerOptions}
                 value={formData.customer_id}
-                onChange={(val) => setFormData(prev => ({...prev, customer_id: val, forklift_id: ''}))}
+                onChange={(val) => setFormData(prev => ({...prev, customer_id: val, forklift_id: '', contact_id: '', site_id: ''}))}
                 placeholder="Search customer..."
                 onAddNew={openNewCustomerModal}
                 addNewLabel="Create New Customer"
@@ -95,6 +119,25 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
                 selectedForklift={selectedForklift}
                 inputClassName={INPUT_CLASS_NAME}
               />
+
+              {formData.customer_id && contactOptions.length > 0 && (
+                <Combobox
+                  label="Person In Charge (PIC)"
+                  options={contactOptions}
+                  value={formData.contact_id}
+                  onChange={(val) => setFormData(prev => ({...prev, contact_id: val}))}
+                  placeholder="Select contact..."
+                />
+              )}
+              {formData.customer_id && siteOptions.length > 0 && (
+                <Combobox
+                  label="Site Location"
+                  options={siteOptions}
+                  value={formData.site_id}
+                  onChange={(val) => setFormData(prev => ({...prev, site_id: val}))}
+                  placeholder="Select site..."
+                />
+              )}
             </div>
           </div>
 
@@ -218,6 +261,42 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
                   )}
                 </div>
               </div>
+
+              {/* PIC & Site */}
+              {(selectedContact || selectedSite) && (
+                <div className="bg-[var(--surface)] rounded-xl shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 bg-gradient-to-r from-sky-100 to-blue-50 border-b border-sky-200 flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-sky-600" />
+                    <span className="text-sm font-semibold text-sky-800">Job Location</span>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {selectedContact && (
+                      <div>
+                        <p className="text-xs font-bold uppercase text-slate-400 mb-1">PIC</p>
+                        <p className="text-sm font-semibold text-slate-900">{selectedContact.name}</p>
+                        {selectedContact.role && <p className="text-xs text-slate-500">{selectedContact.role}</p>}
+                        {selectedContact.phone && (
+                          <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500">
+                            <Phone className="w-3 h-3" />
+                            <span>{selectedContact.phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {selectedContact && selectedSite && <div className="border-t border-slate-100" />}
+                    {selectedSite && (
+                      <div>
+                        <p className="text-xs font-bold uppercase text-slate-400 mb-1">Site</p>
+                        <p className="text-sm font-semibold text-slate-900">{selectedSite.site_name}</p>
+                        <div className="flex items-start gap-1.5 mt-1 text-xs text-slate-500">
+                          <MapPin className="w-3 h-3 mt-0.5 shrink-0" />
+                          <span>{selectedSite.address}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Active Rentals */}
               {customerForklifts.length > 0 && (

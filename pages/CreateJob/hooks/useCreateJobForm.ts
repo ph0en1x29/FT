@@ -1,7 +1,9 @@
+import { useQuery } from '@tanstack/react-query';
 import React,{ useEffect,useState } from 'react';
 import { useNavigate,useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { useCustomersForList,useForkliftsForList,useTechnicians } from '../../../hooks/useQueryHooks';
+import { getCustomerContacts,getCustomerSites } from '../../../services/customerService';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { Customer,Forklift,JobPriority,JobStatus,JobType,User } from '../../../types';
@@ -44,6 +46,20 @@ export function useCreateJobForm(currentUser: User) {
     assigned_technician_id: '',
     forklift_id: prefilledForkliftId || '',
     hourmeter_reading: '',
+    contact_id: '',
+    site_id: '',
+  });
+
+  // Fetch contacts and sites for selected customer
+  const { data: contacts = [] } = useQuery({
+    queryKey: ['customer-contacts', formData.customer_id],
+    queryFn: () => getCustomerContacts(formData.customer_id),
+    enabled: !!formData.customer_id,
+  });
+  const { data: sites = [] } = useQuery({
+    queryKey: ['customer-sites', formData.customer_id],
+    queryFn: () => getCustomerSites(formData.customer_id),
+    enabled: !!formData.customer_id,
   });
 
   // Selected forklift details
@@ -121,6 +137,8 @@ export function useCreateJobForm(currentUser: User) {
           status: status,
           forklift_id: formData.forklift_id || undefined,
           hourmeter_reading: hourmeterReading,
+          contact_id: formData.contact_id || undefined,
+          site_id: formData.site_id || undefined,
         },
         currentUser.user_id,  // Created by ID
         currentUser.name      // Created by Name
@@ -168,6 +186,8 @@ export function useCreateJobForm(currentUser: User) {
     customers,
     forklifts,
     technicians,
+    contacts,
+    sites,
     
     // Permissions
     canCreateJobs,
