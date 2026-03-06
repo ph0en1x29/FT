@@ -5,7 +5,14 @@
 
 > 📢 **What's New in March 2026?**
 >
-> **🆕 Latest Update (2026-03-05):**
+> **🆕 Latest Update (2026-03-06):**
+> - **✍️ Swipe-to-Sign** — Replaced signature drawing with a simple swipe slider. Technician swipes to sign; customer fills in Name + IC Number then swipes. Much faster on mobile.
+> - **📋 Bulk Site Sign-Off** — Technicians with 2+ jobs at the same site can sign all of them at once. One swipe for tech, one swipe for customer. No more signing each job individually.
+> - **🔐 Admin Role Split** — Admin (Service) manages jobs, customers, forklifts, and HR. Admin (Store) manages inventory and parts. Each sees only what they need.
+> - **🔧 Reach Truck = Electric** — Reach trucks now follow electric forklift service schedules (3-month calendar-based tracking).
+> - **📍 Site address only** — Job detail shows the site address selected during creation, not the customer's office address.
+>
+> **Previous (2026-03-05):**
 > - **🔍 Searchable dropdowns everywhere** — Type to filter customers, parts, forklifts, and other lists. No more endless scrolling.
 > - **📅 Job Board pill tabs** — Quick navigation by date range (Unfinished/Today/Week/month/All) replacing the old dropdown.
 > - **📸 Camera-only photos for Start Job** — Prevents fake photos with mandatory camera capture before starting work. Includes timestamp + location.

@@ -4,6 +4,36 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-03-06] — Signatures, Role Separation & Service Tracking
+
+### Features
+
+**Swipe-to-Sign System**
+- **Replaced draw-on-canvas signatures with swipe-to-sign** — Technician swipes a slider to confirm; customer fills in Name + IC Number then swipes. Faster, cleaner, works better on mobile.
+- **Customer IC Number required** — Customer must enter their name and IC number before the swipe slider becomes active.
+- **Inline signing in Job Detail** — No more modal popups; signature fields are directly in the Signatures card.
+
+**Bulk Site Sign-Off**
+- **Bulk sign-off banner on Job Board** — When a technician has 2+ unsigned in-progress jobs at the same customer + site, a "Sign Off Site Visit" banner appears.
+- **Two-step bulk modal** — Step 1: Tech selects jobs + swipes. Step 2: Customer fills name + IC + swipes. One signature upload applies to all selected jobs.
+- **`bulkSwipeSignJobs` service** — Signs multiple jobs with a single operation.
+
+**Role-Based Access: Admin Service vs Admin Store**
+- **Admin 1 (Service)** — Full job management (create, assign, edit, delete), customers, forklifts, fleet, HR, users, invoices. NO inventory access.
+- **Admin 2 (Store)** — Full inventory/parts management, approve & provide parts, invoices. Read-only job view. NO job creation/editing, NO customers/forklifts/HR.
+- **Mobile nav split** — Service admin sees Home/Jobs/Fleet; Store admin sees Home/Jobs/Inventory.
+- **FAB split** — Service admin gets New Job + Approvals; Store admin gets Approvals + Inventory.
+- **Job Detail restricted** — Store admin cannot start, complete, delete, duplicate, or reassign jobs.
+
+**Service Tracking**
+- **Reach Truck treated as Electric** — `isElectricType()` helper recognizes Reach Truck as electric for calendar-based 3-month service tracking. `getServiceIntervalType()` maps Reach Truck → Electric intervals.
+
+### Fixes
+- **Duplicate Job button** — Was navigating to `/jobs/create` (wrong route), now correctly goes to `/jobs/new`.
+- **Job Detail address** — Shows only site address selected during job creation, no longer falls back to customer office address.
+
+---
+
 ## [2026-03-05] — March 2026 UX & Workflow Improvements
 
 ### Features
