@@ -239,7 +239,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
                 if (job.forklift_id) params.set('forklift_id', job.forklift_id);
                 if (job.contact_id) params.set('contact_id', job.contact_id);
                 if (job.site_id) params.set('site_id', job.site_id);
-                navigate(`/create-job?${params.toString()}`);
+                navigate(`/jobs/create?${params.toString()}`);
               }}
               className="btn-premium btn-premium-ghost text-[var(--text-muted)]"
               title="Duplicate Job"

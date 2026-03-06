@@ -293,3 +293,4 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-06 02:54] Compacted Customer card on Job Detail — single dense card: pages/JobDetail/components/CustomerAssignmentCard.tsx
 [Sonnet] [2026-03-06 02:56] Customer card matches Equipment card grid layout: pages/JobDetail/components/CustomerAssignmentCard.tsx
 [Sonnet] [2026-03-06 03:00] Added Duplicate Job button to JobHeader + prefill support: pages/JobDetail/components/JobHeader.tsx pages/CreateJob/hooks/useCreateJobForm.ts
+[Sonnet] [2026-03-06 03:08] Fix duplicate job route /create-job → /jobs/create: pages/JobDetail/components/JobHeader.tsx
