@@ -164,7 +164,7 @@ export const JobCard: React.FC<JobCardProps> = ({
       )}
 
       {/* Show acceptance status for already accepted jobs */}
-      {isTechnician && job.assigned_technician_id === currentUser.user_id && job.technician_accepted_at && (
+      {isTechnician && job.status === JobStatus.ASSIGNED && job.assigned_technician_id === currentUser.user_id && job.technician_accepted_at && (
         <div className="mt-3 pt-2 border-t border-green-200">
           <span className="text-xs text-green-600 flex items-center gap-1">
             <CheckCircle className="w-3 h-3" />

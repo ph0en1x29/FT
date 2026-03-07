@@ -4,6 +4,21 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-03-06] — Technician Mobile Workflow Pass
+
+### UI Improvements
+
+- **Technician mobile workflow card** — Added a clear field-work card near the top of mobile job detail so technicians immediately see the next step: accept, start, capture evidence, sign, or complete.
+- **Completion blockers surfaced earlier** — In-progress jobs now show missing requirements like after-photo, signatures, and hourmeter much earlier instead of burying them near the end of the page.
+- **Faster access to signatures** — Technician mobile job detail now brings the signatures card much higher in the flow for in-progress and awaiting-finalization jobs.
+- **Jump buttons for field work** — Added mobile jump actions for checklist, photos, and signatures so technicians can move through the job without excessive scrolling.
+
+### Fixes
+
+- **Technician mobile FAB overlap** — Removed technician-specific floating quick actions so the bottom navigation and job cards are no longer blocked by the FAB.
+- **Mobile complete action guard** — The mobile in-progress quick complete bar now respects required completion conditions instead of acting like completion is always available.
+- **Job card acceptance copy** — Fixed technician job cards so `Accepted - Ready to start` no longer appears on jobs that are already in progress or awaiting finalization.
+
 ## [2026-03-06] — Admin UI Clarity Pass
 
 ### UI Improvements

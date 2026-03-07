@@ -1,6 +1,6 @@
 # FieldPro Project Structure
 
-> **Last Updated:** 2026-03-05  
+> **Last Updated:** 2026-03-07  
 > **Author:** Phoenix (Clawdbot)
 
 This document describes the codebase architecture and folder patterns used in FieldPro.
@@ -77,7 +77,7 @@ components/
 | Component | Purpose |
 |-----------|---------|
 | `FilterSheet.tsx` | Filter panel that renders as a bottom sheet on mobile and inline on desktop. |
-| `FloatingActionButton.tsx` | Role-aware FAB exposing quick actions on mobile. |
+| `FloatingActionButton.tsx` | Role-aware FAB exposing quick actions on mobile for non-technician roles; technicians use the bottom nav and in-page workflow actions instead. |
 | `SwipeableRow.tsx` | Swipe-to-action row interactions (e.g., approve/reject). |
 
 ### Shared Hooks (`hooks/`)
@@ -115,7 +115,7 @@ components/
 | `InventoryPage/` | Folder module | Inventory management views. |
 | `Invoices/` | Folder module | Invoice management pages. |
 | `JobBoard/` | Folder module | Job board feature module. |
-| `JobDetail/` | Folder module | Main job detail/workflow module. |
+| `JobDetail/` | Folder module | Main job detail/workflow module, including the technician mobile workflow card and signature-first completion flow. |
 | `JobsTabs.tsx` | Wrapper file | Wrapper/entry for jobs tab views. |
 | `LoginPage.tsx` | Route file | Authentication page. |
 | `MyLeaveRequests/` | Folder module | Leave request self-service pages. |

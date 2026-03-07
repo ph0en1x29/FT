@@ -1,4 +1,4 @@
-import { ClipboardCheck,FileText,Package as PackageIcon,Plus,Wrench,X,type LucideIcon } from 'lucide-react';
+import { ClipboardCheck,FileText,Package as PackageIcon,Plus,X,type LucideIcon } from 'lucide-react';
 import React,{ useEffect,useMemo,useState } from 'react';
 import { Link,useLocation } from 'react-router-dom';
 
@@ -7,7 +7,6 @@ interface FloatingActionButtonProps {
     role: string;
     user_id: string;
   };
-  currentPath: string;
 }
 
 interface FabAction {
@@ -15,8 +14,6 @@ interface FabAction {
   label: string;
   to?: string;
 }
-
-const ADMIN_ROLES = new Set(['admin','admin_service','admin_store']);
 
 const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -31,10 +28,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ currentUser
 
   const actions = useMemo<FabAction[]>(() => {
     if (role === 'technician') {
-      return [
-        { icon: Wrench, label: 'Van Stock', to: '/my-van-stock' },
-        { icon: ClipboardCheck, label: 'My Jobs', to: '/jobs' },
-      ];
+      return [];
     }
 
     if (role === 'supervisor') {

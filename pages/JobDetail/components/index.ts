@@ -5,6 +5,7 @@ export { JobHeader } from './JobHeader';
 export { JobPhotosSection } from './JobPhotosSection';
 export { JobTimeline } from './JobTimeline';
 export { JobTimerCard } from './JobTimerCard';
+export { MobileTechnicianWorkflowCard } from './MobileTechnicianWorkflowCard';
 export { SignaturesCard } from './SignaturesCard';
 
 // New extracted components

@@ -241,6 +241,20 @@ The dashboard also shows your **Active Jobs** list with quick actions to view or
 
 **Quick Actions** at the bottom let you navigate to All Jobs, Van Stock, Fleet, or Customers.
 
+### Mobile Job Flow
+
+On mobile, technician job detail now gives you a clearer work sequence:
+
+- **Assigned jobs** show a top workflow card with **Accept** and **Reject**
+- **Accepted jobs** show the next step to **Start Job**
+- **In Progress jobs** surface missing completion requirements earlier, including:
+  - After photo
+  - Hourmeter
+  - Technician signature
+  - Customer signature
+- **Jump buttons** help you move directly to checklist, photos, and signatures without scrolling through the full page
+- **Signatures** appear earlier in the mobile flow for active jobs so you can finish faster on-site
+
 ### 📱 Push Notifications (NEW - 2026-01-29)
 
 Enable push notifications to get instant alerts even when the app isn't open!
@@ -977,7 +991,7 @@ On mobile, a blue floating action button appears in the bottom-right corner.
 
 - Tap the main button to expand quick actions
 - Tap an action to navigate directly
-- **Technician actions:** Van Stock, My Jobs
+- **Technician:** No FAB. Technicians use the bottom nav and in-page workflow actions to avoid tap overlap during field work.
 - **Supervisor actions:** Approvals, Assign Job
 - **Admin actions:** New Job, Approvals, Inventory
 - **Accountant actions:** Billing
