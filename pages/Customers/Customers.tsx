@@ -45,9 +45,6 @@ const Customers: React.FC = () => {
     c.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const customersWithPhone = customers.filter(customer => !!customer.phone).length;
-  const customersWithEmail = customers.filter(customer => !!customer.email).length;
-  const customersWithNotes = customers.filter(customer => !!customer.notes).length;
 
   const handleCreateCustomer = async () => {
     if (!newCustomer.name.trim() || !newCustomer.address.trim()) {
@@ -109,59 +106,16 @@ const Customers: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="card-theme rounded-2xl p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-muted">Customer Base</p>
-          <p className="mt-2 text-3xl font-bold text-theme">{customers.length}</p>
-          <p className="mt-2 text-sm text-theme-muted">All active customer profiles in FieldPro.</p>
-        </div>
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">Phone Ready</p>
-          <p className="mt-2 text-3xl font-bold text-theme">{customersWithPhone}</p>
-          <p className="mt-2 text-sm text-theme-muted">Profiles with a callable phone number on file.</p>
-        </div>
-        <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-700">Email Ready</p>
-          <p className="mt-2 text-3xl font-bold text-theme">{customersWithEmail}</p>
-          <p className="mt-2 text-sm text-theme-muted">Useful for acknowledgements, invoices, and updates.</p>
-        </div>
-        <div className="rounded-2xl border border-violet-200 bg-violet-50/70 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-700">Profiles With Notes</p>
-          <p className="mt-2 text-3xl font-bold text-theme">{customersWithNotes}</p>
-          <p className="mt-2 text-sm text-theme-muted">Accounts carrying operational context or reminders.</p>
-        </div>
-      </div>
-
       {/* Search Bar */}
-      <div className="card-theme rounded-2xl p-4 space-y-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted" />
-            <input
-              type="text"
-              placeholder="Search by name, address, or email..."
-              className="w-full pl-10 pr-4 py-3 bg-theme-surface border border-theme rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-theme placeholder-slate-400 theme-transition"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="rounded-xl border border-red-200 px-3 py-2 text-xs font-medium text-red-500 transition hover:bg-red-50"
-            >
-              Clear Search
-            </button>
-          )}
-        </div>
-        <div className="flex flex-col gap-1 text-xs md:flex-row md:items-center md:justify-between">
-          <p className="text-theme-muted">
-            Showing <span className="font-semibold text-theme">{filteredCustomers.length}</span> of <span className="font-semibold text-theme">{customers.length}</span> customers
-          </p>
-          <p className="text-theme-muted">
-            Search is best for customer name, address fragments, and email lookups.
-          </p>
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted" />
+        <input
+          type="text"
+          placeholder="Search by name, address, or email..."
+          className="w-full pl-10 pr-4 py-3 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-theme placeholder-slate-400 theme-transition"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
 
       {/* Customers Grid */}

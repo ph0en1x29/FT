@@ -29,6 +29,11 @@ All notable changes to the FieldPro Field Service Management System.
 - **Search area improved** — Added clearer search result feedback and a dedicated clear-search action.
 - **Customer cards upgraded** — Added contact-readiness badges, contact person emphasis, note treatment, and a clearer profile CTA.
 
+**Role-Specific Dashboards**
+- **Service Admin dashboard** — Focused on jobs pipeline, technician availability, fleet snapshot (service due, rented units), and team workload. No inventory clutter.
+- **Store Admin dashboard** — Focused on parts requests queue, inventory alerts (out-of-stock, low stock), and recent receiving activity. No job management clutter.
+- **Super Admin** — Retains the full "Command Center" dashboard with everything.
+
 ### Fixes
 - **Swipe-sign TypeScript regressions** — Restored missing `swipeSignJob` / `bulkSwipeSignJobs` barrel exports and fixed incorrect `showToast(...)` usage in the bulk sign-off modal so `npm run typecheck` passes again.
 - **Customer delete FK cascade** — Deleting a customer now properly cleans up all job dependencies (`hourmeter_history`, `job_parts`, `job_media`, etc.) before removing the customer. Also checks for active rentals.

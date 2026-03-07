@@ -7,8 +7,8 @@
 import type { Job } from '../types';
 import { JobStatus as JobStatusEnum,UserRole } from '../types';
 import { updateForkliftHourmeter } from './forkliftService';
-import { sellContainersExternal, useInternalBulk as consumeInternalBulk } from './liquidInventoryService';
 import { supabase } from './supabaseClient';
+import { useInternalBulk as consumeInternalBulk, sellContainersExternal } from './liquidInventoryService';
 
 // Forward declaration to avoid circular dependency
 const getJobById = async (jobId: string): Promise<Job | null> => {

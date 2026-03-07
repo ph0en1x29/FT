@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Job,User,UserRole } from '../../../types';
 import AccountantDashboard from './components/AccountantDashboard';
 import AdminDashboard from './components/AdminDashboard';
+import ServiceAdminDashboard from './components/ServiceAdminDashboard';
+import StoreAdminDashboard from './components/StoreAdminDashboard';
 import SupervisorDashboard from './components/SupervisorDashboard';
 import TechnicianDashboard from './components/TechnicianDashboard';
 
@@ -64,9 +66,28 @@ const DashboardPreviewV4: React.FC<DashboardPreviewV4Props> = ({
         />
       );
 
-    case UserRole.ADMIN:
     case UserRole.ADMIN_SERVICE:
+      return (
+        <ServiceAdminDashboard
+          currentUser={currentUser}
+          jobs={jobs}
+          users={users}
+          onRefresh={onRefresh}
+          navigate={navigate}
+        />
+      );
+
     case UserRole.ADMIN_STORE:
+      return (
+        <StoreAdminDashboard
+          currentUser={currentUser}
+          jobs={jobs}
+          onRefresh={onRefresh}
+          navigate={navigate}
+        />
+      );
+
+    case UserRole.ADMIN:
     default:
       return (
         <AdminDashboard
