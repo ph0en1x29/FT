@@ -231,7 +231,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
             </button>
           )}
           
-          {(isAdminService || isSupervisor) && (
+          {(isAdmin || isAdminService || isSupervisor) && (
             <button
               onClick={() => {
                 const params = new URLSearchParams();
@@ -247,7 +247,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
               <Copy className="w-4 h-4" />
             </button>
           )}
-          {(isAdminService || isSupervisor) && !isCompleted && (
+          {(isAdmin || isAdminService || isSupervisor) && !isCompleted && (
             <button onClick={onDeleteJob} className="btn-premium btn-premium-ghost text-[var(--error)] hover:bg-[var(--error-bg)] hover:text-[var(--error)]">
               <Trash2 className="w-4 h-4" />
             </button>

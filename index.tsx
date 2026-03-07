@@ -11,6 +11,14 @@ if (!import.meta.env.DEV) {
   });
 }
 
+// HashRouter deep-link normalization: redirect /jobs → /#/jobs
+// Bookmarked or shared URLs without the hash prefix won't match HashRouter routes
+const { pathname } = window.location;
+if (pathname !== '/' && !pathname.startsWith('/#')) {
+  const hash = `#${pathname}${window.location.search}`;
+  window.history.replaceState(null, '', `/${hash}`);
+}
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
