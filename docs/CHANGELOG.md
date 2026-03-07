@@ -4,6 +4,24 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-03-07] — Dashboard Lazy Loading & Inventory Load Pass
+
+### Performance Improvements
+
+- **Per-role dashboard lazy loading** — `DashboardPreviewV4` now lazy-loads the dashboard component for the active role instead of importing every dashboard into one shared route bundle.
+- **Inventory secondary tabs split on demand** — Van Stock, Replenishments, Ledger, Pending Adjustments, and Stocktake now load only when their tab is opened.
+- **Inventory modal code split** — Add Part, Import Parts, Batch Receive Stock, and Adjust Stock modals no longer add their code to the first inventory render.
+- **Paginated parts catalog query** — The default Inventory `Parts Catalog` now fetches one page at a time with React Query caching instead of loading the full parts table before rendering.
+- **Server-side inventory filtering** — Search, category, and out-of-stock filtering now happen in the query layer before rows are returned to the page.
+- **Inventory alert counts memoized** — Low-stock and liquid mismatch counts are now computed from cached stats instead of re-filtering the visible rows multiple times per render.
+
+### Investigation Notes
+
+- **Inventory page root cause** — The slow first load came from two main sources:
+  - the route eagerly imported several large inactive tabs/modals
+  - the parts view previously fetched the full parts dataset before rendering the main catalog
+- **Remaining limitation** — The `low stock` path and the global stats/category metadata still require lightweight full-table scans behind the scenes, so the next level of improvement would be a database-side low-stock/search view or RPC-backed aggregated catalog endpoint.
+
 ## [2026-03-06] — Technician Mobile Workflow Pass
 
 ### UI Improvements

@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Job,User,UserRole } from '../../../types';
-import AccountantDashboard from './components/AccountantDashboard';
-import AdminDashboard from './components/AdminDashboard';
-import ServiceAdminDashboard from './components/ServiceAdminDashboard';
-import StoreAdminDashboard from './components/StoreAdminDashboard';
-import SupervisorDashboard from './components/SupervisorDashboard';
-import TechnicianDashboard from './components/TechnicianDashboard';
+
+const AccountantDashboard = lazy(() => import('./components/AccountantDashboard'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const ServiceAdminDashboard = lazy(() => import('./components/ServiceAdminDashboard'));
+const StoreAdminDashboard = lazy(() => import('./components/StoreAdminDashboard'));
+const SupervisorDashboard = lazy(() => import('./components/SupervisorDashboard'));
+const TechnicianDashboard = lazy(() => import('./components/TechnicianDashboard'));
 
 /**
  * Dashboard Preview V4 - "Calm Focus"
@@ -34,10 +35,37 @@ const DashboardPreviewV4: React.FC<DashboardPreviewV4Props> = ({
   onRefresh
 }) => {
   const navigate = useNavigate();
+  const renderDashboard = (dashboard: React.ReactNode) => (
+    <Suspense
+      fallback={(
+        <div className="space-y-5">
+          <div
+            className="h-32 rounded-[28px] animate-pulse"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+          />
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-28 rounded-[24px] animate-pulse"
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+              />
+            ))}
+          </div>
+          <div
+            className="h-[320px] rounded-[28px] animate-pulse"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+          />
+        </div>
+      )}
+    >
+      {dashboard}
+    </Suspense>
+  );
 
   switch (displayRole) {
     case UserRole.TECHNICIAN:
-      return (
+      return renderDashboard(
         <TechnicianDashboard
           currentUser={currentUser}
           jobs={jobs}
@@ -47,7 +75,7 @@ const DashboardPreviewV4: React.FC<DashboardPreviewV4Props> = ({
       );
 
     case UserRole.ACCOUNTANT:
-      return (
+      return renderDashboard(
         <AccountantDashboard
           jobs={jobs}
           onRefresh={onRefresh}
@@ -56,7 +84,7 @@ const DashboardPreviewV4: React.FC<DashboardPreviewV4Props> = ({
       );
 
     case UserRole.SUPERVISOR:
-      return (
+      return renderDashboard(
         <SupervisorDashboard
           currentUser={currentUser}
           jobs={jobs}
@@ -67,7 +95,7 @@ const DashboardPreviewV4: React.FC<DashboardPreviewV4Props> = ({
       );
 
     case UserRole.ADMIN_SERVICE:
-      return (
+      return renderDashboard(
         <ServiceAdminDashboard
           currentUser={currentUser}
           jobs={jobs}
@@ -78,7 +106,7 @@ const DashboardPreviewV4: React.FC<DashboardPreviewV4Props> = ({
       );
 
     case UserRole.ADMIN_STORE:
-      return (
+      return renderDashboard(
         <StoreAdminDashboard
           currentUser={currentUser}
           jobs={jobs}
@@ -89,7 +117,7 @@ const DashboardPreviewV4: React.FC<DashboardPreviewV4Props> = ({
 
     case UserRole.ADMIN:
     default:
-      return (
+      return renderDashboard(
         <AdminDashboard
           currentUser={currentUser}
           jobs={jobs}

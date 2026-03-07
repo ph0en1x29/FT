@@ -1,25 +1,25 @@
 import { AlertTriangle,BookOpen,ClipboardList,Package,RotateCcw,Settings2,Truck } from 'lucide-react';
-import React,{ useEffect,useState } from 'react';
-import { checkStockMismatch } from '../../services/liquidInventoryService';
+import React,{ Suspense,lazy,useEffect,useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { ROLE_PERMISSIONS,User,UserRole } from '../../types';
-import VanStockPage from '../VanStockPage';
-import AddPartModal from './components/AddPartModal';
-import AdjustStockModal from './components/AdjustStockModal';
 import InventoryFilters from './components/InventoryFilters';
 import InventoryStats from './components/InventoryStats';
 import PartsHeader from './components/PartsHeader';
 import PartsTable from './components/PartsTable';
-import PendingAdjustmentsTab from './components/PendingAdjustmentsTab';
 import TabNavigation,{ Tab,TabType } from './components/TabNavigation';
-import ReplenishmentsTab from './components/ReplenishmentsTab';
-import InventoryLedgerTab from './components/InventoryLedgerTab';
-import ImportPartsModal from './components/ImportPartsModal';
-import BatchReceiveStockModal from './components/BatchReceiveStockModal';
-import StocktakeTab from './components/StocktakeTab';
 import { useInventoryData } from './hooks/useInventoryData';
 import { supabase } from '../../services/supabaseClient';
+
+const VanStockPage = lazy(() => import('../VanStockPage'));
+const AddPartModal = lazy(() => import('./components/AddPartModal'));
+const AdjustStockModal = lazy(() => import('./components/AdjustStockModal'));
+const PendingAdjustmentsTab = lazy(() => import('./components/PendingAdjustmentsTab'));
+const ReplenishmentsTab = lazy(() => import('./components/ReplenishmentsTab'));
+const InventoryLedgerTab = lazy(() => import('./components/InventoryLedgerTab'));
+const ImportPartsModal = lazy(() => import('./components/ImportPartsModal'));
+const BatchReceiveStockModal = lazy(() => import('./components/BatchReceiveStockModal'));
+const StocktakeTab = lazy(() => import('./components/StocktakeTab'));
 
 interface ExpiryWarning {
   batch_id: string;
@@ -61,9 +61,12 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   const {
     parts,
     loading,
+    isFetching,
     searchQuery,
     filterCategory,
     filterStock,
+    currentPage,
+    pageSize,
     showModal,
     editingPart,
     formData,
@@ -71,9 +74,16 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
     filteredParts,
     groupedParts,
     stats,
+    statsLoading,
+    totalCount,
+    totalPages,
+    canGoPrev,
+    canGoNext,
+    importPartCodes,
     setSearchQuery,
     setFilterCategory,
     setFilterStock,
+    setCurrentPage,
     setFormData,
     loadParts,
     handleAddNew,
@@ -82,7 +92,13 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
     handleDelete,
     handleExportCSV,
     closeModal,
-  } = useInventoryData(currentUser);
+  } = useInventoryData(currentUser, {
+    enabled: activeTab === 'parts',
+    shouldLoadImportSupport: activeTab === 'parts' && showImportModal,
+  });
+
+  const lowStockCount = stats.lowStock;
+  const stockMismatchCount = stats.liquidMismatch;
 
   // Sync tab with URL
   useEffect(() => {
@@ -201,19 +217,27 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
         <>
           <PartsHeader
             filteredCount={filteredParts.length}
-            totalCount={parts.length}
+            totalCount={totalCount}
             isAdmin={canEditInventory}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalPages={totalPages}
+            isRefreshing={isFetching}
+            onPreviousPage={() => setCurrentPage(currentPage - 1)}
+            onNextPage={() => setCurrentPage(currentPage + 1)}
+            canGoPrev={canGoPrev}
+            canGoNext={canGoNext}
             onExport={handleExportCSV}
             onAddNew={handleAddNew}
             onImport={() => setShowImportModal(true)}
           />
 
           {/* Low Stock Alert */}
-          {parts.filter(p => p.stock_quantity <= (p.min_stock_level || 0) && (p.min_stock_level || 0) > 0).length > 0 && (
+          {lowStockCount > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
               <div className="text-sm text-red-700">
-                <span className="font-semibold">Low stock alert</span> — {parts.filter(p => p.stock_quantity <= (p.min_stock_level || 0) && (p.min_stock_level || 0) > 0).length} item(s) at or below reorder level.
+                <span className="font-semibold">Low stock alert</span> — {lowStockCount} item(s) at or below reorder level.
                 {' '}
                 <button onClick={() => setFilterStock('low')} className="underline font-medium">View low stock items</button>
               </div>
@@ -221,16 +245,16 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
           )}
 
           {/* Stock Mismatch Alert */}
-          {parts.filter(p => p.is_liquid && checkStockMismatch(p).hasMismatch).length > 0 && (
+          {stockMismatchCount > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
               <div className="text-sm text-amber-700">
-                <span className="font-semibold">Stock mismatch detected</span> — {parts.filter(p => p.is_liquid && checkStockMismatch(p).hasMismatch).length} liquid item(s) have discrepancies between container/bulk quantities and legacy stock. Review and adjust.
+                <span className="font-semibold">Stock mismatch detected</span> — {stockMismatchCount} liquid item(s) have discrepancies between container/bulk quantities and legacy stock. Review and adjust.
               </div>
             </div>
           )}
 
-          <InventoryStats stats={stats} canViewPricing={canViewPricing} />
+          <InventoryStats stats={stats} canViewPricing={canViewPricing} loading={statsLoading} />
 
           <InventoryFilters
             searchQuery={searchQuery}
@@ -251,62 +275,76 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
             onDelete={handleDelete}
           />
 
-          <AddPartModal
-            show={showModal}
-            editingPart={editingPart}
-            formData={formData}
-            categories={categories}
-            onClose={closeModal}
-            onSubmit={handleSubmit}
-            onFormChange={setFormData}
-          />
+          <Suspense fallback={null}>
+            <AddPartModal
+              show={showModal}
+              editingPart={editingPart}
+              formData={formData}
+              categories={categories}
+              onClose={closeModal}
+              onSubmit={handleSubmit}
+              onFormChange={setFormData}
+            />
 
-          <ImportPartsModal
-            show={showImportModal}
-            onClose={() => setShowImportModal(false)}
-            onImportComplete={() => { setShowImportModal(false); loadParts(); }}
-            currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
-            existingPartCodes={parts.map(p => p.part_code)}
-          />
+            <ImportPartsModal
+              show={showImportModal}
+              onClose={() => setShowImportModal(false)}
+              onImportComplete={() => { setShowImportModal(false); loadParts(); }}
+              currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
+              existingPartCodes={importPartCodes}
+            />
+          </Suspense>
         </>
       )}
 
       {activeTab === 'vanstock' && canViewVanStock && (
-        <VanStockPage currentUser={currentUser} hideHeader />
+        <Suspense fallback={<div className="card-theme rounded-xl p-6 text-sm text-theme-muted">Loading van stock…</div>}>
+          <VanStockPage currentUser={currentUser} hideHeader />
+        </Suspense>
       )}
 
       {activeTab === 'replenishments' && canViewVanStock && (
-        <ReplenishmentsTab currentUser={currentUser} />
+        <Suspense fallback={<div className="card-theme rounded-xl p-6 text-sm text-theme-muted">Loading replenishments…</div>}>
+          <ReplenishmentsTab currentUser={currentUser} />
+        </Suspense>
       )}
 
       {activeTab === 'ledger' && canViewVanStock && (
-        <InventoryLedgerTab />
+        <Suspense fallback={<div className="card-theme rounded-xl p-6 text-sm text-theme-muted">Loading ledger…</div>}>
+          <InventoryLedgerTab />
+        </Suspense>
       )}
 
       {activeTab === ('pending-adjustments' as TabType) && isAdmin && (
-        <PendingAdjustmentsTab currentUser={currentUser} />
+        <Suspense fallback={<div className="card-theme rounded-xl p-6 text-sm text-theme-muted">Loading adjustments…</div>}>
+          <PendingAdjustmentsTab currentUser={currentUser} />
+        </Suspense>
       )}
 
       {activeTab === ('stocktake' as TabType) && isAdmin && (
-        <StocktakeTab currentUser={currentUser} />
+        <Suspense fallback={<div className="card-theme rounded-xl p-6 text-sm text-theme-muted">Loading stocktake…</div>}>
+          <StocktakeTab currentUser={currentUser} />
+        </Suspense>
       )}
 
       {/* Batch Receive Stock Modal */}
-      <BatchReceiveStockModal
-        show={showBatchReceive}
-        currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
-        onClose={() => setShowBatchReceive(false)}
-        onSuccess={() => { setShowBatchReceive(false); loadParts(); }}
-      />
+      <Suspense fallback={null}>
+        <BatchReceiveStockModal
+          show={showBatchReceive}
+          currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
+          onClose={() => setShowBatchReceive(false)}
+          onSuccess={() => { setShowBatchReceive(false); loadParts(); }}
+        />
 
-      {/* Adjust Stock Modal — accessible from all tabs */}
-      <AdjustStockModal
-        show={showAdjustModal}
-        parts={parts}
-        currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
-        onClose={() => setShowAdjustModal(false)}
-        onSuccess={() => { setShowAdjustModal(false); loadParts(); }}
-      />
+        {/* Adjust Stock Modal — accessible from all tabs */}
+        <AdjustStockModal
+          show={showAdjustModal}
+          parts={parts}
+          currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
+          onClose={() => setShowAdjustModal(false)}
+          onSuccess={() => { setShowAdjustModal(false); loadParts(); }}
+        />
+      </Suspense>
     </div>
   );
 };

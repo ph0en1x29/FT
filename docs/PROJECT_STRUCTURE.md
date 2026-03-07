@@ -72,6 +72,11 @@ components/
 └── ... (additional domain folders/files)
 ```
 
+### Dashboard Loading Pattern
+
+- `pages/PrototypeDashboards.tsx` is route-lazy-loaded from the app shell.
+- `components/dashboards/DashboardPreviewV4/DashboardPreviewV4.tsx` now lazy-loads each role dashboard (`admin`, `admin_service`, `admin_store`, `supervisor`, `technician`, `accountant`) so users only download the dashboard code for their active role.
+
 ### Mobile Components (`components/mobile/`)
 
 | Component | Purpose |
@@ -135,6 +140,8 @@ components/
 | `StoreQueue/` | Folder module | Store queue approvals and processing. |
 | `TechnicianKPIPageV2/` | Folder module | Technician KPI page module. |
 | `VanStockPage/` | Folder module | Modular van stock workflows. |
+
+`InventoryPage/InventoryPageMain.tsx` uses on-demand loading for heavyweight secondary tabs and inventory modals so the initial parts catalog view does not pay the JS cost for unopened tools. The parts tab itself now uses cached paginated queries with server-side search/category/out-of-stock filtering, instead of loading the full parts table up front on every visit.
 
 ---
 

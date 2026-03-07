@@ -599,10 +599,14 @@ For jobs in "Assigned" or "In Progress":
 ### Managing Inventory
 
 1. Go to **Inventory** section
-2. View all parts and stock levels
-3. Add new parts
-4. Update stock quantities
-5. Set minimum stock levels
+2. Use the **Parts Catalog** tab to browse inventory in pages instead of one huge list
+3. Search by name, code, category, or supplier
+4. Filter by category or stock state
+5. Add new parts
+6. Update stock quantities
+7. Set minimum stock levels
+
+The Inventory page now loads the active parts page first, then loads heavier tools like Ledger, Stocktake, and Batch Receive only when you open them. Searches and stock/category filters are also applied before the current page of parts is fetched, so the catalog feels faster on large inventories.
 
 ### Managing Forklifts
 

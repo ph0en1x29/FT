@@ -1,9 +1,18 @@
-import React,{ useCallback,useMemo,useState } from 'react';
-import { SupabaseDb as MockDb } from '../../../services/supabaseService';
+import React,{ useCallback,useEffect,useMemo,useState } from 'react';
+import { useQuery,useQueryClient } from '@tanstack/react-query';
 import { showToast } from '../../../services/toastService';
 import { Part,User } from '../../../types';
-import { isLikelyLiquid } from '../../../types/inventory.types';
-import { getTotalBaseUnits } from '../../../services/liquidInventoryService';
+import {
+  getInventoryCatalogStats,
+  getPartCategories,
+  getPartCodes,
+  getPartsForExport,
+  getPartsPage,
+  createPart,
+  deletePart,
+  updatePart,
+} from '../../../services/partsService';
+import { supabase } from '../../../services/supabaseClient';
 
 export interface InventoryFormData {
   part_name: string;
@@ -48,103 +57,126 @@ export interface InventoryStats {
   total: number;
   lowStock: number;
   outOfStock: number;
+  liquidMismatch: number;
   totalValue: number;
 }
 
-export function useInventoryData(currentUser: User) {
-  const [parts, setParts] = useState<Part[]>([]);
-  const [loading, setLoading] = useState(true);
+interface UseInventoryDataOptions {
+  enabled?: boolean;
+  shouldLoadImportSupport?: boolean;
+}
+
+const INVENTORY_PAGE_SIZE = 50;
+const EMPTY_PARTS: Part[] = [];
+
+export function useInventoryData(currentUser: User, options: UseInventoryDataOptions = {}) {
+  const { enabled = true, shouldLoadImportSupport = false } = options;
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStock, setFilterStock] = useState<'all' | 'low' | 'out'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [editingPart, setEditingPart] = useState<Part | null>(null);
   const [formData, setFormData] = useState<InventoryFormData>(initialFormData);
 
-  const loadParts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await MockDb.getParts();
-      setParts(data);
-    } catch (_error) {
-      showToast.error('Failed to load inventory');
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, filterCategory, filterStock]);
+
+  const partsQuery = useQuery({
+    queryKey: ['inventory', 'parts-catalog', debouncedSearchQuery, filterCategory, filterStock, currentPage, INVENTORY_PAGE_SIZE],
+    queryFn: () => getPartsPage({
+      searchQuery: debouncedSearchQuery,
+      category: filterCategory,
+      stock: filterStock,
+      page: currentPage,
+      pageSize: INVENTORY_PAGE_SIZE,
+    }),
+    enabled,
+    staleTime: 60 * 1000,
+    placeholderData: previousData => previousData,
+  });
+
+  const categoriesQuery = useQuery({
+    queryKey: ['inventory', 'part-categories'],
+    queryFn: getPartCategories,
+    enabled,
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const statsQuery = useQuery({
+    queryKey: ['inventory', 'catalog-stats'],
+    queryFn: getInventoryCatalogStats,
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const partCodesQuery = useQuery({
+    queryKey: ['inventory', 'part-codes'],
+    queryFn: getPartCodes,
+    enabled: shouldLoadImportSupport,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const parts = partsQuery.data?.parts ?? EMPTY_PARTS;
+  const totalCount = partsQuery.data?.total || 0;
+  const loading = partsQuery.isLoading;
+
+  useEffect(() => {
+    if (currentPage > 1 && partsQuery.data && partsQuery.data.parts.length === 0 && partsQuery.data.total > 0) {
+      setCurrentPage(Math.max(1, Math.ceil(partsQuery.data.total / INVENTORY_PAGE_SIZE)));
     }
-    setLoading(false);
-  }, []);
+  }, [currentPage, partsQuery.data]);
 
   // Get unique categories
-  const categories = useMemo(() => {
-    return [...new Set(parts.map(p => p.category))].filter(Boolean).sort();
-  }, [parts]);
+  const categories = categoriesQuery.data || [];
 
-  // Filter parts
-  const filteredParts = useMemo(() => {
-    return parts.filter(p => {
-      const matchesSearch =
-        p.part_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.part_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.supplier || '').toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesCategory = filterCategory === 'all' || p.category === filterCategory;
-
-      let matchesStock = true;
-      if (filterStock === 'low') {
-        if (p.is_liquid) {
-          const total = (p.container_quantity || 0) + (p.bulk_quantity || 0);
-          matchesStock = total > 0 && total <= (p.min_stock_level || 10);
-        } else {
-          matchesStock = p.stock_quantity > 0 && p.stock_quantity <= (p.min_stock_level || 10);
-        }
-      } else if (filterStock === 'out') {
-        if (p.is_liquid) {
-          matchesStock = ((p.container_quantity || 0) + (p.bulk_quantity || 0)) === 0;
-        } else {
-          matchesStock = p.stock_quantity === 0;
-        }
-      }
-
-      return matchesSearch && matchesCategory && matchesStock;
-    });
-  }, [parts, searchQuery, filterCategory, filterStock]);
+  const filteredParts = parts;
 
   // Group parts by category
   const groupedParts = useMemo(() => {
-    return filteredParts.reduce((acc, part) => {
+    return parts.reduce((acc, part) => {
       if (!acc[part.category]) {
         acc[part.category] = [];
       }
       acc[part.category].push(part);
       return acc;
     }, {} as Record<string, Part[]>);
-  }, [filteredParts]);
+  }, [parts]);
 
   // Stats
-  const stats: InventoryStats = useMemo(() => {
-    const total = parts.length;
-    const lowStock = parts.filter(p => {
-      if (p.is_liquid) {
-        const total = (p.container_quantity || 0) + (p.bulk_quantity || 0);
-        return total > 0 && total <= (p.min_stock_level || 10);
-      }
-      return p.stock_quantity > 0 && p.stock_quantity <= (p.min_stock_level || 10);
-    }).length;
-    const outOfStock = parts.filter(p => {
-      if (p.is_liquid) {
-        return ((p.container_quantity || 0) + (p.bulk_quantity || 0)) === 0;
-      }
-      return p.stock_quantity === 0;
-    }).length;
-    const totalValue = parts.reduce((sum, p) => {
-      if (p.is_liquid) {
-        return sum + (p.cost_price * (p.container_quantity || 0));
-      }
-      return sum + (p.cost_price * p.stock_quantity);
-    }, 0);
-    return { total, lowStock, outOfStock, totalValue };
-  }, [parts]);
+  const stats: InventoryStats = statsQuery.data || {
+    total: 0,
+    lowStock: 0,
+    outOfStock: 0,
+    liquidMismatch: 0,
+    totalValue: 0,
+  };
+
+  const loadParts = useCallback(async () => {
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['inventory', 'parts-catalog'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory', 'catalog-stats'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory', 'part-categories'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory', 'part-codes'] }),
+      ]);
+    } catch {
+      showToast.error('Failed to refresh inventory');
+    }
+  }, [queryClient]);
 
   const resetForm = useCallback(() => {
     setFormData(initialFormData);
@@ -214,7 +246,6 @@ export function useInventoryData(currentUser: User) {
         const oldQty = editingPart.stock_quantity || 0;
         const newQty = formData.stock_quantity || 0;
         if (oldQty !== newQty) {
-          const { supabase } = await import('../../../services/supabaseClient');
           await supabase.from('inventory_movements').insert({
             part_id: editingPart.part_id,
             movement_type: 'adjustment',
@@ -229,10 +260,10 @@ export function useInventoryData(currentUser: User) {
             if (mvErr) console.warn('Movement log failed:', mvErr.message);
           });
         }
-        await MockDb.updatePart(editingPart.part_id, partData);
+        await updatePart(editingPart.part_id, partData);
         showToast.success('Part updated successfully');
       } else {
-        await MockDb.createPart(partData);
+        await createPart(partData);
         showToast.success('Part added successfully');
       }
 
@@ -249,7 +280,7 @@ export function useInventoryData(currentUser: User) {
     if (!confirm(`Delete "${part.part_name}"?\n\nThis cannot be undone.`)) return;
 
     try {
-      await MockDb.deletePart(part.part_id);
+      await deletePart(part.part_id);
       await loadParts();
       showToast.success('Part deleted');
     } catch (error) {
@@ -257,38 +288,47 @@ export function useInventoryData(currentUser: User) {
     }
   }, [loadParts]);
 
-  const handleExportCSV = useCallback(() => {
-    const headers = ['Part Code', 'Part Name', 'Category', 'Cost Price', 'Sell Price', 'Stock Qty', 'Min Stock', 'Stock Value (Cost)', 'Stock Value (Sell)', 'Low Stock', 'Warranty (months)', 'Supplier', 'Location', 'Unit', 'Last Updated By', 'Updated At'];
-    const rows = parts.map(p => {
-      const isLow = p.stock_quantity <= (p.min_stock_level || 0) && (p.min_stock_level || 0) > 0;
-      return [
-        p.part_code,
-        p.part_name,
-        p.category,
-        p.cost_price,
-        p.sell_price,
-        p.stock_quantity,
-        p.min_stock_level || 10,
-        (p.stock_quantity * (p.cost_price ?? 0)).toFixed(2),
-        (p.stock_quantity * (p.sell_price ?? 0)).toFixed(2),
-        isLow ? 'YES' : '',
-        p.warranty_months,
-        p.supplier || '',
-        p.location || '',
-        p.unit || 'pcs',
-        p.last_updated_by_name || '',
-        p.updated_at || '',
-      ];
-    });
+  const handleExportCSV = useCallback(async () => {
+    try {
+      const rowsSource = await getPartsForExport({
+        searchQuery: debouncedSearchQuery,
+        category: filterCategory,
+        stock: filterStock,
+      });
+      const headers = ['Part Code', 'Part Name', 'Category', 'Cost Price', 'Sell Price', 'Stock Qty', 'Min Stock', 'Stock Value (Cost)', 'Stock Value (Sell)', 'Low Stock', 'Warranty (months)', 'Supplier', 'Location', 'Unit', 'Last Updated By', 'Updated At'];
+      const rows = rowsSource.map(p => {
+        const isLow = p.stock_quantity <= (p.min_stock_level || 0) && (p.min_stock_level || 0) > 0;
+        return [
+          p.part_code,
+          p.part_name,
+          p.category,
+          p.cost_price,
+          p.sell_price,
+          p.stock_quantity,
+          p.min_stock_level || 10,
+          (p.stock_quantity * (p.cost_price ?? 0)).toFixed(2),
+          (p.stock_quantity * (p.sell_price ?? 0)).toFixed(2),
+          isLow ? 'YES' : '',
+          p.warranty_months,
+          p.supplier || '',
+          p.location || '',
+          p.unit || 'pcs',
+          p.last_updated_by_name || '',
+          p.updated_at || '',
+        ];
+      });
 
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `inventory_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-  }, [parts]);
+      const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `inventory_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+    } catch (error) {
+      showToast.error('Failed to export inventory', (error as Error).message);
+    }
+  }, [debouncedSearchQuery, filterCategory, filterStock]);
 
   const closeModal = useCallback(() => {
     setShowModal(false);
@@ -296,13 +336,20 @@ export function useInventoryData(currentUser: User) {
     resetForm();
   }, [resetForm]);
 
+  const totalPages = Math.max(1, Math.ceil(totalCount / INVENTORY_PAGE_SIZE));
+  const canGoPrev = currentPage > 1;
+  const canGoNext = currentPage < totalPages;
+
   return {
     // State
     parts,
     loading,
+    isFetching: partsQuery.isFetching,
     searchQuery,
     filterCategory,
     filterStock,
+    currentPage,
+    pageSize: INVENTORY_PAGE_SIZE,
     showModal,
     editingPart,
     formData,
@@ -311,10 +358,17 @@ export function useInventoryData(currentUser: User) {
     filteredParts,
     groupedParts,
     stats,
+    statsLoading: statsQuery.isLoading,
+    totalCount,
+    totalPages,
+    canGoPrev,
+    canGoNext,
+    importPartCodes: partCodesQuery.data || [],
     // Setters
     setSearchQuery,
     setFilterCategory,
     setFilterStock,
+    setCurrentPage,
     setFormData,
     // Actions
     loadParts,
