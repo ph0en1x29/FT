@@ -65,6 +65,8 @@ const DashboardPreviewV4: React.FC<DashboardPreviewV4Props> = ({
       );
 
     case UserRole.ADMIN:
+    case UserRole.ADMIN_SERVICE:
+    case UserRole.ADMIN_STORE:
     default:
       return (
         <AdminDashboard
