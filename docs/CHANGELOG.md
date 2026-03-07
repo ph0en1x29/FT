@@ -27,7 +27,13 @@ All notable changes to the FieldPro Field Service Management System.
 - **Permission-based actions** — Inventory buttons use `canEditInventory` instead of hardcoded `isAdmin`, so Admin Store can manage inventory correctly.
 - **URL param sync** — Search, category, and stock filters sync with URL params.
 
+**Performance**
+- **Per-role dashboard code splitting** — Each role's dashboard is now a separate lazy-loaded chunk via `React.lazy()`. Technician loads 7.8KB instead of the full 31KB admin dashboard.
+- **Inventory catalog pagination** — Parts list paginated at 50 per page with server-side filtering. Stats computed from lightweight select.
+- **Centralized parts service** — Typed `PartsCatalogPage`, `InventoryCatalogStats`, shared low/out-of-stock helpers.
+
 ### Fixes
+- **Native confirm/alert replaced** — All fleet pages (forklift delete, service interval delete, end rental) now use themed confirmation modals instead of browser native dialogs. Consistent with CustomerProfile pattern.
 - **DashboardSection extracted** — Was duplicated in ServiceAdmin + StoreAdmin dashboards; now shared from `DashboardWidgets.tsx`.
 - **Store dashboard error handling** — Added `try/catch/finally` with loading skeleton + error fallback with retry button. Previously failed silently.
 - **FAB cleanup** — Removed redundant technician FAB actions (Van Stock, My Jobs) that duplicated bottom nav.

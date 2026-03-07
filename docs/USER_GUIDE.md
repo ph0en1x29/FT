@@ -5,7 +5,14 @@
 
 > 📢 **What's New in March 2026?**
 >
-> **🆕 Latest Update (2026-03-06):**
+> **🆕 Latest Update (2026-03-07):**
+> - **📱 Technician Workflow Card** — On mobile, technicians see a guided workflow card: Accept → Start → Work → Complete. Shows exactly what's left before completing (photos, hourmeter, signatures).
+> - **🖥️ Role-specific dashboards** — Service Admin sees jobs pipeline and fleet. Store Admin sees parts requests and inventory alerts. Each role loads only their own dashboard (faster).
+> - **📦 Inventory pagination** — Parts catalog loads 50 items per page with server-side filtering. Faster for large inventories.
+> - **🎨 Themed confirmation dialogs** — All delete/end-rental actions use styled modals instead of browser popups.
+> - **⚡ Per-role code splitting** — Dashboard code split per role, reducing load size for technicians and other non-admin roles.
+>
+> **2026-03-06:**
 > - **🧭 Clearer admin dashboard** — The dashboard now opens with a more obvious action summary: what is due today, what is waiting for review, where jobs are unassigned, and how much technician capacity is available.
 > - **🔎 Cleaner Jobs controls** — Search, status, date filters, and result counts are grouped more clearly, so it is faster to narrow the work queue.
 > - **🚚 Fleet overview cards** — Fleet now shows instant counts for total units, available units, rented units, and maintenance attention items before the grid.
