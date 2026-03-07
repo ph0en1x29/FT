@@ -651,12 +651,14 @@ If you are the full `Admin` role, you keep the broad all-operations admin dashbo
 - **Dispatch & Capacity** — Technician availability and overload signals
 - **Service Pipeline** — Assigned, in progress, awaiting finalization, and ready-to-confirm work
 - **Fleet Pressure** — Units needing service-side attention
+- **Smart drill-downs** — KPI cards and queue actions jump directly into filtered job views such as unassigned jobs or ready-to-confirm work
 
 #### Admin (Store) Dashboard
 - **Store Action Queue** — Spare part approvals, ready-to-issue items, receipt follow-up, and jobs blocked by parts
 - **Inventory Risk** — Low stock, out-of-stock items, and expiring batches
 - **Replenishment Pipeline** — Van replenishment demand and progress
 - **Orders, Blocks & Quick Actions** — Ordered parts follow-up and fast access to inventory work
+- **Smart drill-downs** — KPI cards and quick actions jump directly into filtered inventory states such as low stock or replenishments
 
 This split is intentional: service admin should feel like a dispatch command center, while store admin should feel like a premium operational inbox for parts and stock control.
 

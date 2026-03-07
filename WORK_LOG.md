@@ -18,3 +18,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-03-06 20:59] [Phoenix] UsersTab role badge crash fix
 [2026-03-06 22:13] [Codex] Role-specific dashboards: ServiceAdminDashboard, StoreAdminDashboard
 [2026-03-06 22:20] [Phoenix] Merge dashboard split + preserve bug fixes, clean WORK_LOG
+[2026-03-06 23:05] [Codex] Second-pass UX polish on role dashboards: premium shell styling, filtered drill-down routing for jobs/inventory, queue action affordances, dashboard skeleton loading, and store-admin inventory actions verified in strict mode.
+[2026-03-06 23:18] [Codex] Removed dashboard explainer copy from service/store admin homes so the new role dashboards stay tighter and more production-ready.

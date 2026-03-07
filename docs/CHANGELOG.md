@@ -53,6 +53,7 @@ All notable changes to the FieldPro Field Service Management System.
 - **Store Admin dashboard** — New inventory-control dashboard focused on part requests, stock risk, replenishments, expiring batches, and blocked jobs.
 - **Dashboard routing split** — `admin_service` and `admin_store` no longer fall back to the generic admin dashboard.
 - **Premium dashboard styling pass** — Larger rounded surfaces, calmer gradients, clearer KPI hierarchy, and faster scanability for role-specific daily work.
+- **Dashboard UX follow-up** — Premium shell polish, smarter KPI drill-down routes, inline queue actions, dashboard skeleton loading, and stronger empty-state CTAs for service/store admin.
 
 ### Features
 
