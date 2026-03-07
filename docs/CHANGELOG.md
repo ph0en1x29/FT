@@ -4,6 +4,38 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-03-07] — Mobile Technician UX + Dashboard Hardening
+
+### Features
+
+**Mobile Technician Workflow**
+- **Workflow Card** — Guided field workflow card on mobile job detail: Accept → Start → Work → Complete. Shows only for technicians on phones.
+- **Completion gating** — "Complete" button disabled until all requirements met (after photo, hourmeter, tech signature, customer signature). Blocker badges show what's missing.
+- **Quick-nav buttons** — Checklist, Photos, Signatures buttons scroll directly to each section.
+- **Signatures promoted** — Signatures card moved from sidebar into main content on mobile for visibility.
+- **Sticky action bar** — Shows requirement pills (amber badges) when completion is blocked.
+
+**Dashboard Polish**
+- **Role-specific dashboards** — ServiceAdminDashboard (jobs pipeline, fleet, team) and StoreAdminDashboard (parts requests, inventory alerts, expiry).
+- **Floating top header** — Rounded-[24px] bar with "Operations Console" label, refined glass blur.
+- **Sidebar glass gradient** — Softer nav item radius (14px), gradient background.
+- **Skeleton loading** — Dashboard shows structured skeletons instead of spinner.
+- **Job filter drill-downs** — Dashboard links support `?filter=assigned`, `?filter=due-today`, `?filter=awaiting-service-confirm`.
+- **Tab URL params preserved** — Switching tabs no longer wipes other URL parameters.
+
+**Inventory**
+- **Permission-based actions** — Inventory buttons use `canEditInventory` instead of hardcoded `isAdmin`, so Admin Store can manage inventory correctly.
+- **URL param sync** — Search, category, and stock filters sync with URL params.
+
+### Fixes
+- **DashboardSection extracted** — Was duplicated in ServiceAdmin + StoreAdmin dashboards; now shared from `DashboardWidgets.tsx`.
+- **Store dashboard error handling** — Added `try/catch/finally` with loading skeleton + error fallback with retry button. Previously failed silently.
+- **FAB cleanup** — Removed redundant technician FAB actions (Van Stock, My Jobs) that duplicated bottom nav.
+- **JobCard acceptance badge** — Only shows on ASSIGNED status, not after job starts.
+- **ExpiryWarning typed** — Removed `any` type in inventory page.
+
+---
+
 ## [2026-03-06] — Admin UI Clarity Pass
 
 ### UI Improvements
