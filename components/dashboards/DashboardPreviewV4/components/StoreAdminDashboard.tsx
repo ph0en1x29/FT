@@ -1,6 +1,5 @@
 import {
   AlertTriangle,
-  ArrowRight,
   Boxes,
   CheckCircle2,
   ClipboardCheck,
@@ -15,7 +14,7 @@ import { getReplenishmentRequests } from '../../../../services/replenishmentServ
 import { supabase } from '../../../../services/supabaseClient';
 import { SupabaseDb } from '../../../../services/supabaseService';
 import { Part, Job, User, VanStockReplenishment } from '../../../../types';
-import { colors, KPICard, QuickChip } from './DashboardWidgets';
+import { colors, DashboardSection, KPICard, QuickChip } from './DashboardWidgets';
 
 interface StoreAdminDashboardProps {
   currentUser: User;
@@ -97,51 +96,62 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
   const [requests, setRequests] = useState<StoreRequestSnapshot[]>([]);
   const [replenishments, setReplenishments] = useState<VanStockReplenishment[]>([]);
   const [expiryBatches, setExpiryBatches] = useState<ExpirySnapshot[]>([]);
+  const [storeLoading, setStoreLoading] = useState(true);
+  const [storeError, setStoreError] = useState<string | null>(null);
 
   const loadStoreSnapshot = useCallback(async () => {
-    const today = new Date().toISOString().split('T')[0];
-    const nextThirty = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    try {
+      setStoreLoading(true);
+      setStoreError(null);
+      const today = new Date().toISOString().split('T')[0];
+      const nextThirty = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const [partsData, replenishmentData, requestsResult, expiryResult] = await Promise.all([
-      SupabaseDb.getParts(),
-      getReplenishmentRequests(),
-      supabase
-        .from('job_requests')
-        .select(`
-          request_id,
-          status,
-          created_at,
-          description,
-          job:jobs(
-            job_id,
-            title,
+      const [partsData, replenishmentData, requestsResult, expiryResult] = await Promise.all([
+        SupabaseDb.getParts(),
+        getReplenishmentRequests(),
+        supabase
+          .from('job_requests')
+          .select(`
+            request_id,
             status,
-            assigned_technician_name,
-            customer:customers(name)
-          )
-        `)
-        .eq('request_type', 'spare_part')
-        .in('status', ['pending', 'approved', 'part_ordered', 'issued'])
-        .order('created_at', { ascending: true })
-        .limit(30),
-      supabase
-        .from('purchase_batches')
-        .select(`
-          batch_id,
-          batch_label,
-          expires_at,
-          parts(part_name)
-        `)
-        .gte('expires_at', today)
-        .lte('expires_at', nextThirty)
-        .order('expires_at', { ascending: true })
-        .limit(8),
-    ]);
+            created_at,
+            description,
+            job:jobs(
+              job_id,
+              title,
+              status,
+              assigned_technician_name,
+              customer:customers(name)
+            )
+          `)
+          .eq('request_type', 'spare_part')
+          .in('status', ['pending', 'approved', 'part_ordered', 'issued'])
+          .order('created_at', { ascending: true })
+          .limit(30),
+        supabase
+          .from('purchase_batches')
+          .select(`
+            batch_id,
+            batch_label,
+            expires_at,
+            parts(part_name)
+          `)
+          .gte('expires_at', today)
+          .lte('expires_at', nextThirty)
+          .order('expires_at', { ascending: true })
+          .limit(8),
+      ]);
 
-    setParts(partsData);
-    setReplenishments(replenishmentData);
-    setRequests((requestsResult.data || []) as unknown as StoreRequestSnapshot[]);
-    setExpiryBatches((expiryResult.data || []) as unknown as ExpirySnapshot[]);
+      setParts(partsData);
+      setReplenishments(replenishmentData);
+      setRequests((requestsResult.data || []) as unknown as StoreRequestSnapshot[]);
+      setExpiryBatches((expiryResult.data || []) as unknown as ExpirySnapshot[]);
+    } catch (err) {
+      console.error('Store dashboard load failed:', err);
+      setStoreError('Failed to load store data. Pull down to retry.');
+    } finally {
+      setStoreLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -206,6 +216,28 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
     ledger: '/inventory?tab=ledger',
     waitingParts: '/jobs?tab=approvals',
   } as const;
+
+  if (storeLoading) {
+    return (
+      <div className="space-y-5">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-40 rounded-[28px] animate-pulse" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }} />
+        ))}
+      </div>
+    );
+  }
+
+  if (storeError) {
+    return (
+      <div className="rounded-[28px] p-6 text-center" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <AlertTriangle className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--warning)' }} />
+        <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>{storeError}</p>
+        <button onClick={loadStoreSnapshot} className="mt-3 px-4 py-2 rounded-2xl text-sm font-medium" style={{ background: 'var(--accent)', color: 'white' }}>
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

@@ -1,5 +1,4 @@
 import {
-  ArrowRight,
   CalendarClock,
   CheckCircle2,
   ClipboardCheck,
@@ -12,7 +11,7 @@ import {
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SupabaseDb } from '../../../../services/supabaseService';
 import { Forklift, Job, User, UserRole } from '../../../../types';
-import { colors, KPICard, QuickChip, QueueItem, TeamRow } from './DashboardWidgets';
+import { colors, DashboardSection, KPICard, QuickChip, QueueItem, TeamRow } from './DashboardWidgets';
 
 interface ServiceAdminDashboardProps {
   currentUser: User;
@@ -21,41 +20,6 @@ interface ServiceAdminDashboardProps {
   onRefresh: () => void;
   navigate: (path: string) => void;
 }
-
-const DashboardSection: React.FC<{
-  eyebrow: string;
-  title: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  children: React.ReactNode;
-}> = ({ eyebrow, title, actionLabel, onAction, children }) => (
-  <section
-    className="overflow-hidden rounded-[28px]"
-    style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-  >
-    <div className="flex flex-col gap-2 border-b px-5 py-4 md:flex-row md:items-center md:justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: 'var(--text-muted)' }}>
-          {eyebrow}
-        </p>
-        <h2 className="mt-1 text-lg font-semibold" style={{ color: 'var(--text)' }}>
-          {title}
-        </h2>
-      </div>
-      {actionLabel && onAction && (
-        <button
-          onClick={onAction}
-          className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
-          style={{ background: 'var(--surface-2)', color: 'var(--accent)' }}
-        >
-          {actionLabel}
-          <ArrowRight className="w-4 h-4" />
-        </button>
-      )}
-    </div>
-    <div className="p-4 md:p-5">{children}</div>
-  </section>
-);
 
 const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
   currentUser,
