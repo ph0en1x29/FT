@@ -1,4 +1,4 @@
-import { CheckSquare,Loader2,Plus,Square } from 'lucide-react';
+import { AlertTriangle,CheckSquare,Loader2,Plus,Square } from 'lucide-react';
 import React from 'react';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { TabProps } from '../types';
@@ -199,6 +199,32 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         message={fleet.resultModal.message}
         details={fleet.resultModal.details}
       />
+
+      {/* Delete confirmation modal */}
+      {fleet.deleteConfirm.show && fleet.deleteConfirm.forklift && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={fleet.cancelDelete}>
+          <div className="bg-[var(--surface)] rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[var(--text)]">Delete Forklift</h3>
+                <p className="text-sm text-[var(--text-muted)]">{fleet.deleteConfirm.forklift.serial_number}</p>
+              </div>
+            </div>
+            <p className="text-sm text-[var(--text-muted)] mb-6">This will permanently delete this forklift. This cannot be undone.</p>
+            <div className="flex gap-3">
+              <button onClick={fleet.cancelDelete} className="flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+                Cancel
+              </button>
+              <button onClick={fleet.confirmDelete} className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

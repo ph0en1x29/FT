@@ -59,6 +59,9 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     show: false, type: 'success', title: '', message: '',
   });
 
+  // Delete confirmation
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; forklift: Forklift | null }>({ show: false, forklift: null });
+
   // Form data
   const [formData, setFormData] = useState(initialFormData);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
@@ -343,16 +346,26 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     }
   }, [assigningForklift, selectedCustomerId, startDate, endDate, rentalNotes, monthlyRentalRate, customers, currentUser, loadData]);
 
-  const handleDelete = useCallback(async (forklift: Forklift, e: React.MouseEvent) => {
+    const handleDelete = useCallback((forklift: Forklift, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(`Delete forklift ${forklift.serial_number}?\n\nThis cannot be undone.`)) return;
+    setDeleteConfirm({ show: true, forklift });
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    const forklift = deleteConfirm.forklift;
+    if (!forklift) return;
+    setDeleteConfirm({ show: false, forklift: null });
     try {
       await MockDb.deleteForklift(forklift.forklift_id);
       await loadData();
     } catch (error) {
       setResultModal({ show: true, type: 'error', title: 'Error', message: (error as Error).message });
     }
-  }, [loadData]);
+  }, [deleteConfirm.forklift, loadData]);
+
+  const cancelDelete = useCallback(() => {
+    setDeleteConfirm({ show: false, forklift: null });
+  }, []);
 
   // Selection handlers
   const toggleSelectionMode = useCallback(() => {
@@ -528,7 +541,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     bulkEndDate, setBulkEndDate,
     // Handlers
     canEditForklifts, handleAddNew, handleEdit, handleAssign, handleReturn,
-    handleSubmit, handleAssignSubmit, handleDelete,
+    handleSubmit, handleAssignSubmit, handleDelete, deleteConfirm, confirmDelete, cancelDelete,
     handleBulkRentOut, handleBulkEndRental, handleReturnSubmit,
     openBulkRentModal, openBulkEndRentalModal,
   };

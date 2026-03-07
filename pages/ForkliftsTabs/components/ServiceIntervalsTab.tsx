@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import {
+AlertTriangle,
 Battery,
 Edit2,
 Flame,
@@ -11,7 +12,7 @@ Trash2,
 Wrench,
 X
 } from 'lucide-react';
-import React,{ useEffect,useState } from 'react';
+import React,{ useCallback,useEffect,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { ServiceInterval,TabProps } from '../types';
@@ -27,6 +28,7 @@ const ServiceIntervalsTab: React.FC<TabProps> = ({ _currentUser }) => {
   const [selectedType, setSelectedType] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingInterval, setEditingInterval] = useState<ServiceInterval | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<ServiceInterval | null>(null);
 
   const [formData, setFormData] = useState({
     forklift_type: 'Diesel',
@@ -137,17 +139,22 @@ const ServiceIntervalsTab: React.FC<TabProps> = ({ _currentUser }) => {
     }
   };
 
-  const handleDelete = async (interval: ServiceInterval) => {
-    if (!confirm(`Delete service interval "${interval.service_type}"?`)) return;
-    
+  const handleDelete = (interval: ServiceInterval) => {
+    setDeleteConfirm(interval);
+  };
+
+  const confirmDeleteInterval = useCallback(async () => {
+    if (!deleteConfirm) return;
     try {
-      await MockDb.deleteServiceInterval(interval.interval_id);
+      await MockDb.deleteServiceInterval(deleteConfirm.interval_id);
       showToast.success('Service interval deleted');
+      setDeleteConfirm(null);
       await loadIntervals();
     } catch (_e) {
       showToast.error('Failed to delete service interval');
+      setDeleteConfirm(null);
     }
-  };
+  }, [deleteConfirm, loadIntervals]);
 
   if (loading) {
     return (
@@ -325,6 +332,31 @@ const ServiceIntervalsTab: React.FC<TabProps> = ({ _currentUser }) => {
                   {editingInterval ? 'Update' : 'Add'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete confirmation modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setDeleteConfirm(null)}>
+          <div className="bg-[var(--surface)] rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[var(--text)]">Delete Interval</h3>
+                <p className="text-sm text-[var(--text-muted)]">{deleteConfirm.service_type}</p>
+              </div>
+            </div>
+            <p className="text-sm text-[var(--text-muted)] mb-6">This will permanently delete this service interval.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium" style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+                Cancel
+              </button>
+              <button onClick={confirmDeleteInterval} className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors">
+                Delete
+              </button>
             </div>
           </div>
         </div>
