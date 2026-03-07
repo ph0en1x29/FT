@@ -52,41 +52,72 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
   // Read URL filter parameter on mount
   useEffect(() => {
     const filterParam = searchParams.get('filter');
+    const searchParam = searchParams.get('search') || '';
+    const dateParam = searchParams.get('date') as DateFilter | null;
+    const statusParam = searchParams.get('status');
+    const fromParam = searchParams.get('from') || '';
+    const toParam = searchParams.get('to') || '';
+
+    setSearchQuery(searchParam);
+    setCustomDateFrom(fromParam);
+    setCustomDateTo(toParam);
+
+    let nextSpecialFilter: SpecialFilter = null;
+    let nextDateFilter: DateFilter = 'unfinished';
+    let nextStatusFilter = 'all';
+
     if (filterParam) {
       switch (filterParam) {
         case 'overdue':
-          setSpecialFilter('overdue');
-          setDateFilter('all');
-          setStatusFilter('all');
+          nextSpecialFilter = 'overdue';
+          nextDateFilter = 'all';
           break;
         case 'unassigned':
-          setSpecialFilter('unassigned');
-          setDateFilter('all');
-          setStatusFilter('all');
+          nextSpecialFilter = 'unassigned';
+          nextDateFilter = 'all';
           break;
         case 'escalated':
-          setSpecialFilter('escalated');
-          setDateFilter('all');
-          setStatusFilter('all');
+          nextSpecialFilter = 'escalated';
+          nextDateFilter = 'all';
           break;
         case 'in-progress':
-          setSpecialFilter(null);
-          setDateFilter('all');
-          setStatusFilter(JobStatus.IN_PROGRESS);
+          nextDateFilter = 'all';
+          nextStatusFilter = JobStatus.IN_PROGRESS;
+          break;
+        case 'assigned':
+          nextDateFilter = 'all';
+          nextStatusFilter = JobStatus.ASSIGNED;
+          break;
+        case 'due-today':
+          nextDateFilter = 'today';
+          nextStatusFilter = 'all';
+          break;
+        case 'awaiting-service-confirm':
+          nextDateFilter = 'all';
+          nextStatusFilter = JobStatus.AWAITING_FINALIZATION;
           break;
         case 'awaiting-ack':
-          setSpecialFilter('awaiting-ack');
-          setDateFilter('all');
-          setStatusFilter('all');
+          nextSpecialFilter = 'awaiting-ack';
+          nextDateFilter = 'all';
           break;
         default:
           // Check if it's a valid JobStatus
           if (Object.values(JobStatus).includes(filterParam as JobStatus)) {
-            setStatusFilter(filterParam);
-            setDateFilter('all');
+            nextStatusFilter = filterParam;
+            nextDateFilter = 'all';
           }
       }
+    } else {
+      if (statusParam && Object.values(JobStatus).includes(statusParam as JobStatus)) {
+        nextStatusFilter = statusParam;
+      }
+      if (dateParam && ['unfinished', 'today', 'week', 'month', 'all', 'custom'].includes(dateParam)) {
+        nextDateFilter = dateParam;
+      }
     }
+    setSpecialFilter(nextSpecialFilter);
+    setDateFilter(nextDateFilter);
+    setStatusFilter(nextStatusFilter);
   }, [searchParams]);
 
   // Count jobs by status for quick stats
@@ -128,6 +159,7 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
     let result = [...jobs];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const filterParam = searchParams.get('filter');
 
     // Special filter (from URL params like ?filter=overdue)
     if (specialFilter) {
@@ -152,6 +184,14 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
           result = result.filter(job => job.status === JobStatus.COMPLETED_AWAITING_ACK);
           break;
       }
+    }
+
+    if (filterParam === 'awaiting-service-confirm') {
+      result = result.filter(job =>
+        job.status === JobStatus.AWAITING_FINALIZATION &&
+        (job.parts_confirmed_at || job.parts_confirmation_skipped || job.parts_used.length === 0) &&
+        !job.job_confirmed_at
+      );
     }
 
     // Search filter
@@ -260,7 +300,7 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
     });
 
     return result;
-  }, [jobs, searchQuery, dateFilter, statusFilter, specialFilter, customDateFrom, customDateTo]);
+  }, [jobs, searchQuery, dateFilter, statusFilter, specialFilter, customDateFrom, customDateTo, searchParams]);
 
   const hasActiveFilters = searchQuery || dateFilter !== 'unfinished' || statusFilter !== 'all' || specialFilter !== null;
 

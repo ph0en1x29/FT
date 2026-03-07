@@ -105,7 +105,9 @@ export const QueueItem: React.FC<{
   detail: string;
   urgent?: boolean;
   onClick?: () => void;
-}> = ({ type, jobNumber, customer, detail, urgent, onClick }) => {
+  actionLabel?: string;
+  onAction?: () => void;
+}> = ({ type, jobNumber, customer, detail, urgent, onClick, actionLabel, onAction }) => {
   const typeConfig = {
     overdue: { icon: <Clock className="w-4 h-4" />, color: colors.red },
     escalated: { icon: <AlertTriangle className="w-4 h-4" />, color: colors.red },
@@ -132,7 +134,20 @@ export const QueueItem: React.FC<{
         </div>
         <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{customer} · {detail}</p>
       </div>
-      <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+      {actionLabel && onAction ? (
+        <button
+          onClick={(event) => {
+            event.stopPropagation();
+            onAction();
+          }}
+          className="flex-shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors"
+          style={{ background: config.color.bg, color: config.color.text }}
+        >
+          {actionLabel}
+        </button>
+      ) : (
+        <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+      )}
     </div>
   );
 };

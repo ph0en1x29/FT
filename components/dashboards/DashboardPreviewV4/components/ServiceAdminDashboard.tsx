@@ -25,11 +25,10 @@ interface ServiceAdminDashboardProps {
 const DashboardSection: React.FC<{
   eyebrow: string;
   title: string;
-  detail?: string;
   actionLabel?: string;
   onAction?: () => void;
   children: React.ReactNode;
-}> = ({ eyebrow, title, detail, actionLabel, onAction, children }) => (
+}> = ({ eyebrow, title, actionLabel, onAction, children }) => (
   <section
     className="overflow-hidden rounded-[28px]"
     style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
@@ -42,11 +41,6 @@ const DashboardSection: React.FC<{
         <h2 className="mt-1 text-lg font-semibold" style={{ color: 'var(--text)' }}>
           {title}
         </h2>
-        {detail && (
-          <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
-            {detail}
-          </p>
-        )}
       </div>
       {actionLabel && onAction && (
         <button
@@ -205,9 +199,16 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
     };
   }, [forklifts]);
 
-  const completionPct = jobsByStatus.dueToday.length > 0
-    ? Math.round((jobsByStatus.completedToday.length / jobsByStatus.dueToday.length) * 100)
-    : 100;
+  const serviceRoutes = {
+    openWork: '/jobs?tab=active&date=unfinished',
+    dueToday: '/jobs?tab=active&filter=due-today',
+    unassigned: '/jobs?tab=active&filter=unassigned',
+    serviceConfirm: '/jobs?tab=active&filter=awaiting-service-confirm',
+    assigned: '/jobs?tab=active&filter=assigned',
+    inProgress: '/jobs?tab=active&filter=in-progress',
+    awaitingFinalization: `/jobs?tab=active&status=${encodeURIComponent('Awaiting Finalization')}&date=all`,
+    overdue: '/jobs?tab=active&filter=overdue',
+  } as const;
 
   return (
     <div className="space-y-5">
@@ -232,12 +233,9 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
             <h1 className="mt-4 text-3xl font-semibold tracking-[-0.03em]" style={{ color: 'var(--text)' }}>
               Good {today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening'}, {displayName}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6" style={{ color: 'var(--text-muted)' }}>
-              This dashboard is tuned for dispatch, field risk, and job closure. Start with the queue that needs service attention, then balance technician load and service blockers before they spill into tomorrow.
-            </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              <QuickChip icon={<ClipboardCheck className="w-4 h-4" />} label="Service Queue" count={jobsByStatus.awaitingServiceConfirmation.length} accent={colors.purple.text} onClick={() => navigate('/jobs?tab=approvals')} />
-              <QuickChip icon={<UserPlus2 className="w-4 h-4" />} label="Assign Jobs" count={jobsByStatus.unassigned.length} accent={colors.orange.text} onClick={() => navigate('/jobs?filter=unassigned')} />
+              <QuickChip icon={<ClipboardCheck className="w-4 h-4" />} label="Service Queue" count={jobsByStatus.awaitingServiceConfirmation.length} accent={colors.purple.text} onClick={() => navigate(serviceRoutes.serviceConfirm)} />
+              <QuickChip icon={<UserPlus2 className="w-4 h-4" />} label="Assign Jobs" count={jobsByStatus.unassigned.length} accent={colors.orange.text} onClick={() => navigate(serviceRoutes.unassigned)} />
               <QuickChip icon={<Truck className="w-4 h-4" />} label="Fleet" count={fleetSnapshot.needsAttention.length} accent={colors.blue.text} onClick={() => navigate('/forklifts?tab=fleet')} />
             </div>
           </div>
@@ -263,18 +261,17 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
       </section>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-        <KPICard label="Open Work" value={jobsByStatus.openJobs.length} sublabel="Active service jobs" icon={<CheckCircle2 className="w-4 h-4" />} accent="blue" />
-        <KPICard label="Due Today" value={jobsByStatus.dueToday.length} sublabel="Scheduled for today" icon={<CalendarClock className="w-4 h-4" />} accent="green" />
-        <KPICard label="Need Assignment" value={jobsByStatus.unassigned.length} sublabel="Dispatch gap" icon={<UserPlus2 className="w-4 h-4" />} accent="orange" alert={jobsByStatus.unassigned.length > 0} />
-        <KPICard label="Service Confirm" value={jobsByStatus.awaitingServiceConfirmation.length} sublabel="Ready to close" icon={<ClipboardCheck className="w-4 h-4" />} accent="purple" alert={jobsByStatus.awaitingServiceConfirmation.length > 0} />
-        <KPICard label="Tech Capacity" value={`${availableTechs}/${technicians.length}`} sublabel="Available now" icon={<Users className="w-4 h-4" />} accent="green" />
+        <KPICard label="Open Work" value={jobsByStatus.openJobs.length} sublabel="Active service jobs" icon={<CheckCircle2 className="w-4 h-4" />} accent="blue" onClick={() => navigate(serviceRoutes.openWork)} />
+        <KPICard label="Due Today" value={jobsByStatus.dueToday.length} sublabel="Scheduled for today" icon={<CalendarClock className="w-4 h-4" />} accent="green" onClick={() => navigate(serviceRoutes.dueToday)} />
+        <KPICard label="Need Assignment" value={jobsByStatus.unassigned.length} sublabel="Dispatch gap" icon={<UserPlus2 className="w-4 h-4" />} accent="orange" alert={jobsByStatus.unassigned.length > 0} onClick={() => navigate(serviceRoutes.unassigned)} />
+        <KPICard label="Service Confirm" value={jobsByStatus.awaitingServiceConfirmation.length} sublabel="Ready to close" icon={<ClipboardCheck className="w-4 h-4" />} accent="purple" alert={jobsByStatus.awaitingServiceConfirmation.length > 0} onClick={() => navigate(serviceRoutes.serviceConfirm)} />
+        <KPICard label="Tech Capacity" value={`${availableTechs}/${technicians.length}`} sublabel="Available now" icon={<Users className="w-4 h-4" />} accent="green" onClick={() => navigate('/people')} />
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.25fr_0.95fr]">
         <DashboardSection
           eyebrow="Priority"
           title="Action Queue"
-          detail="The service admin should be able to clear blockers and handoffs without digging through the full jobs board."
           actionLabel="Open Jobs"
           onAction={() => navigate('/jobs')}
         >
@@ -283,6 +280,10 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
               <CheckCircle2 className="mx-auto mb-3 h-10 w-10" style={{ color: colors.green.text, opacity: 0.7 }} />
               <p className="text-base font-medium" style={{ color: 'var(--text)' }}>No urgent service blockers</p>
               <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>Dispatch, escalations, and service confirmations are clear right now.</p>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <QuickChip icon={<CheckCircle2 className="w-4 h-4" />} label="Open Jobs" accent={colors.blue.text} onClick={() => navigate(serviceRoutes.openWork)} />
+                <QuickChip icon={<CalendarClock className="w-4 h-4" />} label="Create Job" accent={colors.green.text} onClick={() => navigate('/jobs/new')} />
+              </div>
             </div>
           ) : (
             <div className="space-y-1">
@@ -295,6 +296,8 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
                   detail={item.detail}
                   urgent={item.kind === 'escalated' || item.kind === 'overdue' || item.kind === 'disputed'}
                   onClick={() => navigate(`/jobs/${item.job.job_id}`)}
+                  actionLabel={item.kind === 'unassigned' ? 'Assign' : item.kind === 'awaiting' ? 'Confirm' : 'Review'}
+                  onAction={() => navigate(`/jobs/${item.job.job_id}`)}
                 />
               ))}
             </div>
@@ -304,7 +307,6 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
         <DashboardSection
           eyebrow="Team"
           title="Dispatch & Capacity"
-          detail={`${availableTechs} technicians are currently available. Use this panel to rebalance work before jobs go overdue.`}
           actionLabel="Manage Team"
           onAction={() => navigate('/people')}
         >
@@ -334,20 +336,19 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
         <DashboardSection
           eyebrow="Flow"
           title="Service Pipeline"
-          detail={`Today's completion rate is ${completionPct}% across ${jobsByStatus.dueToday.length || 0} scheduled jobs.`}
           actionLabel="Approvals"
           onAction={() => navigate('/jobs?tab=approvals')}
         >
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              { label: 'Assigned', value: jobsByStatus.assigned.length, accent: colors.blue.bg, text: colors.blue.text },
-              { label: 'In Progress', value: jobsByStatus.inProgress.length, accent: colors.green.bg, text: colors.green.text },
-              { label: 'Awaiting Finalization', value: jobsByStatus.awaitingFinalization.length, accent: colors.orange.bg, text: colors.orange.text },
-              { label: 'Service Confirm', value: jobsByStatus.awaitingServiceConfirmation.length, accent: colors.purple.bg, text: colors.purple.text },
+              { label: 'Assigned', value: jobsByStatus.assigned.length, accent: colors.blue.bg, text: colors.blue.text, route: serviceRoutes.assigned },
+              { label: 'In Progress', value: jobsByStatus.inProgress.length, accent: colors.green.bg, text: colors.green.text, route: serviceRoutes.inProgress },
+              { label: 'Awaiting Finalization', value: jobsByStatus.awaitingFinalization.length, accent: colors.orange.bg, text: colors.orange.text, route: serviceRoutes.awaitingFinalization },
+              { label: 'Service Confirm', value: jobsByStatus.awaitingServiceConfirmation.length, accent: colors.purple.bg, text: colors.purple.text, route: serviceRoutes.serviceConfirm },
             ].map(card => (
               <button
                 key={card.label}
-                onClick={() => navigate('/jobs')}
+                onClick={() => navigate(card.route)}
                 className="rounded-3xl p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
                 style={{ background: card.accent }}
               >
@@ -384,7 +385,6 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
         <DashboardSection
           eyebrow="Equipment"
           title="Fleet Pressure"
-          detail={fleetLoading ? 'Refreshing fleet snapshot…' : `${fleetSnapshot.needsAttention.length} units need service-side attention or follow-up.`}
           actionLabel="Open Fleet"
           onAction={() => navigate('/forklifts?tab=fleet')}
         >
@@ -427,6 +427,9 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
                 <Package className="mx-auto mb-2 h-8 w-8" style={{ color: colors.green.text, opacity: 0.65 }} />
                 <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Fleet looks stable</p>
                 <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>No forklifts are currently flagged for service-side attention.</p>
+                <div className="mt-4 flex justify-center">
+                  <QuickChip icon={<Truck className="w-4 h-4" />} label="Open Fleet" accent={colors.blue.text} onClick={() => navigate('/forklifts?tab=fleet')} />
+                </div>
               </div>
             )}
           </div>

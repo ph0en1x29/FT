@@ -35,7 +35,6 @@ const EmployeeProfile = lazy(() => import('../../pages/EmployeeProfile'));
 const MyLeaveRequests = lazy(() => import('../../pages/MyLeaveRequests'));
 const PrototypeDashboards = lazy(() => import('../../pages/PrototypeDashboards'));
 const MyVanStock = lazy(() => import('../../pages/MyVanStock'));
-const StoreManager = lazy(() => import('../../pages/StoreManager'));
 
 // Loading fallback
 export const PageLoader = () => (
@@ -50,22 +49,26 @@ export const PageLoader = () => (
 // Sidebar styles
 const sidebarStyles = `
   .sidebar-glass {
-    background: #1e293b;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    background:
+      linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.94) 100%);
+    border-right: 1px solid rgba(148, 163, 184, 0.16);
+    box-shadow: 24px 0 48px rgba(15, 23, 42, 0.16);
+    backdrop-filter: blur(20px);
   }
   .nav-item {
-    border-radius: 8px;
-    transition: all 0.15s ease;
+    border-radius: 14px;
+    transition: all 0.18s ease;
   }
   .nav-item-active {
-    background: rgba(99, 102, 241, 0.15);
-    color: #a5b4fc;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.24) 0%, rgba(129, 140, 248, 0.14) 100%);
+    color: #e0e7ff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
   .nav-item-active .nav-icon {
-    color: #818cf8;
+    color: #c7d2fe;
   }
   .nav-item:hover:not(.nav-item-active) {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.06);
   }
   .tooltip-sidebar {
     position: absolute;
@@ -101,17 +104,17 @@ const sidebarStyles = `
     color: #94a3b8;
   }
   .bottom-nav-glass {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
   }
   [data-theme="dark"] .bottom-nav-glass,
   .dark .bottom-nav-glass {
-    background: rgba(15, 23, 42, 0.95);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.9);
+    border-top: 1px solid rgba(148, 163, 184, 0.18);
   }
   .mobile-drawer-glass {
-    background: #1e293b;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.96) 100%);
   }
   .sidebar-nav-scroll {
     scrollbar-width: none;
@@ -217,30 +220,55 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed, navRole }
 };
 
 const TopHeader = ({ currentUser, isDark, onToggleTheme, devModeActive, onOpenSearch }: { currentUser: User; isDark: boolean; onToggleTheme: () => void; devModeActive?: boolean; onOpenSearch?: () => void }) => (
-  <div className={`bg-theme-surface border-b border-theme px-4 py-3 mb-6 -mx-4 md:-mx-8 -mt-4 md:-mt-8 flex justify-between items-center sticky z-40 theme-transition ${devModeActive ? 'top-10' : 'top-0'}`}>
-    <div className="md:hidden">
-      <h1 className="text-lg font-bold text-theme">FieldPro</h1>
-    </div>
-    <div className="hidden md:block" />
-    <div className="flex items-center gap-3">
-      {onOpenSearch && (
-        <button onClick={onOpenSearch} className="flex items-center gap-2 px-3 py-2 bg-theme-surface-2 border border-theme rounded-lg text-theme-muted hover:text-theme transition-all" title="Search (⌘K)">
-          <Search className="w-4 h-4" />
-          <span className="hidden sm:inline text-xs">⌘K</span>
+  <div className={`sticky z-40 mb-6 ${devModeActive ? 'top-10' : 'top-0'}`}>
+    <div
+      className="flex items-center justify-between gap-3 rounded-[24px] px-4 py-3 theme-transition"
+      style={{
+        background: 'color-mix(in srgb, var(--surface) 86%, white 14%)',
+        border: '1px solid var(--border)',
+        boxShadow: '0 10px 30px rgba(15, 23, 42, 0.06)',
+        backdropFilter: 'blur(24px)',
+      }}
+    >
+      <div className="md:hidden">
+        <h1 className="text-lg font-semibold tracking-[-0.02em] text-theme">FieldPro</h1>
+      </div>
+      <div className="hidden md:block">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-theme-muted">Operations Console</p>
+      </div>
+      <div className="flex items-center gap-2 sm:gap-3">
+        {onOpenSearch && (
+          <button
+            onClick={onOpenSearch}
+            className="flex items-center gap-2 rounded-2xl border px-3 py-2 text-theme-muted transition-all hover:text-theme"
+            style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}
+            title="Search (⌘K)"
+          >
+            <Search className="w-4 h-4" />
+            <span className="hidden sm:inline text-xs font-medium">⌘K</span>
+          </button>
+        )}
+        <DevModeSelector />
+        <button
+          onClick={onToggleTheme}
+          className="flex items-center gap-2 rounded-2xl border px-3 py-2 text-theme-muted transition-all hover:text-theme"
+          style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}
+          title={isDark ? 'Light Mode' : 'Dark Mode'}
+        >
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
-      )}
-      <DevModeSelector />
-      <button onClick={onToggleTheme} className="flex items-center gap-2 px-3 py-2 bg-theme-surface-2 border border-theme rounded-lg text-theme-muted hover:text-theme transition-all" title={isDark ? 'Light Mode' : 'Dark Mode'}>
-        {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-      </button>
-      <NotificationBell currentUser={currentUser} />
-      <div className="flex items-center gap-2 pl-3 border-l border-theme">
-        <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-          <span className="text-white text-sm font-semibold">{currentUser.name.charAt(0).toUpperCase()}</span>
-        </div>
-        <div className="hidden sm:block">
-          <p className="text-sm font-medium text-theme">{currentUser.name}</p>
-          <p className="text-xs text-theme-muted capitalize">{currentUser.role}</p>
+        <NotificationBell currentUser={currentUser} />
+        <div
+          className="flex items-center gap-2 rounded-2xl pl-2 pr-3 py-1.5"
+          style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+        >
+          <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-semibold">{currentUser.name.charAt(0).toUpperCase()}</span>
+          </div>
+          <div className="hidden sm:block">
+            <p className="text-sm font-medium text-theme">{currentUser.name}</p>
+            <p className="text-[11px] text-theme-muted capitalize">{currentUser.role}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -485,10 +513,15 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
         <CommandPaletteWrapper isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} currentUser={currentUser} />
         <div className="min-h-screen bg-theme-bg flex theme-transition">
           <Sidebar currentUser={currentUser} onLogout={onLogout} isCollapsed={sidebarCollapsed} setIsCollapsed={setSidebarCollapsed} navRole={navRole} />
-          <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-60'} p-4 md:p-6 lg:p-8 pb-20 md:pb-8 ${devMode.isDevModeActive ? 'pt-14' : ''}`}>
+          <main
+            className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-60'} p-4 md:p-6 lg:p-8 pb-20 md:pb-8 ${devMode.isDevModeActive ? 'pt-14' : ''}`}
+            style={{
+              background: 'radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 24%), radial-gradient(circle at top left, rgba(249, 115, 22, 0.07), transparent 22%)',
+            }}
+          >
             <TopHeader currentUser={currentUser} isDark={isDarkTheme} onToggleTheme={toggleTheme} devModeActive={devMode.isDevModeActive} onOpenSearch={() => setCommandPaletteOpen(true)} />
             <Suspense fallback={<PageLoader />}>
-              <div className="animate-page-enter">
+              <div className="animate-page-enter mx-auto max-w-[1560px]">
               <Routes>
                 <Route path="/" element={<PrototypeDashboards currentUser={currentUser} />} />
                 <Route path="/jobs" element={<JobsTabs currentUser={currentUser} />} />

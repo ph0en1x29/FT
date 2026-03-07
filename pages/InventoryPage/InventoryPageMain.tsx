@@ -1,9 +1,9 @@
 import { AlertTriangle,BookOpen,ClipboardList,Package,RotateCcw,Settings2,Truck } from 'lucide-react';
-import React,{ useEffect,useMemo,useState } from 'react';
+import React,{ useEffect,useState } from 'react';
 import { checkStockMismatch } from '../../services/liquidInventoryService';
 import { useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../contexts/DevModeContext';
-import { Part,ROLE_PERMISSIONS,User,UserRole } from '../../types';
+import { ROLE_PERMISSIONS,User,UserRole } from '../../types';
 import VanStockPage from '../VanStockPage';
 import AddPartModal from './components/AddPartModal';
 import AdjustStockModal from './components/AdjustStockModal';
@@ -21,6 +21,13 @@ import StocktakeTab from './components/StocktakeTab';
 import { useInventoryData } from './hooks/useInventoryData';
 import { supabase } from '../../services/supabaseClient';
 
+interface ExpiryWarning {
+  batch_id: string;
+  batch_label: string | null;
+  expires_at: string;
+  parts: { part_name: string | null } | null;
+}
+
 interface InventoryPageProps {
   currentUser: User;
 }
@@ -32,12 +39,13 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [showBatchReceive, setShowBatchReceive] = useState(false);
-  const [expiryWarnings, setExpiryWarnings] = useState<any[]>([]);
+  const [expiryWarnings, setExpiryWarnings] = useState<ExpiryWarning[]>([]);
 
   // Use dev mode context for role-based permissions
-  const { displayRole } = useDevModeContext();
+  const { displayRole, hasPermission } = useDevModeContext();
 
   const isAdmin = displayRole === UserRole.ADMIN;
+  const canEditInventory = hasPermission('canEditInventory');
   const isAdminOrSupervisor = [
     UserRole.ADMIN,
     UserRole.ADMIN_SERVICE,
@@ -86,7 +94,9 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
-    setSearchParams({ tab });
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('tab', tab);
+    setSearchParams(nextParams);
   };
 
   // Load parts when parts tab is active
@@ -95,6 +105,20 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
       loadParts();
     }
   }, [activeTab, loadParts]);
+
+  useEffect(() => {
+    if (activeTab !== 'parts') return;
+
+    setSearchQuery(searchParams.get('search') || '');
+    setFilterCategory(searchParams.get('category') || 'all');
+
+    const stockParam = searchParams.get('stock');
+    if (stockParam === 'low' || stockParam === 'out') {
+      setFilterStock(stockParam);
+    } else {
+      setFilterStock('all');
+    }
+  }, [activeTab, searchParams, setFilterCategory, setFilterStock, setSearchQuery]);
 
   // Fetch expiring stock within 30 days
   useEffect(() => {
@@ -107,7 +131,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
         .gte('expires_at', today)
         .lte('expires_at', thirtyDaysFromNow)
         .limit(10);
-      if (data) setExpiryWarnings(data);
+      if (data) setExpiryWarnings(data as unknown as ExpiryWarning[]);
     };
     fetchExpiryWarnings();
   }, []);
@@ -133,7 +157,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
           </p>
         </div>
         {/* Action buttons — admin only */}
-        {isAdmin && (
+        {canEditInventory && (
           <div className="flex gap-2 self-start sm:self-auto">
             <button
               onClick={() => setShowBatchReceive(true)}
@@ -158,7 +182,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
         <div key={w.batch_id} className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
           <div className="text-sm text-amber-700">
-            <span className="font-semibold">⚠️ {(w.parts as any)?.part_name || 'Unknown Part'}</span> has stock expiring on{' '}
+            <span className="font-semibold">⚠️ {w.parts?.part_name || 'Unknown Part'}</span> has stock expiring on{' '}
             <span className="font-medium">{new Date(w.expires_at).toLocaleDateString()}</span>
             {' '}(Batch: {w.batch_label || w.batch_id})
           </div>
@@ -178,7 +202,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
           <PartsHeader
             filteredCount={filteredParts.length}
             totalCount={parts.length}
-            isAdmin={isAdmin}
+            isAdmin={canEditInventory}
             onExport={handleExportCSV}
             onAddNew={handleAddNew}
             onImport={() => setShowImportModal(true)}
@@ -221,7 +245,7 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
           <PartsTable
             groupedParts={groupedParts}
             loading={loading}
-            isAdmin={isAdmin}
+            isAdmin={canEditInventory}
             canViewPricing={canViewPricing}
             onEdit={handleEdit}
             onDelete={handleDelete}

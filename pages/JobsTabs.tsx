@@ -31,7 +31,9 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
-    setSearchParams({ tab });
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('tab', tab);
+    setSearchParams(nextParams);
   };
 
   const refreshActiveTab = useCallback(async () => {

@@ -48,11 +48,10 @@ interface ExpirySnapshot {
 const DashboardSection: React.FC<{
   eyebrow: string;
   title: string;
-  detail?: string;
   actionLabel?: string;
   onAction?: () => void;
   children: React.ReactNode;
-}> = ({ eyebrow, title, detail, actionLabel, onAction, children }) => (
+}> = ({ eyebrow, title, actionLabel, onAction, children }) => (
   <section
     className="overflow-hidden rounded-[28px]"
     style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
@@ -65,11 +64,6 @@ const DashboardSection: React.FC<{
         <h2 className="mt-1 text-lg font-semibold" style={{ color: 'var(--text)' }}>
           {title}
         </h2>
-        {detail && (
-          <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
-            {detail}
-          </p>
-        )}
       </div>
       {actionLabel && onAction && (
         <button
@@ -103,57 +97,51 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
   const [requests, setRequests] = useState<StoreRequestSnapshot[]>([]);
   const [replenishments, setReplenishments] = useState<VanStockReplenishment[]>([]);
   const [expiryBatches, setExpiryBatches] = useState<ExpirySnapshot[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const loadStoreSnapshot = useCallback(async () => {
-    try {
-      setLoading(true);
-      const today = new Date().toISOString().split('T')[0];
-      const nextThirty = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    const nextThirty = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-      const [partsData, replenishmentData, requestsResult, expiryResult] = await Promise.all([
-        SupabaseDb.getParts(),
-        getReplenishmentRequests(),
-        supabase
-          .from('job_requests')
-          .select(`
-            request_id,
+    const [partsData, replenishmentData, requestsResult, expiryResult] = await Promise.all([
+      SupabaseDb.getParts(),
+      getReplenishmentRequests(),
+      supabase
+        .from('job_requests')
+        .select(`
+          request_id,
+          status,
+          created_at,
+          description,
+          job:jobs(
+            job_id,
+            title,
             status,
-            created_at,
-            description,
-            job:jobs(
-              job_id,
-              title,
-              status,
-              assigned_technician_name,
-              customer:customers(name)
-            )
-          `)
-          .eq('request_type', 'spare_part')
-          .in('status', ['pending', 'approved', 'part_ordered', 'issued'])
-          .order('created_at', { ascending: true })
-          .limit(30),
-        supabase
-          .from('purchase_batches')
-          .select(`
-            batch_id,
-            batch_label,
-            expires_at,
-            parts(part_name)
-          `)
-          .gte('expires_at', today)
-          .lte('expires_at', nextThirty)
-          .order('expires_at', { ascending: true })
-          .limit(8),
-      ]);
+            assigned_technician_name,
+            customer:customers(name)
+          )
+        `)
+        .eq('request_type', 'spare_part')
+        .in('status', ['pending', 'approved', 'part_ordered', 'issued'])
+        .order('created_at', { ascending: true })
+        .limit(30),
+      supabase
+        .from('purchase_batches')
+        .select(`
+          batch_id,
+          batch_label,
+          expires_at,
+          parts(part_name)
+        `)
+        .gte('expires_at', today)
+        .lte('expires_at', nextThirty)
+        .order('expires_at', { ascending: true })
+        .limit(8),
+    ]);
 
-      setParts(partsData);
-      setReplenishments(replenishmentData);
-      setRequests((requestsResult.data || []) as unknown as StoreRequestSnapshot[]);
-      setExpiryBatches((expiryResult.data || []) as unknown as ExpirySnapshot[]);
-    } finally {
-      setLoading(false);
-    }
+    setParts(partsData);
+    setReplenishments(replenishmentData);
+    setRequests((requestsResult.data || []) as unknown as StoreRequestSnapshot[]);
+    setExpiryBatches((expiryResult.data || []) as unknown as ExpirySnapshot[]);
   }, []);
 
   useEffect(() => {
@@ -198,16 +186,26 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
 
   const queueItems = useMemo(() => {
     const combined = [
-      ...pendingRequests.map(request => ({ kind: 'Part Request', priority: 0, time: request.created_at, title: request.description || 'Spare part request', subtitle: request.job?.customer?.name || 'Unknown customer', href: request.job?.job_id ? `/jobs/${request.job.job_id}` : '/jobs?tab=approvals' })),
-      ...readyToIssue.map(request => ({ kind: 'Ready to Issue', priority: 1, time: request.created_at, title: request.description || 'Approved part request', subtitle: request.job?.assigned_technician_name || 'Technician pending', href: request.job?.job_id ? `/jobs/${request.job.job_id}` : '/jobs?tab=approvals' })),
-      ...orderedRequests.map(request => ({ kind: 'Awaiting Receipt', priority: 2, time: request.created_at, title: request.description || 'Ordered part request', subtitle: request.job?.customer?.name || 'Order follow-up', href: request.job?.job_id ? `/jobs/${request.job.job_id}` : '/jobs?tab=approvals' })),
-      ...jobsWaitingParts.map(job => ({ kind: 'Blocked Job', priority: 3, time: job.completed_at || job.updated_at || job.created_at, title: job.job_number || job.title, subtitle: job.customer?.name || 'Unknown customer', href: `/jobs/${job.job_id}` })),
+      ...pendingRequests.map(request => ({ kind: 'Part Request', priority: 0, time: request.created_at, title: request.description || 'Spare part request', subtitle: request.job?.customer?.name || 'Unknown customer', href: request.job?.job_id ? `/jobs/${request.job.job_id}` : '/jobs?tab=approvals', actionLabel: 'Approve' })),
+      ...readyToIssue.map(request => ({ kind: 'Ready to Issue', priority: 1, time: request.created_at, title: request.description || 'Approved part request', subtitle: request.job?.assigned_technician_name || 'Technician pending', href: request.job?.job_id ? `/jobs/${request.job.job_id}` : '/jobs?tab=approvals', actionLabel: 'Issue' })),
+      ...orderedRequests.map(request => ({ kind: 'Awaiting Receipt', priority: 2, time: request.created_at, title: request.description || 'Ordered part request', subtitle: request.job?.customer?.name || 'Order follow-up', href: request.job?.job_id ? `/jobs/${request.job.job_id}` : '/jobs?tab=approvals', actionLabel: 'Track' })),
+      ...jobsWaitingParts.map(job => ({ kind: 'Blocked Job', priority: 3, time: job.completed_at || job.updated_at || job.created_at, title: job.job_number || job.title, subtitle: job.customer?.name || 'Unknown customer', href: `/jobs/${job.job_id}`, actionLabel: 'Open' })),
     ];
 
     return combined
       .sort((left, right) => left.priority - right.priority || new Date(left.time).getTime() - new Date(right.time).getTime())
       .slice(0, 8);
   }, [jobsWaitingParts, orderedRequests, pendingRequests, readyToIssue]);
+
+  const storeRoutes = {
+    queue: '/jobs?tab=approvals',
+    inventory: '/inventory?tab=parts',
+    lowStock: '/inventory?tab=parts&stock=low',
+    outOfStock: '/inventory?tab=parts&stock=out',
+    replenishments: '/inventory?tab=replenishments',
+    ledger: '/inventory?tab=ledger',
+    waitingParts: '/jobs?tab=approvals',
+  } as const;
 
   return (
     <div className="space-y-5">
@@ -232,13 +230,10 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
             <h1 className="mt-4 text-3xl font-semibold tracking-[-0.03em]" style={{ color: 'var(--text)' }}>
               Good {today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening'}, {displayName}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6" style={{ color: 'var(--text-muted)' }}>
-              This dashboard is tuned for parts flow, stock risk, and technician support. The ideal experience is that you can approve, issue, receive, and spot inventory risk before it blocks the field team.
-            </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              <QuickChip icon={<ClipboardCheck className="w-4 h-4" />} label="Store Queue" count={pendingRequests.length + readyToIssue.length} accent={colors.orange.text} onClick={() => navigate('/jobs?tab=approvals')} />
-              <QuickChip icon={<Package className="w-4 h-4" />} label="Inventory" count={lowStock.length} accent={colors.red.text} onClick={() => navigate('/inventory')} />
-              <QuickChip icon={<Truck className="w-4 h-4" />} label="Replenishments" count={pendingReplenishments.length} accent={colors.blue.text} onClick={() => navigate('/inventory?tab=replenishments')} />
+              <QuickChip icon={<ClipboardCheck className="w-4 h-4" />} label="Store Queue" count={pendingRequests.length + readyToIssue.length} accent={colors.orange.text} onClick={() => navigate(storeRoutes.queue)} />
+              <QuickChip icon={<Package className="w-4 h-4" />} label="Inventory" count={lowStock.length} accent={colors.red.text} onClick={() => navigate(storeRoutes.lowStock)} />
+              <QuickChip icon={<Truck className="w-4 h-4" />} label="Replenishments" count={pendingReplenishments.length} accent={colors.blue.text} onClick={() => navigate(storeRoutes.replenishments)} />
             </div>
           </div>
           <div className="flex flex-col gap-2 self-start">
@@ -254,7 +249,7 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
               Refresh
             </button>
             <button
-              onClick={() => navigate('/inventory')}
+              onClick={() => navigate(storeRoutes.inventory)}
               className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
               style={{ background: colors.orange.text }}
             >
@@ -266,18 +261,17 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
       </section>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-        <KPICard label="Pending Requests" value={pendingRequests.length} sublabel="Need approval" icon={<Package className="w-4 h-4" />} accent="orange" alert={pendingRequests.length > 0} />
-        <KPICard label="Ready to Issue" value={readyToIssue.length} sublabel="Approved for technicians" icon={<CheckCircle2 className="w-4 h-4" />} accent="blue" alert={readyToIssue.length > 0} />
-        <KPICard label="Jobs Waiting Parts" value={jobsWaitingParts.length} sublabel="Blocked from closure" icon={<ShieldAlert className="w-4 h-4" />} accent="purple" alert={jobsWaitingParts.length > 0} />
-        <KPICard label="Low Stock" value={lowStock.length} sublabel="Below reorder level" icon={<AlertTriangle className="w-4 h-4" />} accent="red" alert={lowStock.length > 0} />
-        <KPICard label="Replenishments" value={pendingReplenishments.length} sublabel="Pending or approved" icon={<Truck className="w-4 h-4" />} accent="green" />
+        <KPICard label="Pending Requests" value={pendingRequests.length} sublabel="Need approval" icon={<Package className="w-4 h-4" />} accent="orange" alert={pendingRequests.length > 0} onClick={() => navigate(storeRoutes.queue)} />
+        <KPICard label="Ready to Issue" value={readyToIssue.length} sublabel="Approved for technicians" icon={<CheckCircle2 className="w-4 h-4" />} accent="blue" alert={readyToIssue.length > 0} onClick={() => navigate(storeRoutes.queue)} />
+        <KPICard label="Jobs Waiting Parts" value={jobsWaitingParts.length} sublabel="Blocked from closure" icon={<ShieldAlert className="w-4 h-4" />} accent="purple" alert={jobsWaitingParts.length > 0} onClick={() => navigate(storeRoutes.waitingParts)} />
+        <KPICard label="Low Stock" value={lowStock.length} sublabel="Below reorder level" icon={<AlertTriangle className="w-4 h-4" />} accent="red" alert={lowStock.length > 0} onClick={() => navigate(storeRoutes.lowStock)} />
+        <KPICard label="Replenishments" value={pendingReplenishments.length} sublabel="Pending or approved" icon={<Truck className="w-4 h-4" />} accent="green" onClick={() => navigate(storeRoutes.replenishments)} />
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.15fr_0.85fr]">
         <DashboardSection
           eyebrow="Queue"
           title="Store Action Queue"
-          detail="The store admin home should feel like a premium operational inbox: approve, issue, receive, then unblock jobs."
           actionLabel="Open Queue"
           onAction={() => navigate('/jobs?tab=approvals')}
         >
@@ -286,6 +280,10 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
               <CheckCircle2 className="mx-auto mb-3 h-10 w-10" style={{ color: colors.green.text, opacity: 0.7 }} />
               <p className="text-base font-medium" style={{ color: 'var(--text)' }}>Store queue is clear</p>
               <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>No spare part requests, issuance work, or blocked confirmations are waiting right now.</p>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <QuickChip icon={<Package className="w-4 h-4" />} label="Open Inventory" accent={colors.blue.text} onClick={() => navigate(storeRoutes.inventory)} />
+                <QuickChip icon={<Truck className="w-4 h-4" />} label="Replenishments" accent={colors.green.text} onClick={() => navigate(storeRoutes.replenishments)} />
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
@@ -295,8 +293,8 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
                   onClick={() => navigate(item.href)}
                   className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition-all hover:scale-[1.01] active:scale-[0.99]"
                   style={{ background: 'var(--surface-2)' }}
-                >
-                  <div className="min-w-0">
+                  >
+                    <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ background: item.kind === 'Blocked Job' ? colors.purple.bg : colors.orange.bg, color: item.kind === 'Blocked Job' ? colors.purple.text : colors.orange.text }}>
                         {item.kind}
@@ -305,7 +303,12 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
                     <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text)' }}>{item.title}</p>
                     <p className="mt-1 text-xs truncate" style={{ color: 'var(--text-muted)' }}>{item.subtitle}</p>
                   </div>
-                  <ArrowRight className="h-4 w-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
+                  <span
+                    className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]"
+                    style={{ background: item.kind === 'Blocked Job' ? colors.purple.bg : colors.blue.bg, color: item.kind === 'Blocked Job' ? colors.purple.text : colors.blue.text }}
+                  >
+                    {item.actionLabel}
+                  </span>
                 </button>
               ))}
             </div>
@@ -315,23 +318,22 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
         <DashboardSection
           eyebrow="Risk"
           title="Inventory Risk"
-          detail={loading ? 'Refreshing stock signals…' : `${outOfStock.length} out of stock • ${expiryBatches.length} expiring batches in the next 30 days`}
           actionLabel="Inventory Ledger"
-          onAction={() => navigate('/inventory?tab=ledger')}
+          onAction={() => navigate(storeRoutes.ledger)}
         >
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-2xl p-3" style={{ background: colors.red.bg }}>
+            <button onClick={() => navigate(storeRoutes.lowStock)} className="rounded-2xl p-3 text-left transition-all hover:scale-[1.02] active:scale-[0.98]" style={{ background: colors.red.bg }}>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: colors.red.text }}>Low</p>
               <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text)' }}>{lowStock.length}</p>
-            </div>
-            <div className="rounded-2xl p-3" style={{ background: colors.orange.bg }}>
+            </button>
+            <button onClick={() => navigate(storeRoutes.outOfStock)} className="rounded-2xl p-3 text-left transition-all hover:scale-[1.02] active:scale-[0.98]" style={{ background: colors.orange.bg }}>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: colors.orange.text }}>OOS</p>
               <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text)' }}>{outOfStock.length}</p>
-            </div>
-            <div className="rounded-2xl p-3" style={{ background: colors.blue.bg }}>
+            </button>
+            <button onClick={() => navigate(storeRoutes.ledger)} className="rounded-2xl p-3 text-left transition-all hover:scale-[1.02] active:scale-[0.98]" style={{ background: colors.blue.bg }}>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: colors.blue.text }}>Expiry</p>
               <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text)' }}>{expiryBatches.length}</p>
-            </div>
+            </button>
           </div>
 
           <div className="mt-4 space-y-2">
@@ -353,6 +355,9 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8" style={{ color: colors.green.text, opacity: 0.65 }} />
                 <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Inventory risk is stable</p>
                 <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Nothing is currently below reorder level.</p>
+                <div className="mt-4 flex justify-center">
+                  <QuickChip icon={<Package className="w-4 h-4" />} label="Open Catalog" accent={colors.blue.text} onClick={() => navigate(storeRoutes.inventory)} />
+                </div>
               </div>
             )}
           </div>
@@ -363,9 +368,8 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
         <DashboardSection
           eyebrow="Flow"
           title="Replenishment Pipeline"
-          detail="Van support work should be visible from the dashboard so the store admin can keep technicians stocked without opening multiple tabs."
           actionLabel="Open Replenishments"
-          onAction={() => navigate('/inventory?tab=replenishments')}
+          onAction={() => navigate(storeRoutes.replenishments)}
         >
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-2xl p-3" style={{ background: colors.orange.bg }}>
@@ -397,13 +401,19 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
                 <ArrowRight className="h-4 w-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
               </button>
             ))}
+            {pendingReplenishments.length === 0 && (
+              <div className="rounded-2xl px-4 py-6 text-center" style={{ background: 'var(--surface-2)' }}>
+                <CheckCircle2 className="mx-auto mb-2 h-8 w-8" style={{ color: colors.green.text, opacity: 0.65 }} />
+                <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Replenishments are under control</p>
+                <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>No van replenishment requests are waiting for store action.</p>
+              </div>
+            )}
           </div>
         </DashboardSection>
 
         <DashboardSection
           eyebrow="Receiving"
           title="Orders, Blocks & Quick Actions"
-          detail="This area keeps the store admin focused on receipt follow-up and the jobs still waiting on parts verification."
         >
           <div className="grid gap-3 md:grid-cols-2">
             <div className="rounded-3xl p-4" style={{ background: 'var(--surface-2)' }}>
@@ -446,9 +456,9 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <QuickChip icon={<Package className="w-4 h-4" />} label="Parts Catalog" onClick={() => navigate('/inventory?tab=parts')} accent={colors.blue.text} />
-            <QuickChip icon={<Truck className="w-4 h-4" />} label="Replenishments" onClick={() => navigate('/inventory?tab=replenishments')} accent={colors.green.text} />
-            <QuickChip icon={<ClipboardCheck className="w-4 h-4" />} label="Jobs Waiting Parts" count={jobsWaitingParts.length} onClick={() => navigate('/jobs?tab=approvals')} accent={colors.purple.text} />
+            <QuickChip icon={<Package className="w-4 h-4" />} label="Parts Catalog" onClick={() => navigate(storeRoutes.inventory)} accent={colors.blue.text} />
+            <QuickChip icon={<Truck className="w-4 h-4" />} label="Replenishments" onClick={() => navigate(storeRoutes.replenishments)} accent={colors.green.text} />
+            <QuickChip icon={<ClipboardCheck className="w-4 h-4" />} label="Jobs Waiting Parts" count={jobsWaitingParts.length} onClick={() => navigate(storeRoutes.waitingParts)} accent={colors.purple.text} />
           </div>
         </DashboardSection>
       </div>

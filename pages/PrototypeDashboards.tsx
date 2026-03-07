@@ -1,4 +1,4 @@
-import { AlertCircle,RefreshCw } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import React,{ useEffect,useRef,useState } from 'react';
 import DashboardPreviewV4 from '../components/dashboards/DashboardPreviewV4';
 import { useDevModeContext } from '../contexts/DevModeContext';
@@ -13,6 +13,42 @@ import { Job,User,UserRole } from '../types';
 interface DashboardV4Props {
   currentUser: User;
 }
+
+const DashboardLoadingSkeleton = () => (
+  <div className="space-y-5">
+    <div
+      className="overflow-hidden rounded-[32px] px-6 py-6 animate-pulse"
+      style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+    >
+      <div className="h-4 w-32 rounded-full bg-[var(--surface-2)]" />
+      <div className="mt-4 h-10 w-72 rounded-2xl bg-[var(--surface-2)]" />
+      <div className="mt-3 h-4 w-full max-w-2xl rounded-full bg-[var(--surface-2)]" />
+      <div className="mt-6 flex gap-2">
+        <div className="h-9 w-28 rounded-2xl bg-[var(--surface-2)]" />
+        <div className="h-9 w-24 rounded-2xl bg-[var(--surface-2)]" />
+        <div className="h-9 w-20 rounded-2xl bg-[var(--surface-2)]" />
+      </div>
+    </div>
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div
+          key={index}
+          className="h-28 rounded-[24px] animate-pulse"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+        />
+      ))}
+    </div>
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+      {Array.from({ length: 2 }).map((_, index) => (
+        <div
+          key={index}
+          className="h-[320px] rounded-[28px] animate-pulse"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+        />
+      ))}
+    </div>
+  </div>
+);
 
 const DashboardV4: React.FC<DashboardV4Props> = ({ currentUser }) => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -68,14 +104,7 @@ const DashboardV4: React.FC<DashboardV4Props> = ({ currentUser }) => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: 'var(--accent)' }} />
-          <p style={{ color: 'var(--text-muted)' }}>Loading dashboard...</p>
-        </div>
-      </div>
-    );
+    return <DashboardLoadingSkeleton />;
   }
 
   if (error) {
