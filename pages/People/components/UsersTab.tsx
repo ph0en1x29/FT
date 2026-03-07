@@ -119,17 +119,19 @@ const UsersTab: React.FC<UsersTabProps> = ({ _currentUser }) => {
   };
 
   const getRoleBadge = (role: UserRole) => {
-    const badges = {
+    const badges: Record<string, { icon: typeof Shield; class: string }> = {
       [UserRole.ADMIN]: { icon: Shield, class: 'bg-red-100 text-red-800' },
+      [UserRole.ADMIN_SERVICE]: { icon: Shield, class: 'bg-purple-100 text-purple-800' },
+      [UserRole.ADMIN_STORE]: { icon: Shield, class: 'bg-indigo-100 text-indigo-800' },
       [UserRole.SUPERVISOR]: { icon: Users, class: 'bg-amber-100 text-amber-800' },
       [UserRole.TECHNICIAN]: { icon: Wrench, class: 'bg-blue-100 text-blue-800' },
       [UserRole.ACCOUNTANT]: { icon: FileText, class: 'bg-purple-100 text-purple-800' },
     };
-    const badge = badges[role];
+    const badge = badges[role] || badges[UserRole.TECHNICIAN];
     const Icon = badge.icon;
     return (
       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.class}`}>
-        <Icon className="w-3 h-3" /> {role.charAt(0).toUpperCase() + role.slice(1)}
+        <Icon className="w-3 h-3" /> {role === 'admin_service' ? 'Admin (Service)' : role === 'admin_store' ? 'Admin (Store)' : role.charAt(0).toUpperCase() + role.slice(1)}
       </span>
     );
   };
@@ -271,7 +273,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ _currentUser }) => {
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Role *</label>
                 <select className={inputClass} value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as UserRole})}>
-                  {Object.values(UserRole).map(role => <option key={role} value={role}>{role.charAt(0).toUpperCase() + role.slice(1)}</option>)}
+                  {Object.values(UserRole).map(role => <option key={role} value={role}>{role === 'admin_service' ? 'Admin (Service)' : role === 'admin_store' ? 'Admin (Store)' : role.charAt(0).toUpperCase() + role.slice(1)}</option>)}
                 </select>
               </div>
 
