@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle,ArrowLeft,Camera,ClipboardList,Clock,FileText,ImageIcon,Package,ShieldCheck,Wrench } from 'lucide-react';
+import { AlertTriangle,ArrowLeft,Camera,ClipboardList,Clock,FileText,ImageIcon,Package,ShieldCheck } from 'lucide-react';
 import React, { useRef } from 'react';
 import { useNavigate,useParams } from 'react-router-dom';
 import { ComboboxOption } from '../../components/Combobox';
@@ -42,6 +42,7 @@ ReassignModal,
 RejectJobModal,
 SignaturesCard,
 StartJobModal,
+MobileTechnicianWorkflowCard,
 } from './components';
 
 // Extracted hooks
@@ -92,10 +93,14 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   // Refs for mobile scroll-to actions
   const photosRef = useRef<HTMLDivElement>(null);
   const partsRef = useRef<HTMLDivElement>(null);
+  const checklistRef = useRef<HTMLDivElement>(null);
+  const signaturesRef = useRef<HTMLDivElement>(null);
 
   // Derived flags
   const statusFlags = getStatusFlags(job, currentUserId, currentUserRole);
   const roleFlags = getRoleFlags(currentUserRole, state.isCurrentUserHelper, job, statusFlags);
+  const isMobileTechnicianFlow = roleFlags.isTechnician && !roleFlags.isHelperOnly && !isDesktopDefault;
+  const completionBlocked = !statusFlags.hasBothSignatures || !statusFlags.hasHourmeter || !statusFlags.hasAfterPhoto;
 
   // Hide sticky action bar when any modal is open (prevents overlap)
   const hasModalOpen =
@@ -145,6 +150,22 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         onExportToAutoCount={actions.handleExportToAutoCount} onDeleteJob={() => state.setShowDeleteModal(true)}
         onAcknowledgeJob={actions.handleAcknowledgeJob} />
 
+      {isMobileTechnicianFlow && (
+        <div className="px-4 pt-4">
+          <MobileTechnicianWorkflowCard
+            job={job}
+            statusFlags={statusFlags}
+            onAcceptJob={actions.handleAcceptJob}
+            onRejectJob={() => state.setShowRejectJobModal(true)}
+            onStartJob={actions.handleOpenStartJobModal}
+            onCompleteJob={() => actions.handleStatusChange(JobStatus.AWAITING_FINALIZATION)}
+            onScrollToChecklist={() => checklistRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            onScrollToPhotos={() => photosRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            onScrollToSignatures={() => signaturesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          />
+        </div>
+      )}
+
       <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-2">
         <div className="lg:col-span-2 xl:col-span-3 space-y-5">
           {job.forklift && <EquipmentCard job={job} activeRental={state.activeRental} currentUserId={currentUserId}
@@ -164,6 +185,12 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             recommendationInput={state.recommendationInput} onJobCarriedOutInputChange={state.setJobCarriedOutInput}
             onRecommendationInputChange={state.setRecommendationInput} onStartEdit={actions.handleStartEditJobCarriedOut}
             onSave={actions.handleSaveJobCarriedOut} onCancel={actions.handleCancelJobCarriedOutEdit} />
+          {isMobileTechnicianFlow && (statusFlags.isInProgress || statusFlags.isAwaitingFinalization) && (
+            <div ref={signaturesRef}>
+              <SignaturesCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
+                onTechSign={actions.handleTechnicianSwipeSign} onCustomerSign={actions.handleCustomerSwipeSign} />
+            </div>
+          )}
           <CollapsibleCard
             title="Confirmation Status"
             icon={<ShieldCheck className="w-5 h-5 text-[var(--text-muted)]" />}
@@ -182,6 +209,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             <NotesSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} noteInput={state.noteInput}
               onNoteInputChange={state.setNoteInput} onAddNote={actions.handleAddNote} />
           </CollapsibleCard>
+          <div ref={checklistRef}>
           <CollapsibleCard
             title="Condition Checklist"
             icon={<ClipboardList className="w-5 h-5 text-[var(--text-muted)]" />}
@@ -201,6 +229,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
               onCancel={actions.handleCancelChecklistEdit} onSetItemState={actions.handleSetChecklistItemState}
               onCheckAll={actions.handleCheckAll} />
           </CollapsibleCard>
+          </div>
           <div ref={partsRef}>
           <CollapsibleCard
             title="Parts"
@@ -271,8 +300,12 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
           >
             <JobTimeline job={job} />
           </CollapsibleCard>
-          <SignaturesCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
-            onTechSign={actions.handleTechnicianSwipeSign} onCustomerSign={actions.handleCustomerSwipeSign} />
+          {(!isMobileTechnicianFlow || (!statusFlags.isInProgress && !statusFlags.isAwaitingFinalization)) && (
+            <div ref={signaturesRef}>
+              <SignaturesCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
+                onTechSign={actions.handleTechnicianSwipeSign} onCustomerSign={actions.handleCustomerSwipeSign} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -369,6 +402,19 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
           <div className="flex flex-col gap-2">
             {statusFlags.isInProgress && (
               <>
+                {completionBlocked && (
+                  <div className="flex flex-wrap gap-2">
+                    {!statusFlags.hasAfterPhoto && (
+                      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-medium text-amber-700">After photo needed</span>
+                    )}
+                    {!statusFlags.hasBothSignatures && (
+                      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-medium text-amber-700">Signatures missing</span>
+                    )}
+                    {!statusFlags.hasHourmeter && (
+                      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-medium text-amber-700">Hourmeter needed</span>
+                    )}
+                  </div>
+                )}
                 {/* Hourmeter quick-input row */}
                 {job.forklift && (
                   <div className="flex items-center gap-2 bg-[var(--surface-2)] rounded-xl px-3 py-2">
@@ -397,9 +443,10 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => actions.handleStatusChange(JobStatus.AWAITING_FINALIZATION)}
-                    className="flex-1 bg-green-600 text-white h-12 rounded-xl font-medium"
+                    disabled={completionBlocked}
+                    className={`flex-1 h-12 rounded-xl font-medium ${completionBlocked ? 'bg-slate-200 text-slate-500' : 'bg-green-600 text-white'}`}
                   >
-                    Complete
+                    {completionBlocked ? 'Finish Requirements' : 'Complete'}
                   </button>
                   <button
                     onClick={() => photosRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -409,11 +456,11 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
                     <Camera className="w-5 h-5 text-[var(--text)]" />
                   </button>
                   <button
-                    onClick={() => partsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    onClick={() => signaturesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                     className="w-12 h-12 bg-[var(--surface-2)] rounded-xl flex items-center justify-center"
-                    aria-label="Scroll to Parts"
+                    aria-label="Scroll to Signatures"
                   >
-                    <Wrench className="w-5 h-5 text-[var(--text)]" />
+                    <FileText className="w-5 h-5 text-[var(--text)]" />
                   </button>
                 </div>
               </>

@@ -558,7 +558,7 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
               </div>
             </Suspense>
           </main>
-          <FloatingActionButton currentUser={currentUser} currentPath={window.location.hash} />
+          <FloatingActionButton currentUser={currentUser} />
           <MobileNav currentUser={currentUser} onOpenDrawer={() => setMobileDrawerOpen(true)} navRole={navRole} />
           <MobileDrawer currentUser={currentUser} isOpen={mobileDrawerOpen} onClose={() => setMobileDrawerOpen(false)} onLogout={onLogout} navRole={navRole} />
           {devMode.isDevModeActive && devMode.impersonatedRole && (
