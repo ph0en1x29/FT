@@ -16,6 +16,7 @@
 > - **✍️ Swipe-to-Sign** — Replaced signature drawing with a simple swipe slider. Technician swipes to sign; customer fills in Name + IC Number then swipes. Much faster on mobile.
 > - **📋 Bulk Site Sign-Off** — Technicians with 2+ jobs at the same site can sign all of them at once. One swipe for tech, one swipe for customer. No more signing each job individually.
 > - **🔐 Admin Role Split** — Admin (Service) manages jobs, customers, forklifts, and HR. Admin (Store) manages inventory and parts. Each sees only what they need.
+> - **🖥️ Role-specific dashboards** — Admin (Service) now lands on a dispatch-focused dashboard; Admin (Store) lands on a parts-and-stock control dashboard.
 > - **🔧 Reach Truck = Electric** — Reach trucks now follow electric forklift service schedules (3-month calendar-based tracking).
 > - **📍 Site address only** — Job detail shows the site address selected during creation, not the customer's office address.
 >
@@ -124,6 +125,20 @@
 - Hourmeter amendment approval
 - Override any restrictions
 - Access all reports and data
+
+### Admin (Service) 🛠️
+- Dispatch and manage field service operations
+- Create, assign, edit, and delete jobs
+- Manage customers, forklifts, rentals, and service follow-up
+- Confirm service-side completion after store/parts confirmation
+- Monitor technician capacity, overdue work, escalations, and fleet pressure
+
+### Admin (Store) 📦
+- Manage inventory, parts, and replenishment workflows
+- Review spare part requests and issue stock to jobs/technicians
+- Monitor low stock, expiring batches, and replenishment backlog
+- Support service operations without owning dispatch or customer management
+- Use a queue-first dashboard focused on stock risk and blocked jobs
 
 ### Supervisor 👔
 - View and manage all jobs
@@ -629,7 +644,21 @@ Default interval is 500 hours. To change for a specific forklift:
 ## Admin Guide
 
 ### Your Dashboard
-As an Admin, you share the same **Admin/Supervisor Dashboard** as Supervisors (see [Supervisor Dashboard](#your-dashboard-2) for details). This provides full operational visibility with KPI cards, escalation management, work queue, and team status.
+If you are the full `Admin` role, you keep the broad all-operations admin dashboard. If you are one of the split admin roles, your home screen is now specialized:
+
+#### Admin (Service) Dashboard
+- **Action Queue** — Escalations, disputed jobs, overdue jobs, jobs waiting for service confirmation, and unassigned work
+- **Dispatch & Capacity** — Technician availability and overload signals
+- **Service Pipeline** — Assigned, in progress, awaiting finalization, and ready-to-confirm work
+- **Fleet Pressure** — Units needing service-side attention
+
+#### Admin (Store) Dashboard
+- **Store Action Queue** — Spare part approvals, ready-to-issue items, receipt follow-up, and jobs blocked by parts
+- **Inventory Risk** — Low stock, out-of-stock items, and expiring batches
+- **Replenishment Pipeline** — Van replenishment demand and progress
+- **Orders, Blocks & Quick Actions** — Ordered parts follow-up and fast access to inventory work
+
+This split is intentional: service admin should feel like a dispatch command center, while store admin should feel like a premium operational inbox for parts and stock control.
 
 ### Full System Access
 As an Admin, you have complete control over the system.

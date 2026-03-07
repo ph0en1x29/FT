@@ -46,6 +46,14 @@ All notable changes to the FieldPro Field Service Management System.
 
 ## [2026-03-06] — Signatures, Role Separation & Service Tracking
 
+### UX
+
+**Role-Specific Dashboards**
+- **Service Admin dashboard** — New field-operations dashboard focused on dispatch, action queue, technician capacity, service confirmations, and fleet pressure.
+- **Store Admin dashboard** — New inventory-control dashboard focused on part requests, stock risk, replenishments, expiring batches, and blocked jobs.
+- **Dashboard routing split** — `admin_service` and `admin_store` no longer fall back to the generic admin dashboard.
+- **Premium dashboard styling pass** — Larger rounded surfaces, calmer gradients, clearer KPI hierarchy, and faster scanability for role-specific daily work.
+
 ### Features
 
 **Swipe-to-Sign System**
