@@ -91,6 +91,20 @@ export const deleteCustomer = async (customerId: string): Promise<void> => {
     throw new Error('Cannot delete customer with existing jobs. Delete the jobs first.');
   }
 
+  // Check for rented forklifts
+  const { data: rentedForklifts } = await supabase
+    .from('forklifts')
+    .select('forklift_id')
+    .eq('current_customer_id', customerId);
+
+  if (rentedForklifts && rentedForklifts.length > 0) {
+    throw new Error('Cannot delete customer with active rentals. Return all forklifts first.');
+  }
+
+  // Delete child records (FK constraints)
+  await supabase.from('customer_contacts').delete().eq('customer_id', customerId);
+  await supabase.from('customer_sites').delete().eq('customer_id', customerId);
+
   const { error } = await supabase
     .from('customers')
     .delete()
