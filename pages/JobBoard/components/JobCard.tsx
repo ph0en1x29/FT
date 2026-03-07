@@ -47,9 +47,22 @@ export const JobCard: React.FC<JobCardProps> = ({
   onAccept,
   onReject,
 }) => {
+  const handleActivate = () => {
+    onNavigate(job.job_id);
+  };
+
   return (
     <div 
-      onClick={() => onNavigate(job.job_id)}
+      onClick={handleActivate}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleActivate();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      data-testid={`job-card-${job.job_id}`}
       className={`card-theme p-5 rounded-xl clickable-card group theme-transition ${getStatusBorderColor(job)}`}
     >
       {/* Job Number — prominent, top of card */}

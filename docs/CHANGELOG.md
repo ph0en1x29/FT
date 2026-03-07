@@ -6,6 +6,20 @@ All notable changes to the FieldPro Field Service Management System.
 
 ## [2026-03-06] — Signatures, Role Separation & Service Tracking
 
+## [2026-03-06] — Role E2E Stabilization, Delete Fixes & Review Documentation
+
+### Fixes
+- **Full role suite now fully runnable** — Reworked admin and technician E2E coverage so data-dependent rent-out, return, and technician job flows seed temporary local records, exercise the feature, then clean those records back out.
+- **Admin delete action visibility** — Fixed a UI permission mismatch so the full `admin` role can see the Job Detail delete action.
+- **Hard delete cleanup** — `hardDeleteJob()` now removes related `hourmeter_history` rows before deleting a job, fixing a foreign-key cleanup failure.
+- **Stable review/test selectors** — Added explicit labels and test hooks for fleet cards and delete actions to reduce brittle UI automation.
+
+### Testing
+- **Full four-role verification completed locally** — `npm run typecheck`, `npm run build`, and
+  `npx playwright test tests/e2e/admin.spec.ts tests/e2e/supervisor.spec.ts tests/e2e/technician.spec.ts tests/e2e/accountant.spec.ts`
+  all passed with `75 passed, 0 failed, 0 skipped`.
+- **Review report added** — Local reviewer summary available in `TEST_FIX_REPORT_2026-03-06.md`.
+
 ### Features
 
 **Swipe-to-Sign System**

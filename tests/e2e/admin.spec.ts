@@ -1,5 +1,227 @@
-import { test, expect } from '@playwright/test';
-import { loginAsAdmin } from '../fixtures/auth.fixture';
+import { test, expect, type Page } from '@playwright/test';
+import { gotoApp, loginAsAdmin } from '../fixtures/auth.fixture';
+
+type SeededEntities = {
+  tag: string;
+  customerId?: string;
+  customerName?: string;
+  forkliftId?: string;
+  forkliftSerial?: string;
+  rentalId?: string;
+  jobId?: string;
+  jobTitle?: string;
+};
+
+function createSeedTag(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function createSeedCustomer(page: Page, tag: string) {
+  return page.evaluate(async ({ seedTag }) => {
+    const serviceModulePath = '/services/supabaseService.ts';
+    const { SupabaseDb } = await import(/* @vite-ignore */ serviceModulePath);
+    const created = await SupabaseDb.createCustomer({
+      name: `E2E Customer ${seedTag}`,
+      address: `${seedTag} Integration Test Address`,
+      phone: '555-0100',
+      email: `${seedTag}@example.com`,
+      notes: `Seeded by Playwright ${seedTag}`,
+    });
+    return {
+      customer_id: created.customer_id,
+      name: created.name,
+      address: created.address,
+    };
+  }, { seedTag: tag });
+}
+
+async function createSeedForklift(page: Page, tag: string) {
+  return page.evaluate(async ({ seedTag }) => {
+    const serviceModulePath = '/services/supabaseService.ts';
+    const { SupabaseDb } = await import(/* @vite-ignore */ serviceModulePath);
+    const created = await SupabaseDb.createForklift({
+      serial_number: `E2E-${seedTag}`.slice(0, 40),
+      forklift_no: `FLT-${seedTag}`.slice(0, 40),
+      customer_forklift_no: `CUS-${seedTag}`.slice(0, 40),
+      make: 'Toyota',
+      model: `8FD${seedTag.slice(-2)}`,
+      type: 'Diesel',
+      hourmeter: 1200,
+      last_service_hourmeter: 1000,
+      last_serviced_hourmeter: 1000,
+      next_target_service_hour: 1500,
+      year: 2023,
+      capacity_kg: 2500,
+      location: `Yard ${seedTag}`,
+      site: `Yard ${seedTag}`,
+      status: 'Available',
+      notes: `Seeded by Playwright ${seedTag}`,
+      ownership: 'company',
+      last_hourmeter_update: new Date().toISOString(),
+    });
+    return {
+      forklift_id: created.forklift_id,
+      serial_number: created.serial_number,
+      make: created.make,
+      model: created.model,
+      hourmeter: created.hourmeter,
+    };
+  }, { seedTag: tag });
+}
+
+async function createSeedRental(page: Page, forkliftId: string, customerId: string, tag: string) {
+  return page.evaluate(async ({ seededForkliftId, seededCustomerId, seedTag }) => {
+    const serviceModulePath = '/services/supabaseService.ts';
+    const { SupabaseDb } = await import(/* @vite-ignore */ serviceModulePath);
+    const created = await SupabaseDb.assignForkliftToCustomer(
+      seededForkliftId,
+      seededCustomerId,
+      new Date().toISOString().split('T')[0],
+      undefined,
+      `Seeded by Playwright ${seedTag}`,
+      undefined,
+      'Playwright Seed',
+      2500,
+      `Site ${seedTag}`,
+    );
+    return { rental_id: created.rental_id };
+  }, { seededForkliftId: forkliftId, seededCustomerId: customerId, seedTag: tag });
+}
+
+async function createSeedJob(page: Page, customerId: string, forkliftId: string, technicianEmail: string, tag: string) {
+  return page.evaluate(async ({ seededCustomerId, seededForkliftId, email, seedTag }) => {
+    const serviceModulePath = '/services/supabaseService.ts';
+    const clientModulePath = '/services/supabaseClient.ts';
+    const [{ SupabaseDb }, { supabase }] = await Promise.all([
+      import(/* @vite-ignore */ serviceModulePath),
+      import(/* @vite-ignore */ clientModulePath),
+    ]);
+
+    const { data: technician, error } = await supabase
+      .from('users')
+      .select('user_id, name')
+      .eq('email', email)
+      .single();
+
+    if (error || !technician) {
+      throw new Error(`Could not find technician ${email}: ${error?.message || 'no data'}`);
+    }
+
+    const created = await SupabaseDb.createJob({
+      customer_id: seededCustomerId,
+      forklift_id: seededForkliftId,
+      title: `E2E Job ${seedTag}`,
+      description: `Seeded technician job ${seedTag}`,
+      priority: 'Medium',
+      job_type: 'Service',
+      status: 'Assigned',
+      assigned_technician_id: technician.user_id,
+      assigned_technician_name: technician.name,
+      hourmeter_reading: 1200,
+      notes: [`Seeded by Playwright ${seedTag}`],
+      labor_cost: 150,
+    });
+
+    return {
+      job_id: created.job_id,
+      title: created.title,
+      deleted_at: created.deleted_at || null,
+    };
+  }, { seededCustomerId: customerId, seededForkliftId: forkliftId, email: technicianEmail, seedTag: tag });
+}
+
+async function getJob(page: Page, jobId: string) {
+  return page.evaluate(async ({ seededJobId }) => {
+    const clientModulePath = '/services/supabaseClient.ts';
+    const { supabase } = await import(/* @vite-ignore */ clientModulePath);
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('job_id, title, deleted_at')
+      .eq('job_id', seededJobId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return data;
+  }, { seededJobId: jobId });
+}
+
+async function getForklift(page: Page, forkliftId: string) {
+  return page.evaluate(async ({ seededForkliftId }) => {
+    const clientModulePath = '/services/supabaseClient.ts';
+    const { supabase } = await import(/* @vite-ignore */ clientModulePath);
+    const { data, error } = await supabase
+      .from('forklifts')
+      .select('forklift_id, serial_number, current_customer_id, status')
+      .eq('forklift_id', seededForkliftId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return data;
+  }, { seededForkliftId: forkliftId });
+}
+
+async function getCustomer(page: Page, customerId: string) {
+  return page.evaluate(async ({ seededCustomerId }) => {
+    const clientModulePath = '/services/supabaseClient.ts';
+    const { supabase } = await import(/* @vite-ignore */ clientModulePath);
+    const { data, error } = await supabase
+      .from('customers')
+      .select('customer_id, name')
+      .eq('customer_id', seededCustomerId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return data;
+  }, { seededCustomerId: customerId });
+}
+
+async function cleanupSeededEntities(page: Page, entities: SeededEntities) {
+  await page.evaluate(async (seeded) => {
+    const serviceModulePath = '/services/supabaseService.ts';
+    const clientModulePath = '/services/supabaseClient.ts';
+    const { SupabaseDb } = await import(/* @vite-ignore */ serviceModulePath);
+    const { supabase } = await import(/* @vite-ignore */ clientModulePath);
+
+    if (seeded.jobId) {
+      await SupabaseDb.hardDeleteJob(seeded.jobId);
+    }
+
+    if (seeded.rentalId) {
+      await supabase.from('forklift_rentals').delete().eq('rental_id', seeded.rentalId);
+    }
+
+    if (seeded.forkliftId) {
+      await supabase.from('forklift_rentals').delete().eq('forklift_id', seeded.forkliftId);
+      await supabase
+        .from('forklifts')
+        .update({ current_customer_id: null, status: 'Available', updated_at: new Date().toISOString() })
+        .eq('forklift_id', seeded.forkliftId);
+      await supabase.from('forklifts').delete().eq('forklift_id', seeded.forkliftId);
+    }
+
+    if (seeded.customerId) {
+      await supabase.from('customer_contacts').delete().eq('customer_id', seeded.customerId);
+      await supabase.from('customer_sites').delete().eq('customer_id', seeded.customerId);
+      await supabase.from('forklift_rentals').delete().eq('customer_id', seeded.customerId);
+      await supabase.from('customers').delete().eq('customer_id', seeded.customerId);
+    }
+  }, entities);
+}
+
+async function openFleetCard(page: Page, forkliftId: string, serial: string) {
+  await gotoApp(page, '/forklifts?tab=fleet');
+  await page.waitForLoadState('networkidle');
+
+  const searchInput = page.locator('input[type="search"], input[placeholder*="Search" i]').first();
+  if (await searchInput.isVisible().catch(() => false)) {
+    await searchInput.fill(serial);
+    await page.waitForTimeout(500);
+  }
+
+  const card = page.getByTestId(`forklift-card-${forkliftId}`);
+  await expect(card).toBeVisible({ timeout: 15000 });
+  return card;
+}
 
 test.describe('Admin Role - Full Access E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,24 +230,23 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
 
   test.describe('1. Dashboard', () => {
     test('loads dashboard with KPI cards and job queue', async ({ page }) => {
-      await page.goto('/');
+      await gotoApp(page, '/');
       await page.waitForLoadState('networkidle');
 
-      // Verify page title/heading
-      await expect(page.locator('h1, h2').filter({ hasText: /dashboard/i })).toBeVisible();
+      await expect(page.locator('main')).toBeVisible();
 
-      // Verify KPI cards are visible (look for common metrics)
+      // Verify dashboard content is visible
       const kpiSection = page.locator('[class*="grid"]').first();
       await expect(kpiSection).toBeVisible();
 
       // Job queue should be visible
-      await expect(page.locator('text=/job.*queue|recent.*jobs|active.*jobs/i').first()).toBeVisible();
+      await expect(page.locator('text=/approval queue|recent activity|action required/i').first()).toBeVisible();
     });
   });
 
   test.describe('2. Jobs List', () => {
     test('loads jobs list, search works, date tabs work, create button exists', async ({ page }) => {
-      await page.goto('/jobs');
+      await gotoApp(page, '/jobs');
       await page.waitForLoadState('networkidle');
 
       // List loads
@@ -43,12 +264,12 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
       await expect(page.locator('button, [role="tab"]').filter({ hasText: /unfinished|today|week|month|all/i }).first()).toBeVisible();
 
       // Create job button exists
-      await expect(page.getByRole('button', { name: /create|new.*job|add.*job/i })).toBeVisible();
+      await expect(page.getByRole('button', { name: /new job/i }).first()).toBeVisible();
     });
 
     test('date pill tabs are clickable', async ({ page }) => {
       test.setTimeout(30000);
-      await page.goto('/jobs');
+      await gotoApp(page, '/jobs');
       await page.waitForLoadState('networkidle');
 
       // Click through date tabs
@@ -69,7 +290,7 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
   test.describe('3. Create Job', () => {
     test('form renders, customer dropdown works, forklift dropdown filters by customer', async ({ page }) => {
       test.setTimeout(30000);
-      await page.goto('/jobs/new');
+      await gotoApp(page, '/jobs/new');
       await page.waitForLoadState('networkidle');
 
       // Form renders
@@ -101,11 +322,11 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
   test.describe('4. Job Detail', () => {
     test('click first job, detail page loads, equipment card shows, status actions visible', async ({ page }) => {
       test.setTimeout(30000);
-      await page.goto('/jobs');
+      await gotoApp(page, '/jobs');
       await page.waitForLoadState('networkidle');
 
       // Click first job
-      const firstJob = page.locator('a[href*="/jobs/"], [data-testid*="job-"], tr[role="row"]').first();
+      const firstJob = page.locator('[data-testid^="job-card-"]').first();
       await firstJob.click();
       await page.waitForLoadState('networkidle');
 
@@ -123,7 +344,7 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
   test.describe('5. Fleet List', () => {
     test('list loads, search works, filter comboboxes work, cards render', async ({ page }) => {
       test.setTimeout(30000);
-      await page.goto('/forklifts');
+      await gotoApp(page, '/forklifts?tab=fleet');
       await page.waitForLoadState('networkidle');
 
       // List loads
@@ -134,6 +355,7 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
       if (await searchInput.isVisible({ timeout: 2000 }).catch(() => false)) {
         await searchInput.fill('test');
         await page.waitForTimeout(500);
+        await searchInput.clear();
       }
 
       // Filter comboboxes (Type/Status/Rentals/Makes)
@@ -153,11 +375,11 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
   test.describe('6. Fleet - Add Forklift', () => {
     test('click Add button, modal opens with 3 sections, Brand/Type/Status are Combobox', async ({ page }) => {
       test.setTimeout(30000);
-      await page.goto('/forklifts');
+      await gotoApp(page, '/forklifts?tab=fleet');
       await page.waitForLoadState('networkidle');
 
       // Click Add button
-      const addButton = page.getByRole('button', { name: /add.*forklift|new.*forklift|create/i });
+      const addButton = page.getByRole('button', { name: /add forklift/i });
       await addButton.click();
       await page.waitForTimeout(500);
 
@@ -187,16 +409,11 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
   test.describe('7. Fleet - Edit Forklift', () => {
     test('click forklift card, edit button, modal opens, fields populated', async ({ page }) => {
       test.setTimeout(30000);
-      await page.goto('/forklifts');
+      await gotoApp(page, '/forklifts?tab=fleet');
       await page.waitForLoadState('networkidle');
 
-      // Click a forklift card
-      const forkliftCard = page.locator('[data-testid*="forklift-"], [class*="card"]').first();
-      await forkliftCard.click();
-      await page.waitForTimeout(500);
-
-      // Edit button
-      const editButton = page.getByRole('button', { name: /edit/i }).first();
+      // Edit button on the first fleet card
+      const editButton = page.locator('button[title="Edit"]').first();
       if (await editButton.isVisible({ timeout: 2000 }).catch(() => false)) {
         await editButton.click();
         await page.waitForTimeout(500);
@@ -220,28 +437,32 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
   test.describe('8. Fleet - Rent Out', () => {
     test('available forklift shows Rent Out button, click opens modal with customer Combobox', async ({ page }) => {
       test.setTimeout(30000);
-      await page.goto('/forklifts');
-      await page.waitForLoadState('networkidle');
+      const seeded: SeededEntities = { tag: createSeedTag('admin-rent') };
 
-      // Look for Rent Out button (might be on card or in detail view)
-      const rentOutButton = page.getByRole('button', { name: /rent.*out/i }).first();
-      
-      if (await rentOutButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await rentOutButton.click();
-        await page.waitForTimeout(500);
+      try {
+        const customer = await createSeedCustomer(page, seeded.tag);
+        const forklift = await createSeedForklift(page, seeded.tag);
+        seeded.customerId = customer.customer_id;
+        seeded.customerName = customer.name;
+        seeded.forkliftId = forklift.forklift_id;
+        seeded.forkliftSerial = forklift.serial_number;
 
-        // Modal opens
-        await expect(page.locator('[role="dialog"], [class*="modal"]')).toBeVisible();
+        const card = await openFleetCard(page, forklift.forklift_id, forklift.serial_number);
+        await card.getByRole('button', { name: /rent.*out/i }).click();
 
-        // Customer Combobox
-        const customerInput = page.locator('[role="dialog"] input[placeholder*="customer" i]').first();
-        await expect(customerInput).toBeVisible();
+        const dialog = page.locator('[role="dialog"]').last();
+        await expect(dialog).toBeVisible();
 
-        // Close modal
-        await page.keyboard.press('Escape');
-      } else {
-        // If no rent out button visible, test passes (no available forklifts)
-        console.log('No available forklifts to rent out - test skipped');
+        const customerInput = dialog.locator('input[placeholder*="customer" i]').first();
+        await customerInput.click();
+        await customerInput.fill(customer.name);
+        await page.locator('li').filter({ hasText: customer.name }).first().click();
+        await dialog.getByRole('button', { name: /rent forklift/i }).click();
+
+        await expect(page.getByText(/forklift rented successfully/i)).toBeVisible({ timeout: 15000 });
+        await expect.poll(async () => (await getForklift(page, forklift.forklift_id)) !== null).toBe(true);
+      } finally {
+        await cleanupSeededEntities(page, seeded);
       }
     });
   });
@@ -249,31 +470,38 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
   test.describe('9. Fleet - Return', () => {
     test('rented forklift shows Return button, click opens modal', async ({ page }) => {
       test.setTimeout(30000);
-      await page.goto('/forklifts');
-      await page.waitForLoadState('networkidle');
+      const seeded: SeededEntities = { tag: createSeedTag('admin-return') };
 
-      // Look for Return button
-      const returnButton = page.getByRole('button', { name: /return/i }).first();
-      
-      if (await returnButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await returnButton.click();
-        await page.waitForTimeout(500);
+      try {
+        const customer = await createSeedCustomer(page, seeded.tag);
+        const forklift = await createSeedForklift(page, seeded.tag);
+        const rental = await createSeedRental(page, forklift.forklift_id, customer.customer_id, seeded.tag);
 
-        // Modal opens
-        await expect(page.locator('[role="dialog"], [class*="modal"]')).toBeVisible();
+        seeded.customerId = customer.customer_id;
+        seeded.customerName = customer.name;
+        seeded.forkliftId = forklift.forklift_id;
+        seeded.forkliftSerial = forklift.serial_number;
+        seeded.rentalId = rental.rental_id;
 
-        // Close modal
-        await page.keyboard.press('Escape');
-      } else {
-        // If no return button visible, test passes (no rented forklifts)
-        console.log('No rented forklifts to return - test skipped');
+        const card = await openFleetCard(page, forklift.forklift_id, forklift.serial_number);
+        await card.getByRole('button', { name: /^return$/i }).click();
+
+        const dialog = page.locator('[role="dialog"]').last();
+        await expect(dialog).toBeVisible();
+        await dialog.getByRole('button', { name: /return forklift/i }).click();
+
+        await expect(page.getByText(/forklift returned successfully/i)).toBeVisible({ timeout: 15000 });
+        await expect(card.getByRole('button', { name: /rent.*out/i })).toBeVisible({ timeout: 15000 });
+        seeded.rentalId = undefined;
+      } finally {
+        await cleanupSeededEntities(page, seeded);
       }
     });
   });
 
   test.describe('10. Customers', () => {
     test('list loads, can search', async ({ page }) => {
-      await page.goto('/customers');
+      await gotoApp(page, '/customers');
       await page.waitForLoadState('networkidle');
 
       // List loads
@@ -294,16 +522,16 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
   test.describe('11. Customer Profile', () => {
     test('click customer, profile loads, Edit button opens modal with sections', async ({ page }) => {
       test.setTimeout(30000);
-      await page.goto('/customers');
+      await gotoApp(page, '/customers');
       await page.waitForLoadState('networkidle');
 
       // Click first customer
-      const firstCustomer = page.locator('a[href*="/customers/"], [data-testid*="customer-"], tr[role="row"]').first();
+      const firstCustomer = page.locator('[data-testid^="customer-card-"]').first();
       await firstCustomer.click();
       await page.waitForLoadState('networkidle');
 
       // Profile loads
-      await expect(page.locator('h1, h2').first()).toBeVisible();
+      await expect(page.locator('main')).toBeVisible();
 
       // Edit button
       const editButton = page.getByRole('button', { name: /edit/i }).first();
@@ -324,7 +552,7 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
   test.describe('12. Inventory', () => {
     test('loads, filter Comboboxes work (Categories/Stock Levels)', async ({ page }) => {
       test.setTimeout(30000);
-      await page.goto('/inventory');
+      await gotoApp(page, '/inventory');
       await page.waitForLoadState('networkidle');
 
       // Loads
@@ -349,11 +577,11 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
 
   test.describe('13. Invoices', () => {
     test('loads', async ({ page }) => {
-      await page.goto('/invoices');
+      await gotoApp(page, '/invoices');
       await page.waitForLoadState('networkidle');
 
       // Invoices page loads
-      await expect(page.locator('h1, h2').filter({ hasText: /invoices/i })).toBeVisible();
+      await expect(page.locator('main h1, main h2').filter({ hasText: /billing|invoice history/i }).first()).toBeVisible();
 
       // List or table visible
       await expect(page.locator('table, [class*="grid"], [data-testid*="invoice-"]').first()).toBeVisible();
@@ -363,7 +591,7 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
   test.describe('14. People', () => {
     test('loads, tabs work', async ({ page }) => {
       test.setTimeout(30000);
-      await page.goto('/people');
+      await gotoApp(page, '/people');
       await page.waitForLoadState('networkidle');
 
       // Page loads
@@ -384,7 +612,7 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
   test.describe('15. Navigation', () => {
     test('sidebar links all work', async ({ page }) => {
       test.setTimeout(30000);
-      await page.goto('/');
+      await gotoApp(page, '/');
       await page.waitForLoadState('networkidle');
 
       // Dashboard link
@@ -435,7 +663,7 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
     test('responsive navigation works', async ({ page }) => {
       // Test mobile viewport
       await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto('/');
+      await gotoApp(page, '/');
       await page.waitForLoadState('networkidle');
 
       // Mobile menu button should be visible
@@ -446,6 +674,74 @@ test.describe('Admin Role - Full Access E2E Tests', () => {
 
         // Nav links should appear
         await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
+      }
+    });
+  });
+
+  test.describe('16. Seeded Delete Workflow', () => {
+    test('admin can delete a seeded job, forklift, and customer through the UI', async ({ page }) => {
+      test.setTimeout(60000);
+      const seeded: SeededEntities = { tag: createSeedTag('admin-delete') };
+
+      try {
+        const customer = await createSeedCustomer(page, seeded.tag);
+        const forklift = await createSeedForklift(page, seeded.tag);
+        const job = await createSeedJob(page, customer.customer_id, forklift.forklift_id, 'tech1@example.com', seeded.tag);
+
+        seeded.customerId = customer.customer_id;
+        seeded.customerName = customer.name;
+        seeded.forkliftId = forklift.forklift_id;
+        seeded.forkliftSerial = forklift.serial_number;
+        seeded.jobId = job.job_id;
+        seeded.jobTitle = job.title;
+
+        await gotoApp(page, '/jobs');
+        await page.waitForLoadState('networkidle');
+
+        const jobSearch = page.locator('input[type="search"], input[placeholder*="Search" i]').first();
+        if (await jobSearch.isVisible().catch(() => false)) {
+          await jobSearch.fill(seeded.tag);
+          await page.waitForTimeout(500);
+        }
+
+        const jobCard = page.locator('[data-testid^="job-card-"]').filter({ hasText: seeded.tag }).first();
+        await expect(jobCard).toBeVisible({ timeout: 15000 });
+        await jobCard.click();
+        await page.waitForLoadState('networkidle');
+
+        await page.getByRole('button', { name: /delete job/i }).click();
+        await page.locator('textarea').last().fill(`Cleanup seeded job ${seeded.tag}`);
+        await page.getByRole('button', { name: /^delete$/i }).click();
+
+        await expect.poll(() => page.url(), { timeout: 15000 }).toContain('/#/jobs');
+        await expect.poll(async () => (await getJob(page, job.job_id))?.deleted_at ?? null, { timeout: 15000 }).not.toBeNull();
+
+        const fleetCard = await openFleetCard(page, forklift.forklift_id, forklift.serial_number);
+        page.once('dialog', async (dialog) => { await dialog.accept(); });
+        await fleetCard.getByTestId(`delete-forklift-${forklift.forklift_id}`).click();
+        await expect.poll(async () => await getForklift(page, forklift.forklift_id), { timeout: 15000 }).toBeNull();
+        seeded.forkliftId = undefined;
+
+        await gotoApp(page, '/customers');
+        await page.waitForLoadState('networkidle');
+
+        const customerSearch = page.locator('input[type="search"], input[placeholder*="Search" i]').first();
+        if (await customerSearch.isVisible().catch(() => false)) {
+          await customerSearch.fill(customer.name);
+          await page.waitForTimeout(500);
+        }
+
+        const customerCard = page.locator('[data-testid^="customer-card-"]').filter({ hasText: customer.name }).first();
+        await expect(customerCard).toBeVisible({ timeout: 15000 });
+        await customerCard.click();
+        await page.waitForLoadState('networkidle');
+
+        page.once('dialog', async (dialog) => { await dialog.accept(); });
+        await page.getByRole('button', { name: /delete customer/i }).click();
+        await expect.poll(async () => await getCustomer(page, customer.customer_id), { timeout: 15000 }).toBeNull();
+        seeded.customerId = undefined;
+      } finally {
+        await cleanupSeededEntities(page, seeded);
       }
     });
   });

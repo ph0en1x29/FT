@@ -60,7 +60,12 @@ const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4">
-      <div className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md md:max-w-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="bg-[var(--surface)] rounded-xl shadow-2xl w-full max-w-md md:max-w-2xl"
+      >
         <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50 rounded-t-xl">
           <h3 className="font-bold text-lg text-slate-800">{title}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">

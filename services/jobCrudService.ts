@@ -128,6 +128,7 @@ export const getRecentlyDeletedJobs = async (): Promise<any[]> => {
 
 export const hardDeleteJob = async (jobId: string): Promise<void> => {
   // Delete all related records first
+  await supabase.from('hourmeter_history').delete().eq('job_id', jobId);
   await supabase.from('job_inventory_usage').delete().eq('job_id', jobId);
   await supabase.from('job_invoice_extra_charges').delete().eq('job_id', jobId);
   await supabase.from('job_invoices').delete().eq('job_id', jobId);

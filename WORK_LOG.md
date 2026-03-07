@@ -218,6 +218,12 @@ Files: InventoryPageMain.tsx, InventoryLedgerTab.tsx, StocktakeTab.tsx, TabNavig
 [Sonnet] [2026-03-05 16:23] Change section banners to sky-200 azzurro: CreateJobPage.tsx
 
 [Sonnet] [2026-03-05 16:25] Restructure Job Details layout — full-width fields, 3-col row: CreateJobPage.tsx
+[2026-03-06 19:53] [Codex] Stabilized role E2E with seeded local coverage and delete-flow fixes:
+- Added stable delete/fleet selectors in JobHeader.tsx CustomerHeader.tsx ForkliftCard.tsx
+- Fixed admin visibility for job delete action in JobHeader.tsx
+- Fixed hardDeleteJob cleanup gap for hourmeter_history FK in services/jobCrudService.ts
+- Reworked admin.spec.ts + technician.spec.ts to seed temporary customer/forklift/job data through authenticated local app sessions, exercise rent/return/job flows, and clean records locally
+- Verified npm run typecheck, npm run build, and full role suite: 75 passed / 0 failed / 0 skipped
 
 [Sonnet] [2026-03-05 16:26] Revert form banners to original, premium sidebar banners: CreateJobPage.tsx
 

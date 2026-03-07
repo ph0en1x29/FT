@@ -129,6 +129,7 @@ Claude is good at writing rules for itself. Keep this file evolving.
 | 2026-02-06 | Initial setup | Follow pre-commit hooks |
 | 2026-02-07 | Applied a security/storage return-path fix in one service but missed the parallel permit service implementation | When changing shared service patterns, grep sibling `*Service.ts` files for matching upload/read flows and patch all applicable paths in one pass |
 | 2026-02-23 | Fixed Combobox clipping in one layer but missed additional clipping ancestors in the same render chain | When debugging dropdown clipping, trace every ancestor from trigger to page card and apply `overflow-visible` to each potential clipping container |
+| 2026-03-06 | Treated skipped E2E cases as acceptable before checking whether authenticated local setup/cleanup could seed the missing records | For data-dependent role tests, prefer seeding temporary records through supported local app/service flows, exercise delete cleanup too, and only leave skips when seeding is truly blocked |
 
 ## Quality Prompts (Use These)
 

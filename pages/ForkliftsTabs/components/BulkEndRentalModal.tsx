@@ -24,7 +24,12 @@ const BulkEndRentalModal: React.FC<BulkEndRentalModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--surface)] rounded-2xl max-w-md w-full shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`End ${count} Rental${count !== 1 ? 's' : ''}`}
+        className="bg-[var(--surface)] rounded-2xl max-w-md w-full shadow-2xl"
+      >
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-100 rounded-lg">

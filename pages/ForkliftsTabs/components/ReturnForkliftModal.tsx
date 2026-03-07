@@ -57,7 +57,12 @@ const ReturnForkliftModal: React.FC<ReturnForkliftModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4">
-      <div className="bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-md md:max-w-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Return Forklift"
+        className="bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-md md:max-w-2xl"
+      >
         {/* Header */}
         <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl">
           <div className="flex items-center gap-2.5">

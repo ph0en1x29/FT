@@ -9,11 +9,23 @@ interface CustomerCardProps {
 
 const CustomerCard: React.FC<CustomerCardProps> = ({ customer }) => {
   const navigate = useNavigate();
+  const handleActivate = () => {
+    navigate(`/customers/${customer.customer_id}`);
+  };
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      data-testid={`customer-card-${customer.customer_id}`}
       className="card-theme rounded-xl p-5 hover:shadow-theme hover:border-blue-300 transition cursor-pointer group theme-transition"
-      onClick={() => navigate(`/customers/${customer.customer_id}`)}
+      onClick={handleActivate}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleActivate();
+        }
+      }}
     >
       {/* Customer Name */}
       <div className="flex justify-between items-start mb-4">
@@ -28,8 +40,9 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ customer }) => {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            navigate(`/customers/${customer.customer_id}`);
+            handleActivate();
           }}
+          aria-label={`View ${customer.name}`}
           className="p-2 hover:bg-blue-50 rounded-lg transition"
         >
           <Eye className="w-4 h-4 text-blue-600" />

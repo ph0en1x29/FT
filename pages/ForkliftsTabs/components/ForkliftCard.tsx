@@ -74,6 +74,7 @@ const ForkliftCard: React.FC<ForkliftCardProps> = ({
   return (
     <div
       onClick={onClick}
+      data-testid={`forklift-card-${forklift.forklift_id}`}
       className={`card-theme rounded-xl overflow-hidden cursor-pointer group transition-all ${
         isSelected ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' : 'hover:shadow-theme hover:border-blue-300'
       }`}
@@ -160,10 +161,22 @@ const ForkliftCard: React.FC<ForkliftCardProps> = ({
           </div>
           {canEdit && (
             <div className="flex gap-2">
-              <button onClick={(e) => onEdit(forklift, e)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit">
+              <button
+                onClick={(e) => onEdit(forklift, e)}
+                data-testid={`edit-forklift-${forklift.forklift_id}`}
+                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                title="Edit"
+                aria-label={`Edit ${forklift.make} ${forklift.model}`}
+              >
                 <Edit2 className="w-4 h-4" />
               </button>
-              <button onClick={(e) => onDelete(forklift, e)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Delete">
+              <button
+                onClick={(e) => onDelete(forklift, e)}
+                data-testid={`delete-forklift-${forklift.forklift_id}`}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                title="Delete"
+                aria-label={`Delete ${forklift.make} ${forklift.model}`}
+              >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>

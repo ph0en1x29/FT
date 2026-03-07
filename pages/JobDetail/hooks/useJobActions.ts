@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { swipeSignJob } from '../../../services/jobService';
 import { checkServiceUpgradeNeeded,declineServiceUpgrade,upgradeToFullService } from '../../../services/serviceTrackingService';
 import { CHECKLIST_CATEGORIES } from '../constants';
 import { SupabaseDb as MockDb, supabase } from '../../../services/supabaseService';
@@ -620,13 +621,13 @@ export const useJobActions = ({
   // Swipe signature handlers
   const handleTechnicianSwipeSign = useCallback(async () => {
     if (!job) return;
-    const updated = await MockDb.swipeSignJob(job.job_id, 'technician', currentUserName);
+    const updated = await swipeSignJob(job.job_id, 'technician', currentUserName);
     setJob({ ...updated } as Job);
   }, [job, currentUserName, setJob]);
 
   const handleCustomerSwipeSign = useCallback(async (customerName: string, icNo?: string) => {
     if (!job) return;
-    const updated = await MockDb.swipeSignJob(job.job_id, 'customer', customerName, icNo);
+    const updated = await swipeSignJob(job.job_id, 'customer', customerName, icNo);
     setJob({ ...updated } as Job);
   }, [job, setJob]);
 

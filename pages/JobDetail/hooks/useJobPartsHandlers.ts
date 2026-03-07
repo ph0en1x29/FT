@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { useVanStockPart } from '../../../services/inventoryService';
-import { useVanBulk } from '../../../services/liquidInventoryService';
+import { useVanStockPart as deductVanStockPart } from '../../../services/inventoryService';
+import { useVanBulk as deductVanBulk } from '../../../services/liquidInventoryService';
 import { supabase } from '../../../services/supabaseClient';
 import { createReplenishmentRequest } from '../../../services/replenishmentService';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
@@ -136,7 +136,7 @@ export const useJobPartsHandlers = ({
           .eq('part_id', item.part_id)
           .single();
         const unitCost = partCostData?.avg_cost_per_liter ?? 0;
-        const result = await useVanBulk(
+        const result = await deductVanBulk(
           item.part_id,
           item.item_id,
           state.vanStock.van_stock_id,
@@ -155,7 +155,7 @@ export const useJobPartsHandlers = ({
         }
       } else {
         // Non-liquid: legacy van stock usage
-        await useVanStockPart(
+        await deductVanStockPart(
           item.item_id,
           job.job_id,
           qtyToUse,

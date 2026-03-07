@@ -231,10 +231,10 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
             </button>
           )}
           
-          {(isAdminService || isSupervisor) && (
-            <button
-              onClick={() => {
-                const params = new URLSearchParams();
+          {(isAdmin || isAdminService || isSupervisor) && (
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams();
                 if (job.customer_id) params.set('customer_id', job.customer_id);
                 if (job.forklift_id) params.set('forklift_id', job.forklift_id);
                 if (job.contact_id) params.set('contact_id', job.contact_id);
@@ -247,8 +247,13 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
               <Copy className="w-4 h-4" />
             </button>
           )}
-          {(isAdminService || isSupervisor) && !isCompleted && (
-            <button onClick={onDeleteJob} className="btn-premium btn-premium-ghost text-[var(--error)] hover:bg-[var(--error-bg)] hover:text-[var(--error)]">
+          {(isAdmin || isAdminService || isSupervisor) && !isCompleted && (
+            <button
+              onClick={onDeleteJob}
+              aria-label="Delete Job"
+              title="Delete Job"
+              className="btn-premium btn-premium-ghost text-[var(--error)] hover:bg-[var(--error-bg)] hover:text-[var(--error)]"
+            >
               <Trash2 className="w-4 h-4" />
             </button>
           )}

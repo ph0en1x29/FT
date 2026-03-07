@@ -8,7 +8,7 @@ import type { Job } from '../types';
 import { JobStatus as JobStatusEnum,UserRole } from '../types';
 import { updateForkliftHourmeter } from './forkliftService';
 import { supabase } from './supabaseClient';
-import { useInternalBulk, sellContainersExternal } from './liquidInventoryService';
+import { useInternalBulk as deductInternalBulk, sellContainersExternal } from './liquidInventoryService';
 
 // Forward declaration to avoid circular dependency
 const getJobById = async (jobId: string): Promise<Job | null> => {
@@ -82,7 +82,7 @@ export const addPartToJob = async (
           await sellContainersExternal(partId, quantity, jobId, actorId || '', actorName);
         } else {
           // Use loose bulk liters internally
-          await useInternalBulk(partId, quantity, jobId, actorId || '', actorName);
+          await deductInternalBulk(partId, quantity, jobId, actorId || '', actorName);
         }
       } catch (liquidErr) {
         console.warn('Liquid stock deduction failed, falling back to legacy:', (liquidErr as Error).message);

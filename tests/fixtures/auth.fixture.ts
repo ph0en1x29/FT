@@ -29,8 +29,19 @@ const CREDENTIALS = {
   },
 };
 
+export async function gotoApp(page: Page, path = '/'): Promise<void> {
+  const normalized = path === '/' ? '/#/' : `/#${path}`;
+  await page.goto(normalized);
+}
+
+export function hashPathRegex(path: string): RegExp {
+  const normalized = path === '/' ? '/#/' : `/#${path}`;
+  const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`${escaped}(?:[?#].*)?$`);
+}
+
 async function loginWithCredentials(page: Page, credentials: AuthCredentials): Promise<void> {
-  await page.goto('/');
+  await gotoApp(page, '/');
   await page.locator(SELECTORS.email).waitFor({ state: 'visible' });
   await page.fill(SELECTORS.email, credentials.email);
   await page.fill(SELECTORS.password, credentials.password);

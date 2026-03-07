@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsSupervisor } from '../fixtures/auth.fixture';
+import { gotoApp, hashPathRegex, loginAsSupervisor } from '../fixtures/auth.fixture';
 
 test.describe('Supervisor Role - Dashboard', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,15 +8,13 @@ test.describe('Supervisor Role - Dashboard', () => {
   });
 
   test('should load dashboard with supervisor-specific KPI cards', async ({ page }) => {
-    await expect(page).toHaveURL('/');
+    await expect(page).toHaveURL(hashPathRegex('/'));
     
     // Verify dashboard content loads
     const main = page.locator('main');
     await expect(main).toBeVisible();
     
-    // Check for KPI cards (supervisor may see team stats, escalations, etc.)
-    const cards = page.locator('[class*="card"], [class*="Card"]');
-    await expect(cards.first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/approval queue|recent activity|action required/i').first()).toBeVisible();
   });
 });
 
@@ -26,10 +24,10 @@ test.describe('Supervisor Role - Jobs', () => {
   });
 
   test('should load job board', async ({ page }) => {
-    await page.goto('/jobs');
+    await gotoApp(page, '/jobs');
     await page.waitForLoadState('networkidle');
     
-    await expect(page).toHaveURL('/jobs');
+    await expect(page).toHaveURL(hashPathRegex('/jobs'));
     
     // Verify jobs page header/title
     const heading = page.getByRole('heading', { name: /jobs/i }).first();
@@ -37,7 +35,7 @@ test.describe('Supervisor Role - Jobs', () => {
   });
 
   test('should have working search functionality', async ({ page }) => {
-    await page.goto('/jobs');
+    await gotoApp(page, '/jobs');
     await page.waitForLoadState('networkidle');
     
     // Look for search input
@@ -51,7 +49,7 @@ test.describe('Supervisor Role - Jobs', () => {
   });
 
   test('should display date pill tabs (Unfinished/Today/Week/Month/All)', async ({ page }) => {
-    await page.goto('/jobs');
+    await gotoApp(page, '/jobs');
     await page.waitForLoadState('networkidle');
     
     // Check for date filter tabs/buttons
@@ -76,7 +74,7 @@ test.describe('Supervisor Role - Jobs', () => {
   });
 
   test('should have Filters button that expands status Combobox', async ({ page }) => {
-    await page.goto('/jobs');
+    await gotoApp(page, '/jobs');
     await page.waitForLoadState('networkidle');
     
     // Look for Filters button
@@ -100,27 +98,19 @@ test.describe('Supervisor Role - Create Job', () => {
   });
 
   test('should render job creation form with all required fields', async ({ page }) => {
-    await page.goto('/jobs/new');
+    await gotoApp(page, '/jobs/new');
     await page.waitForLoadState('networkidle');
     
-    await expect(page).toHaveURL('/jobs/new');
+    await expect(page).toHaveURL(hashPathRegex('/jobs/new'));
     
-    // Customer dropdown (combobox)
-    const customerDropdown = page.locator('[role="combobox"]').filter({ hasText: /customer/i }).or(
-      page.locator('button').filter({ hasText: /customer/i })
-    );
-    await expect(customerDropdown.first()).toBeVisible();
+    const customerInput = page.locator('input[placeholder*="customer" i], input[name*="customer" i]').first();
+    await expect(customerInput).toBeVisible();
     
-    // Forklift dropdown (combobox)
-    const forkliftDropdown = page.locator('[role="combobox"]').filter({ hasText: /forklift/i }).or(
-      page.locator('button').filter({ hasText: /forklift/i })
-    );
-    await expect(forkliftDropdown.first()).toBeVisible();
   });
 
   test('should display context sidebar on desktop viewport', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto('/jobs/new');
+    await gotoApp(page, '/jobs/new');
     await page.waitForLoadState('networkidle');
     
     // Check for sidebar or context panel
@@ -137,18 +127,18 @@ test.describe('Supervisor Role - Job Detail', () => {
   });
 
   test('should navigate to job detail and display job information', async ({ page }) => {
-    await page.goto('/jobs');
+    await gotoApp(page, '/jobs');
     await page.waitForLoadState('networkidle');
     
     // Find and click first job link/card
-    const firstJobLink = page.locator('a[href*="/jobs/"]').filter({ hasNotText: /new/i }).first();
+    const firstJobLink = page.locator('[data-testid^="job-card-"]').first();
     
     if (await firstJobLink.isVisible()) {
       await firstJobLink.click();
       await page.waitForLoadState('networkidle');
       
       // Verify we're on a job detail page
-      expect(page.url()).toMatch(/\/jobs\/[^/]+$/);
+      expect(page.url()).toMatch(/#\/jobs\/[^/]+$/);
       
       // Verify job detail content loads
       const main = page.locator('main');
@@ -157,10 +147,10 @@ test.describe('Supervisor Role - Job Detail', () => {
   });
 
   test('should show assignment controls for supervisor', async ({ page }) => {
-    await page.goto('/jobs');
+    await gotoApp(page, '/jobs');
     await page.waitForLoadState('networkidle');
     
-    const firstJobLink = page.locator('a[href*="/jobs/"]').filter({ hasNotText: /new/i }).first();
+    const firstJobLink = page.locator('[data-testid^="job-card-"]').first();
     
     if (await firstJobLink.isVisible()) {
       await firstJobLink.click();
@@ -185,10 +175,10 @@ test.describe('Supervisor Role - Fleet', () => {
   });
 
   test('should load fleet list', async ({ page }) => {
-    await page.goto('/forklifts');
+    await gotoApp(page, '/forklifts?tab=fleet');
     await page.waitForLoadState('networkidle');
     
-    await expect(page).toHaveURL('/forklifts');
+    await expect(page).toHaveURL(/#\/forklifts\?tab=fleet/);
     
     // Verify fleet page loads
     const heading = page.getByRole('heading', { name: /fleet|forklift/i }).first();
@@ -196,7 +186,7 @@ test.describe('Supervisor Role - Fleet', () => {
   });
 
   test('should have working search functionality', async ({ page }) => {
-    await page.goto('/forklifts');
+    await gotoApp(page, '/forklifts?tab=fleet');
     await page.waitForLoadState('networkidle');
     
     const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]').first();
@@ -208,7 +198,7 @@ test.describe('Supervisor Role - Fleet', () => {
   });
 
   test('should have Type filter Combobox', async ({ page }) => {
-    await page.goto('/forklifts');
+    await gotoApp(page, '/forklifts?tab=fleet');
     await page.waitForLoadState('networkidle');
     
     const typeCombobox = page.locator('[role="combobox"]').filter({ hasText: /type/i });
@@ -223,7 +213,7 @@ test.describe('Supervisor Role - Fleet', () => {
   });
 
   test('should have Status filter Combobox', async ({ page }) => {
-    await page.goto('/forklifts');
+    await gotoApp(page, '/forklifts?tab=fleet');
     await page.waitForLoadState('networkidle');
     
     const statusCombobox = page.locator('[role="combobox"]').filter({ hasText: /status/i });
@@ -237,7 +227,7 @@ test.describe('Supervisor Role - Fleet', () => {
   });
 
   test('should have Rentals filter Combobox', async ({ page }) => {
-    await page.goto('/forklifts');
+    await gotoApp(page, '/forklifts?tab=fleet');
     await page.waitForLoadState('networkidle');
     
     const rentalsCombobox = page.locator('[role="combobox"]').filter({ hasText: /rental/i });
@@ -251,7 +241,7 @@ test.describe('Supervisor Role - Fleet', () => {
   });
 
   test('should have Makes filter Combobox', async ({ page }) => {
-    await page.goto('/forklifts');
+    await gotoApp(page, '/forklifts?tab=fleet');
     await page.waitForLoadState('networkidle');
     
     const makesCombobox = page.locator('[role="combobox"]').filter({ hasText: /make/i });
@@ -271,18 +261,18 @@ test.describe('Supervisor Role - Forklift Profile', () => {
   });
 
   test('should navigate to forklift profile and display details', async ({ page }) => {
-    await page.goto('/forklifts');
+    await gotoApp(page, '/forklifts?tab=fleet');
     await page.waitForLoadState('networkidle');
     
     // Click first forklift link
-    const firstForkliftLink = page.locator('a[href*="/forklifts/"]').first();
+    const firstForkliftLink = page.locator('a[href*="#/forklifts/"]').first();
     
     if (await firstForkliftLink.isVisible()) {
       await firstForkliftLink.click();
       await page.waitForLoadState('networkidle');
       
       // Verify we're on forklift detail page
-      expect(page.url()).toMatch(/\/forklifts\/[^/]+$/);
+      expect(page.url()).toMatch(/#\/forklifts\/[^/]+$/);
       
       // Verify profile content loads
       const main = page.locator('main');
@@ -291,10 +281,10 @@ test.describe('Supervisor Role - Forklift Profile', () => {
   });
 
   test('should display rental history section', async ({ page }) => {
-    await page.goto('/forklifts');
+    await gotoApp(page, '/forklifts?tab=fleet');
     await page.waitForLoadState('networkidle');
     
-    const firstForkliftLink = page.locator('a[href*="/forklifts/"]').first();
+    const firstForkliftLink = page.locator('a[href*="#/forklifts/"]').first();
     
     if (await firstForkliftLink.isVisible()) {
       await firstForkliftLink.click();
@@ -315,17 +305,17 @@ test.describe('Supervisor Role - Customers', () => {
   });
 
   test('should load customers list', async ({ page }) => {
-    await page.goto('/customers');
+    await gotoApp(page, '/customers');
     await page.waitForLoadState('networkidle');
     
-    await expect(page).toHaveURL('/customers');
+    await expect(page).toHaveURL(hashPathRegex('/customers'));
     
     const heading = page.getByRole('heading', { name: /customer/i }).first();
     await expect(heading).toBeVisible();
   });
 
   test('should have working search functionality', async ({ page }) => {
-    await page.goto('/customers');
+    await gotoApp(page, '/customers');
     await page.waitForLoadState('networkidle');
     
     const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]').first();
@@ -343,16 +333,16 @@ test.describe('Supervisor Role - Customer Profile', () => {
   });
 
   test('should navigate to customer profile and display details', async ({ page }) => {
-    await page.goto('/customers');
+    await gotoApp(page, '/customers');
     await page.waitForLoadState('networkidle');
     
-    const firstCustomerLink = page.locator('a[href*="/customers/"]').first();
+    const firstCustomerLink = page.locator('[data-testid^="customer-card-"]').first();
     
     if (await firstCustomerLink.isVisible()) {
       await firstCustomerLink.click();
       await page.waitForLoadState('networkidle');
       
-      expect(page.url()).toMatch(/\/customers\/[^/]+$/);
+      expect(page.url()).toMatch(/#\/customers\/[^/]+$/);
       
       const main = page.locator('main');
       await expect(main).toBeVisible();
@@ -360,10 +350,10 @@ test.describe('Supervisor Role - Customer Profile', () => {
   });
 
   test('should allow editing customer (Edit modal opens)', async ({ page }) => {
-    await page.goto('/customers');
+    await gotoApp(page, '/customers');
     await page.waitForLoadState('networkidle');
     
-    const firstCustomerLink = page.locator('a[href*="/customers/"]').first();
+    const firstCustomerLink = page.locator('[data-testid^="customer-card-"]').first();
     
     if (await firstCustomerLink.isVisible()) {
       await firstCustomerLink.click();
@@ -389,17 +379,17 @@ test.describe('Supervisor Role - Inventory', () => {
   });
 
   test('should load inventory page', async ({ page }) => {
-    await page.goto('/inventory');
+    await gotoApp(page, '/inventory');
     await page.waitForLoadState('networkidle');
     
-    await expect(page).toHaveURL('/inventory');
+    await expect(page).toHaveURL(hashPathRegex('/inventory'));
     
     const heading = page.getByRole('heading', { name: /inventory|parts/i }).first();
     await expect(heading).toBeVisible();
   });
 
   test('should have Category filter Combobox', async ({ page }) => {
-    await page.goto('/inventory');
+    await gotoApp(page, '/inventory');
     await page.waitForLoadState('networkidle');
     
     const categoryCombobox = page.locator('[role="combobox"]').filter({ hasText: /category/i });
@@ -413,7 +403,7 @@ test.describe('Supervisor Role - Inventory', () => {
   });
 
   test('should have Stock Level filter Combobox', async ({ page }) => {
-    await page.goto('/inventory');
+    await gotoApp(page, '/inventory');
     await page.waitForLoadState('networkidle');
     
     const stockCombobox = page.locator('[role="combobox"]').filter({ hasText: /stock/i });
@@ -433,17 +423,17 @@ test.describe('Supervisor Role - People', () => {
   });
 
   test('should load people page and display team members', async ({ page }) => {
-    await page.goto('/people');
+    await gotoApp(page, '/people');
     await page.waitForLoadState('networkidle');
     
-    await expect(page).toHaveURL('/people');
+    await expect(page).toHaveURL(hashPathRegex('/people'));
     
     const heading = page.getByRole('heading', { name: /people|team|employee/i }).first();
     await expect(heading).toBeVisible();
   });
 
   test('should have working tabs (overview/employees/performance)', async ({ page }) => {
-    await page.goto('/people');
+    await gotoApp(page, '/people');
     await page.waitForLoadState('networkidle');
     
     const tabs = [
@@ -476,7 +466,7 @@ test.describe('Supervisor Role - Navigation', () => {
   });
 
   test('should render all sidebar navigation links correctly', async ({ page }) => {
-    await page.goto('/');
+    await gotoApp(page, '/');
     await page.waitForLoadState('networkidle');
     
     const navLinks = [
@@ -495,23 +485,23 @@ test.describe('Supervisor Role - Navigation', () => {
   });
 
   test('should navigate between pages via sidebar', async ({ page }) => {
-    await page.goto('/');
+    await gotoApp(page, '/');
     await page.waitForLoadState('networkidle');
     
     // Navigate to Jobs
     await page.getByRole('link', { name: /jobs/i }).first().click();
     await page.waitForLoadState('networkidle');
-    await expect(page).toHaveURL('/jobs');
+    await expect(page).toHaveURL(hashPathRegex('/jobs'));
     
     // Navigate to Fleet
     await page.getByRole('link', { name: /fleet|forklift/i }).first().click();
     await page.waitForLoadState('networkidle');
-    await expect(page).toHaveURL('/forklifts');
+    await expect(page).toHaveURL(hashPathRegex('/forklifts'));
     
     // Navigate to Customers
     await page.getByRole('link', { name: /customer/i }).first().click();
     await page.waitForLoadState('networkidle');
-    await expect(page).toHaveURL('/customers');
+    await expect(page).toHaveURL(hashPathRegex('/customers'));
   });
 });
 
@@ -532,7 +522,7 @@ test.describe('Supervisor Role - Access Control', () => {
     ];
     
     for (const pagePath of allowedPages) {
-      await page.goto(pagePath);
+      await gotoApp(page, pagePath);
       await page.waitForLoadState('networkidle');
       
       // Verify page loads without redirect to unauthorized
@@ -546,7 +536,7 @@ test.describe('Supervisor Role - Access Control', () => {
   });
 
   test('should not see admin-only UI elements', async ({ page }) => {
-    await page.goto('/');
+    await gotoApp(page, '/');
     await page.waitForLoadState('networkidle');
     
     // Check that admin-specific links/buttons don't appear

@@ -34,7 +34,12 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4">
-      <div className="bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-md md:max-w-2xl flex flex-col max-h-[90vh]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Edit Customer"
+        className="bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-md md:max-w-2xl flex flex-col max-h-[90vh]"
+      >
         {/* Header */}
         <div className="px-5 py-3 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl shrink-0">
           <div className="flex items-center gap-2.5">

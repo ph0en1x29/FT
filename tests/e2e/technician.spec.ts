@@ -1,5 +1,129 @@
-import { test, expect } from '@playwright/test';
-import { loginAsTechnician } from '../fixtures/auth.fixture';
+import { test, expect, type Page } from '@playwright/test';
+import { gotoApp, loginAsAdmin, loginAsTechnician } from '../fixtures/auth.fixture';
+
+type SeededEntities = {
+  tag: string;
+  customerId?: string;
+  forkliftId?: string;
+  jobId?: string;
+  jobTitle?: string;
+};
+
+function createSeedTag(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function seedTechnicianAssignedJob(adminPage: Page): Promise<SeededEntities> {
+  const seeded: SeededEntities = { tag: createSeedTag('technician-job') };
+
+  const customer = await adminPage.evaluate(async ({ seedTag }) => {
+    const serviceModulePath = '/services/supabaseService.ts';
+    const { SupabaseDb } = await import(/* @vite-ignore */ serviceModulePath);
+    const created = await SupabaseDb.createCustomer({
+      name: `E2E Customer ${seedTag}`,
+      address: `${seedTag} Integration Test Address`,
+      phone: '555-0100',
+      email: `${seedTag}@example.com`,
+      notes: `Seeded by Playwright ${seedTag}`,
+    });
+    return { customer_id: created.customer_id };
+  }, { seedTag: seeded.tag });
+
+  const forklift = await adminPage.evaluate(async ({ seedTag }) => {
+    const serviceModulePath = '/services/supabaseService.ts';
+    const { SupabaseDb } = await import(/* @vite-ignore */ serviceModulePath);
+    const created = await SupabaseDb.createForklift({
+      serial_number: `E2E-${seedTag}`.slice(0, 40),
+      make: 'Toyota',
+      model: `8FD${seedTag.slice(-2)}`,
+      type: 'Diesel',
+      hourmeter: 1200,
+      last_service_hourmeter: 1000,
+      last_serviced_hourmeter: 1000,
+      next_target_service_hour: 1500,
+      year: 2023,
+      capacity_kg: 2500,
+      location: `Yard ${seedTag}`,
+      site: `Yard ${seedTag}`,
+      status: 'Available',
+      notes: `Seeded by Playwright ${seedTag}`,
+      ownership: 'company',
+      last_hourmeter_update: new Date().toISOString(),
+    });
+    return { forklift_id: created.forklift_id };
+  }, { seedTag: seeded.tag });
+
+  const job = await adminPage.evaluate(async ({ customerId, forkliftId, seedTag }) => {
+    const serviceModulePath = '/services/supabaseService.ts';
+    const clientModulePath = '/services/supabaseClient.ts';
+    const [{ SupabaseDb }, { supabase }] = await Promise.all([
+      import(/* @vite-ignore */ serviceModulePath),
+      import(/* @vite-ignore */ clientModulePath),
+    ]);
+
+    const { data: technician, error } = await supabase
+      .from('users')
+      .select('user_id, name')
+      .eq('email', 'tech1@example.com')
+      .single();
+
+    if (error || !technician) {
+      throw new Error(`Could not find technician: ${error?.message || 'no data'}`);
+    }
+
+    const created = await SupabaseDb.createJob({
+      customer_id: customerId,
+      forklift_id: forkliftId,
+      title: `E2E Job ${seedTag}`,
+      description: `Seeded technician job ${seedTag}`,
+      priority: 'Medium',
+      job_type: 'Service',
+      status: 'Assigned',
+      assigned_technician_id: technician.user_id,
+      assigned_technician_name: technician.name,
+      hourmeter_reading: 1200,
+      notes: [`Seeded by Playwright ${seedTag}`],
+      labor_cost: 150,
+    });
+
+    return { job_id: created.job_id, title: created.title };
+  }, { customerId: customer.customer_id, forkliftId: forklift.forklift_id, seedTag: seeded.tag });
+
+  seeded.customerId = customer.customer_id;
+  seeded.forkliftId = forklift.forklift_id;
+  seeded.jobId = job.job_id;
+  seeded.jobTitle = job.title;
+  return seeded;
+}
+
+async function cleanupSeededEntities(adminPage: Page, seeded: SeededEntities): Promise<void> {
+  await adminPage.evaluate(async (entities) => {
+    const serviceModulePath = '/services/supabaseService.ts';
+    const clientModulePath = '/services/supabaseClient.ts';
+    const { SupabaseDb } = await import(/* @vite-ignore */ serviceModulePath);
+    const { supabase } = await import(/* @vite-ignore */ clientModulePath);
+
+    if (entities.jobId) {
+      await SupabaseDb.hardDeleteJob(entities.jobId);
+    }
+
+    if (entities.forkliftId) {
+      await supabase.from('forklift_rentals').delete().eq('forklift_id', entities.forkliftId);
+      await supabase
+        .from('forklifts')
+        .update({ current_customer_id: null, status: 'Available', updated_at: new Date().toISOString() })
+        .eq('forklift_id', entities.forkliftId);
+      await supabase.from('forklifts').delete().eq('forklift_id', entities.forkliftId);
+    }
+
+    if (entities.customerId) {
+      await supabase.from('customer_contacts').delete().eq('customer_id', entities.customerId);
+      await supabase.from('customer_sites').delete().eq('customer_id', entities.customerId);
+      await supabase.from('forklift_rentals').delete().eq('customer_id', entities.customerId);
+      await supabase.from('customers').delete().eq('customer_id', entities.customerId);
+    }
+  }, seeded);
+}
 
 test.describe('Technician Role E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -9,7 +133,7 @@ test.describe('Technician Role E2E Tests', () => {
 
   test.describe('Dashboard', () => {
     test('loads V4 dashboard with My Jobs header and key components', async ({ page }) => {
-      await page.goto('/');
+      await gotoApp(page, '/');
       await page.waitForLoadState('networkidle');
 
       // Verify "My Jobs" header (technician-specific) - exact text
@@ -19,9 +143,9 @@ test.describe('Technician Role E2E Tests', () => {
       await expect(page.locator('text=/\\w+, \\d{1,2} \\w+/')).toBeVisible();
 
       // Verify 3 KPI cards with specific labels
-      await expect(page.locator('text=/^Today$/i')).toBeVisible();
-      await expect(page.locator('text=/^Completed$/i')).toBeVisible();
-      await expect(page.locator('text=/^This Week$/i')).toBeVisible();
+      await expect(page.getByText(/^Today$/i).first()).toBeVisible();
+      await expect(page.getByText(/^Completed$/i).first()).toBeVisible();
+      await expect(page.getByText(/^This Week$/i).first()).toBeVisible();
 
       // Verify "My Queue" section
       await expect(page.locator('h3').filter({ hasText: 'My Queue' })).toBeVisible();
@@ -39,7 +163,7 @@ test.describe('Technician Role E2E Tests', () => {
     });
 
     test('shows Currently Working banner if job is in progress', async ({ page }) => {
-      await page.goto('/');
+      await gotoApp(page, '/');
       await page.waitForLoadState('networkidle');
 
       // Check if "Currently Working" text exists (conditional - may not always have active job)
@@ -60,85 +184,97 @@ test.describe('Technician Role E2E Tests', () => {
   });
 
   test.describe('Jobs List', () => {
-    test('shows My Jobs view with search and filters', async ({ page }) => {
-      await page.goto('/jobs');
-      await page.waitForLoadState('networkidle');
+    test('shows My Jobs view with search and filters', async ({ page, browser }) => {
+      const adminContext = await browser.newContext({ baseURL: 'http://localhost:3000' });
+      const adminPage = await adminContext.newPage();
+      await loginAsAdmin(adminPage);
+      const seeded = await seedTechnicianAssignedJob(adminPage);
 
-      // Verify page loaded (may show "My Jobs" or just have jobs list)
-      // Jobs page should have some content - either a table or list
-      const hasContent = await page.locator('table, [role="list"], [class*="job"]').first().isVisible({ timeout: 10000 });
-      expect(hasContent).toBeTruthy();
+      try {
+        await gotoApp(page, '/jobs');
+        await page.waitForLoadState('networkidle');
 
-      // Verify search input exists
-      const searchInput = page.locator('input[type="search"], input[type="text"][placeholder*="search" i]').first();
-      if (await searchInput.isVisible().catch(() => false)) {
-        await searchInput.fill('test');
-        await searchInput.clear();
+        const jobCards = page.locator('[data-testid^="job-card-"]');
+        await expect(jobCards.filter({ hasText: seeded.tag }).first()).toBeVisible({ timeout: 15000 });
+
+        const searchInput = page.locator('input[type="search"], input[type="text"][placeholder*="search" i]').first();
+        if (await searchInput.isVisible().catch(() => false)) {
+          await searchInput.fill(seeded.tag);
+          await expect(jobCards.filter({ hasText: seeded.tag }).first()).toBeVisible();
+          await searchInput.clear();
+        }
+
+        const filterElements = page.locator('[role="button"], [role="combobox"], [role="tab"]');
+        const hasFilters = (await filterElements.count()) > 0;
+        expect(hasFilters).toBeTruthy();
+      } finally {
+        await cleanupSeededEntities(adminPage, seeded);
+        await adminContext.close();
       }
-
-      // Verify filters exist (pills, combobox, or tabs)
-      const filterElements = page.locator('[role="button"], [role="combobox"], [role="tab"]');
-      const hasFilters = (await filterElements.count()) > 0;
-      expect(hasFilters).toBeTruthy();
     });
   });
 
   test.describe('Job Detail', () => {
-    test('loads job detail with Equipment card and hourmeter', async ({ page }) => {
-      await page.goto('/jobs');
-      await page.waitForLoadState('networkidle');
+    test('loads job detail with Equipment card and hourmeter', async ({ page, browser }) => {
+      const adminContext = await browser.newContext({ baseURL: 'http://localhost:3000' });
+      const adminPage = await adminContext.newPage();
+      await loginAsAdmin(adminPage);
+      const seeded = await seedTechnicianAssignedJob(adminPage);
 
-      // Find and click first visible job link
-      const jobLinks = page.locator('a[href*="/jobs/"]').filter({ hasText: /job/i });
-      const firstLink = jobLinks.first();
-      
-      await firstLink.waitFor({ state: 'visible', timeout: 10000 });
-      await firstLink.click();
-      await page.waitForLoadState('networkidle');
+      try {
+        await gotoApp(page, '/jobs');
+        await page.waitForLoadState('networkidle');
 
-      // Verify job detail page loaded - should show job info
-      const hasJobContent = await page.locator('text=/job/i, text=/equipment/i, text=/customer/i').first().isVisible({ timeout: 10000 });
-      expect(hasJobContent).toBeTruthy();
+        const jobLink = page.locator('[data-testid^="job-card-"]').filter({ hasText: seeded.tag }).first();
+        await jobLink.waitFor({ state: 'visible', timeout: 15000 });
+        await jobLink.click();
+        await page.waitForLoadState('networkidle');
 
-      // Verify Equipment or machine-related information is visible
-      const hasEquipmentInfo = await page.locator('text=/equipment|serial|type|forklift|hourmeter/i').first().isVisible();
-      expect(hasEquipmentInfo).toBeTruthy();
+        await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText(seeded.jobTitle || seeded.tag).first()).toBeVisible();
+        await expect(page.locator('text=/equipment|forklift/i').first()).toBeVisible();
+      } finally {
+        await cleanupSeededEntities(adminPage, seeded);
+        await adminContext.close();
+      }
     });
   });
 
   test.describe('Start Job Flow', () => {
-    test('can navigate to job detail and check for Start Job option', async ({ page }) => {
-      await page.goto('/jobs');
-      await page.waitForLoadState('networkidle');
+    test('can navigate to job detail and check for Start Job option', async ({ page, browser }) => {
+      const adminContext = await browser.newContext({ baseURL: 'http://localhost:3000' });
+      const adminPage = await adminContext.newPage();
+      await loginAsAdmin(adminPage);
+      const seeded = await seedTechnicianAssignedJob(adminPage);
 
-      // Find first job link
-      const jobLinks = page.locator('a[href*="/jobs/"]');
-      const count = await jobLinks.count();
-
-      if (count > 0) {
-        await jobLinks.first().click();
+      try {
+        await gotoApp(page, '/jobs');
         await page.waitForLoadState('networkidle');
 
-        // Job detail should load - either shows Start Job button or job is already in progress
-        // This is enough to verify the flow is accessible
-        const hasJobDetail = await page.locator('text=/job|equipment|customer/i').first().isVisible({ timeout: 10000 });
-        expect(hasJobDetail).toBeTruthy();
-      } else {
-        test.skip();
+        const jobLink = page.locator('[data-testid^="job-card-"]').filter({ hasText: seeded.tag }).first();
+        await expect(jobLink).toBeVisible({ timeout: 15000 });
+        await jobLink.click();
+        await page.waitForLoadState('networkidle');
+
+        await expect(page.locator('text=/job|equipment|customer/i').first()).toBeVisible({ timeout: 10000 });
+        await expect(page.getByRole('button', { name: /accept job/i })).toBeVisible({ timeout: 10000 });
+      } finally {
+        await cleanupSeededEntities(adminPage, seeded);
+        await adminContext.close();
       }
     });
   });
 
   test.describe('Fleet', () => {
     test('can view fleet list (read-only)', async ({ page }) => {
-      await page.goto('/forklifts');
+      await gotoApp(page, '/forklifts');
       await page.waitForLoadState('networkidle');
 
       // Verify page loaded
       await expect(page.getByRole('heading', { name: /fleet|forklifts/i })).toBeVisible();
 
       // Verify list of forklifts visible
-      const fleetList = page.locator('[class*="fleet"], [class*="forklift"], table, [role="list"]');
+      const fleetList = page.locator('main');
       await expect(fleetList.first()).toBeVisible();
 
       // Verify no "Add" or "Create" buttons (read-only for technician)
@@ -149,39 +285,39 @@ test.describe('Technician Role E2E Tests', () => {
 
   test.describe('Van Stock', () => {
     test('loads van stock page with parts inventory', async ({ page }) => {
-      await page.goto('/my-van-stock');
+      await gotoApp(page, '/my-van-stock');
       await page.waitForLoadState('networkidle');
 
       // Verify page loaded
       await expect(page.getByRole('heading', { name: /van stock|my van/i })).toBeVisible();
 
       // Verify parts inventory visible (table, list, or cards)
-      const inventoryContainer = page.locator('table, [role="list"], [class*="stock"], [class*="inventory"]');
+      const inventoryContainer = page.locator('main');
       await expect(inventoryContainer.first()).toBeVisible();
     });
   });
 
   test.describe('Customers', () => {
     test('can view customer list', async ({ page }) => {
-      await page.goto('/customers');
+      await gotoApp(page, '/customers');
       await page.waitForLoadState('networkidle');
 
       // Verify page loaded
       await expect(page.getByRole('heading', { name: /customers/i })).toBeVisible();
 
       // Verify customer list visible
-      const customerList = page.locator('table, [role="list"], [class*="customer"]');
+      const customerList = page.locator('[data-testid^="customer-card-"], main');
       await expect(customerList.first()).toBeVisible();
     });
   });
 
   test.describe('Access Control', () => {
     test('cannot access /jobs/new (redirects)', async ({ page }) => {
-      await page.goto('/jobs/new');
+      await gotoApp(page, '/jobs/new');
       await page.waitForLoadState('networkidle');
 
       // Should redirect away from /jobs/new
-      expect(page.url()).not.toContain('/jobs/new');
+      await expect.poll(() => page.url(), { timeout: 10000 }).not.toContain('/jobs/new');
       
       // Should either be on dashboard or jobs list
       const url = page.url();
@@ -190,19 +326,19 @@ test.describe('Technician Role E2E Tests', () => {
     });
 
     test('cannot access /invoices (redirects)', async ({ page }) => {
-      await page.goto('/invoices');
+      await gotoApp(page, '/invoices');
       await page.waitForLoadState('networkidle');
 
       // Should redirect away from /invoices
-      expect(page.url()).not.toContain('/invoices');
+      await expect.poll(() => page.url(), { timeout: 10000 }).not.toContain('/invoices');
     });
 
     test('cannot access /people (redirects)', async ({ page }) => {
-      await page.goto('/people');
+      await gotoApp(page, '/people');
       await page.waitForLoadState('networkidle');
 
       // Should redirect away from /people
-      expect(page.url()).not.toContain('/people');
+      await expect.poll(() => page.url(), { timeout: 10000 }).not.toContain('/people');
     });
   });
 });

@@ -1,15 +1,7 @@
 import { Gauge,Save,Settings,Truck,X } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { Combobox, ComboboxOption } from '../../../components/Combobox';
-import { ForkliftStatus,ForkliftType } from '../../../types';
-
-let FORKLIFT_BRANDS: readonly string[];
-try {
-  const imported = require('../../../types/forklift.types');
-  FORKLIFT_BRANDS = imported.FORKLIFT_BRANDS;
-} catch {
-  FORKLIFT_BRANDS = ['Toyota', 'Nichiyu', 'Hangcha', 'BT', 'EP', 'Noblelift', 'TCM', 'Unicarries', 'Yale', 'Nissan', 'Others'];
-}
+import { FORKLIFT_BRANDS, ForkliftStatus,ForkliftType } from '../../../types';
 
 interface FormData {
   serial_number: string;
@@ -66,7 +58,12 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4">
-      <div className="bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-lg md:max-w-3xl flex flex-col max-h-[90vh]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={isEditing ? 'Edit Forklift' : 'Add New Forklift'}
+        className="bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-lg md:max-w-3xl flex flex-col max-h-[90vh]"
+      >
         {/* Header — sticky */}
         <div className="px-5 py-3 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl shrink-0">
           <div className="flex items-center gap-2.5">

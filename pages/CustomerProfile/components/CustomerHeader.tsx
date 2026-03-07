@@ -72,6 +72,8 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
           {isAdmin && (
             <button 
               onClick={onDeleteCustomer}
+              aria-label={`Delete customer ${customer.name}`}
+              title="Delete Customer"
               className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg text-sm font-medium"
             >
               <Trash2 className="w-4 h-4" />

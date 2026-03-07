@@ -11,6 +11,8 @@
 > - **🔐 Admin Role Split** — Admin (Service) manages jobs, customers, forklifts, and HR. Admin (Store) manages inventory and parts. Each sees only what they need.
 > - **🔧 Reach Truck = Electric** — Reach trucks now follow electric forklift service schedules (3-month calendar-based tracking).
 > - **📍 Site address only** — Job detail shows the site address selected during creation, not the customer's office address.
+> - **🗑️ Admin delete actions fixed** — Admin can now consistently access job delete controls, and customer/forklift delete flows were reverified locally.
+> - **✅ Full role verification completed** — Admin, Supervisor, Technician, and Accountant workflows were retested locally end-to-end with no skipped role-suite cases.
 >
 > **Previous (2026-03-05):**
 > - **🔍 Searchable dropdowns everywhere** — Type to filter customers, parts, forklifts, and other lists. No more endless scrolling.
