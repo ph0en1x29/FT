@@ -1,6 +1,7 @@
 import React,{ useMemo,useState } from 'react';
 import { useNavigate,useParams } from 'react-router-dom';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
+import { showToast } from '../../services/toastService';
 import {
 AddEditContactModal,
 AddEditSiteModal,
@@ -43,6 +44,9 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
   // Edit customer modal
   const [showEditModal, setShowEditModal] = useState(false);
   const [savingCustomer, setSavingCustomer] = useState(false);
+
+  // Delete confirmation modal
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   // Role checks
   const isAdmin = currentUser.role.toString().toLowerCase() === 'admin';
@@ -109,12 +113,12 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
 
   const handleDeleteCustomer = async () => {
     if (!customer) return;
-    if (!confirm(`Are you sure you want to delete customer: "${customer.name}"?\n\nThis action cannot be undone.`)) return;
+    setShowDeleteConfirm(false);
     try {
       await MockDb.deleteCustomer(customer.customer_id);
       navigate('/customers');
     } catch (e) {
-      alert('Could not delete customer: ' + (e as Error).message);
+      showToast.error('Could not delete customer: ' + (e as Error).message);
     }
   };
 
@@ -131,7 +135,7 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
         onRentForklift={rentForklifts.openRentModal}
         onCreateJob={() => navigate(`/jobs/new?customer_id=${customer.customer_id}`)}
         onEditCustomer={() => setShowEditModal(true)}
-        onDeleteCustomer={handleDeleteCustomer}
+        onDeleteCustomer={() => setShowDeleteConfirm(true)}
       />
 
       <CustomerKPIStrip {...stats} />
@@ -248,6 +252,64 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
         details={resultModal.details}
         onClose={closeResultModal}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && customer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div 
+            className="rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4"
+            style={{ 
+              backgroundColor: 'var(--surface)', 
+              color: 'var(--text)',
+              borderColor: 'var(--border)'
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <div 
+                className="rounded-full p-2 flex-shrink-0"
+                style={{ backgroundColor: 'var(--error-bg)' }}
+              >
+                <svg className="w-6 h-6" style={{ color: 'var(--error)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold mb-1">Delete Customer</h3>
+                <p style={{ color: 'var(--text-muted)' }} className="text-sm">
+                  Are you sure you want to delete customer: <strong className="font-semibold" style={{ color: 'var(--text)' }}>"{customer.name}"</strong>?
+                </p>
+                <p style={{ color: 'var(--text-muted)' }} className="text-sm mt-2">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors"
+                style={{ 
+                  backgroundColor: 'var(--surface)',
+                  color: 'var(--text)',
+                  border: '1px solid var(--border)'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteCustomer}
+                className="flex-1 px-4 py-2 rounded-lg font-medium transition-opacity hover:opacity-90"
+                style={{ 
+                  backgroundColor: 'var(--error)',
+                  color: 'white'
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

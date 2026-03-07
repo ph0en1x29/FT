@@ -81,13 +81,13 @@ export const updateCustomer = async (customerId: string, updates: Partial<Custom
  */
 export const deleteCustomer = async (customerId: string): Promise<void> => {
   // Check for active (non-deleted) jobs only
-  const { data: jobs } = await supabase
+  const { data: activeJobs } = await supabase
     .from('jobs')
     .select('job_id')
     .eq('customer_id', customerId)
     .is('deleted_at', null);
   
-  if (jobs && jobs.length > 0) {
+  if (activeJobs && activeJobs.length > 0) {
     throw new Error('Cannot delete customer with existing jobs. Delete the jobs first.');
   }
 
@@ -101,10 +101,40 @@ export const deleteCustomer = async (customerId: string): Promise<void> => {
     throw new Error('Cannot delete customer with active rentals. Return all forklifts first.');
   }
 
-  // Delete child records (FK constraints)
+  // Get ALL jobs for this customer (including soft-deleted ones)
+  const { data: allJobs } = await supabase
+    .from('jobs')
+    .select('job_id')
+    .eq('customer_id', customerId);
+
+  // Delete FK-dependent records for each job
+  if (allJobs && allJobs.length > 0) {
+    const jobIds = allJobs.map(j => j.job_id);
+
+    // Delete from all FK-dependent tables
+    await Promise.all([
+      supabase.from('hourmeter_history').delete().in('job_id', jobIds),
+      supabase.from('job_inventory_usage').delete().in('job_id', jobIds),
+      supabase.from('job_invoice_extra_charges').delete().in('job_id', jobIds),
+      supabase.from('job_invoices').delete().in('job_id', jobIds),
+      supabase.from('job_service_records').delete().in('job_id', jobIds),
+      supabase.from('job_status_history').delete().in('job_id', jobIds),
+      supabase.from('job_audit_log').delete().in('job_id', jobIds),
+      supabase.from('job_parts').delete().in('job_id', jobIds),
+      supabase.from('job_media').delete().in('job_id', jobIds),
+      supabase.from('extra_charges').delete().in('job_id', jobIds),
+      supabase.from('notifications').delete().in('reference_id', jobIds),
+    ]);
+
+    // Now delete all jobs
+    await supabase.from('jobs').delete().in('job_id', jobIds);
+  }
+
+  // Delete customer child records
   await supabase.from('customer_contacts').delete().eq('customer_id', customerId);
   await supabase.from('customer_sites').delete().eq('customer_id', customerId);
 
+  // Finally delete the customer
   const { error } = await supabase
     .from('customers')
     .delete()
