@@ -141,7 +141,7 @@ getJobByIdFast,getJobRequests,getJobServiceRecord,
 getJobs,
 getJobsLightweight,getJobsPendingResponse,getPendingRequests,getRecentlyDeletedJobs,getRequestCounts,getUserAssignmentType,hardDeleteJob,isUserHelperOnJob,
 // Job Reassignment
-reassignJob,rejectJobAssignment,rejectRequest,releaseJobLock,removeExtraCharge,removeHelper,removePartFromJob,sendInvoice,setNoPartsUsed,signJob,startHelperWork,startJobWithCondition,updateConditionChecklist,updateJob,updateJobCarriedOut,
+reassignJob,rejectJobAssignment,rejectRequest,releaseJobLock,removeExtraCharge,removeHelper,removePartFromJob,sendInvoice,setNoPartsUsed,signJob,bulkSwipeSignJobs,swipeSignJob,startHelperWork,startJobWithCondition,updateConditionChecklist,updateJob,updateJobCarriedOut,
 // Job Condition & Checklist
 updateJobConditionChecklist,
 // Job Operations
@@ -312,6 +312,8 @@ export const SupabaseDb = {
   addMedia: jobs.addMedia,
   deleteMedia: jobs.deleteMedia,
   signJob: jobs.signJob,
+  swipeSignJob: jobs.swipeSignJob,
+  bulkSwipeSignJobs: jobs.bulkSwipeSignJobs,
   updatePartPrice: jobs.updatePartPrice,
   removePartFromJob: jobs.removePartFromJob,
   updateLaborCost: jobs.updateLaborCost,

@@ -2,14 +2,7 @@ import { Gauge,Save,Settings,Truck,X } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { Combobox, ComboboxOption } from '../../../components/Combobox';
 import { ForkliftStatus,ForkliftType } from '../../../types';
-
-let FORKLIFT_BRANDS: readonly string[];
-try {
-  const imported = require('../../../types/forklift.types');
-  FORKLIFT_BRANDS = imported.FORKLIFT_BRANDS;
-} catch {
-  FORKLIFT_BRANDS = ['Toyota', 'Nichiyu', 'Hangcha', 'BT', 'EP', 'Noblelift', 'TCM', 'Unicarries', 'Yale', 'Nissan', 'Others'];
-}
+import { FORKLIFT_BRANDS } from '../../../types/forklift.types';
 
 interface FormData {
   serial_number: string;

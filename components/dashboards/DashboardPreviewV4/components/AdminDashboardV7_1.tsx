@@ -280,6 +280,41 @@ const StatPill: React.FC<{
   </button>
 );
 
+const FocusCard: React.FC<{
+  label: string;
+  value: string | number;
+  detail: string;
+  tone: { color: string; bg: string };
+  icon: React.ReactNode;
+  onClick?: () => void;
+}> = ({ label, value, detail, tone, icon, onClick }) => (
+  <button
+    onClick={onClick}
+    className="rounded-2xl p-4 text-left transition-all hover:scale-[1.01] active:scale-[0.99]"
+    style={{ background: tone.bg, border: `1px solid ${tone.color}22` }}
+  >
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: tone.color }}>
+          {label}
+        </p>
+        <p className="mt-2 text-3xl font-bold leading-none" style={{ color: 'var(--text)' }}>
+          {value}
+        </p>
+        <p className="mt-2 text-sm leading-5" style={{ color: 'var(--text-muted)' }}>
+          {detail}
+        </p>
+      </div>
+      <div
+        className="flex h-10 w-10 items-center justify-center rounded-2xl"
+        style={{ background: `${tone.color}18`, color: tone.color }}
+      >
+        {icon}
+      </div>
+    </div>
+  </button>
+);
+
 // ============================================
 // MAIN COMPONENT
 // ============================================
@@ -410,6 +445,38 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
 
     return Array.from(jobMap.values()).sort((a, b) => a.priority - b.priority);
   }, [jobs]);
+
+  const urgentItems = useMemo(() => {
+    const urgentMap = new Map<string, { job: Job; label: string; color: string; bg: string; priority: number }>();
+
+    const addOrUpgrade = (job: Job, item: { label: string; color: string; bg: string; priority: number }) => {
+      const existing = urgentMap.get(job.job_id);
+      if (!existing || item.priority < existing.priority) {
+        urgentMap.set(job.job_id, { job, ...item });
+      }
+    };
+
+    jobsByStatus.escalated.forEach(job => addOrUpgrade(job, {
+      label: 'Escalated',
+      color: colors.red.text,
+      bg: colors.red.bg,
+      priority: 0,
+    }));
+    jobsByStatus.disputed.forEach(job => addOrUpgrade(job, {
+      label: 'Disputed',
+      color: '#9333ea',
+      bg: '#f3e8ff',
+      priority: 1,
+    }));
+    jobsByStatus.overdue.forEach(job => addOrUpgrade(job, {
+      label: 'Overdue',
+      color: colors.orange.text,
+      bg: colors.orange.bg,
+      priority: 2,
+    }));
+
+    return Array.from(urgentMap.values()).sort((a, b) => a.priority - b.priority);
+  }, [jobsByStatus.disputed, jobsByStatus.escalated, jobsByStatus.overdue]);
 
   // SLA metrics
   const slaMetrics = useMemo(() => {
@@ -596,19 +663,27 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
     }
   };
 
-  const urgentCount = jobsByStatus.escalated.length + jobsByStatus.overdue.length + jobsByStatus.disputed.length;
+  const urgentCount = urgentItems.length;
   const totalDueToday = jobsByStatus.dueToday.length + jobsByStatus.completedToday.length;
   const completionPct = totalDueToday > 0 ? Math.round((jobsByStatus.completedToday.length / totalDueToday) * 100) : 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 md:space-y-5">
       {/* ===== HEADER ===== */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div className="flex flex-col gap-3 rounded-[28px] p-5 md:flex-row md:items-start md:justify-between md:p-6" style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--surface) 84%, #dbeafe 16%), color-mix(in srgb, var(--surface) 86%, #ecfeff 14%))', border: '1px solid var(--border)' }}>
         <div>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>{greeting}</h1>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            {jobsByStatus.dueToday.length} jobs today • {availableTechs}/{technicians.length} techs available
-            {urgentCount > 0 && <span style={{ color: colors.red.text }}> • ⚠️ {urgentCount} need attention</span>}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ background: 'rgba(37, 99, 235, 0.10)', color: colors.blue.text }}>
+              Command Center
+            </span>
+            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+              {today.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            </span>
+          </div>
+          <h1 className="mt-3 text-2xl font-bold" style={{ color: 'var(--text)' }}>{greeting}</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: 'var(--text-muted)' }}>
+            {jobsByStatus.dueToday.length} jobs are scheduled today, {approvalQueue.length} items are waiting for admin review, and {availableTechs} technicians are immediately available.
+            {urgentCount > 0 && <span style={{ color: colors.red.text }}> {urgentCount} jobs still need intervention.</span>}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -628,16 +703,66 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
       {/* ===== ESCALATION BANNER ===== */}
       <EscalationBanner count={jobsByStatus.escalated.length} onClick={() => navigate('/jobs?filter=escalated')} />
 
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <FocusCard
+          label="Due Today"
+          value={jobsByStatus.dueToday.length}
+          detail={jobsByStatus.completedToday.length > 0 ? `${jobsByStatus.completedToday.length} already completed today` : 'No jobs have been completed yet today'}
+          tone={{ color: colors.blue.text, bg: 'linear-gradient(135deg, #eff6ff, #f8fbff)' }}
+          icon={<Clock className="w-5 h-5" />}
+          onClick={() => navigate('/jobs?date=today')}
+        />
+        <FocusCard
+          label="Awaiting Review"
+          value={approvalQueue.length}
+          detail={approvalQueue.length > 0 ? 'Parts checks, escalations, and acknowledgements are waiting' : 'Approval queue is clear'}
+          tone={{ color: colors.orange.text, bg: 'linear-gradient(135deg, #fff7ed, #fffbeb)' }}
+          icon={<Zap className="w-5 h-5" />}
+          onClick={() => navigate('/jobs?tab=approvals')}
+        />
+        <FocusCard
+          label="Need Assignment"
+          value={jobsByStatus.unassigned.length}
+          detail={jobsByStatus.unassigned.length > 0 ? 'Unassigned work is the fastest way to reduce today’s risk' : 'Every open job has an owner'}
+          tone={{ color: '#7c3aed', bg: 'linear-gradient(135deg, #f5f3ff, #faf5ff)' }}
+          icon={<UserX className="w-5 h-5" />}
+          onClick={() => navigate('/jobs?filter=unassigned')}
+        />
+        <FocusCard
+          label="Team Capacity"
+          value={`${availableTechs}/${technicians.length}`}
+          detail={availableTechs > 0 ? 'Technicians are available for new assignments right now' : 'Current team is fully allocated'}
+          tone={{ color: colors.green.text, bg: 'linear-gradient(135deg, #ecfdf5, #f0fdf4)' }}
+          icon={<Users className="w-5 h-5" />}
+          onClick={() => navigate('/people?tab=employees')}
+        />
+      </div>
+
       {/* ===== SUMMARY BAR ===== */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 md:flex-wrap">
-        <StatPill label="Overdue" value={jobsByStatus.overdue.length} color={colors.red.text} pulse={jobsByStatus.overdue.length > 2} onClick={() => navigate('/jobs?filter=overdue')} />
-        <StatPill label="Unassigned" value={jobsByStatus.unassigned.length} color={colors.orange.text} onClick={() => navigate('/jobs?filter=unassigned')} />
-        <StatPill label="In Progress" value={jobsByStatus.inProgress.length} color={colors.blue.text} onClick={() => navigate('/jobs?filter=in-progress')} />
-        <StatPill label="To Finalize" value={jobsByStatus.awaitingFinalization.length} color="#9333ea" onClick={() => navigate('/jobs?filter=awaiting-finalization')} />
-        <StatPill label="On-Time" value={`${slaMetrics.onTimeRate}%`} color={colors.green.text} />
-        <StatPill label="Revenue 7d" value={`RM${(weeklyRevenue / 1000).toFixed(1)}k`} color={colors.green.text} onClick={() => navigate('/invoices')} />
-        {oosCount > 0 && <StatPill label="OOS" value={oosCount} color={colors.red.text} onClick={() => navigate('/inventory')} />}
-        {lowStockCount > 0 && <StatPill label="Low Stock" value={lowStockCount} color={colors.orange.text} onClick={() => navigate('/inventory')} />}
+      <div className="rounded-2xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div className="mb-3 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Watchlist</h2>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Quick operational signals for jobs, SLA, and inventory.</p>
+          </div>
+          <button
+            onClick={() => navigate('/jobs')}
+            className="text-xs font-medium hover:opacity-80"
+            style={{ color: 'var(--accent)' }}
+          >
+            Open Jobs Board
+          </button>
+        </div>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:flex-wrap">
+          <StatPill label="Overdue" value={jobsByStatus.overdue.length} color={colors.red.text} pulse={jobsByStatus.overdue.length > 2} onClick={() => navigate('/jobs?filter=overdue')} />
+          <StatPill label="Unassigned" value={jobsByStatus.unassigned.length} color={colors.orange.text} onClick={() => navigate('/jobs?filter=unassigned')} />
+          <StatPill label="In Progress" value={jobsByStatus.inProgress.length} color={colors.blue.text} onClick={() => navigate('/jobs?filter=in-progress')} />
+          <StatPill label="To Finalize" value={jobsByStatus.awaitingFinalization.length} color="#9333ea" onClick={() => navigate('/jobs?filter=awaiting-finalization')} />
+          <StatPill label="On-Time" value={`${slaMetrics.onTimeRate}%`} color={colors.green.text} />
+          <StatPill label="Revenue 7d" value={`RM${(weeklyRevenue / 1000).toFixed(1)}k`} color={colors.green.text} onClick={() => navigate('/invoices')} />
+          {oosCount > 0 && <StatPill label="OOS" value={oosCount} color={colors.red.text} onClick={() => navigate('/inventory')} />}
+          {lowStockCount > 0 && <StatPill label="Low Stock" value={lowStockCount} color={colors.orange.text} onClick={() => navigate('/inventory')} />}
+        </div>
       </div>
 
       {/* ===== TWO COLUMN: APPROVAL QUEUE (wider) + ACTION REQUIRED (narrower) ===== */}
@@ -724,11 +849,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
             </div>
           ) : (
             <div className="space-y-1 max-h-[270px] overflow-y-auto pr-1">
-              {[
-                ...jobsByStatus.escalated.map(j => ({ job: j, label: '🔥 Escalated', color: colors.red.text, bg: colors.red.bg })),
-                ...jobsByStatus.overdue.map(j => ({ job: j, label: '⏰ Overdue', color: colors.orange.text, bg: colors.orange.bg })),
-                ...jobsByStatus.disputed.map(j => ({ job: j, label: '⚠️ Disputed', color: '#9333ea', bg: '#f3e8ff' })),
-              ].map(({ job, label, color, bg }) => (
+              {urgentItems.map(({ job, label, color, bg }) => (
                 <button
                   key={job.job_id}
                   onClick={() => navigate(`/jobs/${job.job_id}`)}
@@ -809,7 +930,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
           </div>
         ) : (
           <div className="max-h-[200px] overflow-y-auto pr-1">
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-1.5">
               {todaySchedule.map(({ job, tech, time, status }) => {
                 const statusStyles = {
                   completed: { bg: colors.green.bg, dot: colors.green.text },

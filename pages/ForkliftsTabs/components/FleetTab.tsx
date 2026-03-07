@@ -1,6 +1,8 @@
-import { CheckSquare,Loader2,Plus,Square } from 'lucide-react';
+import { AlertTriangle, CheckSquare, Plus, Square, Truck } from 'lucide-react';
 import React from 'react';
+import { Skeleton, SkeletonCard } from '../../../components/Skeleton';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
+import { ForkliftStatus } from '../../../types';
 import { TabProps } from '../types';
 import AddEditForkliftModal from './AddEditForkliftModal';
 import AssignForkliftModal from './AssignForkliftModal';
@@ -16,27 +18,98 @@ import { useFleetManagement } from './useFleetManagement';
 const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
   const { displayRole } = useDevModeContext();
   const fleet = useFleetManagement(currentUser, displayRole);
+  const rentedCount = fleet.forklifts.filter(forklift => !!forklift.current_customer_id).length;
+  const availableCount = fleet.forklifts.filter(forklift => !forklift.current_customer_id).length;
+  const attentionCount = fleet.forklifts.filter(forklift => [
+    ForkliftStatus.SERVICE_DUE,
+    ForkliftStatus.AWAITING_PARTS,
+    ForkliftStatus.OUT_OF_SERVICE,
+    ForkliftStatus.IN_SERVICE,
+    ForkliftStatus.MAINTENANCE,
+    ForkliftStatus.INACTIVE,
+  ].includes(forklift.status)).length;
 
   if (fleet.loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+              <Skeleton variant="text" width="42%" height={12} className="mb-3" />
+              <Skeleton variant="text" width="28%" height={30} className="mb-2" />
+              <Skeleton variant="text" width="60%" height={12} />
+            </div>
+          ))}
+        </div>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+          <Skeleton variant="rounded" height={44} className="mb-3" />
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
+            <Skeleton variant="rounded" height={40} />
+            <Skeleton variant="rounded" height={40} />
+            <Skeleton variant="rounded" height={40} />
+            <Skeleton variant="rounded" height={40} />
+            <Skeleton variant="rounded" height={40} />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} lines={4} />)}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-muted">Fleet Size</p>
+              <p className="mt-2 text-3xl font-bold text-theme">{fleet.forklifts.length}</p>
+            </div>
+            <div className="rounded-2xl bg-blue-50 p-3 text-blue-600">
+              <Truck className="w-5 h-5" />
+            </div>
+          </div>
+          <p className="mt-2 text-sm text-theme-muted">All units currently tracked in FieldPro.</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">Available</p>
+          <p className="mt-2 text-3xl font-bold text-theme">{availableCount}</p>
+          <p className="mt-2 text-sm text-theme-muted">Ready to rent out or schedule for service work.</p>
+        </div>
+        <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-700">On Rent</p>
+          <p className="mt-2 text-3xl font-bold text-theme">{rentedCount}</p>
+          <p className="mt-2 text-sm text-theme-muted">Units currently deployed at customer sites.</p>
+        </div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">Needs Attention</p>
+              <p className="mt-2 text-3xl font-bold text-theme">{attentionCount}</p>
+            </div>
+            <AlertTriangle className="w-5 h-5 text-amber-600" />
+          </div>
+          <p className="mt-2 text-sm text-theme-muted">Service due, parts blocked, or out-of-service units.</p>
+        </div>
+      </div>
+
       {/* Actions Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <p className="text-sm text-theme-muted">
-          {fleet.filteredForklifts.length} of {fleet.forklifts.length} units
+        <div>
+          <p className="text-sm font-medium text-theme">
+            Showing {fleet.filteredForklifts.length} of {fleet.forklifts.length} units
+          </p>
+          <p className="text-xs text-theme-muted">
+            Search by serial, make, model, customer, or location to move through the fleet faster.
+          </p>
           {fleet.isSelectionMode && fleet.selectedForkliftIds.size > 0 && (
-            <span className="ml-2 text-blue-600 font-medium">
+            <span className="mt-1 inline-block text-blue-600 font-medium">
               • {fleet.selectedForkliftIds.size} selected
             </span>
           )}
-        </p>
+        </div>
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={fleet.toggleSelectionMode}
@@ -89,6 +162,16 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         filterMake={fleet.filterMake}
         setFilterMake={fleet.setFilterMake}
         uniqueMakes={fleet.uniqueMakes}
+        filteredCount={fleet.filteredForklifts.length}
+        totalCount={fleet.forklifts.length}
+        hasFilters={!!fleet.hasFilters}
+        onClearFilters={() => {
+          fleet.setSearchQuery('');
+          fleet.setFilterType('all');
+          fleet.setFilterStatus('all');
+          fleet.setFilterAssigned('all');
+          fleet.setFilterMake('all');
+        }}
       />
 
       <ForkliftGrid

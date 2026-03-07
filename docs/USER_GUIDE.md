@@ -6,6 +6,13 @@
 > 📢 **What's New in March 2026?**
 >
 > **🆕 Latest Update (2026-03-06):**
+> - **🧭 Clearer admin dashboard** — The dashboard now opens with a more obvious action summary: what is due today, what is waiting for review, where jobs are unassigned, and how much technician capacity is available.
+> - **🔎 Cleaner Jobs controls** — Search, status, date filters, and result counts are grouped more clearly, so it is faster to narrow the work queue.
+> - **🚚 Fleet overview cards** — Fleet now shows instant counts for total units, available units, rented units, and maintenance attention items before the grid.
+> - **👥 Better customer scanning** — Customers page now shows summary cards and stronger customer cards so accounts with full contact info or missing details stand out faster.
+> - **⏳ Better loading feedback** — Jobs and Fleet loading states now preserve page structure with skeleton layouts instead of large blank spinners.
+>
+> **Also on 2026-03-06:**
 > - **✍️ Swipe-to-Sign** — Replaced signature drawing with a simple swipe slider. Technician swipes to sign; customer fills in Name + IC Number then swipes. Much faster on mobile.
 > - **📋 Bulk Site Sign-Off** — Technicians with 2+ jobs at the same site can sign all of them at once. One swipe for tech, one swipe for customer. No more signing each job individually.
 > - **🔐 Admin Role Split** — Admin (Service) manages jobs, customers, forklifts, and HR. Admin (Store) manages inventory and parts. Each sees only what they need.

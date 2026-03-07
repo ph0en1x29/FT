@@ -4,6 +4,34 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-03-06] — Admin UI Clarity Pass
+
+### UI Improvements
+
+**Dashboard**
+- **Stronger admin command-center header** — Added a clearer top summary with date context, a more useful opening sentence, and four actionable focus cards for due work, approvals, assignment gaps, and team capacity.
+- **Watchlist strip** — Grouped the quick KPI pills into a labeled watchlist so the signal reads as one control surface instead of a loose row of chips.
+- **Urgent queue cleanup** — Deduplicated Action Required items so the same job no longer appears multiple times for overlapping urgency reasons.
+
+**Jobs**
+- **Jobs overview cards refined** — Quick stat cards now explain what each number means (open work, queued work, finance step, closed jobs) instead of showing count-only tiles.
+- **Filter bar simplified** — Search, status, date chips, and advanced filters now read as one coherent control area with a clearer result count and less top-of-page clutter.
+- **Better loading state** — Replaced the blank spinner with skeletons shaped like the actual jobs page.
+
+**Fleet**
+- **Fleet summary row** — Added top-level cards for total units, available units, rented units, and maintenance attention items.
+- **Fleet filter panel improved** — Added clear counts and a dedicated clear-filters action.
+- **Forklift cards denser but easier to scan** — Reduced duplicate status noise, surfaced internal/customer forklift numbers, clarified rental state, and improved customer/site context.
+- **Fleet loading state** — Replaced empty spinner loading with structure-aware skeletons.
+
+**Customers**
+- **Customer summary cards** — Added top stats for total customers, phone coverage, email coverage, and profiles with notes.
+- **Search area improved** — Added clearer search result feedback and a dedicated clear-search action.
+- **Customer cards upgraded** — Added contact-readiness badges, contact person emphasis, note treatment, and a clearer profile CTA.
+
+### Fixes
+- **Swipe-sign TypeScript regressions** — Restored missing `swipeSignJob` / `bulkSwipeSignJobs` barrel exports and fixed incorrect `showToast(...)` usage in the bulk sign-off modal so `npm run typecheck` passes again.
+
 ## [2026-03-06] — Signatures, Role Separation & Service Tracking
 
 ### Features

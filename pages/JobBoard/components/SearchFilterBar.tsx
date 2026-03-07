@@ -64,107 +64,110 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   ], []);
 
   return (
-    <div className="card-theme p-3 rounded-xl space-y-3">
-      {/* Date pill tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto">
-        {dateFilters.map(df => (
+    <div className="card-theme rounded-2xl p-4 space-y-4">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+          <input
+            type="text"
+            placeholder="Search jobs, customers, forklifts..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] py-3 pl-10 pr-10 text-sm text-[var(--text)] focus:border-transparent focus:ring-2 focus:ring-blue-500 placeholder-slate-400"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => onSearchChange('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="hidden md:block md:w-56">
+          <Combobox compact options={statusOptions} value={statusFilter} onChange={onStatusFilterChange} placeholder="All Statuses" />
+        </div>
+
+        <div className="flex items-center gap-2">
           <button
-            key={df.id}
-            onClick={() => onDateFilterChange(df.id)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-              dateFilter === df.id
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-[var(--text-muted)] hover:bg-[var(--bg-subtle)]'
+            onClick={onToggleFilters}
+            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition ${
+              showFilters
+                ? 'bg-blue-50 border-blue-200 text-blue-600'
+                : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--bg-subtle)]'
             }`}
           >
-            {df.label}
+            <Filter className="w-3 h-3" />
+            More Filters
           </button>
-        ))}
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Filter + Clear buttons */}
-        <button
-          onClick={onToggleFilters}
-          className={`px-3 py-1.5 rounded-full border transition flex items-center gap-1.5 text-xs font-medium shrink-0 ${
-            showFilters
-              ? 'bg-blue-50 border-blue-200 text-blue-600'
-              : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--bg-subtle)]'
-          }`}
-        >
-          <Filter className="w-3 h-3" />
-          Filters
-        </button>
-
-        {hasActiveFilters && (
-          <button
-            onClick={onClearFilters}
-            className="px-3 py-1.5 rounded-full border border-red-200 text-red-500 hover:bg-red-50 transition flex items-center gap-1.5 text-xs font-medium shrink-0"
-          >
-            <X className="w-3 h-3" />
-            Clear
-          </button>
-        )}
-      </div>
-
-      {/* Search bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-        <input
-          type="text"
-          placeholder="Search jobs, customers, forklifts..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text)] focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-400"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => onSearchChange('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)]"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
-      {/* Custom Date Range */}
-      {dateFilter === 'custom' && (
-        <div className="flex flex-wrap gap-3 pt-2 border-t border-[var(--border)]">
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-[var(--text-muted)]">From:</label>
-            <input
-              type="date"
-              value={customDateFrom}
-              onChange={(e) => onCustomDateFromChange(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)]"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-[var(--text-muted)]">To:</label>
-            <input
-              type="date"
-              value={customDateTo}
-              onChange={(e) => onCustomDateToChange(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)]"
-            />
-          </div>
+          {hasActiveFilters && (
+            <button
+              onClick={onClearFilters}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-xs font-medium text-red-500 transition hover:bg-red-50"
+            >
+              <X className="w-3 h-3" />
+              Clear
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Expandable status filter */}
-      {showFilters && (
-        <div className="flex flex-wrap gap-3 pt-2 border-t border-[var(--border)] items-center">
-          <label className="text-xs text-[var(--text-muted)]">Status:</label>
-          <div className="w-44">
+      <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-1 overflow-x-auto">
+          {dateFilters.map(df => (
+            <button
+              key={df.id}
+              onClick={() => onDateFilterChange(df.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                dateFilter === df.id
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-[var(--text-muted)] hover:bg-[var(--bg-subtle)]'
+              }`}
+            >
+              {df.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+          Showing {filteredCount} of {totalJobs} jobs
+        </div>
+      </div>
+
+      {(showFilters || dateFilter === 'custom') && (
+        <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-3 md:flex-row md:flex-wrap md:items-center">
+          <div className="md:hidden md:w-44">
             <Combobox compact options={statusOptions} value={statusFilter} onChange={onStatusFilterChange} placeholder="All Statuses" />
           </div>
+          {dateFilter === 'custom' && (
+            <>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-[var(--text-muted)]">From:</label>
+                <input
+                  type="date"
+                  value={customDateFrom}
+                  onChange={(e) => onCustomDateFromChange(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)]"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-[var(--text-muted)]">To:</label>
+                <input
+                  type="date"
+                  value={customDateTo}
+                  onChange={(e) => onCustomDateToChange(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)]"
+                />
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      {/* Results count */}
       <div className="text-xs text-[var(--text-muted)]">
-        Showing {filteredCount} of {totalJobs} jobs
+        Use the status picker and date chips to narrow the queue before opening individual job cards.
       </div>
     </div>
   );

@@ -68,11 +68,11 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
 
   const handleTechNext = () => {
     if (!techSigned) {
-      showToast('Please complete technician signature', 'error');
+      showToast.error('Please complete technician signature');
       return;
     }
     if (selectedJobIds.size === 0) {
-      showToast('Please select at least one job to sign', 'error');
+      showToast.error('Please select at least one job to sign');
       return;
     }
     setStep('customer');
@@ -84,17 +84,17 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
 
   const handleCustomerSubmit = async () => {
     if (!customerSigned) {
-      showToast('Please complete customer signature', 'error');
+      showToast.error('Please complete customer signature');
       return;
     }
     if (!customerName.trim()) {
-      showToast('Please enter customer name', 'error');
+      showToast.error('Please enter customer name');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const jobIdsArray = Array.from(selectedJobIds);
+      const jobIdsArray = Array.from(selectedJobIds) as string[];
 
       // Sign as technician
       await bulkSwipeSignJobs(
@@ -111,16 +111,14 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
         icNumber.trim() || undefined
       );
 
-      showToast(
-        `Successfully signed ${jobIdsArray.length} job${jobIdsArray.length > 1 ? 's' : ''}`,
-        'success'
+      showToast.success(
+        `Successfully signed ${jobIdsArray.length} job${jobIdsArray.length > 1 ? 's' : ''}`
       );
       onComplete();
     } catch (error) {
       console.error('Failed to bulk sign jobs:', error);
-      showToast(
-        error instanceof Error ? error.message : 'Failed to sign jobs',
-        'error'
+      showToast.error(
+        error instanceof Error ? error.message : 'Failed to sign jobs'
       );
     } finally {
       setIsSubmitting(false);
