@@ -31,6 +31,13 @@ All notable changes to the FieldPro Field Service Management System.
 
 ### Fixes
 - **Swipe-sign TypeScript regressions** — Restored missing `swipeSignJob` / `bulkSwipeSignJobs` barrel exports and fixed incorrect `showToast(...)` usage in the bulk sign-off modal so `npm run typecheck` passes again.
+- **Customer delete FK cascade** — Deleting a customer now properly cleans up all job dependencies (`hourmeter_history`, `job_parts`, `job_media`, etc.) before removing the customer. Also checks for active rentals.
+- **Themed delete confirmation** — Replaced native browser `confirm()`/`alert()` with themed modal and toast notifications on the Customer Profile page.
+- **UsersTab crash on new roles** — Role badge map was missing `admin_service` and `admin_store`, causing a crash when viewing the Users tab. Added badges with distinct colors and proper display labels ("Admin (Service)", "Admin (Store)").
+- **Dashboard role switch** — Added explicit `admin_service`/`admin_store` cases to dashboard component routing.
+- **HashRouter deep-link** — Bookmarked URLs like `/jobs` now correctly redirect to `/#/jobs`.
+- **Hard delete job** — Added `hourmeter_history` cleanup to prevent FK constraint errors.
+- **Dev account access** — Restored `isAdmin` check on duplicate/delete job buttons so the super admin account isn't locked out.
 
 ## [2026-03-06] — Signatures, Role Separation & Service Tracking
 
