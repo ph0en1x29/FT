@@ -105,7 +105,25 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
         <div>
           <p className="label-premium mb-0.5">Address</p>
           {siteAddress ? (
-            <p className="value-premium-secondary text-sm leading-tight">{siteAddress}</p>
+            <div className="flex items-start gap-2">
+              <a
+                href={`https://waze.com/ul?q=${encodeURIComponent(siteAddress)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="value-premium-secondary text-sm leading-tight text-blue-400 hover:text-blue-300 underline underline-offset-2 flex-1"
+              >
+                {siteAddress}
+              </a>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(siteAddress)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[var(--text-muted)] hover:text-blue-400 transition-colors shrink-0 mt-0.5"
+                title="Open in Google Maps"
+              >
+                <MapPin className="w-4 h-4" />
+              </a>
+            </div>
           ) : (
             <p className="text-sm text-[var(--text-muted)]">—</p>
           )}
