@@ -42,9 +42,9 @@ const Customers: React.FC = () => {
 
   const filteredCustomers = customers.filter(c => {
     const q = searchQuery.toLowerCase();
-    return c.name.toLowerCase().includes(q) ||
-      c.address.toLowerCase().includes(q) ||
-      c.email.toLowerCase().includes(q) ||
+    return (c.name || '').toLowerCase().includes(q) ||
+      (c.address || '').toLowerCase().includes(q) ||
+      (c.email || '').toLowerCase().includes(q) ||
       (c.account_number && c.account_number.toLowerCase().includes(q)) ||
       (c.agent && c.agent.toLowerCase().includes(q));
   });

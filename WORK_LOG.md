@@ -42,3 +42,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 - [2026-03-09 05:13] [Sonnet] Updated CustomerCard.tsx — added 5 new customer fields (registration_no, tax_entity_id, credit_term, agent, phone_secondary)
 
 - [2026-03-09 05:28] [Sonnet] Updated customerService.ts — paginated getCustomers() and getCustomersForList() to fetch all rows beyond Supabase 1000-row default limit
+
+- [2026-03-09 05:32] [Sonnet] Updated Customers.tsx — null-safe search filter for address/email fields
