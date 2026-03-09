@@ -50,8 +50,9 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
   
   // Role checks
   const isAdmin = currentUser.role.toString().toLowerCase() === 'admin';
+  const isAdminService = currentUser.role.toString().toLowerCase() === 'admin_service';
   const isSupervisor = currentUser.role.toString().toLowerCase() === 'supervisor';
-  const canViewCancelled = isAdmin || isSupervisor;
+  const canViewCancelled = isAdmin || isAdminService || isSupervisor;
 
   // Hooks
   const { resultModal, setResultModal, closeResultModal } = useResultModal();
@@ -129,7 +130,7 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
     <div className="max-w-7xl mx-auto space-y-4 md:space-y-6 pb-24 md:pb-8">
       <CustomerHeader
         customer={customer}
-        isAdmin={isAdmin}
+        isAdmin={isAdmin || isAdminService}
         isSupervisor={isSupervisor}
         onNavigateBack={() => navigate(-1)}
         onRentForklift={rentForklifts.openRentModal}
@@ -149,7 +150,7 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
             setRentalTab={(tab) => { setRentalTab(tab); rentalSelection.resetSelection(); }}
             isSelectionMode={rentalSelection.isSelectionMode}
             selectedRentalIds={rentalSelection.selectedRentalIds}
-            isAdmin={isAdmin}
+            isAdmin={isAdmin || isAdminService}
             onToggleSelectionMode={rentalSelection.toggleSelectionMode}
             onToggleRentalSelection={rentalSelection.toggleRentalSelection}
             onSelectAllActiveRentals={rentalSelection.selectAllActiveRentals}
@@ -195,7 +196,7 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
       {rentalActions.editingRental && (
         <EditRentalModal
           rental={rentalActions.editingRental}
-          isAdmin={isAdmin}
+          isAdmin={isAdmin || isAdminService}
           onClose={() => rentalActions.setEditingRental(null)}
           onSave={rentalActions.handleSaveRentalEdit}
         />
@@ -223,7 +224,7 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
           rentMonthlyRate={rentForklifts.rentMonthlyRate}
           forkliftSearchQuery={rentForklifts.forkliftSearchQuery}
           rentProcessing={rentForklifts.rentProcessing}
-          isAdmin={isAdmin}
+          isAdmin={isAdmin || isAdminService}
           onClose={rentForklifts.closeRentModal}
           onToggleForklift={rentForklifts.toggleForkliftForRent}
           onSetStartDate={rentForklifts.setRentStartDate}
