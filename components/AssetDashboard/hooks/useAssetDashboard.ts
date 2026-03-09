@@ -2,7 +2,7 @@ import { useEffect,useMemo,useState } from 'react';
 import { getForkliftsDueForService } from '../../../services/servicePredictionService';
 import { SupabaseDb,supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { User } from '../../../types';
+import { User,UserRole } from '../../../types';
 import {
 DashboardMetrics,
 ForkliftDbRow,
@@ -32,8 +32,10 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
     else setLoading(true);
 
     try {
-      const forkliftData = await SupabaseDb.getForkliftsWithCustomers();
-      
+      // Lightweight forklift fetch — only the fields the dashboard actually needs
+      const forkliftData = await SupabaseDb.getForkliftsLightweightForDashboard();
+
+      // Active rentals (already filtered server-side)
       const { data: rentalsData, error: rentalsError } = await supabase
         .from('forklift_rentals')
         .select(`
@@ -49,11 +51,42 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
       if (rentalsError) {
         console.error('Error fetching rentals:', rentalsError);
       }
-      
-      const jobsData = await SupabaseDb.getJobs(currentUser);
-      const openJobs = jobsData.filter(j => 
-        !['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(j.status)
-      );
+
+      // Open jobs — lightweight: only job_id, forklift_id, status (no relations)
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      let openJobsQuery = supabase
+        .from('jobs')
+        .select('job_id, forklift_id, status')
+        .is('deleted_at', null)
+        .not('status', 'in', '("Completed","Cancelled","Completed Awaiting Ack")');
+
+      // Respect technician role: only show assigned jobs
+      if (currentUser.role === UserRole.TECHNICIAN) {
+        openJobsQuery = openJobsQuery.eq('assigned_technician_id', currentUser.user_id);
+      }
+
+      // Completed jobs in last 30 days — lightweight for metrics
+      let metricsQuery = supabase
+        .from('jobs')
+        .select('job_id, started_at, completed_at')
+        .is('deleted_at', null)
+        .eq('status', 'Completed')
+        .gte('completed_at', thirtyDaysAgo);
+
+      if (currentUser.role === UserRole.TECHNICIAN) {
+        metricsQuery = metricsQuery.eq('assigned_technician_id', currentUser.user_id);
+      }
+
+      const [{ data: openJobsData, error: openJobsError }, { data: completedJobsData }] = await Promise.all([
+        openJobsQuery,
+        metricsQuery,
+      ]);
+
+      if (openJobsError) {
+        console.error('Error fetching open jobs:', openJobsError);
+      }
 
       // Build lookups
       const rentalLookup = new Map<string, { customer_id: string; customer_name: string; end_date: string | null }>();
@@ -66,7 +99,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
       });
 
       const openJobLookup = new Map<string, string>();
-      openJobs.forEach(j => {
+      (openJobsData || []).forEach((j: { job_id: string; forklift_id: string | null; status: string }) => {
         if (j.forklift_id) openJobLookup.set(j.forklift_id, j.job_id);
       });
 
@@ -75,8 +108,6 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
       const serviceDueIds = new Set(serviceDueList.map(f => f.forklift_id));
 
       // Process forklifts
-      const now = new Date();
-
       const processedForklifts: ForkliftWithStatus[] = (forkliftData as ForkliftDbRow[]).map((f) => {
         const rental = rentalLookup.get(f.forklift_id);
         const openJobId = openJobLookup.get(f.forklift_id);
@@ -131,17 +162,10 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
 
       setForklifts(processedForklifts);
 
-      // Calculate metrics
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const completedJobs = jobsData.filter(j => 
-        j.status === 'Completed' && 
-        j.completed_at && 
-        new Date(j.completed_at) >= thirtyDaysAgo
-      );
-
+      // Calculate metrics from the lightweight completed-jobs query
       let totalDurationHours = 0;
       let jobsWithDuration = 0;
-      completedJobs.forEach(j => {
+      (completedJobsData || []).forEach((j: { job_id: string; started_at: string | null; completed_at: string | null }) => {
         if (j.started_at && j.completed_at) {
           const duration = (new Date(j.completed_at).getTime() - new Date(j.started_at).getTime()) / (1000 * 60 * 60);
           if (duration > 0 && duration < 24 * 7) {
@@ -152,7 +176,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
       });
 
       setMetrics({
-        jobs_completed_30d: completedJobs.length,
+        jobs_completed_30d: (completedJobsData || []).length,
         avg_job_duration_hours: jobsWithDuration > 0 ? totalDurationHours / jobsWithDuration : 0
       });
 

@@ -41,9 +41,8 @@ export function useCustomerData(customerId: string | undefined): UseCustomerData
     
     setLoading(true);
     try {
-      const customers = await MockDb.getCustomers();
-      const foundCustomer = customers.find(c => c.customer_id === customerId);
-      setCustomer(foundCustomer || null);
+      const foundCustomer = await MockDb.getCustomerById(customerId);
+      setCustomer(foundCustomer);
 
       // Get jobs including cancelled ones
       const customerJobs = await MockDb.getCustomerJobsWithCancelled(customerId);

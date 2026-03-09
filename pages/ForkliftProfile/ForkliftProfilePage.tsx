@@ -145,7 +145,6 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
       {showAssignModal && (
         <AssignForkliftModal
           forklift={forklift}
-          customers={customers}
           currentUser={currentUser}
           onClose={() => setShowAssignModal(false)}
           onSuccess={handleModalSuccess}

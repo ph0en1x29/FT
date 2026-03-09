@@ -1,6 +1,6 @@
 import { useCallback,useEffect,useState } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
-import { Customer,Forklift,ForkliftRental,ForkliftServiceEntry,ScheduledService,User } from '../../../types';
+import { Forklift,ForkliftRental,ForkliftServiceEntry,ScheduledService,User } from '../../../types';
 
 export interface ForkliftData {
   forklift: Forklift | null;
@@ -9,7 +9,8 @@ export interface ForkliftData {
   scheduledServices: ScheduledService[];
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
   hourmeterHistory: any[];
-  customers: Customer[];
+  /** @deprecated — customer search is now server-side via searchCustomers(); always [] */
+  customers: never[];
   technicians: User[];
   loading: boolean;
 }
@@ -21,7 +22,6 @@ export function useForkliftData(forkliftId: string | undefined) {
   const [scheduledServices, setScheduledServices] = useState<ScheduledService[]>([]);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [hourmeterHistory, setHourmeterHistory] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [technicians, setTechnicians] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +35,6 @@ export function useForkliftData(forkliftId: string | undefined) {
         rentalData,
         serviceData,
         scheduledData,
-        customersData,
         techData,
         hourmeterData
       ] = await Promise.all([
@@ -43,7 +42,6 @@ export function useForkliftData(forkliftId: string | undefined) {
         MockDb.getForkliftRentals(forkliftId),
         MockDb.getForkliftServiceHistoryWithCancelled(forkliftId),
         MockDb.getScheduledServices({ forklift_id: forkliftId }),
-        MockDb.getCustomers(),
         MockDb.getTechnicians(),
         MockDb.getForkliftHourmeterHistory(forkliftId)
       ]);
@@ -52,7 +50,6 @@ export function useForkliftData(forkliftId: string | undefined) {
       setRentals(rentalData);
       setServiceHistory(serviceData);
       setScheduledServices(scheduledData);
-      setCustomers(customersData);
       setTechnicians(techData);
       setHourmeterHistory(hourmeterData);
     } catch (error) {
@@ -93,7 +90,7 @@ export function useForkliftData(forkliftId: string | undefined) {
     serviceHistory,
     scheduledServices,
     hourmeterHistory,
-    customers,
+    customers: [] as never[],
     technicians,
     loading,
     reload: loadForkliftData,

@@ -156,6 +156,35 @@ export const getForkliftWithCustomer = async (forkliftId: string): Promise<Forkl
   }
 };
 
+/**
+ * Lightweight forklift fetch for dashboards — only essential fields + customer name.
+ * ~12 fields vs ~30 in the full select. Use this for count/display widgets.
+ */
+export interface ForkliftDashboardRow {
+  forklift_id: string;
+  serial_number: string;
+  make: string;
+  model: string;
+  type: string;
+  hourmeter: number;
+  status: string;
+  next_service_due: string | null;
+  next_service_hourmeter: number | null;
+  current_customer_id: string | null;
+  current_customer: { name: string } | null;
+}
+
+export const getForkliftsLightweightForDashboard = async (): Promise<ForkliftDashboardRow[]> => {
+  const { data, error } = await supabase
+    .from('forklifts')
+    .select('forklift_id, serial_number, make, model, type, hourmeter, status, next_service_due, next_service_hourmeter, current_customer_id, current_customer:customers!forklifts_current_customer_id_fkey(name)')
+    .order('serial_number')
+    .limit(2000); // safety cap — well above current fleet size
+
+  if (error) throw new Error(error.message);
+  return (data || []) as unknown as ForkliftDashboardRow[];
+};
+
 export const getForkliftsWithCustomers = async (): Promise<Forklift[]> => {
   try {
     const { data: forklifts, error: forkliftError } = await supabase

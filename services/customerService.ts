@@ -87,6 +87,50 @@ export const getCustomersForList = async (): Promise<Pick<Customer, 'customer_id
 };
 
 /**
+ * Get a single customer by ID
+ */
+export const getCustomerById = async (customerId: string): Promise<Customer | null> => {
+  const { data, error } = await supabase
+    .from('customers')
+    .select(CUSTOMERS_SELECT)
+    .eq('customer_id', customerId)
+    .single();
+
+  if (error) return null;
+  return data as Customer;
+};
+
+/**
+ * Search customers by name (server-side, lightweight)
+ * Returns only customer_id + name — use for dropdown search
+ */
+export const searchCustomers = async (
+  query: string,
+  limit = 20
+): Promise<Pick<Customer, 'customer_id' | 'name'>[]> => {
+  const escaped = query.trim().replace(/[%_]/g, '');
+  if (!escaped) {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('customer_id, name')
+      .order('name')
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data || []) as Pick<Customer, 'customer_id' | 'name'>[];
+  }
+
+  const { data, error } = await supabase
+    .from('customers')
+    .select('customer_id, name')
+    .ilike('name', `%${escaped}%`)
+    .order('name')
+    .limit(limit);
+
+  if (error) throw new Error(error.message);
+  return (data || []) as Pick<Customer, 'customer_id' | 'name'>[];
+};
+
+/**
  * Get a paginated page of customers with server-side search
  */
 export const getCustomersPage = async (filters: CustomersPageFilters = {}): Promise<CustomersPage> => {

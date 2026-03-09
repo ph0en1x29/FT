@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SupabaseDb } from '../../../../services/supabaseService';
-import { Forklift, Job, User, UserRole } from '../../../../types';
+import { ForkliftDashboardRow } from '../../../../services/forkliftService';
+import { Job, User, UserRole } from '../../../../types';
 import { colors, DashboardSection, KPICard, QuickChip, QueueItem, TeamRow } from './DashboardWidgets';
 
 interface ServiceAdminDashboardProps {
@@ -28,13 +29,14 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
   onRefresh,
   navigate,
 }) => {
-  const [forklifts, setForklifts] = useState<Forklift[]>([]);
+  const [forklifts, setForklifts] = useState<ForkliftDashboardRow[]>([]);
   const [fleetLoading, setFleetLoading] = useState(true);
 
   const loadFleetSnapshot = useCallback(async () => {
     try {
       setFleetLoading(true);
-      const data = await SupabaseDb.getForkliftsWithCustomers();
+      // Use lightweight query — only fields needed for the fleet snapshot widget
+      const data = await SupabaseDb.getForkliftsLightweightForDashboard();
       setForklifts(data);
     } catch {
       setForklifts([]);

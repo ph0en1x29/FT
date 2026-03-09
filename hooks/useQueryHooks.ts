@@ -11,7 +11,10 @@
  */
 
 import { useQuery,useQueryClient } from '@tanstack/react-query';
+import { useCallback,useState } from 'react';
+import { searchCustomers } from '../services/customerService';
 import { SupabaseDb } from '../services/supabaseService';
+import type { Customer } from '../types';
 import { JobStatus,User } from '../types';
 
 // Query keys for cache management
@@ -33,7 +36,8 @@ export const queryKeys = {
 
 /**
  * Cached customer list for dropdowns
- * Stale time: 2 minutes (customer data changes rarely)
+ * Stale time: 5 minutes (customer data changes rarely)
+ * NOTE: Loads all customers — use useSearchCustomers for large-dataset dropdowns
  */
 export const useCustomersForList = () => {
   return useQuery({
@@ -41,6 +45,33 @@ export const useCustomersForList = () => {
     queryFn: () => SupabaseDb.getCustomersForList(),
     staleTime: 5 * 60 * 1000, // 5 minutes — customer data changes rarely
   });
+};
+
+/**
+ * Server-side customer search hook for Combobox components.
+ * Returns only customer_id + name — lightweight, no full cache.
+ * 
+ * Usage:
+ *   const { options, isSearching, search } = useSearchCustomers();
+ *   <Combobox options={options} onSearch={search} isSearching={isSearching} ... />
+ */
+export const useSearchCustomers = (limit = 20) => {
+  const [options, setOptions] = useState<Pick<Customer, 'customer_id' | 'name'>[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const search = useCallback(async (query: string) => {
+    setIsSearching(true);
+    try {
+      const results = await searchCustomers(query, limit);
+      setOptions(results);
+    } catch {
+      setOptions([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [limit]);
+
+  return { options, isSearching, search };
 };
 
 /**
@@ -178,6 +209,7 @@ export const useInvalidateQueries = () => {
 export default {
   queryKeys,
   useCustomersForList,
+  useSearchCustomers,
   useForkliftsForList,
   useTechnicians,
   useParts,

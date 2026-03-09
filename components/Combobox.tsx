@@ -1,4 +1,4 @@
-import { Check,ChevronDown,Plus,Search } from 'lucide-react';
+import { Check,ChevronDown,Loader2,Plus,Search } from 'lucide-react';
 import React,{ useCallback,useEffect,useRef,useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -18,10 +18,19 @@ interface ComboboxProps {
   addNewLabel?: string;
   /** Compact mode for filter bars — smaller, frosted glass style */
   compact?: boolean;
+  /**
+   * Server-side search mode: called with the current query string whenever
+   * the user types. When provided, client-side filtering is skipped and the
+   * parent owns the `options` list (updates it based on search results).
+   */
+  onSearch?: (query: string) => void;
+  /** Show a spinner while the parent is fetching search results */
+  isSearching?: boolean;
 }
 
 export const Combobox: React.FC<ComboboxProps> = ({ 
-  label, options, value, onChange, placeholder = "Select...", onAddNew, addNewLabel = "Add New", compact = false
+  label, options, value, onChange, placeholder = "Select...", onAddNew, addNewLabel = "Add New", compact = false,
+  onSearch, isSearching = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -81,10 +90,13 @@ export const Combobox: React.FC<ComboboxProps> = ({
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const filteredOptions = options.filter(opt => 
-    opt.label.toLowerCase().includes(query.toLowerCase()) || 
-    (opt.subLabel && opt.subLabel.toLowerCase().includes(query.toLowerCase()))
-  );
+  // In server-search mode the parent owns the list; skip client-side filter
+  const filteredOptions = onSearch
+    ? options
+    : options.filter(opt =>
+        opt.label.toLowerCase().includes(query.toLowerCase()) ||
+        (opt.subLabel && opt.subLabel.toLowerCase().includes(query.toLowerCase()))
+      );
 
   const inputClassName = compact
     ? "w-full px-3 py-2 text-sm rounded-xl border border-slate-300/60 shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/50 placeholder-slate-400"
@@ -112,6 +124,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
              setQuery(e.target.value);
              if (!isOpen) setIsOpen(true);
              if (e.target.value === '') onChange(''); // Clear value if cleared
+             if (onSearch) onSearch(e.target.value);
           }}
           onClick={() => {
             setIsOpen(true);
@@ -119,7 +132,12 @@ export const Combobox: React.FC<ComboboxProps> = ({
           }}
         />
         <div className={`absolute ${compact ? 'right-2' : 'right-3'} top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none`}>
-           {isOpen ? <Search className={compact ? 'w-3 h-3' : 'w-4 h-4'} /> : <ChevronDown className={compact ? 'w-3 h-3' : 'w-4 h-4'} />}
+           {isSearching
+             ? <Loader2 className={`${compact ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
+             : isOpen
+               ? <Search className={compact ? 'w-3 h-3' : 'w-4 h-4'} />
+               : <ChevronDown className={compact ? 'w-3 h-3' : 'w-4 h-4'} />
+           }
         </div>
       </div>
 
@@ -139,7 +157,11 @@ export const Combobox: React.FC<ComboboxProps> = ({
             ...(compact ? { background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', minWidth: '180px' } : { background: 'var(--surface)' }),
           }}
         >
-          {filteredOptions.length > 0 ? (
+          {isSearching ? (
+            <div className={`${compact ? 'p-3 text-sm' : 'p-4 text-sm'} text-center text-slate-500 flex items-center justify-center gap-2`}>
+              <Loader2 className="w-4 h-4 animate-spin" /> Searching...
+            </div>
+          ) : filteredOptions.length > 0 ? (
             <ul>
               {filteredOptions.map(opt => (
                 <li 
@@ -165,7 +187,9 @@ export const Combobox: React.FC<ComboboxProps> = ({
             </ul>
           ) : (
             <div className={`${compact ? 'p-3 text-sm' : 'p-4 text-sm'} text-center text-slate-500`}>
-              No results for &ldquo;{query}&rdquo;
+              {onSearch && !query
+                ? 'Type to search...'
+                : `No results for "${query}"`}
             </div>
           )}
 

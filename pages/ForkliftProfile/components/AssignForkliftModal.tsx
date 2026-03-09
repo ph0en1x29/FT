@@ -1,13 +1,14 @@
 import { Save,X } from 'lucide-react';
 import { Combobox,ComboboxOption } from '../../../components/Combobox';
-import React,{ useState } from 'react';
+import React,{ useCallback,useState } from 'react';
 import { supabase } from '../../../services/supabaseClient';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
-import { Customer,Forklift,User } from '../../../types';
+import { Forklift,User } from '../../../types';
 
 interface AssignForkliftModalProps {
   forklift: Forklift;
-  customers: Customer[];
+  /** @deprecated — no longer needed; search is handled server-side inside the modal */
+  customers?: never[];
   currentUser: User;
   onClose: () => void;
   onSuccess: () => void;
@@ -15,12 +16,25 @@ interface AssignForkliftModalProps {
 
 export const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
   forklift,
-  customers,
   currentUser,
   onClose,
   onSuccess,
 }) => {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [customerOptions, setCustomerOptions] = useState<ComboboxOption[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleCustomerSearch = useCallback(async (query: string) => {
+    setIsSearching(true);
+    try {
+      const results = await MockDb.searchCustomers(query, 20);
+      setCustomerOptions(results.map(c => ({ id: c.customer_id, label: c.name })));
+    } catch {
+      setCustomerOptions([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState('');
   const [rentalNotes, setRentalNotes] = useState('');
@@ -88,10 +102,12 @@ export const AssignForkliftModal: React.FC<AssignForkliftModalProps> = ({
 
           <Combobox
             label="Select Customer *"
-            options={customers.map((c): ComboboxOption => ({ id: c.customer_id, label: c.name, subLabel: c.address || '' }))}
+            options={customerOptions}
             value={selectedCustomerId}
             onChange={setSelectedCustomerId}
-            placeholder="Search customer..."
+            placeholder="Type to search customers..."
+            onSearch={handleCustomerSearch}
+            isSearching={isSearching}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
