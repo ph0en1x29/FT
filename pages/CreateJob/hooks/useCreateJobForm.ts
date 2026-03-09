@@ -24,13 +24,6 @@ export function useCreateJobForm(currentUser: User) {
   const { data: cachedForklifts = [] } = useForkliftsForList();
   const { data: cachedTechnicians = [] } = useTechnicians();
   
-  // Fetch selected customer details for sidebar display
-  const { data: selectedCustomer = null } = useQuery({
-    queryKey: ['customer-detail', formData.customer_id],
-    queryFn: () => getCustomerById(formData.customer_id),
-    enabled: !!formData.customer_id,
-  });
-  
   // Map cached data for compatibility
   const forklifts = cachedForklifts as unknown as Forklift[];
   const technicians = cachedTechnicians as User[];
@@ -58,6 +51,13 @@ export function useCreateJobForm(currentUser: User) {
     hourmeter_reading: '',
     contact_id: prefilledContactId || '',
     site_id: prefilledSiteId || '',
+  });
+
+  // Fetch selected customer details for sidebar display
+  const { data: selectedCustomer = null } = useQuery({
+    queryKey: ['customer-detail', formData.customer_id],
+    queryFn: () => getCustomerById(formData.customer_id),
+    enabled: !!formData.customer_id,
   });
 
   // Fetch contacts and sites for selected customer
