@@ -15,7 +15,10 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
     formData,
     setFormData,
     selectedForklift,
-    customers,
+    customerSearchResults,
+    isSearchingCustomers,
+    searchCustomers,
+    selectedCustomer,
     forklifts,
     technicians,
     contacts,
@@ -30,11 +33,17 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
     navigate,
   } = useCreateJobForm(currentUser);
 
-  const customerOptions: ComboboxOption[] = customers.map(c => ({
-    id: c.customer_id,
-    label: c.name,
-    subLabel: c.address
-  }));
+  const customerOptions: ComboboxOption[] = useMemo(() => {
+    const searchOpts = customerSearchResults.map(c => ({
+      id: c.customer_id,
+      label: c.name,
+    }));
+    // If we have a selected customer not in search results, prepend it
+    if (selectedCustomer && !searchOpts.find(o => o.id === selectedCustomer.customer_id)) {
+      searchOpts.unshift({ id: selectedCustomer.customer_id, label: selectedCustomer.name });
+    }
+    return searchOpts;
+  }, [customerSearchResults, selectedCustomer]);
 
   const techOptions: ComboboxOption[] = technicians.map(t => ({
     id: t.user_id,
@@ -53,11 +62,6 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
     label: s.site_name,
     subLabel: s.address
   }));
-
-  const selectedCustomer = useMemo(() => 
-    customers.find(c => c.customer_id === formData.customer_id),
-    [customers, formData.customer_id]
-  );
 
   const selectedContact = useMemo(() =>
     contacts.find(c => c.contact_id === formData.contact_id),
@@ -110,6 +114,8 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
                 placeholder="Search customer..."
                 onAddNew={openNewCustomerModal}
                 addNewLabel="Create New Customer"
+                onSearch={searchCustomers}
+                isSearching={isSearchingCustomers}
               />
 
               <ForkliftSelectionSection

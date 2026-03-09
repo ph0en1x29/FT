@@ -65,3 +65,9 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-03-09 14:55] [Sonnet] Perf: server-side customer search + lightweight dashboard queries — searchCustomers(), getCustomerById(), getForkliftsLightweightForDashboard(), Combobox onSearch mode, drop getCustomers() from forklift/customer profile hooks, targeted open-jobs + metrics queries in useAssetDashboard
 
 [2026-03-09 15:04] [Sonnet] Perf optimization - files modified: customerService.ts, supabaseService.ts, forkliftService.ts, Combobox.tsx, AssignForkliftModal.tsx, ForkliftProfilePage.tsx, useForkliftData.ts, useCustomerData.ts, useAssetDashboard.ts, ServiceAdminDashboard.tsx, useQueryHooks.ts
+
+## 2026-03-09 15:12 [Sonnet] Create Job customer search optimization
+- Switched customer Combobox from useCustomersForList (2,147 rows) to useSearchCustomers (server-side, 20 per keystroke)
+- Added getCustomerById for sidebar display instead of full list scan
+- Files: pages/CreateJob/CreateJobPage.tsx, pages/CreateJob/hooks/useCreateJobForm.ts
+

@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import React,{ useEffect,useState } from 'react';
 import { useNavigate,useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
-import { useCustomersForList,useForkliftsForList,useTechnicians } from '../../../hooks/useQueryHooks';
-import { getCustomerContacts,getCustomerSites } from '../../../services/customerService';
+import { useForkliftsForList,useSearchCustomers,useTechnicians } from '../../../hooks/useQueryHooks';
+import { getCustomerById,getCustomerContacts,getCustomerSites } from '../../../services/customerService';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { Customer,Forklift,JobPriority,JobStatus,JobType,User } from '../../../types';
@@ -17,13 +17,21 @@ export function useCreateJobForm(currentUser: User) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
+  // Server-side customer search (20 results per keystroke instead of loading all 2,147)
+  const { options: customerSearchResults, isSearching: isSearchingCustomers, search: searchCustomers } = useSearchCustomers();
+  
   // Use cached data from React Query (shared across app, no duplicate fetches)
-  const { data: cachedCustomers = [] } = useCustomersForList();
   const { data: cachedForklifts = [] } = useForkliftsForList();
   const { data: cachedTechnicians = [] } = useTechnicians();
   
+  // Fetch selected customer details for sidebar display
+  const { data: selectedCustomer = null } = useQuery({
+    queryKey: ['customer-detail', formData.customer_id],
+    queryFn: () => getCustomerById(formData.customer_id),
+    enabled: !!formData.customer_id,
+  });
+  
   // Map cached data for compatibility
-  const customers = cachedCustomers as unknown as Customer[];
   const forklifts = cachedForklifts as unknown as Forklift[];
   const technicians = cachedTechnicians as User[];
 
@@ -185,7 +193,10 @@ export function useCreateJobForm(currentUser: User) {
     selectedForklift,
     
     // Data
-    customers,
+    customerSearchResults,
+    isSearchingCustomers,
+    searchCustomers,
+    selectedCustomer,
     forklifts,
     technicians,
     contacts,
