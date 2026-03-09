@@ -1,6 +1,6 @@
 # FieldPro Project Structure
 
-> **Last Updated:** 2026-03-05  
+> **Last Updated:** 2026-03-09  
 > **Author:** Phoenix (Clawdbot)
 
 This document describes the codebase architecture and folder patterns used in FieldPro.
@@ -15,6 +15,7 @@ FT/
 ├── contexts/             # React context providers
 ├── hooks/                # Shared custom hooks
 ├── pages/                # Page components (route-level)
+├── scripts/              # Local maintenance/import preparation scripts
 ├── services/             # API/database services
 ├── types/                # TypeScript type definitions
 ├── utils/                # Utility functions
@@ -97,6 +98,14 @@ components/
 | `FeatureFlagContext.tsx` | Feature flag provider and lookup API (NEW). |
 | `NotificationContext.tsx` | Notification state/provider. |
 | `QueryProvider.tsx` | App-level React Query provider setup. |
+
+### Scripts (`scripts/`)
+
+| Script | Purpose |
+|--------|---------|
+| `rental-hourmeter-import-prep.mjs` | Dry-run rental/hourmeter import preparation against CSVs + Supabase; emits review JSON only. |
+| `rental-hourmeter-import-lib.mjs` | Shared parser, normalization, and classification logic used by the dry-run CLI and tests. |
+| `rental-hourmeter-import-prep.test.mjs` | Node-based parser/classification coverage for import preparation rules. |
 
 ### Pages Directory (`pages/`)
 

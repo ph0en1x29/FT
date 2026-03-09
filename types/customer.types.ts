@@ -67,8 +67,30 @@ export interface CustomerSite {
   site_id: string;
   customer_id: string;
   site_name: string;
-  address: string;
+  address?: string;
   notes?: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CustomerAlias {
+  alias_id: string;
+  customer_id: string;
+  source_system: string;
+  alias_name: string;
+  normalized_alias: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CustomerSiteAlias {
+  alias_id: string;
+  site_id: string;
+  source_system: string;
+  alias_name: string;
+  normalized_alias: string;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;

@@ -8,6 +8,58 @@
 import type { ForkliftRental,RentalStatus } from '../types';
 import { supabase } from './supabaseClient';
 
+const RENTAL_WITH_RELATIONS_SELECT = '*, forklift:forklifts!forklift_rentals_forklift_id_fkey(*), customer:customers(*)';
+const ACTIVE_RENTAL_SELECT = `
+  rental_id,
+  customer_id,
+  rental_location,
+  site,
+  site_id,
+  start_date,
+  end_date,
+  customers (name, address)
+`;
+const ACTIVE_RENTAL_SELECT_LEGACY = `
+  rental_id,
+  customer_id,
+  rental_location,
+  site,
+  start_date,
+  end_date,
+  customers (name, address)
+`;
+
+const isMissingColumnError = (error: { message?: string } | null | undefined) =>
+  /column .* does not exist/i.test(error?.message || '') ||
+  /Could not find the '.*' column/i.test(error?.message || '');
+
+const updateForkliftAssignment = async (
+  forkliftId: string,
+  updates: {
+    current_customer_id: string | null;
+    current_site_id: string | null;
+    site?: string | null;
+    status: string;
+    updated_at: string;
+  }
+) => {
+  const { error } = await supabase
+    .from('forklifts')
+    .update(updates)
+    .eq('forklift_id', forkliftId);
+
+  if (!error) return;
+  if (!isMissingColumnError(error)) throw new Error(error.message);
+
+  const { current_site_id: _currentSiteId, ...legacyUpdates } = updates;
+  const { error: legacyError } = await supabase
+    .from('forklifts')
+    .update(legacyUpdates)
+    .eq('forklift_id', forkliftId);
+
+  if (legacyError) throw new Error(legacyError.message);
+};
+
 // =====================
 // RENTAL QUERIES
 // =====================
@@ -18,23 +70,27 @@ export const getActiveRentalForForklift = async (forkliftId: string): Promise<{
   customer_name: string;
   customer_address: string;
   rental_location: string;
+  site?: string;
+  site_id?: string;
   start_date: string;
   end_date?: string;
 } | null> => {
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('forklift_rentals')
-      .select(`
-        rental_id,
-        customer_id,
-        rental_location,
-        start_date,
-        end_date,
-        customers (name, address)
-      `)
+      .select(ACTIVE_RENTAL_SELECT)
       .eq('forklift_id', forkliftId)
       .eq('status', 'active')
       .maybeSingle();
+
+    if (error && isMissingColumnError(error)) {
+      ({ data, error } = await supabase
+        .from('forklift_rentals')
+        .select(ACTIVE_RENTAL_SELECT_LEGACY)
+        .eq('forklift_id', forkliftId)
+        .eq('status', 'active')
+        .maybeSingle());
+    }
 
     if (error || !data) return null;
 
@@ -46,6 +102,8 @@ export const getActiveRentalForForklift = async (forkliftId: string): Promise<{
       customer_name: customer?.name || 'Unknown',
       customer_address: customer?.address || '',
       rental_location: data.rental_location || '',
+      site: data.site || undefined,
+      site_id: data.site_id || undefined,
       start_date: data.start_date,
       end_date: data.end_date,
     };
@@ -58,7 +116,7 @@ export const getRentals = async (filters?: { forklift_id?: string; customer_id?:
   try {
     let query = supabase
       .from('forklift_rentals')
-      .select(`*, forklift:forklifts!forklift_rentals_forklift_id_fkey(*), customer:customers(*)`)
+      .select(RENTAL_WITH_RELATIONS_SELECT)
       .order('created_at', { ascending: false });
 
     if (filters?.forklift_id) query = query.eq('forklift_id', filters.forklift_id);
@@ -79,7 +137,7 @@ export const getForkliftRentals = async (forkliftId: string): Promise<ForkliftRe
   try {
     const { data, error } = await supabase
       .from('forklift_rentals')
-      .select(`*, customer:customers(*)`)
+      .select('*, customer:customers(*)')
       .eq('forklift_id', forkliftId)
       .order('start_date', { ascending: false });
 
@@ -96,7 +154,7 @@ export const getCustomerRentals = async (customerId: string): Promise<ForkliftRe
   try {
     const { data, error } = await supabase
       .from('forklift_rentals')
-      .select(`*, forklift:forklifts!forklift_rentals_forklift_id_fkey(*)`)
+      .select('*, forklift:forklifts!forklift_rentals_forklift_id_fkey(*)')
       .eq('customer_id', customerId)
       .order('start_date', { ascending: false });
 
@@ -113,7 +171,7 @@ export const getCustomerActiveRentals = async (customerId: string): Promise<Fork
   try {
     const { data, error } = await supabase
       .from('forklift_rentals')
-      .select(`*, forklift:forklifts!forklift_rentals_forklift_id_fkey(*)`)
+      .select('*, forklift:forklifts!forklift_rentals_forklift_id_fkey(*)')
       .eq('customer_id', customerId)
       .eq('status', 'active')
       .order('start_date', { ascending: false });
@@ -140,7 +198,8 @@ export const assignForkliftToCustomer = async (
   createdById?: string,
   createdByName?: string,
   monthlyRentalRate?: number,
-  site?: string
+  site?: string,
+  siteId?: string
 ): Promise<ForkliftRental> => {
   const { data: existingRental } = await supabase
     .from('forklift_rentals')
@@ -170,27 +229,49 @@ export const assignForkliftToCustomer = async (
       notes: notes || null,
       rental_location: customer?.address || null,
       site: site || null,
+      site_id: siteId || null,
       created_by_id: createdById || null,
       created_by_name: createdByName || null,
       monthly_rental_rate: monthlyRentalRate || 0,
       currency: 'RM',
     })
-    .select(`*, forklift:forklifts!forklift_rentals_forklift_id_fkey(*), customer:customers(*)`)
+    .select(RENTAL_WITH_RELATIONS_SELECT)
     .single();
 
-  if (error) throw new Error(error.message);
+  let rentalData = data;
+  let rentalError = error;
+  if (rentalError && isMissingColumnError(rentalError)) {
+    ({ data: rentalData, error: rentalError } = await supabase
+      .from('forklift_rentals')
+      .insert({
+        forklift_id: forkliftId,
+        customer_id: customerId,
+        start_date: startDate,
+        end_date: endDate || null,
+        status: 'active',
+        notes: notes || null,
+        rental_location: customer?.address || null,
+        site: site || null,
+        created_by_id: createdById || null,
+        created_by_name: createdByName || null,
+        monthly_rental_rate: monthlyRentalRate || 0,
+        currency: 'RM',
+      })
+      .select(RENTAL_WITH_RELATIONS_SELECT)
+      .single());
+  }
 
-  await supabase
-    .from('forklifts')
-    .update({
-      current_customer_id: customerId,
-      site: customer?.name || null,
-      status: 'Rented Out',  // Update status when rental starts
-      updated_at: new Date().toISOString(),
-    })
-    .eq('forklift_id', forkliftId);
+  if (rentalError) throw new Error(rentalError.message);
 
-  return data as ForkliftRental;
+  await updateForkliftAssignment(forkliftId, {
+    current_customer_id: customerId,
+    current_site_id: siteId || null,
+    site: site || customer?.name || null,
+    status: 'Rented Out',
+    updated_at: new Date().toISOString(),
+  });
+
+  return rentalData as ForkliftRental;
 };
 
 export const endRental = async (
@@ -221,34 +302,53 @@ export const endRental = async (
       updated_at: new Date().toISOString(),
     })
     .eq('rental_id', rentalId)
-    .select(`*, forklift:forklifts!forklift_rentals_forklift_id_fkey(*), customer:customers(*)`)
+    .select(RENTAL_WITH_RELATIONS_SELECT)
     .single();
 
   if (error) throw new Error(error.message);
 
   // Always reset forklift status — guaranteed to have forklift_id from above
-  await supabase
-    .from('forklifts')
-    .update({
-      current_customer_id: null,
-      status: 'Available',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('forklift_id', rental.forklift_id);
+  await updateForkliftAssignment(rental.forklift_id, {
+    current_customer_id: null,
+    current_site_id: null,
+    status: 'Available',
+    updated_at: new Date().toISOString(),
+  });
 
   return data as ForkliftRental;
 };
 
-export const updateRental = async (rentalId: string, updates: { start_date?: string; end_date?: string; notes?: string; monthly_rental_rate?: number }): Promise<ForkliftRental> => {
+export const updateRental = async (
+  rentalId: string,
+  updates: {
+    start_date?: string;
+    end_date?: string;
+    notes?: string;
+    monthly_rental_rate?: number;
+    site?: string | null;
+    site_id?: string | null;
+  }
+): Promise<ForkliftRental> => {
   const { data, error } = await supabase
     .from('forklift_rentals')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('rental_id', rentalId)
-    .select(`*, forklift:forklifts!forklift_rentals_forklift_id_fkey(*), customer:customers(*)`)
+    .select(RENTAL_WITH_RELATIONS_SELECT)
     .single();
 
-  if (error) throw new Error(error.message);
-  return data as ForkliftRental;
+  if (!error) return data as ForkliftRental;
+  if (!isMissingColumnError(error)) throw new Error(error.message);
+
+  const { site_id: _siteId, ...legacyUpdates } = updates;
+  const { data: legacyData, error: legacyError } = await supabase
+    .from('forklift_rentals')
+    .update({ ...legacyUpdates, updated_at: new Date().toISOString() })
+    .eq('rental_id', rentalId)
+    .select(RENTAL_WITH_RELATIONS_SELECT)
+    .single();
+
+  if (legacyError) throw new Error(legacyError.message);
+  return legacyData as ForkliftRental;
 };
 
 export const updateRentalRate = async (rentalId: string, monthlyRate: number, currency: string = 'RM'): Promise<ForkliftRental | null> => {
@@ -261,7 +361,7 @@ export const updateRentalRate = async (rentalId: string, monthlyRate: number, cu
         updated_at: new Date().toISOString(),
       })
       .eq('rental_id', rentalId)
-      .select(`*, forklift:forklifts!forklift_rentals_forklift_id_fkey(*), customer:customers(*)`)
+      .select(RENTAL_WITH_RELATIONS_SELECT)
       .single();
 
     if (error) {
@@ -286,7 +386,8 @@ export const bulkAssignForkliftsToCustomer = async (
   createdById?: string,
   createdByName?: string,
   monthlyRentalRate?: number,
-  site?: string
+  site?: string,
+  siteId?: string
 ): Promise<{ success: ForkliftRental[]; failed: { forkliftId: string; error: string }[] }> => {
   const results: { success: ForkliftRental[]; failed: { forkliftId: string; error: string }[] } = {
     success: [],
@@ -313,7 +414,7 @@ export const bulkAssignForkliftsToCustomer = async (
         continue;
       }
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('forklift_rentals')
         .insert({
           forklift_id: forkliftId,
@@ -324,28 +425,48 @@ export const bulkAssignForkliftsToCustomer = async (
           notes: notes || null,
           rental_location: customer?.address || null,
           site: site || null,
+          site_id: siteId || null,
           created_by_id: createdById || null,
           created_by_name: createdByName || null,
           monthly_rental_rate: monthlyRentalRate || 0,
           currency: 'RM',
         })
-        .select(`*, forklift:forklifts!forklift_rentals_forklift_id_fkey(*), customer:customers(*)`)
+        .select(RENTAL_WITH_RELATIONS_SELECT)
         .single();
+
+      if (error && isMissingColumnError(error)) {
+        ({ data, error } = await supabase
+          .from('forklift_rentals')
+          .insert({
+            forklift_id: forkliftId,
+            customer_id: customerId,
+            start_date: startDate,
+            end_date: endDate || null,
+            status: 'active',
+            notes: notes || null,
+            rental_location: customer?.address || null,
+            site: site || null,
+            created_by_id: createdById || null,
+            created_by_name: createdByName || null,
+            monthly_rental_rate: monthlyRentalRate || 0,
+            currency: 'RM',
+          })
+          .select(RENTAL_WITH_RELATIONS_SELECT)
+          .single());
+      }
 
       if (error) {
         results.failed.push({ forkliftId, error: error.message });
         continue;
       }
 
-      await supabase
-        .from('forklifts')
-        .update({
-          current_customer_id: customerId,
-          site: customer?.name || null,
-          status: 'Rented Out',  // Update status when rental starts
-          updated_at: new Date().toISOString(),
-        })
-        .eq('forklift_id', forkliftId);
+      await updateForkliftAssignment(forkliftId, {
+        current_customer_id: customerId,
+        current_site_id: siteId || null,
+        site: site || customer?.name || null,
+        status: 'Rented Out',
+        updated_at: new Date().toISOString(),
+      });
 
       results.success.push(data as ForkliftRental);
     } catch (_e) {
@@ -400,14 +521,12 @@ export const bulkEndRentals = async (
         continue;
       }
 
-      await supabase
-        .from('forklifts')
-        .update({ 
-          current_customer_id: null, 
-          status: 'Available',  // Reset status when rental ends
-          updated_at: new Date().toISOString() 
-        })
-        .eq('forklift_id', forkliftId);
+      await updateForkliftAssignment(forkliftId, {
+        current_customer_id: null,
+        current_site_id: null,
+        status: 'Available',
+        updated_at: new Date().toISOString(),
+      });
 
       results.success.push(data as ForkliftRental);
     } catch (_e) {

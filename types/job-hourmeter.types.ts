@@ -99,5 +99,5 @@ export interface HourmeterHistoryEntry {
   recorded_at: string;
 
   // Source
-  source: 'job_start' | 'job_end' | 'amendment' | 'audit' | 'manual';
+  source: 'job_start' | 'job_end' | 'amendment' | 'audit' | 'manual' | 'import';
 }

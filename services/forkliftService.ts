@@ -9,6 +9,13 @@ import type { Forklift } from '../types';
 import { ForkliftStatus as ForkliftStatusEnum } from '../types';
 import { supabase } from './supabaseClient';
 
+const FORKLIFT_SELECT = 'forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, current_site_id, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, delivery_date, source_item_group, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update';
+const LEGACY_FORKLIFT_SELECT = 'forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update';
+
+const isMissingColumnError = (error: { message?: string } | null | undefined) =>
+  /column .* does not exist/i.test(error?.message || '') ||
+  /Could not find the '.*' column/i.test(error?.message || '');
+
 // =====================
 // RE-EXPORTS FOR BACKWARD COMPATIBILITY
 // =====================
@@ -39,13 +46,25 @@ getServiceIntervalsByType,getUpcomingServices,hardDeleteServiceInterval,updateSc
 // =====================
 
 export const getForklifts = async (): Promise<Forklift[]> => {
-  const { data, error } = await supabase
+  const initial = await supabase
     .from('forklifts')
-    .select('forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update')
+    .select(FORKLIFT_SELECT)
     .order('serial_number');
 
-  if (error) throw new Error(error.message);
-  return data as Forklift[];
+  let resultData = (initial.data as Forklift[] | null) || null;
+  let resultError = initial.error;
+
+  if (resultError && isMissingColumnError(resultError)) {
+    const fallback = await supabase
+      .from('forklifts')
+      .select(LEGACY_FORKLIFT_SELECT)
+      .order('serial_number');
+    resultData = (fallback.data as Forklift[] | null) || null;
+    resultError = fallback.error;
+  }
+
+  if (resultError) throw new Error(resultError.message);
+  return resultData || [];
 };
 
 export const getForkliftsForList = async (): Promise<Pick<Forklift, 'forklift_id' | 'serial_number' | 'make' | 'model' | 'type' | 'status' | 'hourmeter' | 'location' | 'current_customer_id'>[]> => {
@@ -61,32 +80,48 @@ export const getForkliftsForList = async (): Promise<Pick<Forklift, 'forklift_id
 };
 
 export const getForkliftById = async (forkliftId: string): Promise<Forklift | null> => {
-  const { data, error } = await supabase
+  const initial = await supabase
     .from('forklifts')
-    .select('forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update')
+    .select(FORKLIFT_SELECT)
     .eq('forklift_id', forkliftId)
     .single();
 
-  if (error) {
-    console.error('Error fetching forklift:', error);
+  let resultData = (initial.data as Forklift | null) || null;
+  let resultError = initial.error;
+
+  if (resultError && isMissingColumnError(resultError)) {
+    const fallback = await supabase
+      .from('forklifts')
+      .select(LEGACY_FORKLIFT_SELECT)
+      .eq('forklift_id', forkliftId)
+      .single();
+    resultData = (fallback.data as Forklift | null) || null;
+    resultError = fallback.error;
+  }
+
+  if (resultError) {
+    console.error('Error fetching forklift:', resultError);
     return null;
   }
-  return data as Forklift;
+  return resultData;
 };
 
 export const getForkliftWithCustomer = async (forkliftId: string): Promise<Forklift | null> => {
   try {
     const { data, error } = await supabase
       .from('forklifts')
-      .select(`forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update, current_customer:customers!forklifts_current_customer_id_fkey(customer_id, name, phone, email, address, notes, contact_person, account_number)`)
+      .select(`${FORKLIFT_SELECT}, current_customer:customers!forklifts_current_customer_id_fkey(customer_id, name, phone, email, address, notes, contact_person, account_number)`)
       .eq('forklift_id', forkliftId)
       .single();
 
-    if (error) {
+    if (error && !isMissingColumnError(error)) {
       console.warn('Forklift with customer query failed, falling back:', error.message);
+    }
+
+    if (error) {
       const { data: basicData, error: basicError } = await supabase
         .from('forklifts')
-        .select('forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update')
+        .select(LEGACY_FORKLIFT_SELECT)
         .eq('forklift_id', forkliftId)
         .single();
       
@@ -104,10 +139,21 @@ export const getForkliftsWithCustomers = async (): Promise<Forklift[]> => {
   try {
     const { data: forklifts, error: forkliftError } = await supabase
       .from('forklifts')
-      .select('forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update')
+      .select(FORKLIFT_SELECT)
       .order('serial_number');
 
-    if (forkliftError) throw new Error(forkliftError.message);
+    let resolvedForklifts = (forklifts as Forklift[] | null) || null;
+    let resolvedForkliftError = forkliftError;
+    if (resolvedForkliftError && isMissingColumnError(resolvedForkliftError)) {
+      const fallback = await supabase
+        .from('forklifts')
+        .select(LEGACY_FORKLIFT_SELECT)
+        .order('serial_number');
+      resolvedForklifts = (fallback.data as Forklift[] | null) || null;
+      resolvedForkliftError = fallback.error;
+    }
+
+    if (resolvedForkliftError) throw new Error(resolvedForkliftError.message);
 
     const { data: activeRentals, error: rentalError } = await supabase
       .from('forklift_rentals')
@@ -116,7 +162,7 @@ export const getForkliftsWithCustomers = async (): Promise<Forklift[]> => {
 
     if (rentalError) {
       console.warn('Active rentals query failed:', rentalError.message);
-      return forklifts as Forklift[];
+      return (resolvedForklifts || []) as Forklift[];
     }
 
     const rentalMap = new Map();
@@ -128,7 +174,7 @@ export const getForkliftsWithCustomers = async (): Promise<Forklift[]> => {
       });
     });
 
-    const forkliftsWithCustomers = (forklifts || []).map(forklift => {
+    const forkliftsWithCustomers = (resolvedForklifts || []).map(forklift => {
       const rentalInfo = rentalMap.get(forklift.forklift_id);
       if (rentalInfo) {
         return { ...forklift, ...rentalInfo };
@@ -139,36 +185,68 @@ export const getForkliftsWithCustomers = async (): Promise<Forklift[]> => {
     return forkliftsWithCustomers as Forklift[];
   } catch (e) {
     console.error('Error fetching forklifts:', e);
-    const { data, error } = await supabase
+    const initial = await supabase
       .from('forklifts')
-      .select('forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update')
+      .select(FORKLIFT_SELECT)
       .order('serial_number');
+
+    let resultData = (initial.data as Forklift[] | null) || null;
+    let resultError = initial.error;
+
+    if (resultError && isMissingColumnError(resultError)) {
+      const fallback = await supabase
+        .from('forklifts')
+        .select(LEGACY_FORKLIFT_SELECT)
+        .order('serial_number');
+      resultData = (fallback.data as Forklift[] | null) || null;
+      resultError = fallback.error;
+    }
     
-    if (error) throw new Error(error.message);
-    return data as Forklift[];
+    if (resultError) throw new Error(resultError.message);
+    return resultData || [];
   }
 };
 
 export const createForklift = async (forkliftData: Partial<Forklift>): Promise<Forklift> => {
-  const { data, error } = await supabase
+  const payload = {
+    serial_number: forkliftData.serial_number,
+    make: forkliftData.make,
+    model: forkliftData.model,
+    type: forkliftData.type,
+    hourmeter: forkliftData.hourmeter || 0,
+    last_service_hourmeter: forkliftData.last_service_hourmeter || forkliftData.hourmeter || 0,
+    last_serviced_hourmeter: forkliftData.last_service_hourmeter || forkliftData.hourmeter || 0,
+    next_target_service_hour: (forkliftData.last_service_hourmeter || forkliftData.hourmeter || 0) + (forkliftData.service_interval_hours || 500),
+    year: forkliftData.year,
+    capacity_kg: forkliftData.capacity_kg,
+    location: forkliftData.location,
+    site: forkliftData.site,
+    current_site_id: forkliftData.current_site_id,
+    status: forkliftData.status || ForkliftStatusEnum.ACTIVE,
+    ownership: forkliftData.ownership,
+    customer_id: forkliftData.customer_id,
+    forklift_no: forkliftData.forklift_no,
+    customer_forklift_no: forkliftData.customer_forklift_no,
+    current_customer_id: forkliftData.current_customer_id,
+    delivery_date: forkliftData.delivery_date,
+    source_item_group: forkliftData.source_item_group,
+    notes: forkliftData.notes,
+  };
+
+  let { data, error } = await supabase
     .from('forklifts')
-    .insert({
-      serial_number: forkliftData.serial_number,
-      make: forkliftData.make,
-      model: forkliftData.model,
-      type: forkliftData.type,
-      hourmeter: forkliftData.hourmeter || 0,
-      last_service_hourmeter: forkliftData.last_service_hourmeter || forkliftData.hourmeter || 0,
-      last_serviced_hourmeter: forkliftData.last_service_hourmeter || forkliftData.hourmeter || 0,
-      next_target_service_hour: (forkliftData.last_service_hourmeter || forkliftData.hourmeter || 0) + (forkliftData.service_interval_hours || 500),
-      year: forkliftData.year,
-      capacity_kg: forkliftData.capacity_kg,
-      location: forkliftData.location,
-      status: forkliftData.status || ForkliftStatusEnum.ACTIVE,
-      notes: forkliftData.notes,
-    })
+    .insert(payload)
     .select()
     .single();
+
+  if (error && isMissingColumnError(error)) {
+    const { current_site_id: _currentSiteId, delivery_date: _deliveryDate, source_item_group: _sourceItemGroup, ...legacyPayload } = payload;
+    ({ data, error } = await supabase
+      .from('forklifts')
+      .insert(legacyPayload)
+      .select()
+      .single());
+  }
 
   if (error) throw new Error(error.message);
   return data as Forklift;

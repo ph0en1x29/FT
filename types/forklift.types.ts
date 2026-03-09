@@ -134,9 +134,11 @@ export interface Forklift {
   capacity_kg?: number;
   location?: string; // @deprecated use site
   site?: string;
+  current_site_id?: string;
   status: ForkliftStatus;
   last_service_date?: string;
   next_service_due?: string;
+  delivery_date?: string;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -156,6 +158,7 @@ export interface Forklift {
   last_serviced_hourmeter?: number; // Hourmeter when last Full Service completed
   next_target_service_hour?: number; // Auto-calculated: last_serviced + interval
   last_hourmeter_update?: string; // Timestamp of last hourmeter reading (for stale detection)
+  source_item_group?: string;
 }
 
 // Rental Status
@@ -175,6 +178,7 @@ export interface ForkliftRental {
   status: RentalStatus;
   rental_location?: string;
   site?: string;
+  site_id?: string;
   notes?: string;
   monthly_rental_rate?: number;
   currency?: string;

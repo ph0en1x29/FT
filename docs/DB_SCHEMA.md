@@ -2,7 +2,8 @@
 
 > Purpose: Reference for engineers and AI assistants when modifying or extending the database.
 > Database: Supabase (PostgreSQL)
-> Last Updated: 2026-02-05 (Added service tracking: fleet_service_overview view, service_upgrade_logs table, get_forklift_daily_usage/complete_full_service functions, new forklift columns)
+> Last Updated: 2026-03-09 (Added rental/hourmeter import-prep schema support: nullable customer site addresses, alias tables, rental site links, forklift import metadata, hourmeter import source)
+> Related Docs: `docs/RENTAL_HOURMETER_IMPORT_PREP.md`, `database/migrations/20260309_rental_hourmeter_import_prep.sql`
 
 ---
 
@@ -87,6 +88,74 @@ Customer records.
 
 Constraints:
 - PK: `customer_id`
+
+---
+
+### `customer_sites`
+Named customer locations used for jobs, rentals, and import linking.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `site_id` | UUID | NO | `gen_random_uuid()` |
+| `customer_id` | UUID | NO | |
+| `site_name` | TEXT | NO | |
+| `address` | TEXT | YES | |
+| `notes` | TEXT | YES | |
+| `is_active` | BOOLEAN | NO | `true` |
+| `created_at` | TIMESTAMPTZ | YES | `now()` |
+| `updated_at` | TIMESTAMPTZ | YES | `now()` |
+
+Constraints:
+- PK: `site_id`
+
+Foreign keys:
+- `customer_id` -> `customers.customer_id` (CASCADE)
+
+---
+
+### `customer_aliases`
+Source-name aliases that resolve imported customer labels to canonical customers.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `alias_id` | UUID | NO | `gen_random_uuid()` |
+| `customer_id` | UUID | NO | |
+| `source_system` | TEXT | NO | |
+| `alias_name` | TEXT | NO | |
+| `normalized_alias` | TEXT | NO | |
+| `is_active` | BOOLEAN | NO | `true` |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `alias_id`
+- UNIQUE: (`source_system`, `normalized_alias`)
+
+Foreign keys:
+- `customer_id` -> `customers.customer_id` (CASCADE)
+
+---
+
+### `customer_site_aliases`
+Source-name aliases that resolve imported site labels to canonical customer sites.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `alias_id` | UUID | NO | `gen_random_uuid()` |
+| `site_id` | UUID | NO | |
+| `source_system` | TEXT | NO | |
+| `alias_name` | TEXT | NO | |
+| `normalized_alias` | TEXT | NO | |
+| `is_active` | BOOLEAN | NO | `true` |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `alias_id`
+- UNIQUE: (`source_system`, `normalized_alias`)
+
+Foreign keys:
+- `site_id` -> `customer_sites.site_id` (CASCADE)
 
 ---
 
@@ -710,6 +779,8 @@ Equipment records.
 | `year` | INTEGER | YES | |
 | `capacity_kg` | INTEGER | YES | |
 | `location` | VARCHAR | YES | |
+| `site` | VARCHAR | YES | |
+| `current_site_id` | UUID | YES | |
 | `status` | VARCHAR | NO | `'Active'::character varying` |
 | `last_service_date` | TIMESTAMPTZ | YES | |
 | `next_service_due` | TIMESTAMPTZ | YES | |
@@ -719,6 +790,8 @@ Equipment records.
 | `customer_id` | UUID | YES | |
 | `forklift_no` | VARCHAR | YES | |
 | `current_customer_id` | UUID | YES | |
+| `delivery_date` | DATE | YES | |
+| `source_item_group` | TEXT | YES | |
 | `next_service_type` | VARCHAR | YES | |
 | `next_service_hourmeter` | INTEGER | YES | |
 | `service_notes` | TEXT | YES | |
@@ -738,6 +811,7 @@ Constraints:
 Foreign keys:
 - `customer_id` -> `customers.customer_id`
 - `current_customer_id` -> `customers.customer_id`
+- `current_site_id` -> `customer_sites.site_id`
 - `last_service_job_id` -> `jobs.job_id`
 
 ---
@@ -754,6 +828,8 @@ Rental assignments for forklifts.
 | `end_date` | DATE | YES | |
 | `status` | VARCHAR | YES | `'active'::character varying` |
 | `rental_location` | TEXT | YES | |
+| `site` | TEXT | YES | |
+| `site_id` | UUID | YES | |
 | `notes` | TEXT | YES | |
 | `created_at` | TIMESTAMPTZ | YES | `now()` |
 | `created_by_id` | UUID | YES | |
@@ -773,6 +849,7 @@ Constraints:
 Foreign keys:
 - `forklift_id` -> `forklifts.forklift_id`
 - `customer_id` -> `customers.customer_id`
+- `site_id` -> `customer_sites.site_id`
 - `created_by_id` -> `users.user_id`
 - `ended_by_id` -> `users.user_id`
 
@@ -942,11 +1019,11 @@ Audit trail for all hourmeter readings and changes.
 | `recorded_by_id` | UUID | NO | |
 | `recorded_by_name` | TEXT | NO | |
 | `recorded_at` | TIMESTAMPTZ | NO | `now()` |
-| `source` | TEXT | NO | | `'job_start'`, `'job_end'`, `'amendment'`, `'audit'`, `'manual'` |
+| `source` | TEXT | NO | | `'job_start'`, `'job_end'`, `'amendment'`, `'audit'`, `'manual'`, `'import'` |
 
 Constraints:
 - PK: `entry_id`
-- CHECK: `source` IN ('job_start', 'job_end', 'amendment', 'audit', 'manual')
+- CHECK: `source` IN ('job_start', 'job_end', 'amendment', 'audit', 'manual', 'import')
 
 Foreign keys:
 - `forklift_id` -> `forklifts.forklift_id` (CASCADE)

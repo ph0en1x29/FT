@@ -4,6 +4,25 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-03-09] — Rental + Hourmeter Import Preparation
+
+### Features
+
+**Dry-Run Import Preparation**
+- **Rental + hourmeter prep CLI** — Added `npm run import:prep:dry-run` to parse rental and hourmeter CSVs, compare them against Supabase, and emit a JSON review report without importing any live data.
+- **Classification report** — Every in-scope asset is classified as `create`, `update`, or `manual-review`, with preserved raw source values and proposed forklift/rental/hourmeter records.
+- **Review buckets** — The dry-run report isolates unresolved customer aliases, unresolved site aliases, missing-identity rows, and excluded non-forklift equipment (`R-HPT`, `R-EQUIP`).
+- **Hourmeter summary parser** — Locked the import logic to the grouped 4-row hourmeter summary blocks and ignores the flat debtor/detail section for canonical import decisions.
+
+### Data Model
+- **Relational rental site prep** — Added migration support for `forklift_rentals.site_id`, `forklifts.current_site_id`, `forklifts.delivery_date`, and `forklifts.source_item_group`.
+- **Customer site import prep** — `customer_sites.address` can now be nullable so imports can stage site names before full addresses are known.
+- **Alias mapping tables** — Added `customer_aliases` and `customer_site_aliases` to support reviewable source-name reconciliation instead of hardcoded string guessing.
+- **Hourmeter import source** — Extended `hourmeter_history.source` to allow `import` audit entries for the future approval-based import step.
+
+### Tests
+- **Import prep parser tests** — Added node-based tests for rental parsing, grouped hourmeter parsing, alias normalization, unresolved site review classification, and hourmeter regression detection.
+
 ## [2026-03-07] — Mobile Technician UX + Dashboard Hardening
 
 ### Features
