@@ -127,7 +127,7 @@ const Customers: React.FC = () => {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted" />
         <input
           type="text"
-          placeholder="Search by name, address, email, account number, or agent..."
+          placeholder="Search by name, phone, address, email, account no., agent..."
           className="w-full pl-10 pr-4 py-3 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-theme placeholder-slate-400 theme-transition"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -138,6 +138,34 @@ const Customers: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {!isLoading && totalCount > 0 && (
+        <div className="flex items-center justify-between text-sm text-theme-muted">
+          <p>{rangeStart}-{rangeEnd} of {totalCount} customers</p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2 text-xs text-theme-muted">
+              <button
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={!canGoPrev}
+                className="inline-flex items-center gap-1 rounded-lg border border-theme px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-3 h-3" />
+                Prev
+              </button>
+              <span>Page {currentPage} of {totalPages}</span>
+              <button
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={!canGoNext}
+                className="inline-flex items-center gap-1 rounded-lg border border-theme px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Customers Grid */}
       {isLoading ? (
@@ -171,34 +199,6 @@ const Customers: React.FC = () => {
             >
               Create your first customer
             </button>
-          )}
-        </div>
-      )}
-
-      {/* Pagination Controls */}
-      {!isLoading && totalCount > 0 && (
-        <div className="flex items-center justify-between text-sm text-theme-muted">
-          <p>{rangeStart}-{rangeEnd} of {totalCount} customers</p>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2 text-xs text-theme-muted">
-              <button
-                onClick={() => setCurrentPage(currentPage - 1)}
-                disabled={!canGoPrev}
-                className="inline-flex items-center gap-1 rounded-lg border border-theme px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="w-3 h-3" />
-                Prev
-              </button>
-              <span>Page {currentPage} of {totalPages}</span>
-              <button
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={!canGoNext}
-                className="inline-flex items-center gap-1 rounded-lg border border-theme px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-                <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
           )}
         </div>
       )}

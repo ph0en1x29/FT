@@ -103,7 +103,7 @@ export const getCustomersPage = async (filters: CustomersPageFilters = {}): Prom
   if (searchQuery) {
     const escaped = searchQuery.replace(/[%_,]/g, '');
     query = query.or(
-      `name.ilike.%${escaped}%,address.ilike.%${escaped}%,email.ilike.%${escaped}%,account_number.ilike.%${escaped}%,agent.ilike.%${escaped}%`
+      `name.ilike.%${escaped}%,address.ilike.%${escaped}%,email.ilike.%${escaped}%,account_number.ilike.%${escaped}%,agent.ilike.%${escaped}%,phone.ilike.%${escaped}%,phone_secondary.ilike.%${escaped}%,registration_no.ilike.%${escaped}%,tax_entity_id.ilike.%${escaped}%,credit_term.ilike.%${escaped}%,contact_person.ilike.%${escaped}%,notes.ilike.%${escaped}%`
     );
   }
 

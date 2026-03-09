@@ -48,3 +48,6 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 - [2026-03-09 05:39] [Sonnet] Updated Customers.tsx — server-side pagination with debounced search (50/page)
 - [2026-03-09 05:39] [Sonnet] Updated customerService.ts — added getCustomersPage() with .range() and count:'exact'
 - [2026-03-09 05:39] [Sonnet] Updated supabaseService.ts — re-exported getCustomersPage
+
+- [2026-03-09 05:42] [Sonnet] Updated Customers.tsx — moved pagination above grid
+- [2026-03-09 05:42] [Sonnet] Updated customerService.ts — search across all customer fields (phone, reg no, tax ID, credit term, contact person, notes)
