@@ -25,26 +25,49 @@ interface JobWithRelations extends Omit<Job, 'parts_used' | 'extra_charges'> {
  * Get all customers
  */
 export const getCustomers = async (): Promise<Customer[]> => {
-  const { data, error } = await supabase
-    .from('customers')
-    .select('customer_id, name, phone, email, address, notes, contact_person, account_number, registration_no, tax_entity_id, credit_term, agent, phone_secondary')
-    .order('name');
+  // Supabase default limit is 1000 — fetch all with pagination
+  const PAGE_SIZE = 1000;
+  const allCustomers: Customer[] = [];
+  let from = 0;
+  
+  while (true) {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('customer_id, name, phone, email, address, notes, contact_person, account_number, registration_no, tax_entity_id, credit_term, agent, phone_secondary')
+      .order('name')
+      .range(from, from + PAGE_SIZE - 1);
 
-  if (error) throw new Error(error.message);
-  return data as Customer[];
+    if (error) throw new Error(error.message);
+    allCustomers.push(...(data as Customer[]));
+    if (!data || data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  
+  return allCustomers;
 };
 
 /**
  * Get customers for dropdown lists (lightweight)
  */
 export const getCustomersForList = async (): Promise<Pick<Customer, 'customer_id' | 'name' | 'address'>[]> => {
-  const { data, error } = await supabase
-    .from('customers')
-    .select('customer_id, name, address')
-    .order('name');
+  const PAGE_SIZE = 1000;
+  const all: Pick<Customer, 'customer_id' | 'name' | 'address'>[] = [];
+  let from = 0;
 
-  if (error) throw new Error(error.message);
-  return data as Pick<Customer, 'customer_id' | 'name' | 'address'>[];
+  while (true) {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('customer_id, name, address')
+      .order('name')
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) throw new Error(error.message);
+    all.push(...(data as Pick<Customer, 'customer_id' | 'name' | 'address'>[]));
+    if (!data || data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return all;
 };
 
 /**
