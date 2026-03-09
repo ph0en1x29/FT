@@ -1,4 +1,4 @@
-import { AlertTriangle,CheckSquare,Loader2,Plus,Square } from 'lucide-react';
+import { AlertTriangle,CheckSquare,ChevronLeft,ChevronRight,Loader2,Plus,Square } from 'lucide-react';
 import React from 'react';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { TabProps } from '../types';
@@ -25,12 +25,20 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
     );
   }
 
+  const rangeStart = fleet.totalCount === 0 ? 0 : (fleet.currentPage - 1) * 50 + 1;
+  const rangeEnd = Math.min(fleet.currentPage * 50, fleet.totalCount);
+  const canGoPrev = fleet.currentPage > 1;
+  const canGoNext = fleet.currentPage < fleet.totalPages;
+
   return (
     <div className="space-y-4">
       {/* Actions Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <p className="text-sm text-theme-muted">
-          {fleet.filteredForklifts.length} of {fleet.forklifts.length} units
+          {fleet.totalCount > 0 ? `${rangeStart}–${rangeEnd} of ${fleet.totalCount}` : '0'} units
+          {fleet.isFetching && !fleet.loading && (
+            <span className="ml-2 inline-block w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin align-middle" />
+          )}
           {fleet.isSelectionMode && fleet.selectedForkliftIds.size > 0 && (
             <span className="ml-2 text-blue-600 font-medium">
               • {fleet.selectedForkliftIds.size} selected
@@ -103,6 +111,32 @@ const FleetTab: React.FC<TabProps> = ({ currentUser }) => {
         onAssign={fleet.handleAssign}
         onReturn={fleet.handleReturn}
       />
+
+      {/* Pagination Controls */}
+      {!fleet.loading && fleet.totalCount > 0 && fleet.totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-theme-muted pt-2">
+          <p>{rangeStart}–{rangeEnd} of {fleet.totalCount} units</p>
+          <div className="flex items-center gap-2 text-xs">
+            <button
+              onClick={() => fleet.setCurrentPage(fleet.currentPage - 1)}
+              disabled={!canGoPrev}
+              className="inline-flex items-center gap-1 rounded-lg border border-theme px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-3 h-3" />
+              Prev
+            </button>
+            <span>Page {fleet.currentPage} of {fleet.totalPages}</span>
+            <button
+              onClick={() => fleet.setCurrentPage(fleet.currentPage + 1)}
+              disabled={!canGoNext}
+              className="inline-flex items-center gap-1 rounded-lg border border-theme px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+              <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {fleet.showAddModal && (
         <AddEditForkliftModal

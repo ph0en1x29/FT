@@ -54,3 +54,8 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 - [2026-03-09 05:42] [Sonnet] Updated Customers.tsx — moved pagination above grid
 - [2026-03-09 05:42] [Sonnet] Updated customerService.ts — search across all customer fields (phone, reg no, tax ID, credit term, contact person, notes)
+
+- [2026-03-09 14:52] [Sonnet] Updated services/forkliftService.ts — added getForkliftsPage() with server-side search/filters, .range() + count:exact, enrichWithRentals() helper, getForkliftUniqueMakes() lightweight query
+- [2026-03-09 14:52] [Sonnet] Updated pages/ForkliftsTabs/components/useFleetManagement.ts — replaced bulk getForkliftsWithCustomers()+getCustomers() with useQuery paginated fleet (50/page), lazy customer loading on modal open, queryClient.invalidateQueries replacing all loadData() calls
+- [2026-03-09 14:52] [Sonnet] Updated pages/ForkliftsTabs/components/FleetTab.tsx — added pagination controls (Prev/Next, page X of Y), debounced search spinner
+- [2026-03-09 14:53] [Sonnet] Fix services/forkliftService.ts — renamed enrichWithRentals Map type to Record<string,any> to allow monthly_rental_rate (not on Forklift type)

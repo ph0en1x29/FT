@@ -9,6 +9,27 @@ import type { Forklift } from '../types';
 import { ForkliftStatus as ForkliftStatusEnum } from '../types';
 import { supabase } from './supabaseClient';
 
+// =====================
+// PAGINATION TYPES
+// =====================
+
+export interface ForkliftsPageFilters {
+  searchQuery?: string;
+  page?: number;
+  pageSize?: number;
+  filterType?: string;
+  filterStatus?: string;
+  filterMake?: string;
+  filterAssigned?: string;
+}
+
+export interface ForkliftsPage {
+  forklifts: Forklift[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 const FORKLIFT_SELECT = 'forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, current_site_id, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, delivery_date, source_item_group, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update';
 const LEGACY_FORKLIFT_SELECT = 'forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update';
 
@@ -205,6 +226,146 @@ export const getForkliftsWithCustomers = async (): Promise<Forklift[]> => {
     if (resultError) throw new Error(resultError.message);
     return resultData || [];
   }
+};
+
+/**
+ * Get a paginated page of forklifts with server-side search + filters.
+ * Enriches each page with active rental / customer data (2nd query, at most pageSize rows).
+ */
+export const getForkliftsPage = async (filters: ForkliftsPageFilters = {}): Promise<ForkliftsPage> => {
+  const page = Math.max(filters.page || 1, 1);
+  const pageSize = Math.max(filters.pageSize || 50, 1);
+  const searchQuery = filters.searchQuery?.trim() || '';
+  const filterType = filters.filterType || 'all';
+  const filterStatus = filters.filterStatus || 'all';
+  const filterMake = filters.filterMake || 'all';
+  const filterAssigned = filters.filterAssigned || 'all';
+
+  // Pre-resolve customer IDs when search text was typed — lets us OR across customer name
+  let matchingCustomerIds: string[] = [];
+  if (searchQuery) {
+    const escaped = searchQuery.replace(/[%_]/g, '\\$&');
+    const { data: matchedCx } = await supabase
+      .from('customers')
+      .select('customer_id')
+      .ilike('name', `%${escaped}%`);
+    matchingCustomerIds = (matchedCx || []).map((c: { customer_id: string }) => c.customer_id);
+  }
+
+  const selectStr = FORKLIFT_SELECT;
+  let query = supabase
+    .from('forklifts')
+    .select(selectStr, { count: 'exact' })
+    .order('serial_number')
+    .range((page - 1) * pageSize, page * pageSize - 1);
+
+  // Server-side search
+  if (searchQuery) {
+    const escaped = searchQuery.replace(/[%_]/g, '\\$&');
+    const orParts = [
+      `serial_number.ilike.%${escaped}%`,
+      `make.ilike.%${escaped}%`,
+      `model.ilike.%${escaped}%`,
+      `forklift_no.ilike.%${escaped}%`,
+      `site.ilike.%${escaped}%`,
+    ];
+    if (matchingCustomerIds.length > 0) {
+      orParts.push(`current_customer_id.in.(${matchingCustomerIds.join(',')})`);
+    }
+    query = query.or(orParts.join(','));
+  }
+
+  // Server-side filters
+  if (filterType !== 'all') query = query.eq('type', filterType);
+  if (filterStatus !== 'all') query = query.eq('status', filterStatus);
+  if (filterMake !== 'all') query = query.eq('make', filterMake);
+  if (filterAssigned === 'assigned') query = query.not('current_customer_id', 'is', null);
+  if (filterAssigned === 'unassigned') query = query.is('current_customer_id', null);
+
+  const { data, error, count } = await query;
+
+  // Fallback to legacy column set on schema mismatch
+  if (error && isMissingColumnError(error)) {
+    let legacyQuery = supabase
+      .from('forklifts')
+      .select(LEGACY_FORKLIFT_SELECT, { count: 'exact' })
+      .order('serial_number')
+      .range((page - 1) * pageSize, page * pageSize - 1);
+
+    if (searchQuery) {
+      const escaped = searchQuery.replace(/[%_]/g, '\\$&');
+      const orParts = [
+        `serial_number.ilike.%${escaped}%`,
+        `make.ilike.%${escaped}%`,
+        `model.ilike.%${escaped}%`,
+        `forklift_no.ilike.%${escaped}%`,
+        `site.ilike.%${escaped}%`,
+      ];
+      if (matchingCustomerIds.length > 0) {
+        orParts.push(`current_customer_id.in.(${matchingCustomerIds.join(',')})`);
+      }
+      legacyQuery = legacyQuery.or(orParts.join(','));
+    }
+    if (filterType !== 'all') legacyQuery = legacyQuery.eq('type', filterType);
+    if (filterStatus !== 'all') legacyQuery = legacyQuery.eq('status', filterStatus);
+    if (filterMake !== 'all') legacyQuery = legacyQuery.eq('make', filterMake);
+    if (filterAssigned === 'assigned') legacyQuery = legacyQuery.not('current_customer_id', 'is', null);
+    if (filterAssigned === 'unassigned') legacyQuery = legacyQuery.is('current_customer_id', null);
+
+    const { data: legacyData, error: legacyError, count: legacyCount } = await legacyQuery;
+    if (legacyError) throw new Error(legacyError.message);
+    return enrichWithRentals((legacyData || []) as Forklift[], legacyCount || 0, page, pageSize);
+  }
+
+  if (error) throw new Error(error.message);
+  return enrichWithRentals((data || []) as Forklift[], count || 0, page, pageSize);
+};
+
+/** Fetch active rentals for a page of forklifts and merge customer data in. */
+async function enrichWithRentals(
+  forklifts: Forklift[],
+  total: number,
+  page: number,
+  pageSize: number,
+): Promise<ForkliftsPage> {
+  if (forklifts.length === 0) return { forklifts, total, page, pageSize };
+
+  const ids = forklifts.map((f) => f.forklift_id);
+  const { data: activeRentals } = await supabase
+    .from('forklift_rentals')
+    .select('forklift_id, customer_id, monthly_rental_rate, customer:customers(customer_id, name, phone, email, address, notes, contact_person, account_number)')
+    .eq('status', 'active')
+    .in('forklift_id', ids);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rentalMap = new Map<string, Record<string, any>>();
+  (activeRentals || []).forEach((r: { forklift_id: string; customer_id: string; monthly_rental_rate?: number; customer?: unknown }) => {
+    rentalMap.set(r.forklift_id, {
+      current_customer_id: r.customer_id,
+      current_customer: r.customer,
+      monthly_rental_rate: r.monthly_rental_rate,
+    });
+  });
+
+  const enriched = forklifts.map((f) => {
+    const rental = rentalMap.get(f.forklift_id);
+    return rental ? { ...f, ...rental } : f;
+  });
+
+  return { forklifts: enriched as Forklift[], total, page, pageSize };
+}
+
+/**
+ * Get all unique forklift makes (lightweight query for filter dropdown).
+ */
+export const getForkliftUniqueMakes = async (): Promise<string[]> => {
+  const { data, error } = await supabase
+    .from('forklifts')
+    .select('make')
+    .not('make', 'is', null)
+    .order('make');
+  if (error) throw new Error(error.message);
+  return [...new Set((data || []).map((f: { make: string }) => f.make).filter(Boolean))].sort();
 };
 
 export const createForklift = async (forkliftData: Partial<Forklift>): Promise<Forklift> => {

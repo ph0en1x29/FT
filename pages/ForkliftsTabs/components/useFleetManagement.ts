@@ -1,10 +1,15 @@
 /* eslint-disable max-lines */
-import React,{ useCallback,useEffect,useMemo,useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../services/supabaseClient';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
+import { getForkliftsPage, getForkliftUniqueMakes } from '../../../services/forkliftService';
+import { getCustomersForList } from '../../../services/customerService';
 import { showToast } from '../../../services/toastService';
-import { Customer,Forklift,ForkliftStatus,ForkliftType,User,UserRole } from '../../../types';
+import { Customer, Forklift, ForkliftStatus, ForkliftType, User, UserRole } from '../../../types';
 import { ResultModalState } from '../types';
+
+const PAGE_SIZE = 50;
 
 const initialFormData = {
   serial_number: '',
@@ -25,17 +30,25 @@ const initialFormData = {
 };
 
 export function useFleetManagement(currentUser: User, displayRole: UserRole) {
-  // Core data
-  const [forklifts, setForklifts] = useState<Forklift[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterMake, setFilterMake] = useState<string>('all');
   const [filterAssigned, setFilterAssigned] = useState<string>('all');
+
+  // Debounce search → reset to page 1 on change
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedSearch(searchQuery.trim()), 250);
+    return () => window.clearTimeout(t);
+  }, [searchQuery]);
+  useEffect(() => { setCurrentPage(1); }, [debouncedSearch, filterType, filterStatus, filterMake, filterAssigned]);
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -73,63 +86,59 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
   const [lastServiceHourmeter, setLastServiceHourmeter] = useState('');
   const [bulkEndDate, setBulkEndDate] = useState(new Date().toISOString().split('T')[0]);
 
+  // ── Paginated fleet query ─────────────────────────────────────────────────
+  const fleetQueryKey = ['forklifts', 'page', debouncedSearch, currentPage, filterType, filterStatus, filterMake, filterAssigned] as const;
+  const { data: fleetData, isLoading: fleetLoading, isFetching: fleetFetching } = useQuery({
+    queryKey: fleetQueryKey,
+    queryFn: () => getForkliftsPage({
+      searchQuery: debouncedSearch,
+      page: currentPage,
+      pageSize: PAGE_SIZE,
+      filterType,
+      filterStatus,
+      filterMake,
+      filterAssigned,
+    }),
+    staleTime: 30 * 1000,
+    placeholderData: (prev) => prev,
+  });
+
+  const forklifts = fleetData?.forklifts ?? [];
+  const totalCount = fleetData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const loading = fleetLoading;
+  const isFetching = fleetFetching;
+
+  // ── Unique makes for filter dropdown ─────────────────────────────────────
+  const { data: uniqueMakesData } = useQuery({
+    queryKey: ['forklifts', 'makes'],
+    queryFn: getForkliftUniqueMakes,
+    staleTime: 10 * 60 * 1000,
+  });
+  const uniqueMakes = uniqueMakesData ?? [];
+
+  // ── Customers — lazy-loaded when a modal opens ────────────────────────────
+  const customersEnabled = showAssignModal || showBulkRentModal;
+  const { data: customersData } = useQuery({
+    queryKey: ['customers', 'list'],
+    queryFn: () => getCustomersForList(),
+    staleTime: 5 * 60 * 1000,
+    enabled: customersEnabled,
+  });
+  const customers = (customersData ?? []) as Customer[];
+
+  // ── Helper to refresh fleet after mutations ───────────────────────────────
+  const invalidateFleet = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['forklifts', 'page'] });
+  }, [queryClient]);
+
   // Permission check
   const canEditForklifts = [
     UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR,
   ].includes(displayRole);
 
-  // Data loading
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [forkliftData, customerData] = await Promise.all([
-        MockDb.getForkliftsWithCustomers(),
-        MockDb.getCustomers(),
-      ]);
-      setForklifts(forkliftData);
-      setCustomers(customerData);
-    } catch (_error) {
-      showToast.error('Failed to load forklifts');
-      try {
-        const data = await MockDb.getForklifts();
-        setForklifts(data);
-      } catch {
-        showToast.error('Failed to load forklifts fallback');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { loadData(); }, [loadData]);
-
-  // Computed values
-  const uniqueMakes = useMemo(() => {
-    return [...new Set(forklifts.map((f) => f.make))].filter(Boolean).sort();
-  }, [forklifts]);
-
-  const filteredForklifts = useMemo(() => {
-    return forklifts.filter((forklift) => {
-      const searchLower = searchQuery.toLowerCase();
-      const matchesSearch =
-        forklift.serial_number.toLowerCase().includes(searchLower) ||
-        forklift.make.toLowerCase().includes(searchLower) ||
-        forklift.model.toLowerCase().includes(searchLower) ||
-        (forklift.location || '').toLowerCase().includes(searchLower) ||
-        (forklift.current_customer?.name || '').toLowerCase().includes(searchLower);
-
-      const matchesType = filterType === 'all' || forklift.type === filterType;
-      const matchesStatus = filterStatus === 'all' || forklift.status === filterStatus;
-      const matchesMake = filterMake === 'all' || forklift.make === filterMake;
-      const hasCustomer = !!forklift.current_customer_id;
-      const matchesAssigned =
-        filterAssigned === 'all' ||
-        (filterAssigned === 'assigned' && hasCustomer) ||
-        (filterAssigned === 'unassigned' && !hasCustomer);
-
-      return matchesSearch && matchesType && matchesStatus && matchesMake && matchesAssigned;
-    });
-  }, [forklifts, searchQuery, filterType, filterStatus, filterMake, filterAssigned]);
+  // ── Derived / computed ────────────────────────────────────────────────────
+  const filteredForklifts = forklifts; // server already applied filters
 
   const selectedForklifts = useMemo(
     () => filteredForklifts.filter((f) => selectedForkliftIds.has(f.forklift_id)),
@@ -144,9 +153,9 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     [selectedForklifts]
   );
 
-  const hasFilters = searchQuery || filterType !== 'all' || filterStatus !== 'all' || filterMake !== 'all' || filterAssigned !== 'all';
+  const hasFilters = debouncedSearch || filterType !== 'all' || filterStatus !== 'all' || filterMake !== 'all' || filterAssigned !== 'all';
 
-  // Form helpers
+  // ── Form helpers ──────────────────────────────────────────────────────────
   const resetForm = useCallback(() => setFormData(initialFormData), []);
 
   const handleAddNew = useCallback(() => {
@@ -206,18 +215,15 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     setIsReturning(true);
     try {
       const { getActiveRentalForForklift, endRental } = await import('../../../services/forkliftService');
-      
-      // 1. Fetch active rental
+
       const rental = await getActiveRentalForForklift(returningForklift.forklift_id);
       if (!rental) throw new Error('No active rental found for this forklift');
 
-      // 2. End the rental
       await endRental(rental.rental_id, data.returnDate, currentUser?.user_id, currentUser?.name);
 
-      // 3. Update forklift_rentals row with hourmeter and condition (in notes)
       const conditionNote = `Condition: ${data.condition}`;
       const finalNotes = data.notes ? `${conditionNote}\n${data.notes}` : conditionNote;
-      
+
       await supabase
         .from('forklift_rentals')
         .update({
@@ -227,7 +233,6 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
         })
         .eq('rental_id', rental.rental_id);
 
-      // 4. Update forklifts row with hourmeter and status
       const newStatus = (data.condition === 'Requires Service' || data.condition === 'Damaged')
         ? 'Service Due'
         : 'Available';
@@ -242,11 +247,9 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
         })
         .eq('forklift_id', returningForklift.forklift_id);
 
-      // 5. Close modal and reload data
       setReturningForklift(null);
-      await loadData();
+      invalidateFleet();
 
-      // 6. Show success result
       setResultModal({
         show: true,
         type: 'success',
@@ -268,7 +271,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     } finally {
       setIsReturning(false);
     }
-  }, [returningForklift, currentUser, loadData]);
+  }, [returningForklift, currentUser, invalidateFleet]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -283,14 +286,15 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
       } else {
         await MockDb.createForklift(formData);
       }
-      await loadData();
+      invalidateFleet();
+      queryClient.invalidateQueries({ queryKey: ['forklifts', 'makes'] });
       setShowAddModal(false);
       resetForm();
       setEditingForklift(null);
     } catch (error) {
       setResultModal({ show: true, type: 'error', title: 'Error', message: 'Error saving forklift: ' + (error as Error).message });
     }
-  }, [formData, editingForklift, currentUser, loadData, resetForm]);
+  }, [formData, editingForklift, currentUser, invalidateFleet, queryClient, resetForm]);
 
   const handleAssignSubmit = useCallback(async () => {
     if (!assigningForklift || !selectedCustomerId || !startDate) {
@@ -307,7 +311,6 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
         rentalSite || undefined
       );
 
-      // If last service hourmeter provided, reset service interval
       if (lastServiceHourmeter) {
         const newHm = parseInt(lastServiceHourmeter);
         if (!isNaN(newHm) && newHm > 0) {
@@ -330,7 +333,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
       setAssigningForklift(null);
       setMonthlyRentalRate('');
       setRentalSite('');
-      await loadData();
+      invalidateFleet();
 
       setResultModal({
         show: true, type: 'success', title: 'Forklift Rented Successfully',
@@ -344,9 +347,9 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     } catch (error) {
       setResultModal({ show: true, type: 'error', title: 'Error', message: (error as Error).message });
     }
-  }, [assigningForklift, selectedCustomerId, startDate, endDate, rentalNotes, monthlyRentalRate, customers, currentUser, loadData]);
+  }, [assigningForklift, selectedCustomerId, startDate, endDate, rentalNotes, monthlyRentalRate, customers, currentUser, invalidateFleet]);
 
-    const handleDelete = useCallback((forklift: Forklift, e: React.MouseEvent) => {
+  const handleDelete = useCallback((forklift: Forklift, e: React.MouseEvent) => {
     e.stopPropagation();
     setDeleteConfirm({ show: true, forklift });
   }, []);
@@ -357,17 +360,18 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     setDeleteConfirm({ show: false, forklift: null });
     try {
       await MockDb.deleteForklift(forklift.forklift_id);
-      await loadData();
+      invalidateFleet();
+      queryClient.invalidateQueries({ queryKey: ['forklifts', 'makes'] });
     } catch (error) {
       setResultModal({ show: true, type: 'error', title: 'Error', message: (error as Error).message });
     }
-  }, [deleteConfirm.forklift, loadData]);
+  }, [deleteConfirm.forklift, invalidateFleet, queryClient]);
 
   const cancelDelete = useCallback(() => {
     setDeleteConfirm({ show: false, forklift: null });
   }, []);
 
-  // Selection handlers
+  // ── Selection handlers ────────────────────────────────────────────────────
   const toggleSelectionMode = useCallback(() => {
     if (isSelectionMode) setSelectedForkliftIds(new Set());
     setIsSelectionMode(!isSelectionMode);
@@ -389,7 +393,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
 
   const deselectAll = useCallback(() => setSelectedForkliftIds(new Set()), []);
 
-  // Bulk operations
+  // ── Bulk operations ───────────────────────────────────────────────────────
   const handleBulkRentOut = useCallback(async () => {
     if (availableSelectedForklifts.length === 0 || !selectedCustomerId || !startDate) {
       setResultModal({
@@ -413,15 +417,13 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
       const details: string[] = [];
       result.success.forEach((r) => details.push(`✓ ${r.forklift?.serial_number || 'Unknown'} - Rented successfully`));
       result.failed.forEach((f) => {
-        const forklift = forklifts.find((fl) => fl.forklift_id === f.forkliftId);
-        details.push(`✗ ${forklift?.serial_number || f.forkliftId} - ${f.error}`);
+        const fl = availableSelectedForklifts.find((x) => x.forklift_id === f.forkliftId);
+        details.push(`✗ ${fl?.serial_number || f.forkliftId} - ${f.error}`);
       });
 
-      // If there are successful rentals, show service reset modal
       if (result.success.length > 0) {
-        const successfulForkliftIds = result.success.map((r) => r.forklift_id);
-        const rentedForklifts = forklifts.filter((f) => successfulForkliftIds.includes(f.forklift_id));
-        setBulkRentedForklifts(rentedForklifts);
+        const successIds = result.success.map((r) => r.forklift_id);
+        setBulkRentedForklifts(availableSelectedForklifts.filter((f) => successIds.includes(f.forklift_id)));
         setShowBulkServiceResetModal(true);
       }
 
@@ -440,13 +442,13 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
       setMonthlyRentalRate('');
       setRentalNotes('');
       setRentalSite('');
-      await loadData();
+      invalidateFleet();
     } catch (error) {
       setResultModal({ show: true, type: 'error', title: 'Error', message: (error as Error).message });
     } finally {
       setBulkProcessing(false);
     }
-  }, [availableSelectedForklifts, selectedCustomerId, startDate, endDate, rentalNotes, monthlyRentalRate, customers, forklifts, currentUser, loadData]);
+  }, [availableSelectedForklifts, selectedCustomerId, startDate, endDate, rentalNotes, monthlyRentalRate, customers, currentUser, invalidateFleet]);
 
   const handleBulkEndRental = useCallback(async () => {
     if (rentedSelectedForklifts.length === 0) {
@@ -462,8 +464,8 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
       const details: string[] = [];
       result.success.forEach((r) => details.push(`✓ ${r.forklift?.serial_number || 'Unknown'} - Rental ended`));
       result.failed.forEach((f) => {
-        const forklift = forklifts.find((fl) => fl.forklift_id === f.forkliftId);
-        details.push(`✗ ${forklift?.serial_number || f.forkliftId} - ${f.error}`);
+        const fl = rentedSelectedForklifts.find((x) => x.forklift_id === f.forkliftId);
+        details.push(`✗ ${fl?.serial_number || f.forkliftId} - ${f.error}`);
       });
 
       setResultModal({
@@ -477,13 +479,13 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
       setShowBulkEndRentalModal(false);
       setSelectedForkliftIds(new Set());
       setIsSelectionMode(false);
-      await loadData();
+      invalidateFleet();
     } catch (error) {
       setResultModal({ show: true, type: 'error', title: 'Error', message: (error as Error).message });
     } finally {
       setBulkProcessing(false);
     }
-  }, [rentedSelectedForklifts, bulkEndDate, forklifts, currentUser, loadData]);
+  }, [rentedSelectedForklifts, bulkEndDate, currentUser, invalidateFleet]);
 
   const openBulkRentModal = useCallback(() => {
     setSelectedCustomerId('');
@@ -517,7 +519,9 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
 
   return {
     // Data
-    forklifts, customers, loading, filteredForklifts, uniqueMakes,
+    forklifts, customers, loading, isFetching, filteredForklifts, uniqueMakes,
+    // Pagination
+    currentPage, setCurrentPage, totalCount, totalPages,
     // Filters
     searchQuery, setSearchQuery, filterType, setFilterType,
     filterStatus, setFilterStatus, filterMake, setFilterMake,
