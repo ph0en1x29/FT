@@ -71,3 +71,9 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 - Added getCustomerById for sidebar display instead of full list scan
 - Files: pages/CreateJob/CreateJobPage.tsx, pages/CreateJob/hooks/useCreateJobForm.ts
 
+
+## 2026-03-09 15:16 [Sonnet] Combobox debounce optimization
+- Added 250ms debounce to onSearch (was firing Supabase query on every keystroke)
+- Wrapped client-side filter in useMemo (was recomputing on every render)
+- Files: components/Combobox.tsx
+

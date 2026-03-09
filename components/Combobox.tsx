@@ -1,5 +1,5 @@
 import { Check,ChevronDown,Loader2,Plus,Search } from 'lucide-react';
-import React,{ useCallback,useEffect,useRef,useState } from 'react';
+import React,{ useCallback,useEffect,useMemo,useRef,useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export interface ComboboxOption {
@@ -39,9 +39,22 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputWrapperRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
   
   // Find selected item label for display
   const selectedItem = options.find(o => o.id === value);
+
+  // Debounced server-side search (250ms)
+  const debouncedSearch = useCallback((q: string) => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    if (!onSearch) return;
+    searchTimerRef.current = setTimeout(() => onSearch(q), 250);
+  }, [onSearch]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, []);
 
   useEffect(() => {
     // If we have a value, ensure the query matches (optional, mostly for initial load)
@@ -91,12 +104,15 @@ export const Combobox: React.FC<ComboboxProps> = ({
   }, []);
 
   // In server-search mode the parent owns the list; skip client-side filter
-  const filteredOptions = onSearch
-    ? options
-    : options.filter(opt =>
-        opt.label.toLowerCase().includes(query.toLowerCase()) ||
-        (opt.subLabel && opt.subLabel.toLowerCase().includes(query.toLowerCase()))
-      );
+  const filteredOptions = useMemo(() => {
+    if (onSearch) return options;
+    if (!query) return options;
+    const q = query.toLowerCase();
+    return options.filter(opt =>
+      opt.label.toLowerCase().includes(q) ||
+      (opt.subLabel && opt.subLabel.toLowerCase().includes(q))
+    );
+  }, [onSearch, options, query]);
 
   const inputClassName = compact
     ? "w-full px-3 py-2 text-sm rounded-xl border border-slate-300/60 shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/50 placeholder-slate-400"
@@ -124,7 +140,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
              setQuery(e.target.value);
              if (!isOpen) setIsOpen(true);
              if (e.target.value === '') onChange(''); // Clear value if cleared
-             if (onSearch) onSearch(e.target.value);
+             debouncedSearch(e.target.value);
           }}
           onClick={() => {
             setIsOpen(true);
