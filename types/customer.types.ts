@@ -11,6 +11,11 @@ export interface Customer {
   notes?: string;
   contact_person?: string; // Attention person
   account_number?: string; // A/C No
+  registration_no?: string; // SSM registration number
+  tax_entity_id?: string; // Malaysian Tax ID
+  credit_term?: string; // e.g. '30 DAYS', 'C.O.D.', 'CASH'
+  agent?: string; // Sales agent code
+  phone_secondary?: string; // Secondary phone
 }
 
 // Customer Acknowledgement for deferred completion (#8)

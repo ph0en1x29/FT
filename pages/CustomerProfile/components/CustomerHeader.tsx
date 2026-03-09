@@ -23,10 +23,30 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-slate-900">{customer.name}</h1>
-              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded font-mono">
-                {customer.customer_id.slice(0, 8)}
-              </span>
+              {customer.account_number ? (
+                <span className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded font-mono border border-blue-200">
+                  {customer.account_number}
+                </span>
+              ) : (
+                <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded font-mono">
+                  {customer.customer_id.slice(0, 8)}
+                </span>
+              )}
             </div>
+            {(customer.agent || customer.credit_term) && (
+              <div className="flex flex-wrap gap-2 mt-1">
+                {customer.agent && (
+                  <span className="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-medium">
+                    Agent: {customer.agent}
+                  </span>
+                )}
+                {customer.credit_term && (
+                  <span className="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-medium">
+                    {customer.credit_term}
+                  </span>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-slate-600">
               <span className="flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-slate-400" />

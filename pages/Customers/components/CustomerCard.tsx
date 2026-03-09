@@ -21,9 +21,22 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ customer }) => {
           <h3 className="font-bold text-lg text-theme group-hover:text-blue-600 transition">
             {customer.name}
           </h3>
-          <p className="text-xs text-theme-muted mt-0.5">
-            ID: {customer.customer_id.slice(0, 8)}
-          </p>
+          <div className="flex items-center gap-2 mt-0.5">
+            {customer.account_number ? (
+              <span className="text-xs text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded font-mono border border-blue-200">
+                {customer.account_number}
+              </span>
+            ) : (
+              <span className="text-xs text-theme-muted">
+                ID: {customer.customer_id.slice(0, 8)}
+              </span>
+            )}
+            {customer.agent && (
+              <span className="text-xs text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200 font-medium">
+                {customer.agent}
+              </span>
+            )}
+          </div>
         </div>
         <button
           onClick={(e) => {

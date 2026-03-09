@@ -89,7 +89,12 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
         email: data.email,
         notes: data.notes,
         contact_person: data.contact_person,
-        account_number: data.account_number
+        account_number: data.account_number,
+        registration_no: data.registration_no,
+        tax_entity_id: data.tax_entity_id,
+        credit_term: data.credit_term,
+        agent: data.agent,
+        phone_secondary: data.phone_secondary
       });
 
             setShowEditModal(false);

@@ -27,7 +27,7 @@ interface JobWithRelations extends Omit<Job, 'parts_used' | 'extra_charges'> {
 export const getCustomers = async (): Promise<Customer[]> => {
   const { data, error } = await supabase
     .from('customers')
-    .select('customer_id, name, phone, email, address, notes, contact_person, account_number')
+    .select('customer_id, name, phone, email, address, notes, contact_person, account_number, registration_no, tax_entity_id, credit_term, agent, phone_secondary')
     .order('name');
 
   if (error) throw new Error(error.message);

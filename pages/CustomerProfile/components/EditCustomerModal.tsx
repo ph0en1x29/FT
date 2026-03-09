@@ -24,7 +24,12 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({
     email: customer.email || '',
     notes: customer.notes || '',
     contact_person: customer.contact_person || '',
-    account_number: customer.account_number || ''
+    account_number: customer.account_number || '',
+    registration_no: customer.registration_no || '',
+    tax_entity_id: customer.tax_entity_id || '',
+    credit_term: customer.credit_term || '',
+    agent: customer.agent || '',
+    phone_secondary: customer.phone_secondary || ''
   });
 
   const handleSubmit = async () => {
@@ -67,6 +72,26 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({
                   <input type="text" className={inputClassName} placeholder="Account number" value={formData.account_number} onChange={(e) => setFormData({ ...formData, account_number: e.target.value })} autoComplete="off" />
                 </div>
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Reg. No.</label>
+                  <input type="text" className={inputClassName} placeholder="SSM registration number" value={formData.registration_no} onChange={(e) => setFormData({ ...formData, registration_no: e.target.value })} autoComplete="off" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tax ID</label>
+                  <input type="text" className={inputClassName} placeholder="Tax entity ID" value={formData.tax_entity_id} onChange={(e) => setFormData({ ...formData, tax_entity_id: e.target.value })} autoComplete="off" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Credit Term</label>
+                  <input type="text" className={inputClassName} placeholder="e.g. 30 DAYS, C.O.D." value={formData.credit_term} onChange={(e) => setFormData({ ...formData, credit_term: e.target.value })} autoComplete="off" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Agent</label>
+                  <input type="text" className={inputClassName} placeholder="Sales agent code" value={formData.agent} onChange={(e) => setFormData({ ...formData, agent: e.target.value })} autoComplete="off" />
+                </div>
+              </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Address *</label>
                 <input type="text" className={inputClassName} placeholder="Full address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} autoComplete="off" />
@@ -80,20 +105,24 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({
               <User className="w-3 h-3 text-amber-600" />
               <span className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Contact</span>
             </div>
-            <div className="p-4 md:p-5">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contact Person</label>
-                  <input type="text" className={inputClassName} placeholder="Contact person" value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} autoComplete="off" />
-                </div>
+            <div className="p-4 md:p-5 space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contact Person</label>
+                <input type="text" className={inputClassName} placeholder="Contact person" value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} autoComplete="off" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phone</label>
                   <input type="tel" className={inputClassName} placeholder="Phone number" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} autoComplete="off" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
-                  <input type="email" className={inputClassName} placeholder="Email address" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} autoComplete="off" />
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phone 2</label>
+                  <input type="tel" className={inputClassName} placeholder="Secondary phone" value={formData.phone_secondary} onChange={(e) => setFormData({ ...formData, phone_secondary: e.target.value })} autoComplete="off" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                <input type="email" className={inputClassName} placeholder="Email address" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} autoComplete="off" />
               </div>
             </div>
           </div>
