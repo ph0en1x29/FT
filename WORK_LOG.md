@@ -44,3 +44,7 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 - [2026-03-09 05:28] [Sonnet] Updated customerService.ts — paginated getCustomers() and getCustomersForList() to fetch all rows beyond Supabase 1000-row default limit
 
 - [2026-03-09 05:32] [Sonnet] Updated Customers.tsx — null-safe search filter for address/email fields
+
+- [2026-03-09 05:39] [Sonnet] Updated Customers.tsx — server-side pagination with debounced search (50/page)
+- [2026-03-09 05:39] [Sonnet] Updated customerService.ts — added getCustomersPage() with .range() and count:'exact'
+- [2026-03-09 05:39] [Sonnet] Updated supabaseService.ts — re-exported getCustomersPage

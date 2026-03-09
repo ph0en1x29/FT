@@ -1,18 +1,23 @@
-import { Plus,Search,Users } from 'lucide-react';
-import React,{ useEffect,useState } from 'react';
+import { ChevronLeft, ChevronRight, Plus, Search, Users } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SkeletonGrid } from '../../components/Skeleton';
-import { SupabaseDb as MockDb } from '../../services/supabaseService';
+import { getCustomersPage } from '../../services/customerService';
+import { createCustomer } from '../../services/customerService';
 import { showToast } from '../../services/toastService';
 import { Customer } from '../../types';
-import { CreateCustomerModal,CustomerCard } from './components';
+import { CreateCustomerModal, CustomerCard } from './components';
+
+const PAGE_SIZE = 50;
 
 const Customers: React.FC = () => {
   const navigate = useNavigate();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
-  
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+
   // Create customer modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newCustomer, setNewCustomer] = useState({
@@ -24,30 +29,35 @@ const Customers: React.FC = () => {
   });
   const [creating, setCreating] = useState(false);
 
+  // Debounce search query (250ms)
   useEffect(() => {
-    loadCustomers();
-  }, []);
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [searchQuery]);
 
-  const loadCustomers = async () => {
-    setLoading(true);
-    try {
-      const data = await MockDb.getCustomers();
-      setCustomers(data);
-    } catch (_error) {
-      /* Silently ignore */
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery]);
 
-  const filteredCustomers = customers.filter(c => {
-    const q = searchQuery.toLowerCase();
-    return (c.name || '').toLowerCase().includes(q) ||
-      (c.address || '').toLowerCase().includes(q) ||
-      (c.email || '').toLowerCase().includes(q) ||
-      (c.account_number && c.account_number.toLowerCase().includes(q)) ||
-      (c.agent && c.agent.toLowerCase().includes(q));
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ['customers', 'page', debouncedSearchQuery, currentPage, PAGE_SIZE],
+    queryFn: () => getCustomersPage({
+      searchQuery: debouncedSearchQuery,
+      page: currentPage,
+      pageSize: PAGE_SIZE,
+    }),
+    staleTime: 60 * 1000,
+    placeholderData: previousData => previousData,
   });
+
+  const customers = data?.customers ?? [];
+  const totalCount = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const canGoPrev = currentPage > 1;
+  const canGoNext = currentPage < totalPages;
 
   const handleCreateCustomer = async () => {
     if (!newCustomer.name.trim() || !newCustomer.address.trim()) {
@@ -57,19 +67,19 @@ const Customers: React.FC = () => {
 
     setCreating(true);
     try {
-      const created = await MockDb.createCustomer({
+      const created = await createCustomer({
         name: newCustomer.name.trim(),
         address: newCustomer.address.trim(),
         phone: newCustomer.phone.trim(),
         email: newCustomer.email.trim(),
         notes: newCustomer.notes.trim()
       });
-      
-      setCustomers([...customers, created]);
+
+      await queryClient.invalidateQueries({ queryKey: ['customers', 'page'] });
       setShowCreateModal(false);
       setNewCustomer({ name: '', address: '', phone: '', email: '', notes: '' });
       showToast.success('Customer created successfully');
-      
+
       // Navigate to the new customer profile
       navigate(`/customers/${created.customer_id}`);
     } catch (e) {
@@ -84,6 +94,9 @@ const Customers: React.FC = () => {
     setNewCustomer({ name: '', address: '', phone: '', email: '', notes: '' });
   };
 
+  const rangeStart = totalCount === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(currentPage * PAGE_SIZE, totalCount);
+
   return (
     <div className="space-y-6 pb-24 md:pb-8">
       {/* Header */}
@@ -96,7 +109,7 @@ const Customers: React.FC = () => {
           <div className="card-theme px-3 md:px-4 py-2 rounded-lg theme-transition">
             <div className="flex items-center gap-2 text-theme-muted">
               <Users className="w-4 md:w-5 h-4 md:h-5" />
-              <span className="font-bold text-theme">{customers.length}</span>
+              <span className="font-bold text-theme">{totalCount}</span>
               <span className="text-xs md:text-sm hidden sm:inline">Total Customers</span>
             </div>
           </div>
@@ -114,26 +127,31 @@ const Customers: React.FC = () => {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted" />
         <input
           type="text"
-          placeholder="Search by name, address, or email..."
+          placeholder="Search by name, address, email, account number, or agent..."
           className="w-full pl-10 pr-4 py-3 bg-theme-surface border border-theme rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-theme placeholder-slate-400 theme-transition"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
+        {isFetching && !isLoading && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
       </div>
 
       {/* Customers Grid */}
-      {loading ? (
+      {isLoading ? (
         <SkeletonGrid count={6} columns={3} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredCustomers.map(customer => (
+          {customers.map(customer => (
             <CustomerCard key={customer.customer_id} customer={customer} />
           ))}
         </div>
       )}
 
       {/* Empty State */}
-      {!loading && filteredCustomers.length === 0 && (
+      {!isLoading && customers.length === 0 && (
         <div className="text-center py-12">
           <Users className="w-16 h-16 mx-auto text-theme-muted opacity-30 mb-4" />
           <p className="text-theme-muted mb-2">
@@ -153,6 +171,34 @@ const Customers: React.FC = () => {
             >
               Create your first customer
             </button>
+          )}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!isLoading && totalCount > 0 && (
+        <div className="flex items-center justify-between text-sm text-theme-muted">
+          <p>{rangeStart}-{rangeEnd} of {totalCount} customers</p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2 text-xs text-theme-muted">
+              <button
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={!canGoPrev}
+                className="inline-flex items-center gap-1 rounded-lg border border-theme px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-3 h-3" />
+                Prev
+              </button>
+              <span>Page {currentPage} of {totalPages}</span>
+              <button
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={!canGoNext}
+                className="inline-flex items-center gap-1 rounded-lg border border-theme px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
           )}
         </div>
       )}

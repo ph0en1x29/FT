@@ -7,6 +7,22 @@
 import type { Customer, CustomerContact, CustomerSite, ExtraCharge, Job, JobPartUsed } from '../types';
 import { supabase } from './supabaseClient';
 
+export interface CustomersPageFilters {
+  searchQuery?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CustomersPage {
+  customers: Customer[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+const CUSTOMERS_SELECT = 'customer_id, name, phone, email, address, notes, contact_person, account_number, registration_no, tax_entity_id, credit_term, agent, phone_secondary';
+const CUSTOMERS_PAGE_SIZE = 50;
+
 // Database row types for query results
 interface RentalRow {
   monthly_rental_rate?: number;
@@ -68,6 +84,38 @@ export const getCustomersForList = async (): Promise<Pick<Customer, 'customer_id
   }
 
   return all;
+};
+
+/**
+ * Get a paginated page of customers with server-side search
+ */
+export const getCustomersPage = async (filters: CustomersPageFilters = {}): Promise<CustomersPage> => {
+  const page = Math.max(filters.page || 1, 1);
+  const pageSize = Math.max(filters.pageSize || CUSTOMERS_PAGE_SIZE, 1);
+  const searchQuery = filters.searchQuery?.trim() || '';
+
+  let query = supabase
+    .from('customers')
+    .select(CUSTOMERS_SELECT, { count: 'exact' })
+    .order('name')
+    .range((page - 1) * pageSize, (page * pageSize) - 1);
+
+  if (searchQuery) {
+    const escaped = searchQuery.replace(/[%_,]/g, '');
+    query = query.or(
+      `name.ilike.%${escaped}%,address.ilike.%${escaped}%,email.ilike.%${escaped}%,account_number.ilike.%${escaped}%,agent.ilike.%${escaped}%`
+    );
+  }
+
+  const { data, error, count } = await query;
+  if (error) throw new Error(error.message);
+
+  return {
+    customers: (data || []) as Customer[],
+    total: count || 0,
+    page,
+    pageSize,
+  };
 };
 
 /**
