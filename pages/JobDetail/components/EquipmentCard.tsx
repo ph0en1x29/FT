@@ -61,6 +61,12 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
           <p className="label-premium mb-0.5">Serial Number</p>
           <p className="font-mono value-premium text-sm">{job.forklift.serial_number}</p>
         </div>
+        {job.forklift.forklift_no && (
+          <div>
+            <p className="label-premium mb-0.5">Forklift No</p>
+            <p className="font-mono value-premium text-sm">{job.forklift.forklift_no}</p>
+          </div>
+        )}
         <div>
           <p className="label-premium mb-0.5">Type</p>
           <p className="value-premium-secondary text-sm">{job.forklift.type}</p>

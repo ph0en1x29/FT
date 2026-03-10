@@ -32,6 +32,7 @@ const ForkliftSelectionSection: React.FC<ForkliftSelectionSectionProps> = ({
         <div className="lg:col-span-2 flex flex-col sm:flex-row gap-4">
           <div className="flex-1 bg-amber-50 rounded-lg p-3 border border-amber-200 text-sm grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div><span className="text-amber-500 text-xs">S/N</span> <span className="font-mono font-medium block text-slate-800">{selectedForklift.serial_number}</span></div>
+            {selectedForklift.forklift_no && <div><span className="text-amber-500 text-xs">FL#</span> <span className="font-mono font-medium block text-slate-800">{selectedForklift.forklift_no}</span></div>}
             <div><span className="text-amber-500 text-xs">Type</span> <span className="font-medium block text-slate-800">{selectedForklift.type}</span></div>
             <div><span className="text-amber-500 text-xs">Make/Model</span> <span className="font-medium block text-slate-800">{selectedForklift.make} {selectedForklift.model}</span></div>
             <div><span className="text-amber-500 text-xs">Hourmeter</span> <span className="font-medium block text-slate-800">{selectedForklift.hourmeter.toLocaleString()} hrs</span></div>
