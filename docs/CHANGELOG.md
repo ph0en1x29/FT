@@ -4,6 +4,16 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-03-10] - Jobs Board View Refinement
+
+### UI Improvements
+
+- **Two-mode jobs board** - `/jobs` now supports a stronger card view and a denser list view, with the chosen layout persisted in the URL via `?view=card|list`.
+- **Richer job cards** - Cards now surface customer, site, equipment, assignee, schedule, description, SLA/emergency context, and acceptance state without clipping long content.
+- **Operational list view** - List mode now behaves like a true board scan with desktop table columns for job, site, equipment, assignee, scheduled date, status, and urgency, while mobile collapses to dense stacked rows instead of a broken horizontal table.
+- **Jobs workspace header** - Added a clearer top command area with result counts, view toggle, selection controls, and more structured filter/search presentation.
+- **Search coverage expanded** - Jobs search now includes forklift numbers, customer forklift numbers, account numbers, contact person, and site fields used in the redesigned board.
+
 ## [2026-03-10] — Admin Forklift Switching
 
 ### Features

@@ -204,12 +204,16 @@ export const getJobs = async (user: User, options?: { status?: JobStatus }): Pro
         let helperQuery = supabase
           .from('jobs')
           .select(`
-            job_id, title, status, priority, job_type,
-            customer_id, customer:customers(customer_id, name, address, phone),
-            forklift_id, forklift:forklifts!forklift_id(serial_number, forklift_no, customer_forklift_no, make, model, type),
+            job_id, job_number, title, description, status, priority, job_type,
+            customer_id, customer:customers(customer_id, name, address, phone, contact_person, account_number),
+            forklift_id, forklift:forklifts!forklift_id(serial_number, forklift_no, customer_forklift_no, make, model, type, site, location),
             assigned_technician_id, assigned_technician_name, helper_technician_id,
+            site_id,
             arrival_time, started_at, repair_start_time, repair_end_time, completed_at,
-            technician_accepted_at, technician_rejected_at, created_at, scheduled_date,
+            technician_accepted_at, technician_rejected_at,
+            acknowledged_at, sla_target_minutes, escalation_triggered_at, escalation_acknowledged_at,
+            parts_confirmed_at, parts_confirmation_skipped, job_confirmed_at,
+            created_at, scheduled_date,
             parts_used:job_parts(job_part_id, part_name, quantity),
             media:job_media(media_id, category, created_at)
           `)

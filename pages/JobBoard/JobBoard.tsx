@@ -1,58 +1,63 @@
+/* eslint-disable max-lines */
 import { CheckSquare, LayoutGrid, List, Square } from 'lucide-react';
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useDevModeContext } from '../../contexts/DevModeContext';
-import { UserRole } from '../../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { deleteJob } from '../../services/jobCrudService';
 import { showToast } from '../../services/toastService';
+import { useDevModeContext } from '../../contexts/DevModeContext';
+import { UserRole } from '../../types';
 import {
-ConfirmBatchDeleteModal,
-DeletedJobsSection,
-EmptyJobsState,
-JobCard,
-JobListRow,
-LoadingState,
-QuickStats,
-RejectJobModal,
-SearchFilterBar,
-SiteSignOffBanner,
-SlotInAlertBanner,
-SpecialFilterBanner,
+  ConfirmBatchDeleteModal,
+  DeletedJobsSection,
+  EmptyJobsState,
+  JobCard,
+  JobListTable,
+  LoadingState,
+  QuickStats,
+  RejectJobModal,
+  SearchFilterBar,
+  SiteSignOffBanner,
+  SlotInAlertBanner,
+  SpecialFilterBanner,
 } from './components';
 import { useJobAcceptance, useJobData, useJobFilters } from './hooks';
-import { JobBoardProps } from './types';
+import { JobBoardProps, JobWithHelperFlag, ViewMode } from './types';
 
-/** Job Board - Main view for listing, filtering, and managing jobs */
+const isViewMode = (value: string | null): value is ViewMode => value === 'card' || value === 'list';
+
+const SectionHeader: React.FC<{ title: string; count: number; subtitle: string }> = ({ title, count, subtitle }) => (
+  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <div className="flex items-center gap-2">
+        <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-theme-muted">{title}</h2>
+        <span className="rounded-full bg-[var(--bg-subtle)] px-2 py-0.5 text-xs font-medium text-theme-muted">{count}</span>
+      </div>
+      <p className="mt-1 text-sm text-theme-muted">{subtitle}</p>
+    </div>
+  </div>
+);
+
 const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { displayRole, hasPermission } = useDevModeContext();
-  
-  // State for deleted jobs section visibility
-  const [showDeletedSection, setShowDeletedSection] = useState(false);
 
-  // Multi-select batch delete state
+  const [showDeletedSection, setShowDeletedSection] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
   const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false);
   const [deletionReason, setDeletionReason] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Derived state
-  const isTechnician = displayRole === UserRole.TECHNICIAN;
+  const activeRole = displayRole || currentUser.role;
+  const isTechnician = activeRole === UserRole.TECHNICIAN;
+  const defaultViewMode: ViewMode = isTechnician ? 'card' : 'list';
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const queryMode = searchParams.get('view');
+    return isViewMode(queryMode) ? queryMode : defaultViewMode;
+  });
 
-  // View mode state: default 'card' for technicians, 'list' for admin/supervisor
-  const [viewMode, setViewMode] = useState<'card' | 'list'>(isTechnician ? 'card' : 'list');
-
-  // Data fetching and real-time updates
-  const {
-    jobs,
-    loading,
-    deletedJobs,
-    canViewDeleted,
-    fetchJobs,
-  } = useJobData({ currentUser, displayRole });
-
-  // Filtering and search
+  const { jobs, loading, deletedJobs, canViewDeleted, fetchJobs } = useJobData({ currentUser, displayRole: activeRole });
   const {
     searchQuery,
     setSearchQuery,
@@ -61,7 +66,6 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     statusFilter,
     setStatusFilter,
     specialFilter,
-    setSpecialFilter: _setSpecialFilter,
     customDateFrom,
     setCustomDateFrom,
     customDateTo,
@@ -73,8 +77,6 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     hasActiveFilters,
     clearFilters,
   } = useJobFilters({ jobs });
-
-  // Job acceptance/rejection for technicians
   const {
     processingJobId,
     showRejectModal,
@@ -88,35 +90,55 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     getResponseTimeRemaining,
   } = useJobAcceptance({ currentUser, onJobUpdated: fetchJobs });
 
-  // Handler for viewing all Slot-In jobs
+  useEffect(() => {
+    const queryMode = searchParams.get('view');
+    if (isViewMode(queryMode)) {
+      setViewMode(queryMode);
+      return;
+    }
+
+    setViewMode(defaultViewMode);
+  }, [defaultViewMode, searchParams]);
+
+  const setViewModeAndPersist = (nextMode: ViewMode) => {
+    setViewMode(nextMode);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('view', nextMode);
+    setSearchParams(nextParams);
+  };
+
   const handleViewAllSlotIn = () => {
     setSearchQuery('');
     setDateFilter('all');
     setStatusFilter('all');
   };
 
-  // Batch delete handlers
   const handleToggleSelectionMode = () => {
-    setSelectionMode(prev => !prev);
+    setSelectionMode((prev) => !prev);
     setSelectedJobs(new Set());
   };
 
   const handleToggleSelect = (jobId: string) => {
-    setSelectedJobs(prev => {
+    setSelectedJobs((prev) => {
       const next = new Set(prev);
-      if (next.has(jobId)) next.delete(jobId);
-      else next.add(jobId);
+      if (next.has(jobId)) {
+        next.delete(jobId);
+      } else {
+        next.add(jobId);
+      }
       return next;
     });
   };
 
   const handleBatchDelete = async () => {
     if (selectedJobs.size === 0) return;
+
     setIsDeleting(true);
     try {
       for (const jobId of selectedJobs) {
         await deleteJob(jobId, currentUser.user_id, currentUser.name, deletionReason || undefined);
       }
+
       showToast.success(`Deleted ${selectedJobs.size} job${selectedJobs.size > 1 ? 's' : ''}`);
       setSelectedJobs(new Set());
       setSelectionMode(false);
@@ -130,17 +152,83 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     }
   };
 
+  const myJobs = useMemo(
+    () => filteredJobs.filter((job) => job.assigned_technician_id === currentUser.user_id || job._isHelperAssignment),
+    [currentUser.user_id, filteredJobs]
+  );
+  const otherJobs = useMemo(
+    () => filteredJobs.filter((job) => job.assigned_technician_id !== currentUser.user_id && !job._isHelperAssignment),
+    [currentUser.user_id, filteredJobs]
+  );
+
+  const renderCards = (items: JobWithHelperFlag[]) => (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      {items.map((job) => (
+        <JobCard
+          key={job.job_id}
+          job={job}
+          currentUser={currentUser}
+          isTechnician={isTechnician}
+          processingJobId={processingJobId}
+          jobNeedsAcceptance={jobNeedsAcceptance}
+          getResponseTimeRemaining={getResponseTimeRemaining}
+          onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
+          onAccept={handleAcceptJob}
+          onReject={handleOpenRejectModal}
+          selectionMode={selectionMode}
+          isSelected={selectedJobs.has(job.job_id)}
+          onToggleSelect={handleToggleSelect}
+        />
+      ))}
+    </div>
+  );
+
+  const renderList = (items: JobWithHelperFlag[]) => (
+    <JobListTable
+      jobs={items}
+      currentUser={currentUser}
+      isTechnician={isTechnician}
+      processingJobId={processingJobId}
+      jobNeedsAcceptance={jobNeedsAcceptance}
+      getResponseTimeRemaining={getResponseTimeRemaining}
+      onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
+      onAccept={handleAcceptJob}
+      onReject={handleOpenRejectModal}
+      selectionMode={selectionMode}
+      selectedJobs={selectedJobs}
+      onToggleSelect={handleToggleSelect}
+    />
+  );
+
   return (
     <div className="space-y-6">
       {!hideHeader && (
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-theme">
-            {isTechnician ? 'My Jobs' : 'Job Board'}
-          </h1>
-          <div className="flex gap-2">
+        <div className="flex flex-col gap-4 rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-muted">Operations board</div>
+            <div>
+              <h1 className="text-2xl font-semibold text-theme md:text-3xl">
+                {isTechnician ? 'My Jobs' : 'Jobs'}
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm text-theme-muted">
+                {isTechnician
+                  ? 'Track assigned work, respond quickly, and move between field calls without losing context.'
+                  : 'Scan dispatch load, triage urgent work, and switch between dense list and operational cards without leaving the board.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-subtle)]/70 px-4 py-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-muted">Showing</div>
+              <div className="mt-1 text-lg font-semibold text-theme">{filteredJobs.length} jobs</div>
+            </div>
+
             {hasPermission('canCreateJobs') && (
-              <button onClick={() => navigate('/jobs/new')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition">
+              <button
+                onClick={() => navigate('/jobs/new')}
+                className="inline-flex h-12 items-center rounded-2xl bg-blue-600 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700"
+              >
                 + New Job
               </button>
             )}
@@ -156,240 +244,150 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
         onDateFilterChange={setDateFilter}
       />
 
-      <SlotInAlertBanner
-        count={statusCounts.slotInPendingAck}
-        onViewAll={handleViewAllSlotIn}
-      />
+      <SlotInAlertBanner count={statusCounts.slotInPendingAck} onViewAll={handleViewAllSlotIn} />
 
-      <SearchFilterBar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        dateFilter={dateFilter}
-        onDateFilterChange={setDateFilter}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        showFilters={showFilters}
-        onToggleFilters={() => setShowFilters(!showFilters)}
-        customDateFrom={customDateFrom}
-        onCustomDateFromChange={setCustomDateFrom}
-        customDateTo={customDateTo}
-        onCustomDateToChange={setCustomDateTo}
-        hasActiveFilters={hasActiveFilters}
-        onClearFilters={clearFilters}
-        totalJobs={jobs.length}
-        filteredCount={filteredJobs.length}
-      />
+      <div className="space-y-4 rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-muted">Workspace</div>
+            <div className="mt-1 text-lg font-semibold text-theme">Browse by card or list</div>
+            <div className="mt-1 text-sm text-theme-muted">
+              View mode stays in the URL so refresh and shared links keep the same layout.
+            </div>
+          </div>
 
-      {/* View toggle and Selection mode — right-aligned */}
-      <div className="flex items-center justify-end gap-4">
-        {/* View toggle */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setViewMode('card')}
-            className={`p-1.5 rounded transition-colors ${
-              viewMode === 'card' ? 'text-blue-600' : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-            }`}
-            title="Card view"
-          >
-            <LayoutGrid className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`p-1.5 rounded transition-colors ${
-              viewMode === 'list' ? 'text-blue-600' : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-            }`}
-            title="List view"
-          >
-            <List className="w-5 h-5" />
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--bg-subtle)]/70 p-1">
+              <button
+                onClick={() => setViewModeAndPersist('card')}
+                className={`inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition ${
+                  viewMode === 'card'
+                    ? 'bg-[var(--surface)] text-theme shadow-sm'
+                    : 'text-theme-muted hover:text-theme'
+                }`}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                Card
+              </button>
+              <button
+                onClick={() => setViewModeAndPersist('list')}
+                className={`inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition ${
+                  viewMode === 'list'
+                    ? 'bg-[var(--surface)] text-theme shadow-sm'
+                    : 'text-theme-muted hover:text-theme'
+                }`}
+              >
+                <List className="h-4 w-4" />
+                List
+              </button>
+            </div>
+
+            {hasPermission('canDeleteJobs') && !isTechnician && (
+              <div className="flex items-center gap-2">
+                {selectionMode && selectedJobs.size > 0 && (
+                  <button
+                    onClick={() => setShowBatchDeleteModal(true)}
+                    className="text-sm font-medium text-red-600 transition hover:text-red-700"
+                  >
+                    Delete {selectedJobs.size}
+                  </button>
+                )}
+                <button
+                  onClick={handleToggleSelectionMode}
+                  className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition ${
+                    selectionMode
+                      ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+                      : 'border-[var(--border)] text-theme-muted hover:text-theme'
+                  }`}
+                >
+                  {selectionMode ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                  {selectionMode ? `${selectedJobs.size} selected` : 'Select'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Selection mode toggle */}
-        {hasPermission('canDeleteJobs') && !isTechnician && (
-          <div className="flex items-center gap-2">
-            {selectionMode && selectedJobs.size > 0 && (
-              <>
-                <button
-                  onClick={() => setShowBatchDeleteModal(true)}
-                  className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
-                >
-                  Delete ({selectedJobs.size})
-                </button>
-                <span className="text-[var(--border)]">·</span>
-              </>
-            )}
-            <button 
-              onClick={handleToggleSelectionMode}
-              className={`flex items-center gap-2 text-base py-1 transition-colors ${
-                selectionMode 
-                  ? 'text-blue-600 font-medium' 
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-              }`}
-            >
-              {selectionMode ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
-              {selectionMode ? `${selectedJobs.size} selected · Exit` : 'Select'}
-            </button>
-          </div>
-        )}
-      </div>
+        <SearchFilterBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          dateFilter={dateFilter}
+          onDateFilterChange={setDateFilter}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
+          customDateFrom={customDateFrom}
+          onCustomDateFromChange={setCustomDateFrom}
+          customDateTo={customDateTo}
+          onCustomDateToChange={setCustomDateTo}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={clearFilters}
+          totalJobs={jobs.length}
+          filteredCount={filteredJobs.length}
+        />
 
-      <SpecialFilterBanner
-        specialFilter={specialFilter}
-        filteredCount={filteredJobs.length}
-        onClear={clearFilters}
-      />
+        <SpecialFilterBanner
+          specialFilter={specialFilter}
+          filteredCount={filteredJobs.length}
+          onClear={clearFilters}
+        />
+      </div>
 
       {loading ? (
         <LoadingState />
       ) : isTechnician ? (
-        // Technician view: My Jobs at top, Other Jobs below
-        (() => {
-          const myJobs = filteredJobs.filter(j => j.assigned_technician_id === currentUser.user_id || j._isHelperAssignment);
-          const otherJobs = filteredJobs.filter(j => j.assigned_technician_id !== currentUser.user_id && !j._isHelperAssignment);
-          
-          const renderJob = (job: typeof filteredJobs[0]) => 
-            viewMode === 'list' ? (
-              <JobListRow
-                key={job.job_id}
-                job={job}
-                currentUser={currentUser}
-                isTechnician={isTechnician}
-                processingJobId={processingJobId}
-                jobNeedsAcceptance={jobNeedsAcceptance}
-                getResponseTimeRemaining={getResponseTimeRemaining}
-                onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
-                onAccept={handleAcceptJob}
-                onReject={handleOpenRejectModal}
-                selectionMode={selectionMode}
-                isSelected={selectedJobs.has(job.job_id)}
-                onToggleSelect={handleToggleSelect}
+        <div className="space-y-8">
+          {myJobs.length > 0 && (
+            <section className="space-y-4">
+              <SectionHeader
+                title="My Jobs"
+                count={myJobs.length}
+                subtitle="Work assigned directly to you, including helper assignments."
               />
-            ) : (
-              <JobCard
-                key={job.job_id}
-                job={job}
-                currentUser={currentUser}
-                isTechnician={isTechnician}
-                processingJobId={processingJobId}
-                jobNeedsAcceptance={jobNeedsAcceptance}
-                getResponseTimeRemaining={getResponseTimeRemaining}
-                onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
-                onAccept={handleAcceptJob}
-                onReject={handleOpenRejectModal}
-                selectionMode={selectionMode}
-                isSelected={selectedJobs.has(job.job_id)}
-                onToggleSelect={handleToggleSelect}
-              />
-            );
+              <SiteSignOffBanner jobs={myJobs} currentUser={currentUser} onComplete={fetchJobs} />
+              {viewMode === 'list' ? renderList(myJobs) : renderCards(myJobs)}
+            </section>
+          )}
 
-          return (
-            <div className="space-y-6">
-              {myJobs.length > 0 && (
-                <div>
-                  <h2 className="text-sm font-semibold text-theme-muted uppercase tracking-wide mb-3">My Jobs ({myJobs.length})</h2>
-                  <SiteSignOffBanner 
-                    jobs={myJobs} 
-                    currentUser={currentUser} 
-                    onComplete={fetchJobs} 
-                  />
-                  {viewMode === 'list' ? (
-                    <div className="divide-y divide-[var(--border)] card-theme rounded-xl overflow-hidden">
-                      {myJobs.map(renderJob)}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {myJobs.map(renderJob)}
-                    </div>
-                  )}
-                </div>
-              )}
-              {otherJobs.length > 0 && (
-                <div>
-                  <h2 className="text-sm font-semibold text-theme-muted uppercase tracking-wide mb-3">Other Jobs ({otherJobs.length})</h2>
-                  {viewMode === 'list' ? (
-                    <div className="divide-y divide-[var(--border)] card-theme rounded-xl overflow-hidden">
-                      {otherJobs.map(renderJob)}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {otherJobs.map(renderJob)}
-                    </div>
-                  )}
-                </div>
-              )}
-              {filteredJobs.length === 0 && (
-                <EmptyJobsState hasActiveFilters={hasActiveFilters} onClearFilters={clearFilters} />
-              )}
-            </div>
-          );
-        })()
+          {otherJobs.length > 0 && (
+            <section className="space-y-4">
+              <SectionHeader
+                title="Other Jobs"
+                count={otherJobs.length}
+                subtitle="Remaining dispatch queue visible to you for awareness and handoff."
+              />
+              {viewMode === 'list' ? renderList(otherJobs) : renderCards(otherJobs)}
+            </section>
+          )}
+
+          {filteredJobs.length === 0 && (
+            <EmptyJobsState hasActiveFilters={hasActiveFilters} onClearFilters={clearFilters} />
+          )}
+        </div>
       ) : (
-        // Admin/Supervisor view
-        viewMode === 'list' ? (
-          <div className="divide-y divide-[var(--border)] card-theme rounded-xl overflow-hidden">
-            {filteredJobs.map(job => (
-              <JobListRow
-                key={job.job_id}
-                job={job}
-                currentUser={currentUser}
-                isTechnician={isTechnician}
-                processingJobId={processingJobId}
-                jobNeedsAcceptance={jobNeedsAcceptance}
-                getResponseTimeRemaining={getResponseTimeRemaining}
-                onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
-                onAccept={handleAcceptJob}
-                onReject={handleOpenRejectModal}
-                selectionMode={selectionMode}
-                isSelected={selectedJobs.has(job.job_id)}
-                onToggleSelect={handleToggleSelect}
-              />
-            ))}
-            {filteredJobs.length === 0 && (
-              <EmptyJobsState
-                hasActiveFilters={hasActiveFilters}
-                onClearFilters={clearFilters}
-              />
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredJobs.map(job => (
-              <JobCard
-                key={job.job_id}
-                job={job}
-                currentUser={currentUser}
-                isTechnician={isTechnician}
-                processingJobId={processingJobId}
-                jobNeedsAcceptance={jobNeedsAcceptance}
-                getResponseTimeRemaining={getResponseTimeRemaining}
-                onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
-                onAccept={handleAcceptJob}
-                onReject={handleOpenRejectModal}
-                selectionMode={selectionMode}
-                isSelected={selectedJobs.has(job.job_id)}
-                onToggleSelect={handleToggleSelect}
-              />
-            ))}
-            {filteredJobs.length === 0 && (
-              <EmptyJobsState
-                hasActiveFilters={hasActiveFilters}
-                onClearFilters={clearFilters}
-              />
-            )}
-          </div>
-        )
+        <section className="space-y-4">
+          <SectionHeader
+            title="Live Queue"
+            count={filteredJobs.length}
+            subtitle="Dense operational scan across customer, site, equipment, assignee, and current job state."
+          />
+          {viewMode === 'list' ? renderList(filteredJobs) : renderCards(filteredJobs)}
+          {filteredJobs.length === 0 && (
+            <EmptyJobsState hasActiveFilters={hasActiveFilters} onClearFilters={clearFilters} />
+          )}
+        </section>
       )}
 
-      {/* Floating action bar for batch delete */}
       {selectionMode && selectedJobs.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
-          <div className="bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-4">
-            <span className="font-medium text-sm">
+        <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2">
+          <div className="flex items-center gap-4 rounded-2xl bg-slate-900 px-5 py-3 text-white shadow-2xl">
+            <span className="text-sm font-medium">
               {selectedJobs.size} job{selectedJobs.size > 1 ? 's' : ''} selected
             </span>
             <button
               onClick={() => setShowBatchDeleteModal(true)}
-              className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition"
+              className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium transition hover:bg-red-700"
             >
               Delete Selected
             </button>

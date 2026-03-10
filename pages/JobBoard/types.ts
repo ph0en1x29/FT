@@ -17,6 +17,8 @@ export interface JobBoardProps {
   hideHeader?: boolean;
 }
 
+export type ViewMode = 'card' | 'list';
+
 /**
  * Date range filter options
  */

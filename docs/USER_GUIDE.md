@@ -482,6 +482,12 @@ You can view **all jobs** but can only edit jobs in "Awaiting Finalization" or "
 2. Use filters to find specific jobs
 3. Click on a job to view full details
 
+**Jobs Board Layouts (Updated 2026-03-10)**
+- **Card view** — Better for visual triage. Each card now shows customer, site, equipment, assignee, schedule, status, and type in one scan-friendly block.
+- **List view** — Better for office operations. Rows show denser job data across customer, site, equipment, assignee, scheduled date, status, and urgency.
+- **View toggle** — Use the Card/List control at the top of the Jobs page. The selected mode is saved in the page URL, so refresh keeps the same layout.
+- **Expanded search** — Search now matches job number, customer, account number, contact person, forklift number, customer forklift number, and site text.
+
 ### Finalizing an Invoice
 
 Jobs in "Awaiting Finalization" status are ready for your review:

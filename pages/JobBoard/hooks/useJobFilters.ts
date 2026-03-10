@@ -39,6 +39,12 @@ interface UseJobFiltersReturn {
  */
 export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn {
   const [searchParams, setSearchParams] = useSearchParams();
+  const filterParam = searchParams.get('filter');
+  const searchParam = searchParams.get('search') || '';
+  const dateParam = searchParams.get('date') as DateFilter | null;
+  const statusParam = searchParams.get('status');
+  const fromParam = searchParams.get('from') || '';
+  const toParam = searchParams.get('to') || '';
   
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,13 +57,6 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
 
   // Read URL filter parameter on mount
   useEffect(() => {
-    const filterParam = searchParams.get('filter');
-    const searchParam = searchParams.get('search') || '';
-    const dateParam = searchParams.get('date') as DateFilter | null;
-    const statusParam = searchParams.get('status');
-    const fromParam = searchParams.get('from') || '';
-    const toParam = searchParams.get('to') || '';
-
     setSearchQuery(searchParam);
     setCustomDateFrom(fromParam);
     setCustomDateTo(toParam);
@@ -118,7 +117,7 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
     setSpecialFilter(nextSpecialFilter);
     setDateFilter(nextDateFilter);
     setStatusFilter(nextStatusFilter);
-  }, [searchParams]);
+  }, [dateParam, filterParam, fromParam, searchParam, statusParam, toParam]);
 
   // Count jobs by status for quick stats
   const statusCounts = useMemo((): StatusCounts => {
@@ -202,9 +201,14 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
         job.description?.toLowerCase().includes(query) ||
         job.customer?.name?.toLowerCase().includes(query) ||
         job.customer?.address?.toLowerCase().includes(query) ||
+        job.customer?.contact_person?.toLowerCase().includes(query) ||
+        job.customer?.account_number?.toLowerCase().includes(query) ||
         job.assigned_technician_name?.toLowerCase().includes(query) ||
         job.forklift?.serial_number?.toLowerCase().includes(query) ||
+        job.forklift?.forklift_no?.toLowerCase().includes(query) ||
+        job.forklift?.customer_forklift_no?.toLowerCase().includes(query) ||
         job.forklift?.model?.toLowerCase().includes(query) ||
+        job.forklift?.site?.toLowerCase().includes(query) ||
         job.job_number?.toLowerCase().includes(query)
       );
     }
@@ -311,7 +315,9 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
     setSpecialFilter(null);
     setCustomDateFrom('');
     setCustomDateTo('');
-    setSearchParams({});
+    const nextParams = new URLSearchParams(searchParams);
+    ['filter', 'search', 'date', 'status', 'from', 'to'].forEach((key) => nextParams.delete(key));
+    setSearchParams(nextParams);
   };
 
   return {

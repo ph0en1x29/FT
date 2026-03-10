@@ -1,7 +1,21 @@
-import { Calendar, CheckCircle, CheckSquare, ChevronRight, Clock, Square, User as UserIcon, Wrench, XCircle } from 'lucide-react';
+/* eslint-disable max-lines */
+import {
+  AlertTriangle,
+  Calendar,
+  CheckCircle,
+  CheckSquare,
+  ChevronRight,
+  Clock,
+  MapPin,
+  Square,
+  User as UserIcon,
+  Wrench,
+  XCircle,
+} from 'lucide-react';
 import React from 'react';
+import SlotInSLABadge from '../../../components/SlotInSLABadge';
 import { JobStatus, JobType, User } from '../../../types';
-import { getStatusColor } from '../constants';
+import { getJobTypeColor, getStatusColor } from '../constants';
 import { JobWithHelperFlag, ResponseTimeState } from '../types';
 
 interface JobListRowProps {
@@ -17,32 +31,44 @@ interface JobListRowProps {
   selectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (jobId: string) => void;
+  layout?: 'mobile' | 'desktop';
 }
 
-/** Returns a status dot color class */
-const getStatusDotColor = (status: JobStatus, priority?: string): string => {
-  if (priority === 'Emergency') return 'bg-red-500';
-  switch (status) {
-    case JobStatus.IN_PROGRESS:
-    case JobStatus.INCOMPLETE_CONTINUING:
-      return 'bg-green-500';
-    case JobStatus.ASSIGNED:
-      return 'bg-amber-400';
-    case JobStatus.NEW:
-      return 'bg-blue-500';
-    case JobStatus.COMPLETED:
-      return 'bg-green-600';
-    default:
-      return 'bg-slate-300';
-  }
+const formatDate = (value?: string) =>
+  new Date(value || '').toLocaleDateString('en-MY', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+
+const getSiteLabel = (job: JobWithHelperFlag) =>
+  job.forklift?.site || job.forklift?.location || job.customer?.address || 'No site';
+
+const getEquipmentLabel = (job: JobWithHelperFlag) => {
+  const forkliftNo = job.forklift?.forklift_no || job.forklift?.serial_number;
+  const customerForkliftNo = job.forklift?.customer_forklift_no;
+  const model = [job.forklift?.make, job.forklift?.model].filter(Boolean).join(' ');
+
+  return [forkliftNo, customerForkliftNo ? `Cust ${customerForkliftNo}` : '', model]
+    .filter(Boolean)
+    .join(' · ');
 };
 
-/**
- * Job list row for list view (horizontal layout)
- */
+const getPriorityLabel = (job: JobWithHelperFlag) => {
+  if (job.priority === 'Emergency') return 'Emergency';
+  if (job.job_type === JobType.SLOT_IN && !job.acknowledged_at) return 'Slot-In';
+  if (jobNeedsAttention(job)) return 'Attention';
+  return job.priority || 'Standard';
+};
+
+const jobNeedsAttention = (job: JobWithHelperFlag) =>
+  job.status === JobStatus.AWAITING_FINALIZATION ||
+  job.status === JobStatus.INCOMPLETE_CONTINUING ||
+  job.status === JobStatus.DISPUTED;
+
 export const JobListRow: React.FC<JobListRowProps> = ({
   job,
-  currentUser,
+  currentUser: _currentUser,
   isTechnician,
   processingJobId,
   jobNeedsAcceptance,
@@ -53,89 +79,285 @@ export const JobListRow: React.FC<JobListRowProps> = ({
   selectionMode = false,
   isSelected = false,
   onToggleSelect,
+  layout = 'desktop',
 }) => {
-  const handleRowClick = () => {
+  const responseState = getResponseTimeRemaining(job);
+  const siteLabel = getSiteLabel(job);
+  const equipmentLabel = getEquipmentLabel(job);
+  const scheduledLabel = formatDate(job.scheduled_date || job.created_at);
+  const needsAcceptance = isTechnician && jobNeedsAcceptance(job);
+  const priorityLabel = getPriorityLabel(job);
+
+  const handleClick = () => {
     if (selectionMode && onToggleSelect) {
       onToggleSelect(job.job_id);
-    } else {
-      onNavigate(job.job_id);
+      return;
     }
+
+    onNavigate(job.job_id);
   };
 
+  const SelectionToggle = selectionMode ? (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggleSelect?.(job.job_id);
+      }}
+      className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)]"
+      aria-label={isSelected ? 'Deselect job' : 'Select job'}
+    >
+      {isSelected ? <CheckSquare className="h-4 w-4 text-blue-600" /> : <Square className="h-4 w-4 text-theme-muted" />}
+    </button>
+  ) : null;
+
+  if (layout === 'mobile') {
+    return (
+      <article
+        onClick={handleClick}
+        className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition-colors hover:bg-[var(--surface-hover)] ${
+          isSelected ? 'ring-2 ring-blue-500/70 bg-blue-50/40 dark:bg-blue-900/15' : ''
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          {SelectionToggle}
+          <div className="min-w-0 flex-1 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {job.job_number && (
+                <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold tracking-[0.12em] text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                  {job.job_number}
+                </span>
+              )}
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] ${getStatusColor(job.status)}`}>
+                {job.status}
+              </span>
+              {job.job_type && (
+                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getJobTypeColor(job.job_type as JobType)}`}>
+                  {job.job_type}
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <div className="break-words text-base font-semibold text-theme">{job.title}</div>
+              <div className="break-words text-sm text-theme-muted">{job.customer?.name || 'No customer'}</div>
+            </div>
+
+            <div className="grid gap-2 text-sm text-theme-muted">
+              <div className="flex items-start gap-2">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                <span className="break-words">{siteLabel}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Wrench className="mt-0.5 h-4 w-4 shrink-0" />
+                <span className="break-words">{equipmentLabel || 'Equipment not linked'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <UserIcon className="h-4 w-4 shrink-0" />
+                <span className="break-words">{job.assigned_technician_name || 'Unassigned'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 shrink-0" />
+                <span>{scheduledLabel}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {job.priority === 'Emergency' && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Emergency
+                </span>
+              )}
+              {job.job_type === JobType.SLOT_IN && (
+                <SlotInSLABadge
+                  createdAt={job.created_at}
+                  acknowledgedAt={job.acknowledged_at}
+                  slaTargetMinutes={job.sla_target_minutes || 15}
+                  size="sm"
+                />
+              )}
+              {job._isHelperAssignment && (
+                <span className="rounded-full bg-purple-50 px-2 py-1 font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                  Helper
+                </span>
+              )}
+            </div>
+
+            {needsAcceptance ? (
+              <div className="space-y-2 border-t border-[var(--border)] pt-3">
+                <div className={`flex items-center gap-2 text-xs ${
+                  responseState.urgency === 'critical'
+                    ? 'text-red-600'
+                    : responseState.urgency === 'warning'
+                      ? 'text-amber-600'
+                      : 'text-theme-muted'
+                }`}>
+                  <Clock className="h-3.5 w-3.5" />
+                  {responseState.isExpired ? 'Response time expired' : `Respond within ${responseState.text}`}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={(e) => onAccept(e, job.job_id)}
+                    disabled={processingJobId === job.job_id}
+                    className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Accept
+                  </button>
+                  <button
+                    onClick={(e) => onReject(e, job.job_id)}
+                    disabled={processingJobId === job.job_id}
+                    className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-red-50 px-3 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50 dark:bg-red-900/20 dark:text-red-300"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between border-t border-[var(--border)] pt-3 text-xs text-theme-muted">
+                <span>{priorityLabel}</span>
+                <span className="flex items-center gap-1 font-medium">
+                  Open details
+                  <ChevronRight className="h-4 w-4" />
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   return (
-    <div 
-      onClick={handleRowClick}
-      className={`flex items-center gap-3 py-2.5 px-3 hover:bg-[var(--surface-hover)] cursor-pointer transition-colors border-b border-[var(--border)] ${
-        isSelected ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''
+    <div
+      onClick={handleClick}
+      className={`grid grid-cols-[auto_minmax(0,1.8fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_120px_170px_130px_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-hover)] ${
+        isSelected ? 'bg-blue-50/40 dark:bg-blue-900/15' : ''
       }`}
     >
-      {/* Selection checkbox */}
-      {selectionMode && (
-        <button 
-          onClick={(e) => { e.stopPropagation(); onToggleSelect && onToggleSelect(job.job_id); }}
-          className="flex-shrink-0"
-        >
-          {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <Square className="w-4 h-4 text-theme-muted" />}
-        </button>
-      )}
+      <div className="flex items-center gap-2">
+        {SelectionToggle}
+        {!selectionMode && <ChevronRight className="h-4 w-4 text-theme-muted" />}
+      </div>
 
-      {/* Status dot */}
-      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getStatusDotColor(job.status, job.priority)}`} />
-
-      {/* Job number */}
-      <span className="font-mono text-xs text-theme-muted flex-shrink-0 min-w-[50px]">
-        #{job.job_number || '---'}
-      </span>
-
-      {/* Title */}
-      <span className="flex-1 truncate font-medium text-sm text-theme">
-        {job.title}
-      </span>
-
-      {/* Customer name */}
-      <span className="text-xs text-theme-muted truncate max-w-[150px] flex-shrink-0">
-        {job.customer?.name || 'No customer'}
-      </span>
-
-      {/* Forklift number */}
-      <span className="text-xs font-mono text-theme-muted flex-shrink-0 min-w-[60px]">
-        {job.forklift ? (job.forklift.forklift_no || job.forklift.serial_number) : '—'}
-      </span>
-
-      {/* Assigned tech */}
-      <span className="text-xs text-theme-muted truncate max-w-[120px] flex-shrink-0">
-        {job.assigned_technician_name || '—'}
-      </span>
-
-      {/* Date */}
-      <span className="text-xs text-theme-muted flex-shrink-0 min-w-[80px]">
-        {new Date(job.scheduled_date || job.created_at).toLocaleDateString()}
-      </span>
-
-      {/* Accept/Reject buttons for technicians if needed */}
-      {isTechnician && jobNeedsAcceptance(job) && (
-        <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={(e) => onAccept(e, job.job_id)}
-            disabled={processingJobId === job.job_id}
-            className="flex items-center gap-1 px-2 py-1 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-          >
-            <CheckCircle className="w-3 h-3" />
-            Accept
-          </button>
-          <button
-            onClick={(e) => onReject(e, job.job_id)}
-            disabled={processingJobId === job.job_id}
-            className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
-          >
-            <XCircle className="w-3 h-3" />
-            Reject
-          </button>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          {job.job_number && (
+            <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+              {job.job_number}
+            </span>
+          )}
+          {job._isHelperAssignment && (
+            <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+              Helper
+            </span>
+          )}
         </div>
-      )}
+        <div className="mt-1 break-words text-sm font-semibold text-theme">{job.title}</div>
+        <div className="mt-1 break-words text-xs text-theme-muted">
+          {[job.customer?.name, job.customer?.account_number].filter(Boolean).join(' · ') || 'No customer'}
+        </div>
+      </div>
 
-      {/* Chevron right */}
-      <ChevronRight className="w-4 h-4 text-theme-muted flex-shrink-0" />
+      <div className="min-w-0">
+        <div className="flex items-start gap-2 text-sm text-theme">
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-theme-muted" />
+          <div className="min-w-0 break-words text-xs text-theme-muted">{siteLabel}</div>
+        </div>
+      </div>
+
+      <div className="min-w-0">
+        <div className="flex items-start gap-2">
+          <Wrench className="mt-0.5 h-4 w-4 shrink-0 text-theme-muted" />
+          <div className="min-w-0">
+            <div className="break-words text-xs font-medium text-theme">
+              {equipmentLabel || 'Equipment not linked'}
+            </div>
+            {job.forklift?.type && (
+              <div className="mt-1 text-[11px] text-theme-muted">{job.forklift.type}</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="min-w-0">
+        <div className="flex items-start gap-2">
+          <UserIcon className="mt-0.5 h-4 w-4 shrink-0 text-theme-muted" />
+          <div className="min-w-0">
+            <div className="break-words text-xs font-medium text-theme">
+              {job.assigned_technician_name || 'Unassigned'}
+            </div>
+            {job.customer?.contact_person && (
+              <div className="mt-1 break-words text-[11px] text-theme-muted">{job.customer.contact_person}</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="text-xs text-theme-muted">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 shrink-0" />
+          <span>{scheduledLabel}</span>
+        </div>
+      </div>
+
+      <div className="flex min-w-0 flex-wrap gap-2">
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${getStatusColor(job.status)}`}>
+          {job.status}
+        </span>
+        {job.job_type && (
+          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${getJobTypeColor(job.job_type as JobType)}`}>
+            {job.job_type}
+          </span>
+        )}
+      </div>
+
+      <div className="min-w-0 text-xs text-theme-muted">
+        <div className="flex flex-wrap items-center gap-2">
+          {job.priority === 'Emergency' ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Emergency
+            </span>
+          ) : (
+            <span>{priorityLabel}</span>
+          )}
+          {job.job_type === JobType.SLOT_IN && (
+            <SlotInSLABadge
+              createdAt={job.created_at}
+              acknowledgedAt={job.acknowledged_at}
+              slaTargetMinutes={job.sla_target_minutes || 15}
+              size="sm"
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-2">
+        {needsAcceptance ? (
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={(e) => onAccept(e, job.job_id)}
+              disabled={processingJobId === job.job_id}
+              className="flex h-9 items-center gap-1 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <CheckCircle className="h-3.5 w-3.5" />
+              Accept
+            </button>
+            <button
+              onClick={(e) => onReject(e, job.job_id)}
+              disabled={processingJobId === job.job_id}
+              className="flex h-9 items-center gap-1 rounded-lg bg-red-50 px-3 text-xs font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50 dark:bg-red-900/20 dark:text-red-300"
+            >
+              <XCircle className="h-3.5 w-3.5" />
+              Reject
+            </button>
+          </div>
+        ) : (
+          <ChevronRight className="h-4 w-4 text-theme-muted" />
+        )}
+      </div>
     </div>
   );
 };

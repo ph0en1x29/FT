@@ -115,3 +115,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-03-10 00:12] [Sonnet] Updated ForkliftCard.tsx — show forklift_no alongside serial_number (format: "A928 · 8FD45N-11009" when exists)
 [2026-03-10 00:12] [Sonnet] Updated ForkliftInfoCard.tsx — added admin-only edit button (Edit2 icon, top-right positioned)
 [2026-03-10 00:12] [Sonnet] Updated ForkliftProfilePage.tsx — integrated AddEditForkliftModal with pre-filled form state for editing existing forklift
+[2026-03-10 03:01] [Codex] Pulled latest main, upgraded /jobs card + list views with URL-persisted view mode and richer job metadata, expanded job-board search fields/selects, verified build/lint, and visually checked desktop/mobile layouts in Playwright

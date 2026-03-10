@@ -1,0 +1,94 @@
+import React from 'react';
+import { User } from '../../../types';
+import { JobWithHelperFlag, ResponseTimeState } from '../types';
+import { JobListRow } from './JobListRow';
+
+interface JobListTableProps {
+  jobs: JobWithHelperFlag[];
+  currentUser: User;
+  isTechnician: boolean;
+  processingJobId: string | null;
+  jobNeedsAcceptance: (job: JobWithHelperFlag) => boolean;
+  getResponseTimeRemaining: (job: JobWithHelperFlag) => ResponseTimeState;
+  onNavigate: (jobId: string) => void;
+  onAccept: (e: React.MouseEvent, jobId: string) => void;
+  onReject: (e: React.MouseEvent, jobId: string) => void;
+  selectionMode?: boolean;
+  selectedJobs?: Set<string>;
+  onToggleSelect?: (jobId: string) => void;
+}
+
+export const JobListTable: React.FC<JobListTableProps> = ({
+  jobs,
+  currentUser,
+  isTechnician,
+  processingJobId,
+  jobNeedsAcceptance,
+  getResponseTimeRemaining,
+  onNavigate,
+  onAccept,
+  onReject,
+  selectionMode = false,
+  selectedJobs = new Set(),
+  onToggleSelect,
+}) => {
+  return (
+    <div className="space-y-3">
+      <div className="space-y-3 md:hidden">
+        {jobs.map((job) => (
+          <JobListRow
+            key={job.job_id}
+            job={job}
+            currentUser={currentUser}
+            isTechnician={isTechnician}
+            processingJobId={processingJobId}
+            jobNeedsAcceptance={jobNeedsAcceptance}
+            getResponseTimeRemaining={getResponseTimeRemaining}
+            onNavigate={onNavigate}
+            onAccept={onAccept}
+            onReject={onReject}
+            selectionMode={selectionMode}
+            isSelected={selectedJobs.has(job.job_id)}
+            onToggleSelect={onToggleSelect}
+            layout="mobile"
+          />
+        ))}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm md:block">
+        <div className="grid grid-cols-[auto_minmax(0,1.8fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_120px_170px_130px_auto] gap-3 border-b border-[var(--border)] bg-[var(--bg-subtle)]/70 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-theme-muted">
+          <div>{selectionMode ? 'Pick' : ''}</div>
+          <div>Job</div>
+          <div>Site</div>
+          <div>Equipment</div>
+          <div>Assignee</div>
+          <div>Scheduled</div>
+          <div>Status</div>
+          <div>Priority</div>
+          <div className="text-right">Action</div>
+        </div>
+
+        <div className="divide-y divide-[var(--border)]">
+          {jobs.map((job) => (
+            <JobListRow
+              key={job.job_id}
+              job={job}
+              currentUser={currentUser}
+              isTechnician={isTechnician}
+              processingJobId={processingJobId}
+              jobNeedsAcceptance={jobNeedsAcceptance}
+              getResponseTimeRemaining={getResponseTimeRemaining}
+              onNavigate={onNavigate}
+              onAccept={onAccept}
+              onReject={onReject}
+              selectionMode={selectionMode}
+              isSelected={selectedJobs.has(job.job_id)}
+              onToggleSelect={onToggleSelect}
+              layout="desktop"
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
