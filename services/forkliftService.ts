@@ -88,16 +88,16 @@ export const getForklifts = async (): Promise<Forklift[]> => {
   return resultData || [];
 };
 
-export const getForkliftsForList = async (): Promise<Pick<Forklift, 'forklift_id' | 'serial_number' | 'make' | 'model' | 'type' | 'status' | 'hourmeter' | 'location' | 'current_customer_id'>[]> => {
+export const getForkliftsForList = async (): Promise<Pick<Forklift, 'forklift_id' | 'serial_number' | 'forklift_no' | 'make' | 'model' | 'type' | 'status' | 'hourmeter' | 'location' | 'current_customer_id' | 'current_site_id'>[]> => {
   const { data, error } = await supabase
     .from('forklifts')
-    .select('forklift_id, serial_number, make, model, type, status, hourmeter, location, current_customer_id')
+    .select('forklift_id, serial_number, forklift_no, make, model, type, status, hourmeter, location, current_customer_id, current_site_id')
     .neq('status', 'Out of Service')
     .neq('status', 'Inactive')
     .order('serial_number');
 
   if (error) throw new Error(error.message);
-  return data as Pick<Forklift, 'forklift_id' | 'serial_number' | 'make' | 'model' | 'type' | 'status' | 'hourmeter' | 'location' | 'current_customer_id'>[];
+  return data as Pick<Forklift, 'forklift_id' | 'serial_number' | 'forklift_no' | 'make' | 'model' | 'type' | 'status' | 'hourmeter' | 'location' | 'current_customer_id' | 'current_site_id'>[];
 };
 
 export const getForkliftById = async (forkliftId: string): Promise<Forklift | null> => {
