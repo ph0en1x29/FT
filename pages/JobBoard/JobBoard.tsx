@@ -202,7 +202,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
             {hasPermission('canCreateJobs') && (
               <button
                 onClick={() => navigate('/jobs/new')}
-                className="inline-flex h-12 items-center rounded-2xl bg-blue-600 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700"
+                className="inline-flex h-12 items-center rounded-2xl bg-blue-600 px-4 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md active:scale-95"
               >
                 + New Job
               </button>
@@ -359,7 +359,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
             </span>
             <button
               onClick={() => setShowBatchDeleteModal(true)}
-              className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium transition hover:bg-red-700"
+              className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium transition-all hover:bg-red-700 hover:shadow-md active:scale-95"
             >
               Delete Selected
             </button>

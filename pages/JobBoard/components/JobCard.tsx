@@ -96,7 +96,7 @@ export const JobCard: React.FC<JobCardProps> = ({
   return (
     <article
       onClick={handleCardClick}
-      className={`relative flex h-full min-w-0 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${getStatusBorderColor(job)} ${
+      className={`relative flex h-full min-w-0 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] active:shadow-sm ${getStatusBorderColor(job)} ${
         isSelected ? 'ring-2 ring-blue-500/70 bg-blue-50/40 dark:bg-blue-900/15' : ''
       }`}
     >
