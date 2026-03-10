@@ -1,5 +1,5 @@
-import { CheckSquare,Square } from 'lucide-react';
-import React,{ useState } from 'react';
+import { CheckSquare, LayoutGrid, List, Square } from 'lucide-react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { UserRole } from '../../types';
@@ -10,6 +10,7 @@ ConfirmBatchDeleteModal,
 DeletedJobsSection,
 EmptyJobsState,
 JobCard,
+JobListRow,
 LoadingState,
 QuickStats,
 RejectJobModal,
@@ -18,7 +19,7 @@ SiteSignOffBanner,
 SlotInAlertBanner,
 SpecialFilterBanner,
 } from './components';
-import { useJobAcceptance,useJobData,useJobFilters } from './hooks';
+import { useJobAcceptance, useJobData, useJobFilters } from './hooks';
 import { JobBoardProps } from './types';
 
 /** Job Board - Main view for listing, filtering, and managing jobs */
@@ -38,6 +39,9 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
 
   // Derived state
   const isTechnician = displayRole === UserRole.TECHNICIAN;
+
+  // View mode state: default 'card' for technicians, 'list' for admin/supervisor
+  const [viewMode, setViewMode] = useState<'card' | 'list'>(isTechnician ? 'card' : 'list');
 
   // Data fetching and real-time updates
   const {
@@ -176,33 +180,58 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
         filteredCount={filteredJobs.length}
       />
 
-      {/* Selection mode — subtle toggle, right-aligned */}
-      {hasPermission('canDeleteJobs') && !isTechnician && (
-        <div className="flex items-center justify-end gap-2">
-          {selectionMode && selectedJobs.size > 0 && (
-            <>
-              <button
-                onClick={() => setShowBatchDeleteModal(true)}
-                className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
-              >
-                Delete ({selectedJobs.size})
-              </button>
-              <span className="text-[var(--border)]">·</span>
-            </>
-          )}
-          <button 
-            onClick={handleToggleSelectionMode}
-            className={`flex items-center gap-2 text-base py-1 transition-colors ${
-              selectionMode 
-                ? 'text-blue-600 font-medium' 
-                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+      {/* View toggle and Selection mode — right-aligned */}
+      <div className="flex items-center justify-end gap-4">
+        {/* View toggle */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setViewMode('card')}
+            className={`p-1.5 rounded transition-colors ${
+              viewMode === 'card' ? 'text-blue-600' : 'text-[var(--text-muted)] hover:text-[var(--text)]'
             }`}
+            title="Card view"
           >
-            {selectionMode ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
-            {selectionMode ? `${selectedJobs.size} selected · Exit` : 'Select'}
+            <LayoutGrid className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`p-1.5 rounded transition-colors ${
+              viewMode === 'list' ? 'text-blue-600' : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+            }`}
+            title="List view"
+          >
+            <List className="w-5 h-5" />
           </button>
         </div>
-      )}
+
+        {/* Selection mode toggle */}
+        {hasPermission('canDeleteJobs') && !isTechnician && (
+          <div className="flex items-center gap-2">
+            {selectionMode && selectedJobs.size > 0 && (
+              <>
+                <button
+                  onClick={() => setShowBatchDeleteModal(true)}
+                  className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
+                >
+                  Delete ({selectedJobs.size})
+                </button>
+                <span className="text-[var(--border)]">·</span>
+              </>
+            )}
+            <button 
+              onClick={handleToggleSelectionMode}
+              className={`flex items-center gap-2 text-base py-1 transition-colors ${
+                selectionMode 
+                  ? 'text-blue-600 font-medium' 
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              {selectionMode ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+              {selectionMode ? `${selectedJobs.size} selected · Exit` : 'Select'}
+            </button>
+          </div>
+        )}
+      </div>
 
       <SpecialFilterBanner
         specialFilter={specialFilter}
@@ -217,23 +246,42 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
         (() => {
           const myJobs = filteredJobs.filter(j => j.assigned_technician_id === currentUser.user_id || j._isHelperAssignment);
           const otherJobs = filteredJobs.filter(j => j.assigned_technician_id !== currentUser.user_id && !j._isHelperAssignment);
-          const renderCard = (job: typeof filteredJobs[0]) => (
-            <JobCard
-              key={job.job_id}
-              job={job}
-              currentUser={currentUser}
-              isTechnician={isTechnician}
-              processingJobId={processingJobId}
-              jobNeedsAcceptance={jobNeedsAcceptance}
-              getResponseTimeRemaining={getResponseTimeRemaining}
-              onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
-              onAccept={handleAcceptJob}
-              onReject={handleOpenRejectModal}
-              selectionMode={selectionMode}
-              isSelected={selectedJobs.has(job.job_id)}
-              onToggleSelect={handleToggleSelect}
-            />
-          );
+          
+          const renderJob = (job: typeof filteredJobs[0]) => 
+            viewMode === 'list' ? (
+              <JobListRow
+                key={job.job_id}
+                job={job}
+                currentUser={currentUser}
+                isTechnician={isTechnician}
+                processingJobId={processingJobId}
+                jobNeedsAcceptance={jobNeedsAcceptance}
+                getResponseTimeRemaining={getResponseTimeRemaining}
+                onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
+                onAccept={handleAcceptJob}
+                onReject={handleOpenRejectModal}
+                selectionMode={selectionMode}
+                isSelected={selectedJobs.has(job.job_id)}
+                onToggleSelect={handleToggleSelect}
+              />
+            ) : (
+              <JobCard
+                key={job.job_id}
+                job={job}
+                currentUser={currentUser}
+                isTechnician={isTechnician}
+                processingJobId={processingJobId}
+                jobNeedsAcceptance={jobNeedsAcceptance}
+                getResponseTimeRemaining={getResponseTimeRemaining}
+                onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
+                onAccept={handleAcceptJob}
+                onReject={handleOpenRejectModal}
+                selectionMode={selectionMode}
+                isSelected={selectedJobs.has(job.job_id)}
+                onToggleSelect={handleToggleSelect}
+              />
+            );
+
           return (
             <div className="space-y-6">
               {myJobs.length > 0 && (
@@ -244,17 +292,29 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
                     currentUser={currentUser} 
                     onComplete={fetchJobs} 
                   />
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {myJobs.map(renderCard)}
-                  </div>
+                  {viewMode === 'list' ? (
+                    <div className="divide-y divide-[var(--border)] card-theme rounded-xl overflow-hidden">
+                      {myJobs.map(renderJob)}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {myJobs.map(renderJob)}
+                    </div>
+                  )}
                 </div>
               )}
               {otherJobs.length > 0 && (
                 <div>
                   <h2 className="text-sm font-semibold text-theme-muted uppercase tracking-wide mb-3">Other Jobs ({otherJobs.length})</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {otherJobs.map(renderCard)}
-                  </div>
+                  {viewMode === 'list' ? (
+                    <div className="divide-y divide-[var(--border)] card-theme rounded-xl overflow-hidden">
+                      {otherJobs.map(renderJob)}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {otherJobs.map(renderJob)}
+                    </div>
+                  )}
                 </div>
               )}
               {filteredJobs.length === 0 && (
@@ -264,32 +324,60 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           );
         })()
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredJobs.map(job => (
-            <JobCard
-              key={job.job_id}
-              job={job}
-              currentUser={currentUser}
-              isTechnician={isTechnician}
-              processingJobId={processingJobId}
-              jobNeedsAcceptance={jobNeedsAcceptance}
-              getResponseTimeRemaining={getResponseTimeRemaining}
-              onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
-              onAccept={handleAcceptJob}
-              onReject={handleOpenRejectModal}
-              selectionMode={selectionMode}
-              isSelected={selectedJobs.has(job.job_id)}
-              onToggleSelect={handleToggleSelect}
-            />
-          ))}
-
-          {filteredJobs.length === 0 && (
-            <EmptyJobsState
-              hasActiveFilters={hasActiveFilters}
-              onClearFilters={clearFilters}
-            />
-          )}
-        </div>
+        // Admin/Supervisor view
+        viewMode === 'list' ? (
+          <div className="divide-y divide-[var(--border)] card-theme rounded-xl overflow-hidden">
+            {filteredJobs.map(job => (
+              <JobListRow
+                key={job.job_id}
+                job={job}
+                currentUser={currentUser}
+                isTechnician={isTechnician}
+                processingJobId={processingJobId}
+                jobNeedsAcceptance={jobNeedsAcceptance}
+                getResponseTimeRemaining={getResponseTimeRemaining}
+                onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
+                onAccept={handleAcceptJob}
+                onReject={handleOpenRejectModal}
+                selectionMode={selectionMode}
+                isSelected={selectedJobs.has(job.job_id)}
+                onToggleSelect={handleToggleSelect}
+              />
+            ))}
+            {filteredJobs.length === 0 && (
+              <EmptyJobsState
+                hasActiveFilters={hasActiveFilters}
+                onClearFilters={clearFilters}
+              />
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredJobs.map(job => (
+              <JobCard
+                key={job.job_id}
+                job={job}
+                currentUser={currentUser}
+                isTechnician={isTechnician}
+                processingJobId={processingJobId}
+                jobNeedsAcceptance={jobNeedsAcceptance}
+                getResponseTimeRemaining={getResponseTimeRemaining}
+                onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
+                onAccept={handleAcceptJob}
+                onReject={handleOpenRejectModal}
+                selectionMode={selectionMode}
+                isSelected={selectedJobs.has(job.job_id)}
+                onToggleSelect={handleToggleSelect}
+              />
+            ))}
+            {filteredJobs.length === 0 && (
+              <EmptyJobsState
+                hasActiveFilters={hasActiveFilters}
+                onClearFilters={clearFilters}
+              />
+            )}
+          </div>
+        )
       )}
 
       {/* Floating action bar for batch delete */}

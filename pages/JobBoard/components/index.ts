@@ -3,6 +3,7 @@ export { ConfirmBatchDeleteModal } from './ConfirmBatchDeleteModal';
 export { DeletedJobsSection } from './DeletedJobsSection';
 export { EmptyJobsState } from './EmptyJobsState';
 export { JobCard } from './JobCard';
+export { JobListRow } from './JobListRow';
 export { LoadingState } from './LoadingState';
 export { QuickStats } from './QuickStats';
 export { RejectJobModal } from './RejectJobModal';

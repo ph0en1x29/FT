@@ -6,6 +6,13 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 ## 2026-03-10
 
+[2026-03-10 02:01] [Sonnet] Compact job cards + list view toggle: JobCard.tsx, JobListRow.tsx, JobBoard.tsx, index.ts
+  - JobCard.tsx: Redesigned to be ~40% shorter — Row 1: badges (job#, status, type, helper, emergency/SLA), Row 2: title + assigned tech, Row 3: customer · forklift · date; Removed description and address lines; Kept accept/reject, selection mode, hover effects
+  - JobListRow.tsx (new): Horizontal list view component — Single row with status dot, job#, title, customer, forklift, tech, date, chevron; Accept/reject buttons inline for technicians; Same props interface as JobCard
+  - JobBoard.tsx: Added viewMode state ('card' | 'list', default 'card' for technicians, 'list' for admin/supervisor); View toggle UI (LayoutGrid/List icons); Render logic for both card and list views in technician sections (My Jobs / Other Jobs) and admin view
+  - index.ts: Exported JobListRow component
+  - Build: ✅ Pass (✓ 2445 modules transformed, ✓ built in 3.70s)
+
 [2026-03-10 00:07] [Sonnet] Admin forklift switching: EquipmentCard.tsx, useJobActions.ts, JobDetailPage.tsx — pre-start only, customer rentals
   - EquipmentCard.tsx: Added forklift switching UI — RefreshCw button (admin+pre-start only), inline Combobox dropdown, filter forklifts by current_customer_id === job.customer_id, onSwitchForklift callback prop
   - useJobActions.ts: Added handleSwitchForklift handler — updates jobs.forklift_id via supabase, refreshes job data, shows success toast

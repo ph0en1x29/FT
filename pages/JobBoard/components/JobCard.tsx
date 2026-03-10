@@ -1,9 +1,9 @@
-import { AlertTriangle,Calendar,CheckCircle,CheckSquare,Clock,MapPin,Square,User as UserIcon,XCircle } from 'lucide-react';
+import { Calendar, CheckCircle, CheckSquare, Clock, Square, User as UserIcon, Wrench, XCircle } from 'lucide-react';
 import React from 'react';
 import SlotInSLABadge from '../../../components/SlotInSLABadge';
-import { JobStatus,JobType,User } from '../../../types';
-import { getJobTypeColor,getStatusColor } from '../constants';
-import { JobWithHelperFlag,ResponseTimeState } from '../types';
+import { JobStatus, JobType, User } from '../../../types';
+import { getJobTypeColor, getStatusColor } from '../constants';
+import { JobWithHelperFlag, ResponseTimeState } from '../types';
 
 interface JobCardProps {
   job: JobWithHelperFlag;
@@ -37,7 +37,7 @@ const getStatusBorderColor = (job: JobWithHelperFlag): string => {
 };
 
 /**
- * Individual job card displaying job details with technician actions
+ * Individual job card displaying job details with technician actions (compact redesign)
  */
 export const JobCard: React.FC<JobCardProps> = ({
   job,
@@ -64,37 +64,33 @@ export const JobCard: React.FC<JobCardProps> = ({
   return (
     <div 
       onClick={handleCardClick}
-      className={`card-theme p-5 rounded-xl clickable-card group theme-transition ${getStatusBorderColor(job)} ${
+      className={`card-theme p-4 rounded-xl clickable-card group theme-transition ${getStatusBorderColor(job)} ${
         isSelected ? 'ring-2 ring-blue-500 bg-blue-50/50 dark:bg-blue-900/20' : ''
       } relative`}
     >
-      {/* Job Number + Selection Icon */}
-      <div className="flex items-center gap-2 mb-2">
-        {selectionMode && (
-          <button onClick={(e) => { e.stopPropagation(); onToggleSelect && onToggleSelect(job.job_id); }}>
-            {isSelected ? <CheckSquare className="w-5 h-5 text-blue-600" /> : <Square className="w-5 h-5 text-theme-muted" />}
-          </button>
-        )}
-        {job.job_number && (
-          <span className="text-xs font-mono font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-700 whitespace-nowrap">
-            #{job.job_number}
-          </span>
-        )}
-      </div>
-
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex gap-2 flex-wrap">
-          <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wide ${getStatusColor(job.status)}`}>
+      {/* Row 1: Job Number + Badges */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {selectionMode && (
+            <button onClick={(e) => { e.stopPropagation(); onToggleSelect && onToggleSelect(job.job_id); }}>
+              {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <Square className="w-4 h-4 text-theme-muted" />}
+            </button>
+          )}
+          {job.job_number && (
+            <span className="text-xs font-mono font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-700 whitespace-nowrap">
+              #{job.job_number}
+            </span>
+          )}
+          <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${getStatusColor(job.status)}`}>
             {job.status}
           </span>
           {job.job_type && (
-            <span className={`px-2 py-1 rounded text-xs font-medium border ${getJobTypeColor(job.job_type as JobType)}`}>
+            <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getJobTypeColor(job.job_type as JobType)}`}>
               {job.job_type}
             </span>
           )}
-          {/* Helper badge for technicians viewing helper assignments */}
           {job._isHelperAssignment && (
-            <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+            <span className="px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
               Helper
             </span>
           )}
@@ -103,7 +99,6 @@ export const JobCard: React.FC<JobCardProps> = ({
           {job.priority === 'Emergency' && (
             <span className="text-xs font-bold text-red-600 animate-pulse">EMERGENCY</span>
           )}
-          {/* Slot-In SLA Badge */}
           {job.job_type === JobType.SLOT_IN && (
             <SlotInSLABadge
               createdAt={job.created_at}
@@ -115,27 +110,27 @@ export const JobCard: React.FC<JobCardProps> = ({
         </div>
       </div>
       
-      <h3 className="font-bold text-lg text-theme group-hover:text-blue-600 mb-1">{job.title}</h3>
-      <p className="text-theme-muted text-sm mb-4 line-clamp-2">{job.description}</p>
+      {/* Row 2: Title + Assigned Tech */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <h3 className="font-semibold text-base text-theme group-hover:text-blue-600 truncate flex-1">
+          {job.title}
+        </h3>
+        {job.assigned_technician_name && (
+          <span className="text-xs text-theme-muted whitespace-nowrap">{job.assigned_technician_name}</span>
+        )}
+      </div>
       
-      <div className="space-y-2 text-sm text-theme-muted">
-        <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 opacity-60" />
-          <span className="truncate">{job.customer?.address || 'No address'}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <UserIcon className="w-4 h-4 opacity-60" />
-          {job.customer ? (
-            <span>{job.customer.name}</span>
-          ) : (
-            <span className="text-amber-600 font-medium flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" /> No Customer
-            </span>
-          )}
-        </div>
+      {/* Row 3: Customer · Forklift · Date */}
+      <div className="flex items-center gap-3 text-xs text-theme-muted">
+        {job.customer && (
+          <div className="flex items-center gap-1">
+            <UserIcon className="w-3 h-3 opacity-60" />
+            <span className="truncate">{job.customer.name}</span>
+          </div>
+        )}
         {job.forklift && (
-          <div className="flex items-center gap-2">
-            <span className="w-4 h-4 opacity-60 text-center text-xs">🔧</span>
+          <div className="flex items-center gap-1">
+            <Wrench className="w-3 h-3 opacity-60" />
             <span className="truncate">
               {job.forklift.forklift_no || job.forklift.serial_number}
               {job.forklift.customer_forklift_no && (
@@ -144,21 +139,15 @@ export const JobCard: React.FC<JobCardProps> = ({
             </span>
           </div>
         )}
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 opacity-60" />
+        <div className="flex items-center gap-1">
+          <Calendar className="w-3 h-3 opacity-60" />
           <span>{new Date(job.scheduled_date || job.created_at).toLocaleDateString()}</span>
         </div>
-        {job.assigned_technician_name && (
-          <div className="flex items-center gap-2 text-blue-600">
-            <UserIcon className="w-4 h-4" />
-            <span className="font-medium">{job.assigned_technician_name}</span>
-          </div>
-        )}
       </div>
 
       {/* On-Call Accept/Reject Buttons for Technicians */}
       {isTechnician && jobNeedsAcceptance(job) && (
-        <div className="mt-4 pt-3 border-t border-slate-200">
+        <div className="mt-3 pt-3 border-t border-slate-200">
           {/* Response timer */}
           {job.technician_response_deadline && (
             <div className={`flex items-center gap-1 mb-2 text-xs ${
@@ -197,7 +186,7 @@ export const JobCard: React.FC<JobCardProps> = ({
 
       {/* Show acceptance status for already accepted jobs */}
       {isTechnician && job.status === JobStatus.ASSIGNED && job.assigned_technician_id === currentUser.user_id && job.technician_accepted_at && (
-        <div className="mt-3 pt-2 border-t border-green-200">
+        <div className="mt-2 pt-2 border-t border-green-200">
           <span className="text-xs text-green-600 flex items-center gap-1">
             <CheckCircle className="w-3 h-3" />
             Accepted - Ready to start
