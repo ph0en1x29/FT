@@ -133,18 +133,6 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
             {isTechnician ? 'My Jobs' : 'Job Board'}
           </h1>
           <div className="flex gap-2">
-            {hasPermission('canDeleteJobs') && !isTechnician && (
-              <button 
-                onClick={handleToggleSelectionMode}
-                className={`px-4 py-2 rounded-lg shadow transition text-sm font-medium ${
-                  selectionMode 
-                    ? 'bg-slate-600 text-white hover:bg-slate-700' 
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'
-                }`}
-              >
-                {selectionMode ? 'Cancel' : 'Select'}
-              </button>
-            )}
             {hasPermission('canCreateJobs') && (
               <button onClick={() => navigate('/jobs/new')}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition">
@@ -152,6 +140,37 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Selection mode bar — always visible regardless of hideHeader */}
+      {hasPermission('canDeleteJobs') && !isTechnician && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleToggleSelectionMode}
+              className={`px-4 py-2 rounded-lg shadow transition text-sm font-medium ${
+                selectionMode 
+                  ? 'bg-slate-600 text-white hover:bg-slate-700' 
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'
+              }`}
+            >
+              {selectionMode ? 'Cancel Selection' : 'Select'}
+            </button>
+            {selectionMode && (
+              <span className="text-sm text-theme-muted">
+                {selectedJobs.size} selected
+              </span>
+            )}
+          </div>
+          {selectionMode && selectedJobs.size > 0 && (
+            <button
+              onClick={() => setShowBatchDeleteModal(true)}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+            >
+              Delete {selectedJobs.size} Job{selectedJobs.size > 1 ? 's' : ''}
+            </button>
+          )}
         </div>
       )}
 
