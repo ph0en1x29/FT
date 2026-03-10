@@ -4,6 +4,23 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-03-10] — Admin Forklift Switching
+
+### Features
+
+**Job Detail Forklift Switching**
+- **Admin forklift switch** — Admins can now switch the assigned forklift on a job before it starts (status: New or Assigned). This allows correcting forklift assignments without deleting/recreating jobs.
+- **Customer rental filtering** — Only forklifts currently rented by the job's customer appear in the switch dropdown, preventing assignment of unavailable equipment.
+- **Pre-start restriction** — Forklift can only be switched before job starts (not In Progress, Completed, or Awaiting Finalization). Once work begins, the forklift is locked to preserve hourmeter continuity and job integrity.
+- **Inline UX** — Click the RefreshCw icon next to the Equipment header → select from dropdown → saves immediately → refreshes job data. Clean, minimal friction.
+- **Toast feedback** — Success/error toasts confirm the switch or explain why it failed.
+
+### Security
+- **Admin-only** — Only users with `roleFlags.isAdmin` see the switch button. Supervisors, technicians, and accountants cannot switch forklifts.
+- **Status gate** — Backend update checks job status; future enhancement could add server-side validation to block updates after job starts.
+
+---
+
 ## [2026-03-09] — Rental + Hourmeter Import Preparation
 
 ### Features
