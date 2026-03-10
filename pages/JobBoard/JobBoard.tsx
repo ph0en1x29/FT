@@ -192,13 +192,13 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           )}
           <button 
             onClick={handleToggleSelectionMode}
-            className={`flex items-center gap-2 text-sm py-1 transition-colors ${
+            className={`flex items-center gap-2 text-base py-1 transition-colors ${
               selectionMode 
                 ? 'text-blue-600 font-medium' 
                 : 'text-[var(--text-muted)] hover:text-[var(--text)]'
             }`}
           >
-            {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+            {selectionMode ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
             {selectionMode ? `${selectedJobs.size} selected · Exit` : 'Select'}
           </button>
         </div>
