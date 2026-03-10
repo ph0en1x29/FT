@@ -13,13 +13,12 @@ import {
 } from 'lucide-react';
 import React from 'react';
 import SlotInSLABadge from '../../../components/SlotInSLABadge';
-import { JobStatus, JobType, User } from '../../../types';
+import { JobStatus, JobType } from '../../../types';
 import { getJobTypeColor, getStatusColor } from '../constants';
 import { JobWithHelperFlag, ResponseTimeState } from '../types';
 
 interface JobListRowProps {
   job: JobWithHelperFlag;
-  currentUser: User;
   isTechnician: boolean;
   processingJobId: string | null;
   jobNeedsAcceptance: (job: JobWithHelperFlag) => boolean;
@@ -78,7 +77,6 @@ const getPriorityLabel = (job: JobWithHelperFlag) => {
 
 export const JobListRow: React.FC<JobListRowProps> = ({
   job,
-  currentUser: _currentUser,
   isTechnician,
   processingJobId,
   jobNeedsAcceptance,

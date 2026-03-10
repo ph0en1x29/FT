@@ -161,7 +161,6 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
   const renderList = (items: JobWithHelperFlag[]) => (
     <JobListTable
       jobs={items}
-      currentUser={currentUser}
       isTechnician={isTechnician}
       processingJobId={processingJobId}
       jobNeedsAcceptance={jobNeedsAcceptance}

@@ -1,11 +1,11 @@
 import React from 'react';
-import { User } from '../../../types';
 import { JobWithHelperFlag, ResponseTimeState } from '../types';
 import { JobListRow } from './JobListRow';
 
+const EMPTY_SET = new Set<string>();
+
 interface JobListTableProps {
   jobs: JobWithHelperFlag[];
-  currentUser: User;
   isTechnician: boolean;
   processingJobId: string | null;
   jobNeedsAcceptance: (job: JobWithHelperFlag) => boolean;
@@ -20,7 +20,6 @@ interface JobListTableProps {
 
 export const JobListTable: React.FC<JobListTableProps> = ({
   jobs,
-  currentUser,
   isTechnician,
   processingJobId,
   jobNeedsAcceptance,
@@ -29,7 +28,7 @@ export const JobListTable: React.FC<JobListTableProps> = ({
   onAccept,
   onReject,
   selectionMode = false,
-  selectedJobs = new Set(),
+  selectedJobs = EMPTY_SET,
   onToggleSelect,
 }) => {
   return (
@@ -39,7 +38,6 @@ export const JobListTable: React.FC<JobListTableProps> = ({
           <JobListRow
             key={job.job_id}
             job={job}
-            currentUser={currentUser}
             isTechnician={isTechnician}
             processingJobId={processingJobId}
             jobNeedsAcceptance={jobNeedsAcceptance}
@@ -73,7 +71,6 @@ export const JobListTable: React.FC<JobListTableProps> = ({
             <JobListRow
               key={job.job_id}
               job={job}
-              currentUser={currentUser}
               isTechnician={isTechnician}
               processingJobId={processingJobId}
               jobNeedsAcceptance={jobNeedsAcceptance}
