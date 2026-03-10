@@ -124,7 +124,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
     return (
       <article
         onClick={handleClick}
-        className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm cursor-pointer transition-all hover:bg-[var(--surface-hover)] active:scale-[0.98] active:shadow-sm ${
+        className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm cursor-pointer transition-all hover:bg-[var(--surface-2)] active:scale-[0.98] active:shadow-sm ${
           isSelected ? 'ring-2 ring-blue-500/70 bg-blue-50/40 dark:bg-blue-900/15' : ''
         }`}
       >
@@ -239,7 +239,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
   return (
     <div
       onClick={handleClick}
-      className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-[var(--surface-hover)] active:bg-[var(--bg-subtle)] ${
+      className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-[var(--surface-2)] active:bg-[var(--bg-subtle)] ${
         isSelected ? 'bg-blue-50/40 dark:bg-blue-900/15' : ''
       }`}
     >
