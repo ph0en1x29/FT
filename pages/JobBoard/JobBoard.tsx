@@ -144,38 +144,6 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
         </div>
       )}
 
-      {/* Selection mode bar — always visible regardless of hideHeader */}
-      {hasPermission('canDeleteJobs') && !isTechnician && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={handleToggleSelectionMode}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                selectionMode 
-                  ? 'bg-blue-100 text-blue-700 border border-blue-300' 
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'
-              }`}
-            >
-              {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-              {selectionMode ? 'Exit Selection' : 'Multi-Select'}
-            </button>
-            {selectionMode && selectedJobs.size > 0 && (
-              <span className="text-sm text-blue-600 font-medium">
-                • {selectedJobs.size} selected
-              </span>
-            )}
-          </div>
-          {selectionMode && selectedJobs.size > 0 && (
-            <button
-              onClick={() => setShowBatchDeleteModal(true)}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-            >
-              Delete {selectedJobs.size} Job{selectedJobs.size > 1 ? 's' : ''}
-            </button>
-          )}
-        </div>
-      )}
-
       <QuickStats
         statusCounts={statusCounts}
         statusFilter={statusFilter}
@@ -207,6 +175,36 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
         totalJobs={jobs.length}
         filteredCount={filteredJobs.length}
       />
+
+      {/* Selection mode bar — below search bar, right-aligned */}
+      {hasPermission('canDeleteJobs') && !isTechnician && (
+        <div className="flex items-center justify-end gap-3">
+          {selectionMode && selectedJobs.size > 0 && (
+            <button
+              onClick={() => setShowBatchDeleteModal(true)}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+            >
+              Delete {selectedJobs.size} Job{selectedJobs.size > 1 ? 's' : ''}
+            </button>
+          )}
+          {selectionMode && selectedJobs.size > 0 && (
+            <span className="text-sm text-blue-600 font-medium">
+              • {selectedJobs.size} selected
+            </span>
+          )}
+          <button 
+            onClick={handleToggleSelectionMode}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              selectionMode 
+                ? 'bg-blue-100 text-blue-700 border border-blue-300' 
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+            {selectionMode ? 'Exit Selection' : 'Multi-Select'}
+          </button>
+        </div>
+      )}
 
       <SpecialFilterBanner
         specialFilter={specialFilter}
