@@ -133,15 +133,15 @@ export const JobListRow: React.FC<JobListRowProps> = ({
           <div className="min-w-0 flex-1 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               {job.job_number && (
-                <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold tracking-[0.12em] text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold tracking-[0.12em] text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                   {job.job_number}
                 </span>
               )}
-              <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] ${getStatusColor(job.status)}`}>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.12em] ${getStatusColor(job.status)}`}>
                 {job.status}
               </span>
               {job.job_type && (
-                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getJobTypeColor(job.job_type as JobType)}`}>
+                <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${getJobTypeColor(job.job_type as JobType)}`}>
                   {job.job_type}
                 </span>
               )}
@@ -174,7 +174,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
             <div className="flex flex-wrap items-center gap-2 text-xs">
               {job.priority === 'Emergency' && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300">
-                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <AlertTriangle className="h-4 w-4" />
                   Emergency
                 </span>
               )}
@@ -202,7 +202,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
                       ? 'text-amber-600'
                       : 'text-theme-muted'
                 }`}>
-                  <Clock className="h-3.5 w-3.5" />
+                  <Clock className="h-4 w-4" />
                   {responseState.isExpired ? 'Response time expired' : `Respond within ${responseState.text}`}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -225,7 +225,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-between border-t border-[var(--border)] pt-3 text-xs text-theme-muted">
+              <div className="flex items-center justify-between border-t border-[var(--border)] pt-3 text-sm text-theme-muted">
                 <span>{priorityLabel}</span>
                 <ChevronRight className="h-4 w-4" />
               </div>
@@ -239,7 +239,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
   return (
     <div
       onClick={handleClick}
-      className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all hover:bg-[var(--surface-2)] active:bg-[var(--bg-subtle)] ${
+      className={`flex items-center gap-4 px-4 py-4 cursor-pointer transition-all hover:bg-[var(--surface-2)] active:bg-[var(--bg-subtle)] ${
         isSelected ? 'bg-blue-50/40 dark:bg-blue-900/15' : ''
       }`}
     >
@@ -252,44 +252,44 @@ export const JobListRow: React.FC<JobListRowProps> = ({
       </div>
 
       {/* Job # */}
-      <span className="shrink-0 text-xs font-mono text-theme-muted w-[130px]">
+      <span className="shrink-0 text-sm font-mono text-theme-muted w-[130px]">
         {job.job_number ? `#${job.job_number}` : '—'}
       </span>
 
       {/* Status + Type pills */}
       <div className="flex items-center gap-1.5 shrink-0 w-[150px]">
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${getStatusColor(job.status)}`}>
+        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${getStatusColor(job.status)}`}>
           {job.status}
         </span>
         {job.job_type && (
-          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${getJobTypeColor(job.job_type as JobType)}`}>
+          <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${getJobTypeColor(job.job_type as JobType)}`}>
             {job.job_type}
           </span>
         )}
       </div>
 
       {/* Title */}
-      <span className="flex-[2] min-w-0 truncate text-sm font-medium text-theme">
+      <span className="flex-[2] min-w-0 truncate text-base font-medium text-theme">
         {job.title}
       </span>
 
       {/* Customer */}
-      <span className="flex-[2] min-w-0 truncate text-xs text-theme-muted">
+      <span className="flex-[2] min-w-0 truncate text-sm text-theme-muted">
         {job.customer?.name || '—'}
       </span>
 
       {/* Equipment */}
-      <span className="flex-1 min-w-0 truncate text-xs font-mono text-theme-muted">
+      <span className="flex-1 min-w-0 truncate text-sm font-mono text-theme-muted">
         {job.forklift?.forklift_no || job.forklift?.serial_number || '—'}
       </span>
 
       {/* Technician */}
-      <span className="flex-[1.5] min-w-0 truncate text-xs text-theme-muted">
+      <span className="flex-[1.5] min-w-0 truncate text-sm text-theme-muted">
         {job.assigned_technician_name || '—'}
       </span>
 
       {/* Date */}
-      <span className="shrink-0 w-[85px] text-xs text-theme-muted">
+      <span className="shrink-0 w-[85px] text-sm text-theme-muted">
         {scheduledLabel}
       </span>
 
@@ -300,17 +300,17 @@ export const JobListRow: React.FC<JobListRowProps> = ({
             <button
               onClick={(e) => onAccept(e, job.job_id)}
               disabled={processingJobId === job.job_id}
-              className="flex h-7 items-center gap-1 rounded-lg bg-emerald-600 px-2.5 text-[11px] font-medium text-white active:scale-95 transition-all hover:bg-emerald-700 hover:shadow-md disabled:opacity-50"
+              className="flex h-8 items-center gap-1 rounded-lg bg-emerald-600 px-2.5 text-xs font-medium text-white active:scale-95 transition-all hover:bg-emerald-700 hover:shadow-md disabled:opacity-50"
             >
-              <CheckCircle className="h-3 w-3" />
+              <CheckCircle className="h-3.5 w-3.5" />
               Accept
             </button>
             <button
               onClick={(e) => onReject(e, job.job_id)}
               disabled={processingJobId === job.job_id}
-              className="flex h-7 items-center gap-1 rounded-lg bg-red-50 px-2.5 text-[11px] font-medium text-red-700 active:scale-95 transition-all hover:bg-red-100 hover:shadow-md disabled:opacity-50 dark:bg-red-900/20 dark:text-red-300"
+              className="flex h-8 items-center gap-1 rounded-lg bg-red-50 px-2.5 text-xs font-medium text-red-700 active:scale-95 transition-all hover:bg-red-100 hover:shadow-md disabled:opacity-50 dark:bg-red-900/20 dark:text-red-300"
             >
-              <XCircle className="h-3 w-3" />
+              <XCircle className="h-3.5 w-3.5" />
               Reject
             </button>
           </div>

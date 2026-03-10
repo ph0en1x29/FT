@@ -56,7 +56,7 @@ export const JobListTable: React.FC<JobListTableProps> = ({
       </div>
 
       <div className="hidden overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm md:block">
-        <div className="flex items-center gap-4 border-b border-[var(--border)] bg-[var(--bg-subtle)]/70 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-theme-muted">
+        <div className="flex items-center gap-4 border-b border-[var(--border)] bg-[var(--bg-subtle)]/70 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-theme-muted">
           <div className="shrink-0 w-6"></div>
           <span className="shrink-0 w-[130px]">#</span>
           <span className="shrink-0 w-[150px]">Status</span>
