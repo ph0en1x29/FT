@@ -33,6 +33,23 @@ interface JobListRowProps {
   layout?: 'mobile' | 'desktop';
 }
 
+const getStatusDotColor = (status: JobStatus, priority?: string): string => {
+  if (priority === 'Emergency') return 'bg-red-500';
+  switch (status) {
+    case JobStatus.IN_PROGRESS:
+    case JobStatus.INCOMPLETE_CONTINUING:
+      return 'bg-green-500';
+    case JobStatus.ASSIGNED:
+      return 'bg-amber-400';
+    case JobStatus.NEW:
+      return 'bg-blue-500';
+    case JobStatus.COMPLETED:
+      return 'bg-green-700';
+    default:
+      return 'bg-slate-300';
+  }
+};
+
 const formatDate = (value?: string) =>
   new Date(value || '').toLocaleDateString('en-MY', {
     day: 'numeric',
@@ -222,72 +239,26 @@ export const JobListRow: React.FC<JobListRowProps> = ({
   return (
     <div
       onClick={handleClick}
-      className={`grid grid-cols-[auto_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_100px_120px_100px_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-hover)] ${
+      className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-colors hover:bg-[var(--surface-hover)] ${
         isSelected ? 'bg-blue-50/40 dark:bg-blue-900/15' : ''
       }`}
     >
-      <div className="flex items-center gap-2">
+      {/* Selection / Status dot */}
+      <div className="flex items-center gap-2 shrink-0">
         {SelectionToggle}
-        {!selectionMode && <ChevronRight className="h-4 w-4 text-theme-muted" />}
+        {!selectionMode && (
+          <div className={`w-2 h-2 rounded-full shrink-0 ${getStatusDotColor(job.status, job.priority)}`} />
+        )}
       </div>
 
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          {job.job_number && (
-            <span className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-              {job.job_number}
-            </span>
-          )}
-          <span className="truncate text-sm font-semibold text-theme">{job.title}</span>
-        </div>
-      </div>
+      {/* Job # */}
+      <span className="shrink-0 text-xs font-mono text-theme-muted w-[52px]">
+        {job.job_number ? `#${job.job_number}` : '—'}
+      </span>
 
-      <div className="min-w-0 truncate text-xs text-theme-muted">
-        {job.customer?.name || '—'}
-      </div>
-
-      <div className="min-w-0">
-        <div className="flex items-start gap-2 text-sm text-theme">
-          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-theme-muted" />
-          <div className="min-w-0 break-words text-xs text-theme-muted">{siteLabel}</div>
-        </div>
-      </div>
-
-      <div className="min-w-0">
-        <div className="flex items-start gap-2">
-          <Wrench className="mt-0.5 h-4 w-4 shrink-0 text-theme-muted" />
-          <div className="min-w-0">
-            <div className="break-words text-xs font-medium text-theme">{equipmentLabel}</div>
-            {job.forklift?.type && (
-              <div className="mt-1 text-[11px] text-theme-muted">{job.forklift.type}</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="min-w-0">
-        <div className="flex items-start gap-2">
-          <UserIcon className="mt-0.5 h-4 w-4 shrink-0 text-theme-muted" />
-          <div className="min-w-0">
-            <div className="break-words text-xs font-medium text-theme">
-              {job.assigned_technician_name || '—'}
-            </div>
-            {job.customer?.contact_person && (
-              <div className="mt-1 break-words text-[11px] text-theme-muted">{job.customer.contact_person}</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="text-xs text-theme-muted">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 shrink-0" />
-          <span>{scheduledLabel}</span>
-        </div>
-      </div>
-
-      <div className="flex min-w-0 flex-wrap gap-2">
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${getStatusColor(job.status)}`}>
+      {/* Status + Type pills */}
+      <div className="flex items-center gap-1.5 shrink-0 w-[160px]">
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${getStatusColor(job.status)}`}>
           {job.status}
         </span>
         {job.job_type && (
@@ -297,44 +268,49 @@ export const JobListRow: React.FC<JobListRowProps> = ({
         )}
       </div>
 
-      <div className="min-w-0 text-xs text-theme-muted">
-        <div className="flex flex-wrap items-center gap-2">
-          {job.priority === 'Emergency' ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Emergency
-            </span>
-          ) : (
-            <span>{priorityLabel}</span>
-          )}
-          {job.job_type === JobType.SLOT_IN && (
-            <SlotInSLABadge
-              createdAt={job.created_at}
-              acknowledgedAt={job.acknowledged_at}
-              slaTargetMinutes={job.sla_target_minutes || 15}
-              size="sm"
-            />
-          )}
-        </div>
-      </div>
+      {/* Title */}
+      <span className="flex-1 min-w-0 truncate text-sm font-medium text-theme">
+        {job.title}
+      </span>
 
-      <div className="flex items-center justify-end gap-2">
+      {/* Customer */}
+      <span className="shrink-0 w-[140px] truncate text-xs text-theme-muted">
+        {job.customer?.name || '—'}
+      </span>
+
+      {/* Equipment */}
+      <span className="shrink-0 w-[120px] truncate text-xs font-mono text-theme-muted">
+        {job.forklift?.forklift_no || job.forklift?.serial_number || '—'}
+      </span>
+
+      {/* Technician */}
+      <span className="shrink-0 w-[110px] truncate text-xs text-theme-muted">
+        {job.assigned_technician_name || '—'}
+      </span>
+
+      {/* Date */}
+      <span className="shrink-0 w-[85px] text-xs text-theme-muted">
+        {scheduledLabel}
+      </span>
+
+      {/* Action / Chevron */}
+      <div className="shrink-0 flex items-center gap-2">
         {needsAcceptance ? (
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={(e) => onAccept(e, job.job_id)}
               disabled={processingJobId === job.job_id}
-              className="flex h-9 items-center gap-1 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white active:scale-95 transition-all hover:bg-emerald-700 hover:shadow-md disabled:opacity-50"
+              className="flex h-7 items-center gap-1 rounded-lg bg-emerald-600 px-2.5 text-[11px] font-medium text-white active:scale-95 transition-all hover:bg-emerald-700 hover:shadow-md disabled:opacity-50"
             >
-              <CheckCircle className="h-3.5 w-3.5" />
+              <CheckCircle className="h-3 w-3" />
               Accept
             </button>
             <button
               onClick={(e) => onReject(e, job.job_id)}
               disabled={processingJobId === job.job_id}
-              className="flex h-9 items-center gap-1 rounded-lg bg-red-50 px-3 text-xs font-medium text-red-700 active:scale-95 transition-all hover:bg-red-100 hover:shadow-md disabled:opacity-50 dark:bg-red-900/20 dark:text-red-300"
+              className="flex h-7 items-center gap-1 rounded-lg bg-red-50 px-2.5 text-[11px] font-medium text-red-700 active:scale-95 transition-all hover:bg-red-100 hover:shadow-md disabled:opacity-50 dark:bg-red-900/20 dark:text-red-300"
             >
-              <XCircle className="h-3.5 w-3.5" />
+              <XCircle className="h-3 w-3" />
               Reject
             </button>
           </div>
