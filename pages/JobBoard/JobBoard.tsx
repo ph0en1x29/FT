@@ -32,6 +32,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
   const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false);
+  const [deletionReason, setDeletionReason] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Derived state
@@ -109,12 +110,13 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     setIsDeleting(true);
     try {
       for (const jobId of selectedJobs) {
-        await deleteJob(jobId, currentUser.user_id, currentUser.name, 'Batch delete');
+        await deleteJob(jobId, currentUser.user_id, currentUser.name, deletionReason || undefined);
       }
       showToast.success(`Deleted ${selectedJobs.size} job${selectedJobs.size > 1 ? 's' : ''}`);
       setSelectedJobs(new Set());
       setSelectionMode(false);
       setShowBatchDeleteModal(false);
+      setDeletionReason('');
       await fetchJobs();
     } catch (error) {
       showToast.error('Failed to delete some jobs', (error as Error).message);
@@ -299,11 +301,16 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
       )}
 
       <ConfirmBatchDeleteModal
-        count={selectedJobs.size}
         show={showBatchDeleteModal}
-        isProcessing={isDeleting}
+        jobCount={selectedJobs.size}
+        deletionReason={deletionReason}
+        onReasonChange={setDeletionReason}
         onConfirm={handleBatchDelete}
-        onCancel={() => setShowBatchDeleteModal(false)}
+        onCancel={() => {
+          setShowBatchDeleteModal(false);
+          setDeletionReason('');
+        }}
+        isProcessing={isDeleting}
       />
 
       <RejectJobModal
