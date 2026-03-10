@@ -1,3 +1,4 @@
+import { CheckSquare,Square } from 'lucide-react';
 import React,{ useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDevModeContext } from '../../contexts/DevModeContext';
@@ -149,17 +150,18 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           <div className="flex items-center gap-3">
             <button 
               onClick={handleToggleSelectionMode}
-              className={`px-4 py-2 rounded-lg shadow transition text-sm font-medium ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                 selectionMode 
-                  ? 'bg-slate-600 text-white hover:bg-slate-700' 
+                  ? 'bg-blue-100 text-blue-700 border border-blue-300' 
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'
               }`}
             >
-              {selectionMode ? 'Cancel Selection' : 'Select'}
+              {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+              {selectionMode ? 'Exit Selection' : 'Multi-Select'}
             </button>
-            {selectionMode && (
-              <span className="text-sm text-theme-muted">
-                {selectedJobs.size} selected
+            {selectionMode && selectedJobs.size > 0 && (
+              <span className="text-sm text-blue-600 font-medium">
+                • {selectedJobs.size} selected
               </span>
             )}
           </div>

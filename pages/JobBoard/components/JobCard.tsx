@@ -1,4 +1,4 @@
-import { AlertTriangle,Calendar,CheckCircle,Clock,MapPin,User as UserIcon,XCircle } from 'lucide-react';
+import { AlertTriangle,Calendar,CheckCircle,CheckSquare,Clock,MapPin,Square,User as UserIcon,XCircle } from 'lucide-react';
 import React from 'react';
 import SlotInSLABadge from '../../../components/SlotInSLABadge';
 import { JobStatus,JobType,User } from '../../../types';
@@ -68,27 +68,19 @@ export const JobCard: React.FC<JobCardProps> = ({
         isSelected ? 'ring-2 ring-blue-500 bg-blue-50/50 dark:bg-blue-900/20' : ''
       } relative`}
     >
-      {/* Selection checkbox */}
-      {selectionMode && (
-        <div className="absolute top-3 left-3 z-10">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => onToggleSelect && onToggleSelect(job.job_id)}
-            onClick={(e) => e.stopPropagation()}
-            className="w-5 h-5 rounded border-2 border-slate-300 checked:bg-blue-600 checked:border-blue-600 cursor-pointer"
-          />
-        </div>
-      )}
-
-      {/* Job Number — prominent, top of card */}
-      {job.job_number && (
-        <div className="mb-2">
+      {/* Job Number + Selection Icon */}
+      <div className="flex items-center gap-2 mb-2">
+        {selectionMode && (
+          <button onClick={(e) => { e.stopPropagation(); onToggleSelect && onToggleSelect(job.job_id); }}>
+            {isSelected ? <CheckSquare className="w-5 h-5 text-blue-600" /> : <Square className="w-5 h-5 text-theme-muted" />}
+          </button>
+        )}
+        {job.job_number && (
           <span className="text-xs font-mono font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-700 whitespace-nowrap">
             #{job.job_number}
           </span>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="flex justify-between items-start mb-3">
         <div className="flex gap-2 flex-wrap">
