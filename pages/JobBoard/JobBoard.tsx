@@ -176,32 +176,30 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
         filteredCount={filteredJobs.length}
       />
 
-      {/* Selection mode bar — below search bar, right-aligned */}
+      {/* Selection mode — subtle toggle, right-aligned */}
       {hasPermission('canDeleteJobs') && !isTechnician && (
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-2">
           {selectionMode && selectedJobs.size > 0 && (
-            <button
-              onClick={() => setShowBatchDeleteModal(true)}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-            >
-              Delete {selectedJobs.size} Job{selectedJobs.size > 1 ? 's' : ''}
-            </button>
-          )}
-          {selectionMode && selectedJobs.size > 0 && (
-            <span className="text-sm text-blue-600 font-medium">
-              • {selectedJobs.size} selected
-            </span>
+            <>
+              <button
+                onClick={() => setShowBatchDeleteModal(true)}
+                className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
+              >
+                Delete ({selectedJobs.size})
+              </button>
+              <span className="text-[var(--border)]">·</span>
+            </>
           )}
           <button 
             onClick={handleToggleSelectionMode}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`flex items-center gap-1.5 text-xs transition-colors ${
               selectionMode 
-                ? 'bg-blue-100 text-blue-700 border border-blue-300' 
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'
+                ? 'text-blue-600 font-medium' 
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
             }`}
           >
-            {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-            {selectionMode ? 'Exit Selection' : 'Multi-Select'}
+            {selectionMode ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+            {selectionMode ? `${selectedJobs.size} selected · Exit` : 'Select'}
           </button>
         </div>
       )}
