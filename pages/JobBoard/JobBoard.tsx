@@ -257,13 +257,13 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--bg-subtle)]/70 p-1">
+            <div className="flex rounded-full bg-[var(--bg-subtle)] p-1">
               <button
                 onClick={() => setViewModeAndPersist('card')}
-                className={`inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition ${
+                className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm transition ${
                   viewMode === 'card'
-                    ? 'bg-[var(--surface)] text-theme shadow-sm'
-                    : 'text-theme-muted hover:text-theme'
+                    ? 'bg-[var(--surface)] text-theme font-medium shadow-sm'
+                    : 'text-[var(--text-muted)] hover:text-theme'
                 }`}
               >
                 <LayoutGrid className="h-4 w-4" />
@@ -271,10 +271,10 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
               </button>
               <button
                 onClick={() => setViewModeAndPersist('list')}
-                className={`inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium transition ${
+                className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm transition ${
                   viewMode === 'list'
-                    ? 'bg-[var(--surface)] text-theme shadow-sm'
-                    : 'text-theme-muted hover:text-theme'
+                    ? 'bg-[var(--surface)] text-theme font-medium shadow-sm'
+                    : 'text-[var(--text-muted)] hover:text-theme'
                 }`}
               >
                 <List className="h-4 w-4" />
@@ -294,10 +294,10 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
                 )}
                 <button
                   onClick={handleToggleSelectionMode}
-                  className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition ${
+                  className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm transition ${
                     selectionMode
-                      ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
-                      : 'border-[var(--border)] text-theme-muted hover:text-theme'
+                      ? 'bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/20 dark:text-blue-300'
+                      : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-theme'
                   }`}
                 >
                   {selectionMode ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}

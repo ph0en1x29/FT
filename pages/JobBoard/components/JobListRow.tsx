@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import {
   AlertTriangle,
   Calendar,
@@ -42,7 +41,7 @@ const formatDate = (value?: string) =>
   });
 
 const getSiteLabel = (job: JobWithHelperFlag) =>
-  job.forklift?.site || job.forklift?.location || job.customer?.address || 'No site';
+  job.forklift?.site || job.forklift?.location || job.customer?.address || '—';
 
 const getEquipmentLabel = (job: JobWithHelperFlag) => {
   const forkliftNo = job.forklift?.forklift_no || job.forklift?.serial_number;
@@ -51,20 +50,14 @@ const getEquipmentLabel = (job: JobWithHelperFlag) => {
 
   return [forkliftNo, customerForkliftNo ? `Cust ${customerForkliftNo}` : '', model]
     .filter(Boolean)
-    .join(' · ');
+    .join(' · ') || '—';
 };
 
 const getPriorityLabel = (job: JobWithHelperFlag) => {
   if (job.priority === 'Emergency') return 'Emergency';
   if (job.job_type === JobType.SLOT_IN && !job.acknowledged_at) return 'Slot-In';
-  if (jobNeedsAttention(job)) return 'Attention';
   return job.priority || 'Standard';
 };
-
-const jobNeedsAttention = (job: JobWithHelperFlag) =>
-  job.status === JobStatus.AWAITING_FINALIZATION ||
-  job.status === JobStatus.INCOMPLETE_CONTINUING ||
-  job.status === JobStatus.DISPUTED;
 
 export const JobListRow: React.FC<JobListRowProps> = ({
   job,
@@ -139,7 +132,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
 
             <div className="space-y-1">
               <div className="break-words text-base font-semibold text-theme">{job.title}</div>
-              <div className="break-words text-sm text-theme-muted">{job.customer?.name || 'No customer'}</div>
+              <div className="break-words text-sm text-theme-muted">{job.customer?.name || '—'}</div>
             </div>
 
             <div className="grid gap-2 text-sm text-theme-muted">
@@ -149,11 +142,11 @@ export const JobListRow: React.FC<JobListRowProps> = ({
               </div>
               <div className="flex items-start gap-2">
                 <Wrench className="mt-0.5 h-4 w-4 shrink-0" />
-                <span className="break-words">{equipmentLabel || 'Equipment not linked'}</span>
+                <span className="break-words">{equipmentLabel}</span>
               </div>
               <div className="flex items-center gap-2">
                 <UserIcon className="h-4 w-4 shrink-0" />
-                <span className="break-words">{job.assigned_technician_name || 'Unassigned'}</span>
+                <span className="break-words">{job.assigned_technician_name || '—'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 shrink-0" />
@@ -217,10 +210,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
             ) : (
               <div className="flex items-center justify-between border-t border-[var(--border)] pt-3 text-xs text-theme-muted">
                 <span>{priorityLabel}</span>
-                <span className="flex items-center gap-1 font-medium">
-                  Open details
-                  <ChevronRight className="h-4 w-4" />
-                </span>
+                <ChevronRight className="h-4 w-4" />
               </div>
             )}
           </div>
@@ -256,7 +246,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
         </div>
         <div className="mt-1 break-words text-sm font-semibold text-theme">{job.title}</div>
         <div className="mt-1 break-words text-xs text-theme-muted">
-          {[job.customer?.name, job.customer?.account_number].filter(Boolean).join(' · ') || 'No customer'}
+          {[job.customer?.name, job.customer?.account_number].filter(Boolean).join(' · ') || '—'}
         </div>
       </div>
 
@@ -271,9 +261,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
         <div className="flex items-start gap-2">
           <Wrench className="mt-0.5 h-4 w-4 shrink-0 text-theme-muted" />
           <div className="min-w-0">
-            <div className="break-words text-xs font-medium text-theme">
-              {equipmentLabel || 'Equipment not linked'}
-            </div>
+            <div className="break-words text-xs font-medium text-theme">{equipmentLabel}</div>
             {job.forklift?.type && (
               <div className="mt-1 text-[11px] text-theme-muted">{job.forklift.type}</div>
             )}
@@ -286,7 +274,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
           <UserIcon className="mt-0.5 h-4 w-4 shrink-0 text-theme-muted" />
           <div className="min-w-0">
             <div className="break-words text-xs font-medium text-theme">
-              {job.assigned_technician_name || 'Unassigned'}
+              {job.assigned_technician_name || '—'}
             </div>
             {job.customer?.contact_person && (
               <div className="mt-1 break-words text-[11px] text-theme-muted">{job.customer.contact_person}</div>

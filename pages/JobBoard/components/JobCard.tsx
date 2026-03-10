@@ -4,7 +4,6 @@ import {
   CheckCircle,
   CheckSquare,
   Clock,
-  MapPin,
   Square,
   User as UserIcon,
   Wrench,
@@ -56,15 +55,9 @@ const formatDate = (value?: string) =>
 const getEquipmentLabel = (job: JobWithHelperFlag) => {
   const forkliftNo = job.forklift?.forklift_no || job.forklift?.serial_number;
   const customerForkliftNo = job.forklift?.customer_forklift_no;
-  const model = [job.forklift?.make, job.forklift?.model].filter(Boolean).join(' ');
 
-  return [forkliftNo, customerForkliftNo ? `Cust ${customerForkliftNo}` : '', model]
-    .filter(Boolean)
-    .join(' · ');
+  return [forkliftNo, customerForkliftNo ? `CustFL# ${customerForkliftNo}` : ''].filter(Boolean).join(' · ');
 };
-
-const getSiteLabel = (job: JobWithHelperFlag) =>
-  job.forklift?.site || job.forklift?.location || job.customer?.address || 'No site address';
 
 export const JobCard: React.FC<JobCardProps> = ({
   job,
@@ -83,12 +76,13 @@ export const JobCard: React.FC<JobCardProps> = ({
   const responseState = getResponseTimeRemaining(job);
   const scheduledLabel = formatDate(job.scheduled_date || job.created_at);
   const equipmentLabel = getEquipmentLabel(job);
-  const siteLabel = getSiteLabel(job);
-  const footerTone = responseState.urgency === 'critical'
-    ? 'text-red-600'
-    : responseState.urgency === 'warning'
-      ? 'text-amber-600'
-      : 'text-[var(--text-muted)]';
+  const needsAcceptance = isTechnician && jobNeedsAcceptance(job);
+  const footerTone =
+    responseState.urgency === 'critical'
+      ? 'text-red-600'
+      : responseState.urgency === 'warning'
+        ? 'text-amber-600'
+        : 'text-[var(--text-muted)]';
 
   const handleCardClick = () => {
     if (selectionMode && onToggleSelect) {
@@ -102,10 +96,11 @@ export const JobCard: React.FC<JobCardProps> = ({
   return (
     <article
       onClick={handleCardClick}
-      className={`relative flex h-full min-w-0 flex-col overflow-visible rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${getStatusBorderColor(job)} ${
+      className={`relative flex h-full min-w-0 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${getStatusBorderColor(job)} ${
         isSelected ? 'ring-2 ring-blue-500/70 bg-blue-50/40 dark:bg-blue-900/15' : ''
       }`}
     >
+      {/* Row 1: Badges */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
           {selectionMode && (
@@ -162,110 +157,43 @@ export const JobCard: React.FC<JobCardProps> = ({
         </div>
       </div>
 
-      <div className="mt-4 min-w-0 space-y-3">
-        <div className="space-y-2">
-          <h3 className="line-clamp-2 break-words text-lg font-semibold leading-tight text-theme">
-            {job.title}
-          </h3>
-          {job.description && (
-            <p className="line-clamp-2 text-sm leading-5 text-theme-muted">
-              {job.description}
-            </p>
-          )}
-        </div>
-
-        <div className="grid gap-3 rounded-2xl bg-[var(--bg-subtle)]/60 p-3 sm:grid-cols-2">
-          <div className="min-w-0 space-y-1.5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-              Customer
-            </div>
-            <div className="flex items-start gap-2 text-sm text-theme">
-              <UserIcon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-              <div className="min-w-0">
-                <div className="break-words font-medium">
-                  {job.customer?.name || 'Unassigned customer'}
-                </div>
-                {(job.customer?.account_number || job.customer?.contact_person) && (
-                  <div className="mt-1 break-words text-xs text-theme-muted">
-                    {[job.customer?.account_number, job.customer?.contact_person].filter(Boolean).join(' · ')}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="min-w-0 space-y-1.5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-              Site
-            </div>
-            <div className="flex items-start gap-2 text-sm text-theme">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-              <div className="min-w-0 break-words text-sm text-theme-muted">
-                {siteLabel}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1.2fr)_auto]">
-          <div className="min-w-0 rounded-2xl border border-[var(--border)]/80 bg-[var(--surface)] px-3 py-2.5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-              Equipment
-            </div>
-            <div className="mt-1 flex min-w-0 items-start gap-2">
-              <Wrench className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-              <div className="min-w-0">
-                <div className="break-words text-sm font-medium text-theme">
-                  {equipmentLabel || 'Equipment not linked'}
-                </div>
-                {job.forklift?.type && (
-                  <div className="mt-1 text-xs text-theme-muted">{job.forklift.type}</div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:min-w-[190px] sm:grid-cols-1">
-            <div className="rounded-2xl border border-[var(--border)]/80 bg-[var(--surface)] px-3 py-2.5">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                Scheduled
-              </div>
-              <div className="mt-1 flex items-center gap-2 text-sm font-medium text-theme">
-                <Calendar className="h-4 w-4 text-[var(--text-muted)]" />
-                {scheduledLabel}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-[var(--border)]/80 bg-[var(--surface)] px-3 py-2.5">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                Assignee
-              </div>
-              <div className="mt-1 break-words text-sm font-medium text-theme">
-                {job.assigned_technician_name || 'Unassigned'}
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Row 2: Title + Tech */}
+      <div className="mt-2 min-w-0">
+        <h3 className="truncate text-base font-semibold text-theme">{job.title}</h3>
+        {job.assigned_technician_name && (
+          <p className="mt-0.5 text-xs text-theme-muted">{job.assigned_technician_name}</p>
+        )}
       </div>
 
-      <div className="mt-4 space-y-3 border-t border-[var(--border)] pt-3">
-        {isTechnician && jobNeedsAcceptance(job) && (
+      {/* Row 3: Inline details */}
+      <div className="mt-2 flex flex-wrap gap-x-3 text-xs text-theme-muted">
+        {job.customer?.name && (
+          <span className="flex items-center gap-1">
+            <UserIcon className="h-3.5 w-3.5" />
+            {job.customer.name}
+          </span>
+        )}
+        {equipmentLabel && (
+          <span className="flex items-center gap-1">
+            <Wrench className="h-3.5 w-3.5" />
+            {equipmentLabel}
+          </span>
+        )}
+        <span className="flex items-center gap-1">
+          <Calendar className="h-3.5 w-3.5" />
+          {scheduledLabel}
+        </span>
+      </div>
+
+      {/* Technician action footer */}
+      {needsAcceptance && (
+        <div className="mt-4 space-y-2 border-t border-[var(--border)] pt-3">
           <div className={`flex items-center gap-2 text-xs ${footerTone}`}>
             <Clock className="h-3.5 w-3.5 shrink-0" />
             <span className="min-w-0 break-words">
               {responseState.isExpired ? 'Response time expired' : `Respond within ${responseState.text}`}
             </span>
           </div>
-        )}
-
-        {!jobNeedsAcceptance(job) && isTechnician && job.status === JobStatus.ASSIGNED && job.assigned_technician_id === currentUser.user_id && job.technician_accepted_at && (
-          <div className="flex items-center gap-2 text-xs text-emerald-600">
-            <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-            Accepted and ready to start
-          </div>
-        )}
-
-        {isTechnician && jobNeedsAcceptance(job) ? (
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={(e) => onAccept(e, job.job_id)}
@@ -284,15 +212,20 @@ export const JobCard: React.FC<JobCardProps> = ({
               Reject
             </button>
           </div>
-        ) : (
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-theme-muted">
-            <span className="break-words">
-              {job.parts_used.length} part{job.parts_used.length === 1 ? '' : 's'} · {job.media.length} media
-            </span>
-            <span className="font-medium text-[var(--text-muted)]">Open details</span>
+        </div>
+      )}
+
+      {/* Accepted state */}
+      {!needsAcceptance &&
+        isTechnician &&
+        job.status === JobStatus.ASSIGNED &&
+        job.assigned_technician_id === currentUser.user_id &&
+        job.technician_accepted_at && (
+          <div className="mt-3 flex items-center gap-2 border-t border-[var(--border)] pt-3 text-xs text-emerald-600">
+            <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+            Accepted
           </div>
         )}
-      </div>
     </article>
   );
 };

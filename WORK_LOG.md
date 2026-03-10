@@ -116,3 +116,9 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-03-10 00:12] [Sonnet] Updated ForkliftInfoCard.tsx — added admin-only edit button (Edit2 icon, top-right positioned)
 [2026-03-10 00:12] [Sonnet] Updated ForkliftProfilePage.tsx — integrated AddEditForkliftModal with pre-filled form state for editing existing forklift
 [2026-03-10 03:01] [Codex] Pulled latest main, upgraded /jobs card + list views with URL-persisted view mode and richer job metadata, expanded job-board search fields/selects, verified build/lint, and visually checked desktop/mobile layouts in Playwright
+
+[2026-03-10 03:19] [Sonnet] Compact job cards rewrite + view toggle polish: JobCard.tsx, JobListRow.tsx, JobBoard.tsx
+  - JobCard.tsx: Compacted from 298 to ~190 lines — Removed nested grids, verbose section headers (Customer/Site/Equipment/Scheduled/Assignee), placeholder text (Unassigned, Equipment not linked, No site, Open details), description paragraph, parts/media count; 3-row layout: badges → title+tech → inline customer · forklift · date; Kept accept/reject buttons, selection mode, status border colors
+  - JobListRow.tsx: Cleaned up verbose placeholder text — Show dash (—) for missing data instead of explanatory text; Removed "Equipment not linked", "Unassigned", "No site" text
+  - JobBoard.tsx: Improved view toggle to cohesive pill/segmented control — Changed Card/List from rounded-2xl to rounded-full, tighter bg-[var(--bg-subtle)] pill wrapper, active state gets bg-[var(--surface)] shadow-sm font-medium; Select button matches same compact rounded-full style
+  - Build: ✅ Pass (✓ 2446 modules transformed, ✓ built in 3.91s)
