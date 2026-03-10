@@ -206,7 +206,7 @@ export const getJobs = async (user: User, options?: { status?: JobStatus }): Pro
           .select(`
             job_id, title, status, priority, job_type,
             customer_id, customer:customers(customer_id, name, address, phone),
-            forklift_id, forklift:forklifts!forklift_id(serial_number, forklift_no, make, model, type),
+            forklift_id, forklift:forklifts!forklift_id(serial_number, forklift_no, customer_forklift_no, make, model, type),
             assigned_technician_id, assigned_technician_name, helper_technician_id,
             arrival_time, started_at, repair_start_time, repair_end_time, completed_at,
             technician_accepted_at, technician_rejected_at, created_at, scheduled_date,

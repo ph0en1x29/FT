@@ -68,7 +68,7 @@ export const JobCard: React.FC<JobCardProps> = ({
         isSelected ? 'ring-2 ring-blue-500 bg-blue-50/50 dark:bg-blue-900/20' : ''
       } relative`}
     >
-      {/* Selection checkbox overlay */}
+      {/* Selection checkbox */}
       {selectionMode && (
         <div className="absolute top-3 left-3 z-10">
           <input
@@ -77,21 +77,6 @@ export const JobCard: React.FC<JobCardProps> = ({
             onChange={() => onToggleSelect && onToggleSelect(job.job_id)}
             onClick={(e) => e.stopPropagation()}
             className="w-5 h-5 rounded border-2 border-slate-300 checked:bg-blue-600 checked:border-blue-600 cursor-pointer"
-          />
-        </div>
-      )}
-
-      {/* Selection checkbox (admin/supervisor only, selection mode) */}
-      {selectionMode && (
-        <div className="absolute top-4 left-4 z-10">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => {
-              // Prevent event bubbling, handled by parent click
-            }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
           />
         </div>
       )}
@@ -156,6 +141,17 @@ export const JobCard: React.FC<JobCardProps> = ({
             </span>
           )}
         </div>
+        {job.forklift && (
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 opacity-60 text-center text-xs">🔧</span>
+            <span className="truncate">
+              {job.forklift.forklift_no || job.forklift.serial_number}
+              {job.forklift.customer_forklift_no && (
+                <span className="text-theme-muted"> · {job.forklift.customer_forklift_no}</span>
+              )}
+            </span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 opacity-60" />
           <span>{new Date(job.scheduled_date || job.created_at).toLocaleDateString()}</span>
