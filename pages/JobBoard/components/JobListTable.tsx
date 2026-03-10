@@ -56,16 +56,16 @@ export const JobListTable: React.FC<JobListTableProps> = ({
       </div>
 
       <div className="hidden overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm md:block">
-        <div className="grid grid-cols-[auto_minmax(0,1.8fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_120px_170px_130px_auto] gap-3 border-b border-[var(--border)] bg-[var(--bg-subtle)]/70 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-theme-muted">
-          <div>{selectionMode ? 'Pick' : ''}</div>
-          <div>Job</div>
-          <div>Site</div>
-          <div>Equipment</div>
-          <div>Assignee</div>
-          <div>Scheduled</div>
-          <div>Status</div>
-          <div>Priority</div>
-          <div className="text-right">Action</div>
+        <div className="flex items-center gap-4 border-b border-[var(--border)] bg-[var(--bg-subtle)]/70 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-theme-muted">
+          <div className="shrink-0 w-6">{selectionMode ? '☐' : ''}</div>
+          <span className="shrink-0 w-[52px]">#</span>
+          <span className="shrink-0 w-[160px]">Status</span>
+          <span className="flex-1 min-w-0">Title</span>
+          <span className="shrink-0 w-[140px]">Customer</span>
+          <span className="shrink-0 w-[120px]">Equipment</span>
+          <span className="shrink-0 w-[110px]">Assignee</span>
+          <span className="shrink-0 w-[85px]">Scheduled</span>
+          <span className="shrink-0 w-[100px] text-right">Action</span>
         </div>
 
         <div className="divide-y divide-[var(--border)]">
