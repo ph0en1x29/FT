@@ -28,6 +28,7 @@ export interface RentalQueryResult {
 export interface ForkliftDbRow {
   forklift_id: string;
   serial_number: string;
+  forklift_no: string | null;
   make: string;
   model: string;
   type: string;
@@ -42,6 +43,7 @@ export interface ForkliftDbRow {
 export interface ForkliftWithStatus {
   forklift_id: string;
   serial_number: string;
+  forklift_no: string | null;
   make: string;
   model: string;
   type: string;

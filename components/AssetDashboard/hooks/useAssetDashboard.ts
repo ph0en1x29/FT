@@ -145,6 +145,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
         return {
           forklift_id: f.forklift_id,
           serial_number: f.serial_number,
+          forklift_no: f.forklift_no ?? null,
           make: f.make,
           model: f.model,
           type: f.type,
@@ -248,6 +249,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
       const query = searchQuery.toLowerCase();
       result = result.filter(f =>
         f.serial_number.toLowerCase().includes(query) ||
+        (f.forklift_no || '').toLowerCase().includes(query) ||
         f.make.toLowerCase().includes(query) ||
         f.model.toLowerCase().includes(query) ||
         (f.rental_customer_name || '').toLowerCase().includes(query) ||

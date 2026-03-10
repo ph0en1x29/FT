@@ -81,3 +81,8 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 - Wrapped client-side filter in useMemo (was recomputing on every render)
 - Files: components/Combobox.tsx
 
+## 2026-03-09 23:27 [Sonnet] Asset Dashboard: forklift_no search
+- Added forklift_no to ForkliftDashboardRow interface and DB select
+- Added forklift_no to ForkliftDbRow and ForkliftWithStatus types  
+- Added forklift_no to search filter in useAssetDashboard
+- Files: services/forkliftService.ts, components/AssetDashboard/types.ts, components/AssetDashboard/hooks/useAssetDashboard.ts

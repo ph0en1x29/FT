@@ -163,6 +163,7 @@ export const getForkliftWithCustomer = async (forkliftId: string): Promise<Forkl
 export interface ForkliftDashboardRow {
   forklift_id: string;
   serial_number: string;
+  forklift_no: string | null;
   make: string;
   model: string;
   type: string;
@@ -177,7 +178,7 @@ export interface ForkliftDashboardRow {
 export const getForkliftsLightweightForDashboard = async (): Promise<ForkliftDashboardRow[]> => {
   const { data, error } = await supabase
     .from('forklifts')
-    .select('forklift_id, serial_number, make, model, type, hourmeter, status, next_service_due, next_service_hourmeter, current_customer_id, current_customer:customers!forklifts_current_customer_id_fkey(name)')
+    .select('forklift_id, serial_number, forklift_no, make, model, type, hourmeter, status, next_service_due, next_service_hourmeter, current_customer_id, current_customer:customers!forklifts_current_customer_id_fkey(name)')
     .order('serial_number')
     .limit(2000); // safety cap — well above current fleet size
 
