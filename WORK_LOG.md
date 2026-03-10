@@ -6,6 +6,15 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 ## 2026-03-10
 
+[2026-03-10 15:30] [Sonnet] Job board performance optimization: jobService.ts, useJobData.ts, useJobFilters.ts, JobBoard.tsx, JobCard.tsx, JobListRow.tsx, QuickStats.tsx, useDebounce.ts
+  - jobService.ts: Removed parts_used/media overfetch from board query; merged N+1 helper assignment queries into single !inner join
+  - useJobData.ts: Stabilized realtime subscription with ref pattern to avoid channel churn; prepend new jobs on INSERT instead of full refetch
+  - useJobFilters.ts: Added 250ms search debounce via useDebounce hook
+  - JobBoard.tsx: Stabilized onNavigate with useCallback
+  - JobCard.tsx, JobListRow.tsx, QuickStats.tsx: Wrapped in React.memo to skip unnecessary re-renders
+  - hooks/useDebounce.ts: New generic debounce hook
+  - Build: pending verification
+
 [2026-03-10 02:01] [Sonnet] Compact job cards + list view toggle: JobCard.tsx, JobListRow.tsx, JobBoard.tsx, index.ts
   - JobCard.tsx: Redesigned to be ~40% shorter — Row 1: badges (job#, status, type, helper, emergency/SLA), Row 2: title + assigned tech, Row 3: customer · forklift · date; Removed description and address lines; Kept accept/reject, selection mode, hover effects
   - JobListRow.tsx (new): Horizontal list view component — Single row with status dot, job#, title, customer, forklift, tech, date, chevron; Accept/reject buttons inline for technicians; Same props interface as JobCard

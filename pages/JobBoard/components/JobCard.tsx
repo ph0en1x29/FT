@@ -59,7 +59,7 @@ const getEquipmentLabel = (job: JobWithHelperFlag) => {
   return [forkliftNo, customerForkliftNo ? `CustFL# ${customerForkliftNo}` : ''].filter(Boolean).join(' · ');
 };
 
-export const JobCard: React.FC<JobCardProps> = ({
+export const JobCard: React.FC<JobCardProps> = React.memo(({
   job,
   currentUser,
   isTechnician,
@@ -228,4 +228,5 @@ export const JobCard: React.FC<JobCardProps> = ({
         )}
     </article>
   );
-};
+});
+JobCard.displayName = 'JobCard';

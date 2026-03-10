@@ -22,7 +22,7 @@ interface StatCardConfig {
   onClick: () => void;
 }
 
-export const QuickStats: React.FC<QuickStatsProps> = ({
+export const QuickStats: React.FC<QuickStatsProps> = React.memo(({
   statusCounts,
   statusFilter,
   dateFilter,
@@ -117,4 +117,5 @@ export const QuickStats: React.FC<QuickStatsProps> = ({
       ))}
     </div>
   );
-};
+});
+QuickStats.displayName = 'QuickStats';

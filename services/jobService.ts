@@ -140,11 +140,7 @@ export const getJobs = async (user: User, options?: { status?: JobStatus }): Pro
   const buildQuery = () => {
     let query = supabase
       .from('jobs')
-      .select(`
-        ${JOB_SELECT.BOARD},
-        parts_used:job_parts(job_part_id, part_name, quantity),
-        media:job_media(media_id, category, created_at)
-      `)
+      .select(JOB_SELECT.BOARD)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -183,62 +179,36 @@ export const getJobs = async (user: User, options?: { status?: JobStatus }): Pro
       throw new Error((error as Error)?.message || 'Failed to fetch jobs');
     }
   }
-  
+
   let allJobs = data as Job[];
-  
-  // Include helper assignments for technicians
+
+  // Include helper assignments for technicians — single query with inner join
   if (user.role === UserRole.TECHNICIAN) {
-    const { data: helperAssignments, error: helperError } = await supabase
-      .from('job_assignments')
-      .select('job_id')
-      .eq('technician_id', user.user_id)
-      .eq('assignment_type', 'assistant')
-      .eq('is_active', true);
-    
-    if (!helperError && helperAssignments && helperAssignments.length > 0) {
-      const helperJobIds = helperAssignments.map(a => a.job_id);
-      const existingJobIds = new Set(allJobs.map(j => j.job_id));
-      const newHelperJobIds = helperJobIds.filter(id => !existingJobIds.has(id));
-      
-      if (newHelperJobIds.length > 0) {
-        let helperQuery = supabase
-          .from('jobs')
-          .select(`
-            job_id, job_number, title, description, status, priority, job_type,
-            customer_id, customer:customers(customer_id, name, address, phone, contact_person, account_number),
-            forklift_id, forklift:forklifts!forklift_id(serial_number, forklift_no, customer_forklift_no, make, model, type, site, location),
-            assigned_technician_id, assigned_technician_name, helper_technician_id,
-            site_id,
-            arrival_time, started_at, repair_start_time, repair_end_time, completed_at,
-            technician_accepted_at, technician_rejected_at,
-            acknowledged_at, sla_target_minutes, escalation_triggered_at, escalation_acknowledged_at,
-            parts_confirmed_at, parts_confirmation_skipped, job_confirmed_at,
-            created_at, scheduled_date,
-            parts_used:job_parts(job_part_id, part_name, quantity),
-            media:job_media(media_id, category, created_at)
-          `)
-          .in('job_id', newHelperJobIds)
-          .is('deleted_at', null);
+    const existingJobIds = new Set(allJobs.map(j => j.job_id));
 
-        if (options?.status) {
-          helperQuery = helperQuery.eq('status', options.status);
-        }
+    const helperSelect = `${JOB_SELECT.BOARD}, job_assignments!inner(technician_id, assignment_type, is_active)`;
+    const { data: helperJobs, error: helperError } = await supabase
+      .from('jobs')
+      .select(helperSelect)
+      .eq('job_assignments.technician_id', user.user_id)
+      .eq('job_assignments.assignment_type', 'assistant')
+      .eq('job_assignments.is_active', true)
+      .is('deleted_at', null);
 
-        const { data: helperJobs, error: hjError } = await helperQuery;
-        
-        if (!hjError && helperJobs) {
-          const markedHelperJobs = helperJobs.map(j => ({
-            ...j,
-            _isHelperAssignment: true
-          })) as unknown as Job[];
-          allJobs = [...allJobs, ...markedHelperJobs];
-        }
-      }
+    if (!helperError && helperJobs) {
+      const rawJobs = helperJobs as unknown as Array<Record<string, unknown>>;
+      const newHelperJobs = rawJobs
+        .filter(j => !existingJobIds.has(j.job_id as string))
+        .map(j => {
+          const { job_assignments: _assignments, ...jobData } = j;
+          return { ...jobData, _isHelperAssignment: true };
+        }) as unknown as Job[];
+      allJobs = [...allJobs, ...newHelperJobs];
     }
-    
+
     allJobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
-  
+
   logDebug('[getJobs] Found jobs:', allJobs.length || 0);
   return allJobs;
 };

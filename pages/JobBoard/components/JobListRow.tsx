@@ -75,7 +75,7 @@ const getPriorityLabel = (job: JobWithHelperFlag) => {
   return job.priority || 'Standard';
 };
 
-export const JobListRow: React.FC<JobListRowProps> = ({
+export const JobListRow: React.FC<JobListRowProps> = React.memo(({
   job,
   isTechnician,
   processingJobId,
@@ -318,4 +318,5 @@ export const JobListRow: React.FC<JobListRowProps> = ({
       </div>
     </div>
   );
-};
+});
+JobListRow.displayName = 'JobListRow';

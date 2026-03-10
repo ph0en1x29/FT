@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { CheckSquare, LayoutGrid, List, Square } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { deleteJob } from '../../services/jobCrudService';
 import { showToast } from '../../services/toastService';
@@ -82,6 +82,8 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
 
   
 
+  const handleNavigate = useCallback((jobId: string) => navigate(`/jobs/${jobId}`), [navigate]);
+
   const handleViewAllSlotIn = () => {
     setSearchQuery('');
     setDateFilter('all');
@@ -147,7 +149,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           processingJobId={processingJobId}
           jobNeedsAcceptance={jobNeedsAcceptance}
           getResponseTimeRemaining={getResponseTimeRemaining}
-          onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
+          onNavigate={handleNavigate}
           onAccept={handleAcceptJob}
           onReject={handleOpenRejectModal}
           selectionMode={selectionMode}
@@ -165,7 +167,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
       processingJobId={processingJobId}
       jobNeedsAcceptance={jobNeedsAcceptance}
       getResponseTimeRemaining={getResponseTimeRemaining}
-      onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
+      onNavigate={handleNavigate}
       onAccept={handleAcceptJob}
       onReject={handleOpenRejectModal}
       selectionMode={selectionMode}

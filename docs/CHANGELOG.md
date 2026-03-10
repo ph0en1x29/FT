@@ -4,6 +4,20 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-03-10] - Job Board Performance Optimization
+
+### Performance
+
+- **Removed overfetching** — Board query no longer pulls `parts_used` and `media` arrays per job, cutting payload size significantly.
+- **Single-query helper assignments** — Technician helper jobs now fetched in one query via `!inner` join instead of two sequential queries (N+1 fix).
+- **Debounced search** — Search input now debounces 250ms via `useDebounce` hook, preventing filter recalculation on every keystroke.
+- **Memoized list components** — `JobCard`, `JobListRow`, and `QuickStats` wrapped in `React.memo` to skip re-renders when props haven't changed.
+- **Stable callbacks** — `onNavigate` extracted to `useCallback` to avoid creating new function references on every render.
+- **Stable realtime subscription** — Channel no longer tears down/recreates on user context changes; uses ref-based pattern for stable `useEffect` deps.
+- **Incremental INSERT handling** — New jobs from realtime subscription are prepended to the array instead of triggering a full data refetch.
+
+---
+
 ## [2026-03-10] - Jobs Board View Refinement
 
 ### UI Improvements

@@ -1,5 +1,6 @@
 import { useEffect,useMemo,useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useDebounce } from '../../../hooks/useDebounce';
 import { getSLAStatus } from '../../../components/SlotInSLABadge';
 import { JobStatus,JobType } from '../../../types';
 import { DateFilter,JobWithHelperFlag,SpecialFilter,StatusCounts } from '../types';
@@ -153,6 +154,9 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
     };
   }, [jobs]);
 
+  // Debounce search to avoid filtering on every keystroke
+  const debouncedSearch = useDebounce(searchQuery, 250);
+
   // Filter jobs based on search and filters
   const filteredJobs = useMemo(() => {
     let result = [...jobs];
@@ -193,9 +197,9 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
       );
     }
 
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    // Search filter (uses debounced value)
+    if (debouncedSearch.trim()) {
+      const query = debouncedSearch.toLowerCase();
       result = result.filter(job =>
         job.title?.toLowerCase().includes(query) ||
         job.description?.toLowerCase().includes(query) ||
@@ -304,7 +308,7 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
     });
 
     return result;
-  }, [jobs, searchQuery, dateFilter, statusFilter, specialFilter, customDateFrom, customDateTo, searchParams]);
+  }, [jobs, debouncedSearch, dateFilter, statusFilter, specialFilter, customDateFrom, customDateTo, searchParams]);
 
   const hasActiveFilters = searchQuery || dateFilter !== 'unfinished' || statusFilter !== 'all' || specialFilter !== null;
 

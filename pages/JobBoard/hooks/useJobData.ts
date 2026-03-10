@@ -1,4 +1,4 @@
-import { useCallback,useEffect,useState } from 'react';
+import { useCallback,useEffect,useRef,useState } from 'react';
 import { SupabaseDb as MockDb,supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { DeletedJob,Job,JobStatus,User,UserRole } from '../../../types';
@@ -29,13 +29,16 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
 
   const canViewDeleted = displayRole === UserRole.ADMIN || displayRole === UserRole.SUPERVISOR;
 
+  // Stable ref for fetchJobs to avoid recreating the realtime channel
+  const fetchJobsRef = useRef<() => Promise<void>>();
+
   // Fetch jobs function (extracted for reuse)
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
       const data = await MockDb.getJobs(currentUser);
       setJobs(data);
-      
+
       // Fetch recently deleted jobs for admin/supervisor
       if (canViewDeleted) {
         try {
@@ -52,12 +55,15 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
     }
   }, [currentUser, canViewDeleted]);
 
+  // Keep ref in sync
+  fetchJobsRef.current = fetchJobs;
+
   // Initial fetch
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
 
-  // Real-time subscription for job changes
+  // Real-time subscription for job changes — stable deps via ref
   useEffect(() => {
     const channel = supabase
       .channel('job-board-realtime')
@@ -71,7 +77,7 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
         (payload) => {
           const updatedJob = payload.new as Job;
           const oldJob = payload.old as Partial<Job>;
-          
+
           // Handle soft-deleted jobs
           if (updatedJob?.deleted_at !== null && oldJob?.deleted_at === null) {
             setJobs(prevJobs => {
@@ -83,15 +89,15 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
             });
             return;
           }
-          
+
           // Handle job status changes - update in place
           setJobs(prevJobs => {
             const jobIndex = prevJobs.findIndex(j => j.job_id === updatedJob.job_id);
             if (jobIndex === -1) return prevJobs;
-            
+
             const previousStatus = prevJobs[jobIndex].status;
             const newStatus = updatedJob.status;
-            
+
             // Show toast for significant status changes
             if (previousStatus !== newStatus) {
               if (newStatus === JobStatus.IN_PROGRESS) {
@@ -102,12 +108,12 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
                 showToast.info('Job awaiting finalization', `${updatedJob.title || 'A job'} needs finalization`);
               }
             }
-            
+
             // Update job assignment notification
             if (updatedJob.assigned_technician_id !== prevJobs[jobIndex].assigned_technician_id && updatedJob.assigned_technician_name) {
               showToast.info('Job assigned', `${updatedJob.title || 'A job'} assigned to ${updatedJob.assigned_technician_name}`);
             }
-            
+
             // Update job in list
             const updatedJobs = [...prevJobs];
             updatedJobs[jobIndex] = { ...updatedJobs[jobIndex], ...updatedJob };
@@ -126,7 +132,11 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
           const newJob = payload.new as Job;
           if (newJob && !newJob.deleted_at) {
             showToast.info('New job created', newJob.title || 'A new job has been added');
-            fetchJobs();
+            // Prepend new job instead of full refetch
+            setJobs(prevJobs => {
+              if (prevJobs.some(j => j.job_id === newJob.job_id)) return prevJobs;
+              return [newJob as JobWithHelperFlag, ...prevJobs];
+            });
           }
         }
       )
@@ -137,7 +147,9 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [canViewDeleted, fetchJobs]);
+  // Stable subscription — no dependency on fetchJobs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     jobs,
