@@ -104,7 +104,7 @@ export const QuickStats: React.FC<QuickStatsProps> = ({
         <button
           key={card.id}
           onClick={card.onClick}
-          className={`rounded-2xl border px-4 py-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+          className={`rounded-2xl border px-4 py-3 text-left active:scale-[0.97] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
             card.isActive ? 'text-white shadow-lg ring-2 ring-white/20' : card.inactiveClassName
           }`}
           style={card.isActive ? { backgroundColor: card.activeColor } : undefined}
@@ -113,7 +113,6 @@ export const QuickStats: React.FC<QuickStatsProps> = ({
             {card.label}
           </div>
           <div className="mt-2 text-3xl font-semibold">{card.value}</div>
-          <div className="mt-1 text-xs opacity-80">{card.hint}</div>
         </button>
       ))}
     </div>

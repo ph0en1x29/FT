@@ -15,14 +15,14 @@ export const EmptyJobsState: React.FC<EmptyJobsStateProps> = ({
 }) => {
   return (
     <div className="col-span-full text-center py-12 text-theme-muted">
-      <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
-      <p className="mb-2">No jobs found.</p>
+      <Briefcase className="w-10 h-10 mx-auto mb-2 opacity-15" />
+      <p className="text-sm">No jobs</p>
       {hasActiveFilters && (
         <button 
           onClick={onClearFilters}
-          className="text-blue-600 hover:underline text-sm"
+          className="mt-2 text-blue-600 hover:underline text-xs"
         >
-          Clear filters to see all jobs
+          Clear filters
         </button>
       )}
     </div>

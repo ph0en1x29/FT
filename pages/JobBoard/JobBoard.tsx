@@ -25,15 +25,10 @@ import { JobBoardProps, JobWithHelperFlag, ViewMode } from './types';
 
 const isViewMode = (value: string | null): value is ViewMode => value === 'card' || value === 'list';
 
-const SectionHeader: React.FC<{ title: string; count: number; subtitle: string }> = ({ title, count, subtitle }) => (
-  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-    <div>
-      <div className="flex items-center gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-theme-muted">{title}</h2>
-        <span className="rounded-full bg-[var(--bg-subtle)] px-2 py-0.5 text-xs font-medium text-theme-muted">{count}</span>
-      </div>
-      <p className="mt-1 text-sm text-theme-muted">{subtitle}</p>
-    </div>
+const SectionHeader: React.FC<{ title: string; count: number }> = ({ title, count }) => (
+  <div className="flex items-center gap-2">
+    <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-theme-muted">{title}</h2>
+    <span className="rounded-full bg-[var(--bg-subtle)] px-2 py-0.5 text-xs font-medium text-theme-muted">{count}</span>
   </div>
 );
 
@@ -343,7 +338,6 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
               <SectionHeader
                 title="My Jobs"
                 count={myJobs.length}
-                subtitle="Work assigned directly to you, including helper assignments."
               />
               <SiteSignOffBanner jobs={myJobs} currentUser={currentUser} onComplete={fetchJobs} />
               {viewMode === 'list' ? renderList(myJobs) : renderCards(myJobs)}
@@ -355,7 +349,6 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
               <SectionHeader
                 title="Other Jobs"
                 count={otherJobs.length}
-                subtitle="Remaining dispatch queue visible to you for awareness and handoff."
               />
               {viewMode === 'list' ? renderList(otherJobs) : renderCards(otherJobs)}
             </section>
@@ -370,7 +363,6 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           <SectionHeader
             title="Live Queue"
             count={filteredJobs.length}
-            subtitle="Dense operational scan across customer, site, equipment, assignee, and current job state."
           />
           {viewMode === 'list' ? renderList(filteredJobs) : renderCards(filteredJobs)}
           {filteredJobs.length === 0 && (

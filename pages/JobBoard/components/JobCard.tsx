@@ -198,7 +198,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             <button
               onClick={(e) => onAccept(e, job.job_id)}
               disabled={processingJobId === job.job_id}
-              className="flex min-h-[48px] items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+              className="flex min-h-[48px] items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-sm font-medium text-white active:scale-95 transition-all hover:bg-emerald-700 hover:shadow-md disabled:opacity-50"
             >
               <CheckCircle className="h-4 w-4" />
               {processingJobId === job.job_id ? 'Accepting...' : 'Accept'}
@@ -206,7 +206,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             <button
               onClick={(e) => onReject(e, job.job_id)}
               disabled={processingJobId === job.job_id}
-              className="flex min-h-[48px] items-center justify-center gap-1.5 rounded-xl bg-red-50 px-3 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50 dark:bg-red-900/20 dark:text-red-300"
+              className="flex min-h-[48px] items-center justify-center gap-1.5 rounded-xl bg-red-50 px-3 text-sm font-medium text-red-700 active:scale-95 transition-all hover:bg-red-100 hover:shadow-md disabled:opacity-50 dark:bg-red-900/20 dark:text-red-300"
             >
               <XCircle className="h-4 w-4" />
               Reject

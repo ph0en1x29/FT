@@ -192,7 +192,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
                   <button
                     onClick={(e) => onAccept(e, job.job_id)}
                     disabled={processingJobId === job.job_id}
-                    className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                    className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-sm font-medium text-white active:scale-95 transition-all hover:bg-emerald-700 hover:shadow-md disabled:opacity-50"
                   >
                     <CheckCircle className="h-4 w-4" />
                     Accept
@@ -200,7 +200,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
                   <button
                     onClick={(e) => onReject(e, job.job_id)}
                     disabled={processingJobId === job.job_id}
-                    className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-red-50 px-3 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50 dark:bg-red-900/20 dark:text-red-300"
+                    className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-red-50 px-3 text-sm font-medium text-red-700 active:scale-95 transition-all hover:bg-red-100 hover:shadow-md disabled:opacity-50 dark:bg-red-900/20 dark:text-red-300"
                   >
                     <XCircle className="h-4 w-4" />
                     Reject
@@ -222,7 +222,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
   return (
     <div
       onClick={handleClick}
-      className={`grid grid-cols-[auto_minmax(0,1.8fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_120px_170px_130px_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-hover)] ${
+      className={`grid grid-cols-[auto_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_100px_120px_100px_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-hover)] ${
         isSelected ? 'bg-blue-50/40 dark:bg-blue-900/15' : ''
       }`}
     >
@@ -232,22 +232,18 @@ export const JobListRow: React.FC<JobListRowProps> = ({
       </div>
 
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
           {job.job_number && (
-            <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+            <span className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
               {job.job_number}
             </span>
           )}
-          {job._isHelperAssignment && (
-            <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-              Helper
-            </span>
-          )}
+          <span className="truncate text-sm font-semibold text-theme">{job.title}</span>
         </div>
-        <div className="mt-1 break-words text-sm font-semibold text-theme">{job.title}</div>
-        <div className="mt-1 break-words text-xs text-theme-muted">
-          {[job.customer?.name, job.customer?.account_number].filter(Boolean).join(' · ') || '—'}
-        </div>
+      </div>
+
+      <div className="min-w-0 truncate text-xs text-theme-muted">
+        {job.customer?.name || '—'}
       </div>
 
       <div className="min-w-0">
@@ -328,7 +324,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
             <button
               onClick={(e) => onAccept(e, job.job_id)}
               disabled={processingJobId === job.job_id}
-              className="flex h-9 items-center gap-1 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+              className="flex h-9 items-center gap-1 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white active:scale-95 transition-all hover:bg-emerald-700 hover:shadow-md disabled:opacity-50"
             >
               <CheckCircle className="h-3.5 w-3.5" />
               Accept
@@ -336,7 +332,7 @@ export const JobListRow: React.FC<JobListRowProps> = ({
             <button
               onClick={(e) => onReject(e, job.job_id)}
               disabled={processingJobId === job.job_id}
-              className="flex h-9 items-center gap-1 rounded-lg bg-red-50 px-3 text-xs font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50 dark:bg-red-900/20 dark:text-red-300"
+              className="flex h-9 items-center gap-1 rounded-lg bg-red-50 px-3 text-xs font-medium text-red-700 active:scale-95 transition-all hover:bg-red-100 hover:shadow-md disabled:opacity-50 dark:bg-red-900/20 dark:text-red-300"
             >
               <XCircle className="h-3.5 w-3.5" />
               Reject
