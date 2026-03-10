@@ -125,12 +125,12 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
         )}
       </div>
       
-      {/* Customer & Site Info */}
-      {(job.customer?.account_number || activeRental?.rental_location) && (
+      {/* Customer Forklift No & Site Info */}
+      {(job.forklift.customer_forklift_no || activeRental?.rental_location) && (
         <div className="flex flex-wrap gap-2 mb-3">
-          {job.customer?.account_number && (
+          {job.forklift.customer_forklift_no && (
             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-              A/C: {job.customer.account_number}
+              Customer No: {job.forklift.customer_forklift_no}
             </span>
           )}
           {activeRental?.rental_location && (
