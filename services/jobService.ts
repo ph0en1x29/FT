@@ -250,7 +250,7 @@ export const getJobByIdFast = async (jobId: string): Promise<Job | null> => {
     .select(`
       *,
       customer:customers(customer_id, name, address, phone, email, contact_person),
-      forklift:forklifts!forklift_id(forklift_id, serial_number, forklift_no, make, model, type, status, hourmeter, location)
+      forklift:forklifts!forklift_id(forklift_id, serial_number, forklift_no, customer_forklift_no, make, model, type, status, hourmeter, location)
     `)
     .eq('job_id', jobId)
     .is('deleted_at', null)
