@@ -102,3 +102,9 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 - Added forklift_no to ForkliftDbRow and ForkliftWithStatus types  
 - Added forklift_no to search filter in useAssetDashboard
 - Files: services/forkliftService.ts, components/AssetDashboard/types.ts, components/AssetDashboard/hooks/useAssetDashboard.ts
+
+## 2026-03-10 00:12 [Sonnet] Forklift UI improvements
+
+[2026-03-10 00:12] [Sonnet] Updated ForkliftCard.tsx — show forklift_no alongside serial_number (format: "A928 · 8FD45N-11009" when exists)
+[2026-03-10 00:12] [Sonnet] Updated ForkliftInfoCard.tsx — added admin-only edit button (Edit2 icon, top-right positioned)
+[2026-03-10 00:12] [Sonnet] Updated ForkliftProfilePage.tsx — integrated AddEditForkliftModal with pre-filled form state for editing existing forklift

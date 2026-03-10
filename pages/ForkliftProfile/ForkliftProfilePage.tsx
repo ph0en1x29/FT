@@ -3,7 +3,8 @@ import React,{ useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
-import { ForkliftRental,User,UserRole } from '../../types';
+import { ForkliftRental,ForkliftStatus,ForkliftType,User,UserRole } from '../../types';
+import AddEditForkliftModal from '../ForkliftsTabs/components/AddEditForkliftModal';
 import {
 AssignForkliftModal,
 CurrentAssignmentCard,
@@ -31,7 +32,25 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showEditRentalModal, setShowEditRentalModal] = useState(false);
   const [showScheduleServiceModal, setShowScheduleServiceModal] = useState(false);
+  const [showEditForkliftModal, setShowEditForkliftModal] = useState(false);
   const [editingRental, setEditingRental] = useState<ForkliftRental | null>(null);
+  const [forkliftFormData, setForkliftFormData] = useState({
+    serial_number: '',
+    forklift_no: '',
+    customer_forklift_no: '',
+    make: '',
+    model: '',
+    type: ForkliftType.DIESEL,
+    hourmeter: 0,
+    last_hourmeter_update: '',
+    last_service_hourmeter: 0,
+    last_service_date: '',
+    year: null as number | null,
+    capacity_kg: 0,
+    site: '',
+    status: ForkliftStatus.ACTIVE,
+    notes: '',
+  });
 
   // Data hook
   const {
@@ -82,6 +101,44 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
     setShowEditRentalModal(true);
   };
 
+  const handleEditForklift = () => {
+    if (!forklift) return;
+    setForkliftFormData({
+      serial_number: forklift.serial_number,
+      forklift_no: forklift.forklift_no || '',
+      customer_forklift_no: forklift.customer_forklift_no || '',
+      make: forklift.make,
+      model: forklift.model,
+      type: forklift.type,
+      hourmeter: forklift.hourmeter,
+      last_hourmeter_update: forklift.last_hourmeter_update || '',
+      last_service_hourmeter: forklift.last_service_hourmeter || 0,
+      last_service_date: forklift.last_service_date || '',
+      year: forklift.year || null,
+      capacity_kg: forklift.capacity_kg || 0,
+      site: forklift.location || '',
+      status: forklift.status,
+      notes: forklift.notes || '',
+    });
+    setShowEditForkliftModal(true);
+  };
+
+  const handleSubmitForklift = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forklift) return;
+    try {
+      await MockDb.updateForklift(forklift.forklift_id, {
+        ...forkliftFormData,
+        location: forkliftFormData.site,
+      });
+      setShowEditForkliftModal(false);
+      await reload();
+      import('../../services/toastService').then(m => m.showToast.success('Forklift updated successfully'));
+    } catch (error) {
+      import('../../services/toastService').then(m => m.showToast.error((error as Error).message));
+    }
+  };
+
   const handleModalSuccess = async () => {
     setShowAssignModal(false);
     setShowEditRentalModal(false);
@@ -113,6 +170,8 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
         forklift={forklift}
         hasActiveRental={!!activeRental}
         stats={stats}
+        isAdmin={isAdmin}
+        onEdit={handleEditForklift}
       />
 
       <ServiceTrackingCard forklift={forklift} canEdit={isAdmin || isSupervisor} onUpdate={reload} />
@@ -167,6 +226,17 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
           currentUser={currentUser}
           onClose={() => setShowScheduleServiceModal(false)}
           onSuccess={handleModalSuccess}
+        />
+      )}
+
+      {showEditForkliftModal && (
+        <AddEditForkliftModal
+          isOpen={showEditForkliftModal}
+          onClose={() => setShowEditForkliftModal(false)}
+          formData={forkliftFormData}
+          setFormData={setForkliftFormData}
+          onSubmit={handleSubmitForklift}
+          isEditing={true}
         />
       )}
 

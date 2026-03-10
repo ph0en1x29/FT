@@ -125,6 +125,22 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
         )}
       </div>
       
+      {/* Customer & Site Info */}
+      {(job.customer?.account_number || activeRental?.rental_location) && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {job.customer?.account_number && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+              A/C: {job.customer.account_number}
+            </span>
+          )}
+          {activeRental?.rental_location && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+              Site: {activeRental.rental_location}
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <div>
           <p className="label-premium mb-0.5">Serial Number</p>

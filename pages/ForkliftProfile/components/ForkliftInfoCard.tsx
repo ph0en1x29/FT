@@ -1,4 +1,4 @@
-import { Calendar,Gauge,MapPin,Package,Truck } from 'lucide-react';
+import { Calendar,Edit2,Gauge,MapPin,Package,Truck } from 'lucide-react';
 import React from 'react';
 import { Forklift } from '../../../types';
 import { getStatusBadge } from '../utils';
@@ -12,15 +12,29 @@ interface ForkliftInfoCardProps {
     totalPartsUsed: number;
     totalRentalRevenue: number;
   };
+  isAdmin?: boolean;
+  onEdit?: () => void;
 }
 
 export const ForkliftInfoCard: React.FC<ForkliftInfoCardProps> = ({
   forklift,
   hasActiveRental,
   stats,
+  isAdmin,
+  onEdit,
 }) => {
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm p-6 border border-blue-100">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm p-6 border border-blue-100 relative">
+      {/* Edit Button */}
+      {isAdmin && onEdit && (
+        <button
+          onClick={onEdit}
+          className="absolute top-4 right-4 p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors z-10"
+          title="Edit Forklift"
+        >
+          <Edit2 className="w-4 h-4" />
+        </button>
+      )}
       <div className="flex justify-between items-start">
         {/* Left Side - Info */}
         <div className="space-y-3">

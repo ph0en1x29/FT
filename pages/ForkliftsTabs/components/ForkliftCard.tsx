@@ -91,7 +91,9 @@ const ForkliftCard: React.FC<ForkliftCardProps> = ({
               <h3 className="font-bold text-theme group-hover:text-blue-600 transition-colors">
                 {forklift.make} {forklift.model}
               </h3>
-              <p className="text-sm text-theme-muted font-mono">{forklift.serial_number}</p>
+              <p className="text-sm text-theme-muted font-mono">
+                {forklift.forklift_no ? `${forklift.forklift_no} · ${forklift.serial_number}` : forklift.serial_number}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-1">
