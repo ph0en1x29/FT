@@ -57,15 +57,15 @@ export const JobListTable: React.FC<JobListTableProps> = ({
 
       <div className="hidden overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm md:block">
         <div className="flex items-center gap-4 border-b border-[var(--border)] bg-[var(--bg-subtle)]/70 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-theme-muted">
-          <div className="shrink-0 w-6">{selectionMode ? '☐' : ''}</div>
+          <div className="shrink-0 w-6"></div>
           <span className="shrink-0 w-[130px]">#</span>
           <span className="shrink-0 w-[150px]">Status</span>
-          <span className="flex-1 min-w-0">Title</span>
-          <span className="shrink-0 w-[150px]">Customer</span>
-          <span className="shrink-0 w-[100px]">Equipment</span>
-          <span className="shrink-0 w-[120px]">Assignee</span>
+          <span className="flex-[2] min-w-0">Title</span>
+          <span className="flex-[2] min-w-0">Customer</span>
+          <span className="flex-1 min-w-0">Equipment</span>
+          <span className="flex-[1.5] min-w-0">Assignee</span>
           <span className="shrink-0 w-[85px]">Scheduled</span>
-          <span className="shrink-0 w-[100px] text-right">Action</span>
+          <span className="shrink-0 w-[40px]"></span>
         </div>
 
         <div className="divide-y divide-[var(--border)]">

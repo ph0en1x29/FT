@@ -269,22 +269,22 @@ export const JobListRow: React.FC<JobListRowProps> = ({
       </div>
 
       {/* Title */}
-      <span className="flex-1 min-w-0 truncate text-sm font-medium text-theme">
+      <span className="flex-[2] min-w-0 truncate text-sm font-medium text-theme">
         {job.title}
       </span>
 
       {/* Customer */}
-      <span className="shrink-0 w-[150px] truncate text-xs text-theme-muted">
+      <span className="flex-[2] min-w-0 truncate text-xs text-theme-muted">
         {job.customer?.name || '—'}
       </span>
 
       {/* Equipment */}
-      <span className="shrink-0 w-[100px] truncate text-xs font-mono text-theme-muted">
+      <span className="flex-1 min-w-0 truncate text-xs font-mono text-theme-muted">
         {job.forklift?.forklift_no || job.forklift?.serial_number || '—'}
       </span>
 
       {/* Technician */}
-      <span className="shrink-0 w-[120px] truncate text-xs text-theme-muted">
+      <span className="flex-[1.5] min-w-0 truncate text-xs text-theme-muted">
         {job.assigned_technician_name || '—'}
       </span>
 
