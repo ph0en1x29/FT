@@ -172,7 +172,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             roleFlags={roleFlags} statusFlags={statusFlags} editingHourmeter={state.editingHourmeter}
             hourmeterInput={state.hourmeterInput} onHourmeterInputChange={state.setHourmeterInput}
             onStartEditHourmeter={actions.handleStartEditHourmeter} onSaveHourmeter={actions.handleSaveHourmeter}
-            onCancelHourmeterEdit={actions.handleCancelHourmeterEdit} onRequestAmendment={() => state.setShowHourmeterAmendmentModal(true)} />}
+            onCancelHourmeterEdit={actions.handleCancelHourmeterEdit} onRequestAmendment={() => state.setShowHourmeterAmendmentModal(true)}
+            onSwitchForklift={actions.handleSwitchForklift} />}
           {(statusFlags.isInProgress || statusFlags.isAwaitingFinalization || statusFlags.isCompleted) && <JobTimerCard job={job} />}
           <CustomerAssignmentCard job={job} roleFlags={roleFlags} statusFlags={statusFlags} techOptions={techOptions}
             selectedTechId={state.selectedTechId} isCurrentUserHelper={state.isCurrentUserHelper}

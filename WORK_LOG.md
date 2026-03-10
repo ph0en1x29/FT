@@ -4,6 +4,16 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+## 2026-03-10
+
+[2026-03-10 00:07] [Sonnet] Admin forklift switching: EquipmentCard.tsx, useJobActions.ts, JobDetailPage.tsx — pre-start only, customer rentals
+  - EquipmentCard.tsx: Added forklift switching UI — RefreshCw button (admin+pre-start only), inline Combobox dropdown, filter forklifts by current_customer_id === job.customer_id, onSwitchForklift callback prop
+  - useJobActions.ts: Added handleSwitchForklift handler — updates jobs.forklift_id via supabase, refreshes job data, shows success toast
+  - JobDetailPage.tsx: Wired onSwitchForklift={actions.handleSwitchForklift} to EquipmentCard
+  - Access control: canSwitchForklift = isAdmin && (isNew || isAssigned) && !isInProgress && !isCompleted
+  - UX flow: Click RefreshCw → Combobox shows customer's rented forklifts (getForkliftsForList filtered) → Select → Save immediately → Refresh
+  - Build: ✅ Pass (✓ 2444 modules transformed, ✓ built in 4.21s)
+
 ## 2026-03-06
 
 [2026-03-06 09:54] [Phoenix] Fix duplicate job route: /jobs/create → /jobs/new

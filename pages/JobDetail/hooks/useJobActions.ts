@@ -600,6 +600,24 @@ export const useJobActions = ({
     }
   }, [job, state, currentUserId, currentUserName, navigate]);
 
+  // Switch forklift handler
+  const handleSwitchForklift = useCallback(async (forkliftId: string) => {
+    if (!job) return;
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ forklift_id: forkliftId })
+        .eq('job_id', job.job_id);
+
+      if (error) throw error;
+
+      showToast.success('Forklift switched successfully');
+      await loadJob(); // Refresh job data to get updated forklift info
+    } catch (e) {
+      showToast.error('Could not switch forklift', (e as Error).message);
+    }
+  }, [job, loadJob]);
+
   // Signature handlers (legacy - kept for backward compatibility if needed)
   const handleTechnicianSignature = useCallback(async (dataUrl: string) => {
     if (!job) return;
@@ -876,6 +894,9 @@ export const useJobActions = ({
     
     // Delete
     handleDeleteJob,
+    
+    // Forklift
+    handleSwitchForklift,
     
     // Signatures
     handleTechnicianSignature,

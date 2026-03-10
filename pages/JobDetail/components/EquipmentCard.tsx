@@ -1,5 +1,7 @@
-import { AlertTriangle,Edit2,Gauge,Save,Truck,X } from 'lucide-react';
-import React from 'react';
+import { AlertTriangle,Edit2,Gauge,RefreshCw,Save,Truck,X } from 'lucide-react';
+import React,{ useEffect,useState } from 'react';
+import { Combobox,ComboboxOption } from '../../../components/Combobox';
+import { getForkliftsForList } from '../../../services/forkliftService';
 import { Job } from '../../../types';
 import { RoleFlags,StatusFlags } from '../types';
 
@@ -17,6 +19,8 @@ interface EquipmentCardProps {
   onSaveHourmeter: () => void;
   onCancelHourmeterEdit: () => void;
   onRequestAmendment: () => void;
+  // Forklift switching
+  onSwitchForklift?: (forkliftId: string) => void;
 }
 
 export const EquipmentCard: React.FC<EquipmentCardProps> = ({
@@ -32,10 +36,47 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
   onSaveHourmeter,
   onCancelHourmeterEdit,
   onRequestAmendment,
+  onSwitchForklift,
 }) => {
   const { isAdmin, isSupervisor, isTechnician } = roleFlags;
-  const { isInProgress, isCompleted } = statusFlags;
+  const { isNew, isAssigned, isInProgress, isCompleted } = statusFlags;
   
+  const [switchingForklift, setSwitchingForklift] = useState(false);
+  const [availableForklifts, setAvailableForklifts] = useState<ComboboxOption[]>([]);
+  const [selectedForkliftId, setSelectedForkliftId] = useState('');
+  
+  // Can switch forklift if: Admin + Job not started (New or Assigned)
+  const canSwitchForklift = isAdmin && (isNew || isAssigned) && !isInProgress && !isCompleted && onSwitchForklift;
+
+  // Fetch available forklifts when switching mode is enabled
+  useEffect(() => {
+    if (switchingForklift && job.customer_id) {
+      getForkliftsForList()
+        .then(forklifts => {
+          // Filter to forklifts rented by this job's customer
+          const customerForklifts = forklifts.filter(f => f.current_customer_id === job.customer_id);
+          const options: ComboboxOption[] = customerForklifts.map(f => ({
+            id: f.forklift_id,
+            label: f.forklift_no || f.serial_number,
+            subLabel: `${f.make} ${f.model} - ${f.type}`,
+          }));
+          setAvailableForklifts(options);
+        })
+        .catch(err => {
+          console.error('Failed to fetch forklifts:', err);
+          setAvailableForklifts([]);
+        });
+    }
+  }, [switchingForklift, job.customer_id]);
+
+  const handleForkliftChange = (forkliftId: string) => {
+    if (forkliftId && onSwitchForklift) {
+      onSwitchForklift(forkliftId);
+      setSwitchingForklift(false);
+      setSelectedForkliftId('');
+    }
+  };
+
   if (!job.forklift) return null;
 
   const canEditHourmeter = (isInProgress || (isAdmin && !isCompleted)) && (
@@ -50,10 +91,38 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
         <div className="w-9 h-9 rounded-xl bg-[var(--warning-bg)] flex items-center justify-center shrink-0">
           <Truck className="w-4 h-4 text-[var(--warning)]" />
         </div>
-        <div className="min-w-0">
-          <h3 className="font-semibold text-sm text-[var(--text)]">Equipment</h3>
-          <p className="text-xs text-[var(--text-muted)] truncate">{job.forklift.make} {job.forklift.model}</p>
-        </div>
+        {switchingForklift ? (
+          <div className="flex-1">
+            <Combobox
+              options={availableForklifts}
+              value={selectedForkliftId}
+              onChange={handleForkliftChange}
+              placeholder="Select forklift..."
+            />
+            <button 
+              onClick={() => setSwitchingForklift(false)} 
+              className="mt-2 text-xs text-[var(--text-muted)] hover:text-[var(--text)]"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-sm text-[var(--text)]">Equipment</h3>
+              <p className="text-xs text-[var(--text-muted)] truncate">{job.forklift.make} {job.forklift.model}</p>
+            </div>
+            {canSwitchForklift && (
+              <button 
+                onClick={() => setSwitchingForklift(true)} 
+                className="p-1.5 text-[var(--warning)] hover:bg-[var(--warning-bg)] rounded transition-colors"
+                title="Switch forklift"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            )}
+          </>
+        )}
       </div>
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
