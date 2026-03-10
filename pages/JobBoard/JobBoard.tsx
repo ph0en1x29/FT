@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { CheckSquare, LayoutGrid, List, Square } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { deleteJob } from '../../services/jobCrudService';
 import { showToast } from '../../services/toastService';
 import { useDevModeContext } from '../../contexts/DevModeContext';
@@ -23,7 +23,6 @@ import {
 import { useJobAcceptance, useJobData, useJobFilters } from './hooks';
 import { JobBoardProps, JobWithHelperFlag, ViewMode } from './types';
 
-const isViewMode = (value: string | null): value is ViewMode => value === 'card' || value === 'list';
 
 const SectionHeader: React.FC<{ title: string; count: number }> = ({ title, count }) => (
   <div className="flex items-center gap-2">
@@ -34,7 +33,6 @@ const SectionHeader: React.FC<{ title: string; count: number }> = ({ title, coun
 
 const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { displayRole, hasPermission } = useDevModeContext();
 
   const [showDeletedSection, setShowDeletedSection] = useState(false);
@@ -47,10 +45,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
   const activeRole = displayRole || currentUser.role;
   const isTechnician = activeRole === UserRole.TECHNICIAN;
   const defaultViewMode: ViewMode = isTechnician ? 'card' : 'list';
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const queryMode = searchParams.get('view');
-    return isViewMode(queryMode) ? queryMode : defaultViewMode;
-  });
+  const [viewMode, setViewMode] = useState<ViewMode>(defaultViewMode);
 
   const { jobs, loading, deletedJobs, canViewDeleted, fetchJobs } = useJobData({ currentUser, displayRole: activeRole });
   const {
@@ -85,22 +80,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     getResponseTimeRemaining,
   } = useJobAcceptance({ currentUser, onJobUpdated: fetchJobs });
 
-  useEffect(() => {
-    const queryMode = searchParams.get('view');
-    if (isViewMode(queryMode)) {
-      setViewMode(queryMode);
-      return;
-    }
-
-    setViewMode(defaultViewMode);
-  }, [defaultViewMode, searchParams]);
-
-  const setViewModeAndPersist = (nextMode: ViewMode) => {
-    setViewMode(nextMode);
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.set('view', nextMode);
-    setSearchParams(nextParams);
-  };
+  
 
   const handleViewAllSlotIn = () => {
     setSearchQuery('');
@@ -254,7 +234,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex rounded-full bg-[var(--bg-subtle)] p-1">
               <button
-                onClick={() => setViewModeAndPersist('card')}
+                onClick={() => setViewMode('card')}
                 className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm transition ${
                   viewMode === 'card'
                     ? 'bg-[var(--surface)] text-theme font-medium shadow-sm'
@@ -265,7 +245,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
                 Card
               </button>
               <button
-                onClick={() => setViewModeAndPersist('list')}
+                onClick={() => setViewMode('list')}
                 className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm transition ${
                   viewMode === 'list'
                     ? 'bg-[var(--surface)] text-theme font-medium shadow-sm'
