@@ -94,11 +94,18 @@ export function useCreateJobForm(currentUser: User) {
       setSelectedForklift(forklift || null);
       // Pre-fill hourmeter with current reading
       if (forklift) {
-        setFormData(prev => ({ ...prev, hourmeter_reading: forklift.hourmeter.toString() }));
-        // If forklift has a current customer, pre-fill it
-        if (forklift.current_customer_id && !formData.customer_id) {
-          setFormData(prev => ({ ...prev, customer_id: forklift.current_customer_id! }));
-        }
+        setFormData(prev => {
+          const updates: Partial<CreateJobFormData> = { hourmeter_reading: forklift.hourmeter.toString() };
+          // If forklift has a current customer, pre-fill it
+          if (forklift.current_customer_id && !prev.customer_id) {
+            updates.customer_id = forklift.current_customer_id;
+          }
+          // If forklift has a current site, pre-fill it
+          if (forklift.current_site_id && !prev.site_id) {
+            updates.site_id = forklift.current_site_id;
+          }
+          return { ...prev, ...updates };
+        });
       }
     } else {
       setSelectedForklift(null);

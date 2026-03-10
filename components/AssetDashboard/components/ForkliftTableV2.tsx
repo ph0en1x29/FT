@@ -60,7 +60,7 @@ export const ForkliftTableV2: React.FC<ForkliftTableV2Props> = ({
   const handleCreateJob = (forklift: ForkliftWithStatus, e: React.MouseEvent) => {
     e.stopPropagation();
     const customerId = forklift.rental_customer_id || forklift.current_customer_id || '';
-    navigate(`/jobs/create?forklift_id=${forklift.forklift_id}&customer_id=${customerId}`);
+    navigate(`/jobs/new?forklift_id=${forklift.forklift_id}&customer_id=${customerId}`);
   };
 
   return (
