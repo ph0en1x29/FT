@@ -21,6 +21,7 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-03-09 11:24] [Codex] Pulled latest main and compared imported debtor customer data against /Users/jay/Downloads/DEBTORS.xls
 [2026-03-09 12:21] [Codex] Implemented rental/hourmeter import-prep migration, dry-run parser/report CLI, and compatibility updates without importing live data
 [2026-03-09 12:32] [Codex] Documented rental/hourmeter import-prep changes, re-verified build/lint/tests, and prepared scoped commit/push on main
+[2026-03-09 23:56] [Sonnet] Batch delete jobs with multi-select: selection mode, checkbox overlay, confirmation modal, soft-delete handler
 
 ## 2026-03-09 05:10 AM — Customer Fields UI Update [Sonnet]
 
