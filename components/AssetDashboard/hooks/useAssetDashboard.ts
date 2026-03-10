@@ -32,26 +32,6 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
     else setLoading(true);
 
     try {
-      // Lightweight forklift fetch — only the fields the dashboard actually needs
-      const forkliftData = await SupabaseDb.getForkliftsLightweightForDashboard();
-
-      // Active rentals (already filtered server-side)
-      const { data: rentalsData, error: rentalsError } = await supabase
-        .from('forklift_rentals')
-        .select(`
-          rental_id,
-          forklift_id,
-          customer_id,
-          status,
-          end_date,
-          customers (name)
-        `)
-        .eq('status', 'active');
-      
-      if (rentalsError) {
-        console.error('Error fetching rentals:', rentalsError);
-      }
-
       // Open jobs — lightweight: only job_id, forklift_id, status (no relations)
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -79,7 +59,30 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
         metricsQuery = metricsQuery.eq('assigned_technician_id', currentUser.user_id);
       }
 
-      const [{ data: openJobsData, error: openJobsError }, { data: completedJobsData }] = await Promise.all([
+      // Active rentals query
+      const rentalsQuery = supabase
+        .from('forklift_rentals')
+        .select(`
+          rental_id,
+          forklift_id,
+          customer_id,
+          status,
+          end_date,
+          customers (name)
+        `)
+        .eq('status', 'active');
+
+      // Parallel fetch: lightweight forklifts, fleet counts RPC, rentals, jobs, metrics
+      const [
+        forkliftData,
+        fleetCounts,
+        { data: rentalsData, error: rentalsError },
+        { data: openJobsData, error: openJobsError },
+        { data: completedJobsData }
+      ] = await Promise.all([
+        SupabaseDb.getForkliftsLightweightForDashboard(),
+        SupabaseDb.getFleetStatusCounts(),
+        rentalsQuery,
         openJobsQuery,
         metricsQuery,
       ]);
@@ -161,6 +164,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
       });
 
       setForklifts(processedForklifts);
+      setRpcFleetCounts(fleetCounts);
 
       // Calculate metrics from the lightweight completed-jobs query
       let totalDurationHours = 0;
@@ -194,8 +198,19 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Store RPC fleet counts for header
+  const [rpcFleetCounts, setRpcFleetCounts] = useState<{
+    total: number;
+    rented_out: number;
+    available: number;
+    out_of_service: number;
+    awaiting_parts: number;
+    reserved: number;
+  } | null>(null);
+
   // Computed: status counts
   const statusCounts = useMemo<StatusCounts>(() => {
+    // Start with client-side counts from forklifts array (capped at 1000 by PostgREST)
     const counts: StatusCounts = {
       out_of_service: 0,
       rented_out: 0,
@@ -207,8 +222,19 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
       total: forklifts.length
     };
     forklifts.forEach(f => counts[f.operational_status]++);
+
+    // Override with accurate RPC counts where available (not capped by max_rows)
+    if (rpcFleetCounts) {
+      counts.total = rpcFleetCounts.total;
+      counts.rented_out = rpcFleetCounts.rented_out;
+      counts.available = rpcFleetCounts.available;
+      counts.out_of_service = rpcFleetCounts.out_of_service;
+      counts.awaiting_parts = rpcFleetCounts.awaiting_parts;
+      counts.reserved = rpcFleetCounts.reserved;
+    }
+    
     return counts;
-  }, [forklifts]);
+  }, [forklifts, rpcFleetCounts]);
 
   // Computed: filtered forklifts
   const filteredForklifts = useMemo(() => {

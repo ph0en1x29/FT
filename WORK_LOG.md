@@ -48,6 +48,10 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 - [2026-03-09 05:32] [Sonnet] Updated Customers.tsx — null-safe search filter for address/email fields
 
+- [2026-03-09 21:10] [Sonnet] Added getFleetStatusCounts() RPC function in forkliftService.ts to bypass PostgREST max_rows limit for dashboard header counts
+- [2026-03-09 21:10] [Sonnet] Exported getFleetStatusCounts() through supabaseService.ts SupabaseDb object
+- [2026-03-09 21:10] [Sonnet] Updated useAssetDashboard.ts to fetch fleet counts via RPC in parallel, override total/rented_out/available from RPC while keeping client-side in_service/service_due logic
+
 - [2026-03-09 05:39] [Sonnet] Updated Customers.tsx — server-side pagination with debounced search (50/page)
 - [2026-03-09 05:39] [Sonnet] Updated customerService.ts — added getCustomersPage() with .range() and count:'exact'
 - [2026-03-09 05:39] [Sonnet] Updated supabaseService.ts — re-exported getCustomersPage

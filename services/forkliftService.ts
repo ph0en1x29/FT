@@ -185,6 +185,26 @@ export const getForkliftsLightweightForDashboard = async (): Promise<ForkliftDas
   return (data || []) as unknown as ForkliftDashboardRow[];
 };
 
+/**
+ * Fleet status counts from RPC — bypasses PostgREST max_rows limit.
+ * Use for dashboard header counts where accuracy > 1000 is required.
+ */
+export interface FleetStatusCounts {
+  total: number;
+  rented_out: number;
+  available: number;
+  out_of_service: number;
+  awaiting_parts: number;
+  reserved: number;
+}
+
+export const getFleetStatusCounts = async (): Promise<FleetStatusCounts> => {
+  const { data, error } = await supabase.rpc('get_fleet_status_counts');
+  
+  if (error) throw new Error(error.message);
+  return data as FleetStatusCounts;
+};
+
 export const getForkliftsWithCustomers = async (): Promise<Forklift[]> => {
   try {
     const { data: forklifts, error: forkliftError } = await supabase

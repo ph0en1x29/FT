@@ -87,7 +87,7 @@ getForkliftServiceHistory,
 getForkliftServiceHistoryWithCancelled,getForkliftWithCustomer,
 // Forklift CRUD
 getForklifts,
-getForkliftsForList,getForkliftsLightweightForDashboard,getForkliftsWithCustomers,getHourmeterAmendments,getJobHourmeterAmendment,getRentals,
+getForkliftsForList,getForkliftsLightweightForDashboard,getFleetStatusCounts,getForkliftsWithCustomers,getHourmeterAmendments,getJobHourmeterAmendment,getRentals,
 // Scheduled Services
 getScheduledServices,
 // Service Intervals
@@ -210,6 +210,7 @@ export const SupabaseDb = {
   getForkliftWithCustomer: forklifts.getForkliftWithCustomer,
   getForkliftsWithCustomers: forklifts.getForkliftsWithCustomers,
   getForkliftsLightweightForDashboard: forklifts.getForkliftsLightweightForDashboard,
+  getFleetStatusCounts: forklifts.getFleetStatusCounts,
   createForklift: forklifts.createForklift,
   updateForklift: forklifts.updateForklift,
   deleteForklift: forklifts.deleteForklift,
