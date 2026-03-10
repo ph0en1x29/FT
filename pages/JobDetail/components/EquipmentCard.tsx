@@ -107,21 +107,21 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
             </button>
           </div>
         ) : (
-          <>
-            <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-sm text-[var(--text)]">Equipment</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-sm text-[var(--text)]">Equipment</h3>
+            <div className="flex items-center gap-1.5">
               <p className="text-xs text-[var(--text-muted)] truncate">{job.forklift.make} {job.forklift.model}</p>
+              {canSwitchForklift && (
+                <button 
+                  onClick={() => setSwitchingForklift(true)} 
+                  className="p-1 text-[var(--warning)] hover:bg-[var(--warning-bg)] rounded transition-colors"
+                  title="Switch forklift"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-            {canSwitchForklift && (
-              <button 
-                onClick={() => setSwitchingForklift(true)} 
-                className="p-1.5 text-[var(--warning)] hover:bg-[var(--warning-bg)] rounded transition-colors"
-                title="Switch forklift"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            )}
-          </>
+          </div>
         )}
       </div>
       
