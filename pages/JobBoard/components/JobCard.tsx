@@ -81,6 +81,21 @@ export const JobCard: React.FC<JobCardProps> = ({
         </div>
       )}
 
+      {/* Selection checkbox (admin/supervisor only, selection mode) */}
+      {selectionMode && (
+        <div className="absolute top-4 left-4 z-10">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => {
+              // Prevent event bubbling, handled by parent click
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          />
+        </div>
+      )}
+
       {/* Job Number — prominent, top of card */}
       {job.job_number && (
         <div className="mb-2">

@@ -116,6 +116,19 @@ export const markNotificationRead = async (notificationId: string): Promise<void
   }
 };
 
+export const markNotificationReadByReference = async (userId: string, referenceId: string): Promise<void> => {
+  try {
+    await supabase
+      .from('notifications')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('reference_id', referenceId)
+      .eq('is_read', false);
+  } catch (_e) {
+    /* Silently ignore */
+  }
+};
+
 export const markAllNotificationsRead = async (userId: string): Promise<void> => {
   try {
     await supabase

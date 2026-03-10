@@ -1,56 +1,78 @@
-import { AlertTriangle, X } from 'lucide-react';
 import React from 'react';
+import { AlertTriangle } from 'lucide-react';
 
 interface ConfirmBatchDeleteModalProps {
-  count: number;
   show: boolean;
-  isProcessing: boolean;
+  jobCount: number;
+  deletionReason: string;
+  onReasonChange: (reason: string) => void;
   onConfirm: () => void;
   onCancel: () => void;
+  isProcessing: boolean;
 }
 
+/**
+ * Modal dialog for confirming batch deletion of jobs
+ */
 export const ConfirmBatchDeleteModal: React.FC<ConfirmBatchDeleteModalProps> = ({
-  count,
   show,
-  isProcessing,
+  jobCount,
+  deletionReason,
+  onReasonChange,
   onConfirm,
   onCancel,
+  isProcessing,
 }) => {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-6">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" 
+      onClick={onCancel}
+    >
+      <div 
+        className="bg-[var(--surface)] rounded-xl shadow-xl p-6 w-full max-w-md mx-4" 
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-start gap-3 mb-4">
-          <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-              Delete {count} job{count !== 1 ? 's' : ''}?
+          <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-lg font-semibold text-slate-800">
+              Delete {jobCount} {jobCount === 1 ? 'Job' : 'Jobs'}?
             </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              This action can be undone from the Deleted Jobs section.
+            <p className="text-sm text-slate-600 mt-1">
+              This action can be undone from the Deleted Jobs section within 30 days.
             </p>
           </div>
-          <button onClick={onCancel} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
-            <X className="w-4 h-4 text-slate-400" />
-          </button>
         </div>
-        <div className="flex gap-3 justify-end">
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Reason for deletion (optional)
+          </label>
+          <textarea
+            value={deletionReason}
+            onChange={(e) => onReasonChange(e.target.value)}
+            placeholder="Enter reason for deleting these jobs..."
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+            rows={3}
+          />
+        </div>
+
+        <div className="flex gap-3">
           <button
             onClick={onCancel}
             disabled={isProcessing}
-            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+            className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isProcessing}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
           >
-            {isProcessing ? 'Deleting...' : `Delete ${count} Job${count !== 1 ? 's' : ''}`}
+            {isProcessing ? 'Deleting...' : 'Delete Jobs'}
           </button>
         </div>
       </div>

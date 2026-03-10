@@ -1,4 +1,5 @@
 import React,{ useState } from 'react';
+import { markNotificationReadByReference } from '../../../services/notificationService';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { Job,JobStatus,User } from '../../../types';
@@ -38,6 +39,8 @@ export function useJobAcceptance({ currentUser, onJobUpdated }: UseJobAcceptance
     setProcessingJobId(jobId);
     try {
       await MockDb.acceptJobAssignment(jobId, currentUser.user_id, currentUser.name);
+      // Auto-mark the assignment notification as read
+      markNotificationReadByReference(currentUser.user_id, jobId);
       showToast.success('Job accepted', 'You can now start the job when ready.');
       onJobUpdated();
     } catch (err) {
