@@ -14,7 +14,7 @@ const ForkliftSelectionSection: React.FC<ForkliftSelectionSectionProps> = ({
     .filter(f => f.status !== 'Out of Service' && f.status !== 'Inactive')
     .map(f => ({
       id: f.forklift_id,
-      label: `${f.serial_number} — ${f.make} ${f.model}`,
+      label: `${f.forklift_no ? `${f.forklift_no} · ` : ''}${f.serial_number} — ${f.make} ${f.model}`,
       subLabel: `${f.type} · ${f.hourmeter.toLocaleString()} hrs`
     }));
 
