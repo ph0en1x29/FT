@@ -252,12 +252,12 @@ export const JobListRow: React.FC<JobListRowProps> = ({
       </div>
 
       {/* Job # */}
-      <span className="shrink-0 text-xs font-mono text-theme-muted w-[52px]">
+      <span className="shrink-0 text-xs font-mono text-theme-muted w-[130px]">
         {job.job_number ? `#${job.job_number}` : '—'}
       </span>
 
       {/* Status + Type pills */}
-      <div className="flex items-center gap-1.5 shrink-0 w-[160px]">
+      <div className="flex items-center gap-1.5 shrink-0 w-[150px]">
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${getStatusColor(job.status)}`}>
           {job.status}
         </span>
@@ -274,17 +274,17 @@ export const JobListRow: React.FC<JobListRowProps> = ({
       </span>
 
       {/* Customer */}
-      <span className="shrink-0 w-[140px] truncate text-xs text-theme-muted">
+      <span className="shrink-0 w-[150px] truncate text-xs text-theme-muted">
         {job.customer?.name || '—'}
       </span>
 
       {/* Equipment */}
-      <span className="shrink-0 w-[120px] truncate text-xs font-mono text-theme-muted">
+      <span className="shrink-0 w-[100px] truncate text-xs font-mono text-theme-muted">
         {job.forklift?.forklift_no || job.forklift?.serial_number || '—'}
       </span>
 
       {/* Technician */}
-      <span className="shrink-0 w-[110px] truncate text-xs text-theme-muted">
+      <span className="shrink-0 w-[120px] truncate text-xs text-theme-muted">
         {job.assigned_technician_name || '—'}
       </span>
 
