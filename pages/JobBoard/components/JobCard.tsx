@@ -15,6 +15,9 @@ interface JobCardProps {
   onNavigate: (jobId: string) => void;
   onAccept: (e: React.MouseEvent, jobId: string) => void;
   onReject: (e: React.MouseEvent, jobId: string) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (jobId: string) => void;
 }
 
 /** Returns a colored left-border class based on job status/priority */
@@ -46,12 +49,38 @@ export const JobCard: React.FC<JobCardProps> = ({
   onNavigate,
   onAccept,
   onReject,
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelect,
 }) => {
+  const handleCardClick = () => {
+    if (selectionMode && onToggleSelect) {
+      onToggleSelect(job.job_id);
+    } else {
+      onNavigate(job.job_id);
+    }
+  };
+
   return (
     <div 
-      onClick={() => onNavigate(job.job_id)}
-      className={`card-theme p-5 rounded-xl clickable-card group theme-transition ${getStatusBorderColor(job)}`}
+      onClick={handleCardClick}
+      className={`card-theme p-5 rounded-xl clickable-card group theme-transition ${getStatusBorderColor(job)} ${
+        isSelected ? 'ring-2 ring-blue-500 bg-blue-50/50 dark:bg-blue-900/20' : ''
+      } relative`}
     >
+      {/* Selection checkbox overlay */}
+      {selectionMode && (
+        <div className="absolute top-3 left-3 z-10">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelect && onToggleSelect(job.job_id)}
+            onClick={(e) => e.stopPropagation()}
+            className="w-5 h-5 rounded border-2 border-slate-300 checked:bg-blue-600 checked:border-blue-600 cursor-pointer"
+          />
+        </div>
+      )}
+
       {/* Job Number — prominent, top of card */}
       {job.job_number && (
         <div className="mb-2">

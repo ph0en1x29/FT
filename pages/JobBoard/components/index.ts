@@ -1,4 +1,5 @@
 export { BulkSignOffModal } from './BulkSignOffModal';
+export { ConfirmBatchDeleteModal } from './ConfirmBatchDeleteModal';
 export { DeletedJobsSection } from './DeletedJobsSection';
 export { EmptyJobsState } from './EmptyJobsState';
 export { JobCard } from './JobCard';

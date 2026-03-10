@@ -2,7 +2,10 @@ import React,{ useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { UserRole } from '../../types';
+import { deleteJob } from '../../services/jobCrudService';
+import { showToast } from '../../services/toastService';
 import {
+ConfirmBatchDeleteModal,
 DeletedJobsSection,
 EmptyJobsState,
 JobCard,
@@ -24,6 +27,12 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
   
   // State for deleted jobs section visibility
   const [showDeletedSection, setShowDeletedSection] = useState(false);
+
+  // Multi-select batch delete state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
+  const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Derived state
   const isTechnician = displayRole === UserRole.TECHNICIAN;
@@ -80,19 +89,67 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     setStatusFilter('all');
   };
 
+  // Batch delete handlers
+  const handleToggleSelectionMode = () => {
+    setSelectionMode(prev => !prev);
+    setSelectedJobs(new Set());
+  };
+
+  const handleToggleSelect = (jobId: string) => {
+    setSelectedJobs(prev => {
+      const next = new Set(prev);
+      if (next.has(jobId)) next.delete(jobId);
+      else next.add(jobId);
+      return next;
+    });
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedJobs.size === 0) return;
+    setIsDeleting(true);
+    try {
+      for (const jobId of selectedJobs) {
+        await deleteJob(jobId, currentUser.user_id, currentUser.name, 'Batch delete');
+      }
+      showToast.success(`Deleted ${selectedJobs.size} job${selectedJobs.size > 1 ? 's' : ''}`);
+      setSelectedJobs(new Set());
+      setSelectionMode(false);
+      setShowBatchDeleteModal(false);
+      await fetchJobs();
+    } catch (error) {
+      showToast.error('Failed to delete some jobs', (error as Error).message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {!hideHeader && (
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-theme">
-            {displayRole === UserRole.TECHNICIAN ? 'My Jobs' : 'Job Board'}
+            {isTechnician ? 'My Jobs' : 'Job Board'}
           </h1>
-          {hasPermission('canCreateJobs') && (
-            <button onClick={() => navigate('/jobs/new')}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition">
-              + New Job
-            </button>
-          )}
+          <div className="flex gap-2">
+            {hasPermission('canDeleteJobs') && !isTechnician && (
+              <button 
+                onClick={handleToggleSelectionMode}
+                className={`px-4 py-2 rounded-lg shadow transition text-sm font-medium ${
+                  selectionMode 
+                    ? 'bg-slate-600 text-white hover:bg-slate-700' 
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                {selectionMode ? 'Cancel' : 'Select'}
+              </button>
+            )}
+            {hasPermission('canCreateJobs') && (
+              <button onClick={() => navigate('/jobs/new')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition">
+                + New Job
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -153,6 +210,9 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
               onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
               onAccept={handleAcceptJob}
               onReject={handleOpenRejectModal}
+              selectionMode={selectionMode}
+              isSelected={selectedJobs.has(job.job_id)}
+              onToggleSelect={handleToggleSelect}
             />
           );
           return (
@@ -198,6 +258,9 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
               onNavigate={(jobId) => navigate(`/jobs/${jobId}`)}
               onAccept={handleAcceptJob}
               onReject={handleOpenRejectModal}
+              selectionMode={selectionMode}
+              isSelected={selectedJobs.has(job.job_id)}
+              onToggleSelect={handleToggleSelect}
             />
           ))}
 
@@ -210,6 +273,23 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
         </div>
       )}
 
+      {/* Floating action bar for batch delete */}
+      {selectionMode && selectedJobs.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+          <div className="bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-4">
+            <span className="font-medium text-sm">
+              {selectedJobs.size} job{selectedJobs.size > 1 ? 's' : ''} selected
+            </span>
+            <button
+              onClick={() => setShowBatchDeleteModal(true)}
+              className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition"
+            >
+              Delete Selected
+            </button>
+          </div>
+        </div>
+      )}
+
       {canViewDeleted && (
         <DeletedJobsSection
           deletedJobs={deletedJobs}
@@ -217,6 +297,14 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           onToggle={() => setShowDeletedSection(!showDeletedSection)}
         />
       )}
+
+      <ConfirmBatchDeleteModal
+        count={selectedJobs.size}
+        show={showBatchDeleteModal}
+        isProcessing={isDeleting}
+        onConfirm={handleBatchDelete}
+        onCancel={() => setShowBatchDeleteModal(false)}
+      />
 
       <RejectJobModal
         show={showRejectModal}
