@@ -24,17 +24,7 @@ export const ForkliftInfoCard: React.FC<ForkliftInfoCardProps> = ({
   onEdit,
 }) => {
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm p-6 border border-blue-100 relative">
-      {/* Edit Button */}
-      {isAdmin && onEdit && (
-        <button
-          onClick={onEdit}
-          className="absolute top-4 right-4 p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors z-10"
-          title="Edit Forklift"
-        >
-          <Edit2 className="w-4 h-4" />
-        </button>
-      )}
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm p-6 border border-blue-100">
       <div className="flex justify-between items-start">
         {/* Left Side - Info */}
         <div className="space-y-3">
@@ -43,7 +33,18 @@ export const ForkliftInfoCard: React.FC<ForkliftInfoCardProps> = ({
               <Truck className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">{forklift.make} {forklift.model}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-bold text-slate-900">{forklift.make} {forklift.model}</h2>
+                {isAdmin && onEdit && (
+                  <button
+                    onClick={onEdit}
+                    className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-lg transition-colors"
+                    title="Edit Forklift"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
               <p className="text-sm text-slate-500">S/N: {forklift.serial_number}</p>
             </div>
           </div>
