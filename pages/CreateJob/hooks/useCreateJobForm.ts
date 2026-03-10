@@ -4,6 +4,7 @@ import { useNavigate,useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { useForkliftsForList,useSearchCustomers,useTechnicians } from '../../../hooks/useQueryHooks';
 import { getCustomerById,getCustomerContacts,getCustomerSites } from '../../../services/customerService';
+import { supabase } from '../../../services/supabaseClient';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { Customer,Forklift,JobPriority,JobStatus,JobType,User } from '../../../types';
@@ -126,6 +127,26 @@ export function useCreateJobForm(currentUser: User) {
       return;
     }
     
+    // Check for existing active job on the same forklift
+    if (formData.forklift_id) {
+      const { data: existingJobs } = await supabase
+        .from('jobs')
+        .select('job_id, title, status')
+        .eq('forklift_id', formData.forklift_id)
+        .is('deleted_at', null)
+        .not('status', 'in', `("${JobStatus.COMPLETED}","${JobStatus.CANCELLED}")`)
+        .limit(1);
+
+      if (existingJobs && existingJobs.length > 0) {
+        const existing = existingJobs[0];
+        showToast.error(
+          'Forklift already has an active job',
+          `Job "${existing.title}" is currently ${existing.status}. Complete or cancel it before creating a new one.`
+        );
+        return;
+      }
+    }
+
     // Determine assignee
     let assignedId = '';
     let assignedName = '';
