@@ -130,7 +130,7 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
         <div className="flex flex-wrap gap-2 mb-3">
           {job.forklift.customer_forklift_no && (
             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-              Customer No: {job.forklift.customer_forklift_no}
+              Cust FL#: {job.forklift.customer_forklift_no}
             </span>
           )}
           {activeRental?.rental_location && (
