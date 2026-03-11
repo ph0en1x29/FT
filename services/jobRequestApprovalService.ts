@@ -32,6 +32,21 @@ export const approveSparePartRequest = async (
     if (reqError || !request) return false;
     if (!items || items.length === 0) return false;
 
+    // Clear any stale data from a previous failed attempt
+    await supabase
+      .from('job_requests')
+      .update({
+        admin_response_part_id: null,
+        admin_response_quantity: null,
+        admin_response_notes: null,
+        responded_by: null,
+        responded_at: null,
+        issued_by: null,
+        issued_at: null,
+      })
+      .eq('request_id', requestId)
+      .eq('status', 'pending');
+
     // Validate stock for all items upfront
     type PartInfo = { part_name: string; sell_price: number; stock_quantity: number };
     const partInfoMap: Record<string, PartInfo> = {};
