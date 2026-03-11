@@ -30,8 +30,8 @@ export interface ForkliftsPage {
   pageSize: number;
 }
 
-const FORKLIFT_SELECT = 'forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, current_site_id, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, delivery_date, source_item_group, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update';
-const LEGACY_FORKLIFT_SELECT = 'forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update';
+const FORKLIFT_SELECT = 'forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, current_site_id, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, delivery_date, source_item_group, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update, ownership_type';
+const LEGACY_FORKLIFT_SELECT = 'forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update, ownership_type';
 
 const isMissingColumnError = (error: { message?: string } | null | undefined) =>
   /column .* does not exist/i.test(error?.message || '') ||
@@ -307,6 +307,7 @@ export const getForkliftsPage = async (filters: ForkliftsPageFilters = {}): Prom
   let query = supabase
     .from('forklifts')
     .select(selectStr, { count: 'exact' })
+    .eq('ownership_type', 'fleet')
     .order('serial_number')
     .range((page - 1) * pageSize, page * pageSize - 1);
 
@@ -340,6 +341,7 @@ export const getForkliftsPage = async (filters: ForkliftsPageFilters = {}): Prom
     let legacyQuery = supabase
       .from('forklifts')
       .select(LEGACY_FORKLIFT_SELECT, { count: 'exact' })
+      .eq('ownership_type', 'fleet')
       .order('serial_number')
       .range((page - 1) * pageSize, page * pageSize - 1);
 
@@ -442,6 +444,7 @@ export const createForklift = async (forkliftData: Partial<Forklift>): Promise<F
     current_customer_id: forkliftData.current_customer_id,
     delivery_date: forkliftData.delivery_date,
     source_item_group: forkliftData.source_item_group,
+    ownership_type: forkliftData.ownership_type || 'fleet',
     notes: forkliftData.notes,
   };
 

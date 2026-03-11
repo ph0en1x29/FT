@@ -214,6 +214,7 @@ export interface Job {
   first_hourmeter_recorded_by_id?: string;  // Technician who first recorded the hourmeter
   first_hourmeter_recorded_by_name?: string;
   first_hourmeter_recorded_at?: string;     // When the hourmeter was first recorded
+  billing_type?: 'rental-inclusive' | 'chargeable';
 
   // Condition checklist (checked when starting job)
   condition_checklist?: ForkliftConditionChecklist;

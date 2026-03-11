@@ -159,6 +159,7 @@ export interface Forklift {
   next_target_service_hour?: number; // Auto-calculated: last_serviced + interval
   last_hourmeter_update?: string; // Timestamp of last hourmeter reading (for stale detection)
   source_item_group?: string;
+  ownership_type?: 'fleet' | 'external';
 }
 
 // Rental Status

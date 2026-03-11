@@ -118,9 +118,16 @@ const RentalsSection: React.FC<RentalsSectionProps> = ({
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-800 text-sm truncate">
-                        {rental.forklift?.make} {rental.forklift?.model}
-                      </span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-semibold text-slate-800 text-sm truncate">
+                          {rental.forklift?.make} {rental.forklift?.model}
+                        </span>
+                        {rental.forklift?.ownership_type === 'external' && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded flex-shrink-0">
+                            External
+                          </span>
+                        )}
+                      </div>
                       {!isSelectionMode && <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />}
                     </div>
                     <p className="text-xs text-slate-500 font-mono">{rental.forklift?.serial_number}</p>

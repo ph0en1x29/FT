@@ -4,6 +4,22 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+## 2026-03-11
+
+[2026-03-11 19:47] [Sonnet] Fix missing logError import: services/jobStatusService.ts
+  - Added logError to imports from supabaseClient to fix TypeScript errors in markJobContinueTomorrow and resumeMultiDayJob functions
+
+[2026-03-11 19:47] [Sonnet] External forklift support with inline creation and billing type: types/forklift.types.ts, types/job-core.types.ts, services/forkliftService.ts, pages/CreateJob/CreateJobPage.tsx, pages/CreateJob/components/ExternalForkliftSection.tsx, pages/CreateJob/components/index.ts, pages/CreateJob/hooks/useCreateJobForm.ts, pages/CreateJob/types.ts, pages/CustomerProfile/components/RentalsSection.tsx
+  - types/forklift.types.ts: Added ownership_type?: 'fleet' | 'external' to Forklift interface
+  - types/job-core.types.ts: Added billing_type?: 'rental-inclusive' | 'chargeable' to Job interface
+  - services/forkliftService.ts: Added ownership_type to FORKLIFT_SELECT and LEGACY_FORKLIFT_SELECT; Added .eq('ownership_type', 'fleet') filter to getForkliftsPage() main and legacy queries; Added ownership_type: forkliftData.ownership_type || 'fleet' to createForklift() payload
+  - pages/CreateJob/types.ts: Added billing_type to CreateJobFormData interface
+  - pages/CreateJob/hooks/useCreateJobForm.ts: Added billing_type: 'rental-inclusive' to initial form state; Auto-set billing_type to 'chargeable' when external forklift selected; Added handleCreateExternalForklift function; Include billing_type in job submission payload
+  - pages/CreateJob/components/ExternalForkliftSection.tsx: New collapsible inline form for creating external forklifts — fields: serial_number (required), make, model, type (dropdown), hourmeter; On submit: creates forklift with ownership_type: 'external', current_customer_id, status: 'Active', auto-selects newly created forklift
+  - pages/CreateJob/CreateJobPage.tsx: Added ExternalForkliftSection after ForkliftSelectionSection
+  - pages/CustomerProfile/components/RentalsSection.tsx: Added "External" badge for forklifts with ownership_type === 'external'
+  - Build: ✅ Pass (✓ 2448 modules transformed, ✓ built in 5.48s)
+
 ## 2026-03-10
 
 [2026-03-10 15:30] [Sonnet] Job board performance optimization: jobService.ts, useJobData.ts, useJobFilters.ts, JobBoard.tsx, JobCard.tsx, JobListRow.tsx, QuickStats.tsx, useDebounce.ts

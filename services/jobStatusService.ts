@@ -7,7 +7,7 @@
 import type { Job,JobStatus } from '../types';
 import { ForkliftStatus,JobStatus as JobStatusEnum } from '../types';
 import { notifyPendingFinalization } from './notificationService';
-import { logDebug,supabase } from './supabaseClient';
+import { logDebug,logError,supabase } from './supabaseClient';
 
 // =====================
 // STATUS TRANSITIONS

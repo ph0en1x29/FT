@@ -12,6 +12,7 @@ export interface CreateJobFormData {
   hourmeter_reading: string;
   contact_id: string;
   site_id: string;
+  billing_type: 'rental-inclusive' | 'chargeable';
 }
 
 export interface NewCustomerFormData {

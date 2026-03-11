@@ -2,7 +2,7 @@ import { ArrowLeft,Building2,ClipboardList,MapPin,Phone,Save,Truck,User,UserChec
 import React,{ useMemo } from 'react';
 import { Combobox,ComboboxOption } from '../../components/Combobox';
 import { ForkliftStatus,JobPriority,JobType,User as UserType } from '../../types';
-import { ForkliftSelectionSection,NewCustomerModal } from './components';
+import { ExternalForkliftSection,ForkliftSelectionSection,NewCustomerModal } from './components';
 import { INPUT_CLASS_NAME } from './constants';
 import { useCreateJobForm } from './hooks';
 
@@ -29,6 +29,7 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
     newCustomerNameQuery,
     handleSubmit,
     handleCreateCustomer,
+    handleCreateExternalForklift,
     openNewCustomerModal,
     navigate,
   } = useCreateJobForm(currentUser);
@@ -123,6 +124,13 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
                 setFormData={setFormData}
                 forklifts={formData.customer_id ? forklifts.filter(f => f.current_customer_id === formData.customer_id) : forklifts}
                 selectedForklift={selectedForklift}
+                inputClassName={INPUT_CLASS_NAME}
+              />
+
+              <ExternalForkliftSection
+                customerId={formData.customer_id}
+                customerForklifts={customerForklifts}
+                onCreateExternal={handleCreateExternalForklift}
                 inputClassName={INPUT_CLASS_NAME}
               />
 

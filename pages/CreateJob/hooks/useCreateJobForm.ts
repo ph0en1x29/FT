@@ -52,6 +52,7 @@ export function useCreateJobForm(currentUser: User) {
     hourmeter_reading: '',
     contact_id: prefilledContactId || '',
     site_id: prefilledSiteId || '',
+    billing_type: 'rental-inclusive',
   });
 
   // Fetch selected customer details for sidebar display
@@ -105,12 +106,18 @@ export function useCreateJobForm(currentUser: User) {
           if (forklift.current_site_id && !prev.site_id) {
             updates.site_id = forklift.current_site_id;
           }
+          // Set billing_type based on ownership_type
+          if (forklift.ownership_type === 'external') {
+            updates.billing_type = 'chargeable';
+          } else {
+            updates.billing_type = 'rental-inclusive';
+          }
           return { ...prev, ...updates };
         });
       }
     } else {
       setSelectedForklift(null);
-      setFormData(prev => ({ ...prev, hourmeter_reading: '' }));
+      setFormData(prev => ({ ...prev, hourmeter_reading: '', billing_type: 'rental-inclusive' }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.forklift_id, forklifts]);
@@ -177,6 +184,7 @@ export function useCreateJobForm(currentUser: User) {
           hourmeter_reading: hourmeterReading,
           contact_id: formData.contact_id || undefined,
           site_id: formData.site_id || undefined,
+          billing_type: formData.billing_type,
         },
         currentUser.user_id,  // Created by ID
         currentUser.name      // Created by Name
@@ -214,6 +222,42 @@ export function useCreateJobForm(currentUser: User) {
     setShowNewCustomerModal(true);
   };
 
+  // Handle creating external forklift
+  const handleCreateExternalForklift = async (externalForkliftData: {
+    serial_number: string;
+    make: string;
+    model: string;
+    type: string;
+    hourmeter: number;
+  }) => {
+    if (!formData.customer_id) {
+      showToast.error('Please select a customer first');
+      return;
+    }
+
+    try {
+      const { createForklift } = await import('../../../services/forkliftService');
+      const newForklift = await createForklift({
+        serial_number: externalForkliftData.serial_number,
+        make: externalForkliftData.make,
+        model: externalForkliftData.model,
+        type: externalForkliftData.type as any,
+        hourmeter: externalForkliftData.hourmeter,
+        ownership_type: 'external',
+        current_customer_id: formData.customer_id,
+        status: 'Active' as any,
+      });
+
+      // Auto-select the newly created forklift
+      setFormData(prev => ({ ...prev, forklift_id: newForklift.forklift_id }));
+      showToast.success('External forklift added and selected');
+      return newForklift;
+    } catch (error) {
+      showToast.error('Failed to create external forklift', (error as Error).message);
+      throw error;
+    }
+  };
+
   return {
     // Form state
     formData,
@@ -241,6 +285,7 @@ export function useCreateJobForm(currentUser: User) {
     // Handlers
     handleSubmit,
     handleCreateCustomer,
+    handleCreateExternalForklift,
     openNewCustomerModal,
     
     // Navigation
