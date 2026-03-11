@@ -50,6 +50,7 @@ export const getCustomers = async (): Promise<Customer[]> => {
     const { data, error } = await supabase
       .from('customers')
       .select('customer_id, name, phone, email, address, notes, contact_person, account_number, registration_no, tax_entity_id, credit_term, agent, phone_secondary')
+      .eq('is_active', true)
       .order('name')
       .range(from, from + PAGE_SIZE - 1);
 
@@ -74,6 +75,7 @@ export const getCustomersForList = async (): Promise<Pick<Customer, 'customer_id
     const { data, error } = await supabase
       .from('customers')
       .select('customer_id, name, address')
+      .eq('is_active', true)
       .order('name')
       .range(from, from + PAGE_SIZE - 1);
 
@@ -113,6 +115,7 @@ export const searchCustomers = async (
     const { data, error } = await supabase
       .from('customers')
       .select('customer_id, name')
+      .eq('is_active', true)
       .order('name')
       .limit(limit);
     if (error) throw new Error(error.message);
@@ -122,6 +125,7 @@ export const searchCustomers = async (
   const { data, error } = await supabase
     .from('customers')
     .select('customer_id, name')
+    .eq('is_active', true)
     .ilike('name', `%${escaped}%`)
     .order('name')
     .limit(limit);
@@ -141,6 +145,7 @@ export const getCustomersPage = async (filters: CustomersPageFilters = {}): Prom
   let query = supabase
     .from('customers')
     .select(CUSTOMERS_SELECT, { count: 'exact' })
+    .eq('is_active', true)
     .order('name')
     .range((page - 1) * pageSize, (page * pageSize) - 1);
 

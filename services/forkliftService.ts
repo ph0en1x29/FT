@@ -298,6 +298,7 @@ export const getForkliftsPage = async (filters: ForkliftsPageFilters = {}): Prom
     const { data: matchedCx } = await supabase
       .from('customers')
       .select('customer_id')
+      .eq('is_active', true)
       .ilike('name', `%${escaped}%`);
     matchingCustomerIds = (matchedCx || []).map((c: { customer_id: string }) => c.customer_id);
   }
