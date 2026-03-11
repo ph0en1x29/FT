@@ -163,30 +163,30 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
  */
 export const markJobContinueTomorrow = async (
   jobId: string,
-  hourmeter: number | undefined,
-  _userId: string,
-  _userName: string
-): Promise<Job> => {
+  reason: string,
+  userId: string,
+  userName: string
+): Promise<boolean> => {
   logDebug('[JobService] markJobContinueTomorrow called for job:', jobId);
   
-  const updateData: Record<string, unknown> = {
-    status: 'continue_tomorrow',
-    updated_at: new Date().toISOString()
-  };
-  
-  if (hourmeter !== undefined) {
-    updateData.hourmeter_reading = hourmeter;
-  }
-  
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('jobs')
-    .update(updateData)
-    .eq('job_id', jobId)
-    .select()
-    .single();
+    .update({
+      status: 'Incomplete - Continuing',
+      notes: supabase.rpc ? undefined : undefined, // Notes handled separately if needed
+      updated_at: new Date().toISOString(),
+    })
+    .eq('job_id', jobId);
   
-  if (error) throw new Error(error.message);
-  return data as Job;
+  if (error) {
+    logError('[JobService] markJobContinueTomorrow failed:', error.message);
+    return false;
+  }
+
+  // Add continue reason as a note via job_notes or similar
+  // For now, log the reason
+  logDebug(`[JobService] Job ${jobId} marked continue tomorrow by ${userName}: ${reason}`);
+  return true;
 };
 
 /**
@@ -196,19 +196,20 @@ export const resumeMultiDayJob = async (
   jobId: string,
   _userId: string,
   _userName: string
-): Promise<Job> => {
+): Promise<boolean> => {
   logDebug('[JobService] resumeMultiDayJob called for job:', jobId);
   
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('jobs')
     .update({
-      status: 'in_progress',
+      status: 'In Progress',
       updated_at: new Date().toISOString()
     })
-    .eq('job_id', jobId)
-    .select()
-    .single();
+    .eq('job_id', jobId);
   
-  if (error) throw new Error(error.message);
-  return data as Job;
+  if (error) {
+    logError('[JobService] resumeMultiDayJob failed:', error.message);
+    return false;
+  }
+  return true;
 };
