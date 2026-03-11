@@ -237,7 +237,7 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
   return (
     <div
       onClick={handleClick}
-      className={`flex items-center gap-4 px-4 py-4 cursor-pointer transition-all hover:bg-[var(--surface-2)] active:bg-[var(--bg-subtle)] ${
+      className={`flex items-center gap-4 border-l-2 border-l-transparent px-4 py-4 cursor-pointer transition-all hover:bg-[var(--surface-2)] hover:border-l-blue-400 active:bg-[var(--bg-subtle)] ${
         isSelected ? 'bg-blue-50/40 dark:bg-blue-900/15' : ''
       }`}
     >

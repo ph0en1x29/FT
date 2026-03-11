@@ -4,6 +4,7 @@ import {
   CheckCircle,
   CheckSquare,
   Clock,
+  MapPin,
   Square,
   User as UserIcon,
   Wrench,
@@ -96,7 +97,7 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
   return (
     <article
       onClick={handleCardClick}
-      className={`relative flex h-full min-w-0 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] active:shadow-sm ${getStatusBorderColor(job)} ${
+      className={`relative flex h-full min-w-0 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 active:scale-[0.98] active:shadow-sm ${getStatusBorderColor(job)} ${
         isSelected ? 'ring-2 ring-blue-500/70 bg-blue-50/40 dark:bg-blue-900/15' : ''
       }`}
     >
@@ -163,14 +164,23 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
         {job.assigned_technician_name && (
           <p className="mt-0.5 text-xs text-theme-muted">{job.assigned_technician_name}</p>
         )}
+        {job.description && (
+          <p className="mt-0.5 text-xs text-theme-muted line-clamp-1">{job.description}</p>
+        )}
       </div>
 
       {/* Row 3: Inline details */}
-      <div className="mt-2 flex flex-wrap gap-x-3 text-xs text-theme-muted">
+      <div className="mt-2 flex flex-wrap gap-x-3 border-t border-[var(--border)] pt-2 text-xs text-theme-muted">
         {job.customer?.name && (
           <span className="flex items-center gap-1">
             <UserIcon className="h-3.5 w-3.5" />
             {job.customer.name}
+          </span>
+        )}
+        {(job as any).customer_site?.site_name && (
+          <span className="flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5" />
+            {(job as any).customer_site.site_name}
           </span>
         )}
         {equipmentLabel && (

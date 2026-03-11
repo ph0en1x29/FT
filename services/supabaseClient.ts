@@ -195,6 +195,7 @@ export const JOB_SELECT = {
     assigned_technician_name,
     helper_technician_id,
     site_id,
+    customer_site:customer_sites!site_id(site_id, site_name),
     arrival_time,
     started_at,
     repair_start_time,
