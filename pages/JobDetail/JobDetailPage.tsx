@@ -182,6 +182,15 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onSelectedTechIdChange={state.setSelectedTechId} onAssignJob={actions.handleAssignJob}
             onOpenReassignModal={() => state.setShowReassignModal(true)}
             onOpenHelperModal={() => state.setShowAssignHelperModal(true)} onRemoveHelper={actions.handleRemoveHelper} />
+          <CollapsibleCard
+            title="Notes"
+            icon={<FileText className="w-5 h-5 text-[var(--text-muted)]" />}
+            defaultOpen={isDesktopDefault}
+            summary={job.notes && job.notes.length > 0 ? `${job.notes.length} note${job.notes.length !== 1 ? 's' : ''}` : 'No notes'}
+          >
+            <NotesSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} noteInput={state.noteInput}
+              onNoteInputChange={state.setNoteInput} onAddNote={actions.handleAddNote} />
+          </CollapsibleCard>
           <div ref={jobDetailsRef}>
             <JobDetailsCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
               editingJobCarriedOut={state.editingJobCarriedOut} jobCarriedOutInput={state.jobCarriedOutInput}
@@ -195,15 +204,6 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
                 onTechSign={actions.handleTechnicianSwipeSign} onCustomerSign={actions.handleCustomerSwipeSign} />
             </div>
           )}
-          <CollapsibleCard
-            title="Notes"
-            icon={<FileText className="w-5 h-5 text-[var(--text-muted)]" />}
-            defaultOpen={isDesktopDefault}
-            summary={job.notes && job.notes.length > 0 ? `${job.notes.length} note${job.notes.length !== 1 ? 's' : ''}` : 'No notes'}
-          >
-            <NotesSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} noteInput={state.noteInput}
-              onNoteInputChange={state.setNoteInput} onAddNote={actions.handleAddNote} />
-          </CollapsibleCard>
           <div ref={checklistRef}>
           <CollapsibleCard
             title="Condition Checklist"
