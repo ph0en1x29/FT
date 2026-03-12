@@ -196,15 +196,6 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             </div>
           )}
           <CollapsibleCard
-            title="Confirmation Status"
-            icon={<ShieldCheck className="w-5 h-5 text-[var(--text-muted)]" />}
-            defaultOpen={isDesktopDefault}
-            summary={job.parts_confirmed ? 'Confirmed' : 'Pending'}
-          >
-            <ConfirmationStatusCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
-              onConfirmParts={actions.handleConfirmParts} />
-          </CollapsibleCard>
-          <CollapsibleCard
             title="Notes"
             icon={<FileText className="w-5 h-5 text-[var(--text-muted)]" />}
             defaultOpen={isDesktopDefault}
@@ -296,6 +287,15 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
           <FinancialSummary job={job} roleFlags={roleFlags} editingLabor={state.editingLabor} laborCostInput={state.laborCostInput}
             onLaborInputChange={state.setLaborCostInput} onStartEditLabor={actions.handleStartEditLabor}
             onSaveLabor={actions.handleSaveLabor} onCancelLaborEdit={actions.handleCancelLaborEdit} />
+          <CollapsibleCard
+            title="Confirmation Status"
+            icon={<ShieldCheck className="w-5 h-5 text-[var(--text-muted)]" />}
+            defaultOpen={isDesktopDefault}
+            summary={job.parts_confirmed ? 'Confirmed' : 'Pending'}
+          >
+            <ConfirmationStatusCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
+              onConfirmParts={actions.handleConfirmParts} />
+          </CollapsibleCard>
           <CollapsibleCard
             title="Timeline"
             icon={<Clock className="w-5 h-5 text-[var(--text-muted)]" />}
