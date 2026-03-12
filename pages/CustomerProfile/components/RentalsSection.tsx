@@ -76,7 +76,7 @@ const RentalsSection: React.FC<RentalsSectionProps> = ({
         </div>
       )}
 
-      <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
+      <div className="p-4 space-y-3 max-h-[340px] overflow-y-auto">
         {displayedRentals.length === 0 ? (
           <div className="text-center py-8 text-slate-400">
             <Truck className="w-10 h-10 mx-auto mb-2 opacity-30" />
