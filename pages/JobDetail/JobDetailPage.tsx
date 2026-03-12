@@ -95,6 +95,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const partsRef = useRef<HTMLDivElement>(null);
   const checklistRef = useRef<HTMLDivElement>(null);
   const signaturesRef = useRef<HTMLDivElement>(null);
+  const jobDetailsRef = useRef<HTMLDivElement>(null);
 
   // Derived flags
   const statusFlags = getStatusFlags(job, currentUserId, currentUserRole);
@@ -181,11 +182,13 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onSelectedTechIdChange={state.setSelectedTechId} onAssignJob={actions.handleAssignJob}
             onOpenReassignModal={() => state.setShowReassignModal(true)}
             onOpenHelperModal={() => state.setShowAssignHelperModal(true)} onRemoveHelper={actions.handleRemoveHelper} />
-          <JobDetailsCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
-            editingJobCarriedOut={state.editingJobCarriedOut} jobCarriedOutInput={state.jobCarriedOutInput}
-            recommendationInput={state.recommendationInput} onJobCarriedOutInputChange={state.setJobCarriedOutInput}
-            onRecommendationInputChange={state.setRecommendationInput} onStartEdit={actions.handleStartEditJobCarriedOut}
-            onSave={actions.handleSaveJobCarriedOut} onCancel={actions.handleCancelJobCarriedOutEdit} />
+          <div ref={jobDetailsRef}>
+            <JobDetailsCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
+              editingJobCarriedOut={state.editingJobCarriedOut} jobCarriedOutInput={state.jobCarriedOutInput}
+              recommendationInput={state.recommendationInput} onJobCarriedOutInputChange={state.setJobCarriedOutInput}
+              onRecommendationInputChange={state.setRecommendationInput} onStartEdit={actions.handleStartEditJobCarriedOut}
+              onSave={actions.handleSaveJobCarriedOut} onCancel={actions.handleCancelJobCarriedOutEdit} />
+          </div>
           {isMobileTechnicianFlow && (statusFlags.isInProgress || statusFlags.isAwaitingFinalization) && (
             <div ref={signaturesRef}>
               <SignaturesCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
@@ -457,11 +460,14 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
                     <Camera className="w-5 h-5 text-[var(--text)]" />
                   </button>
                   <button
-                    onClick={() => signaturesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    onClick={() => {
+                      jobDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      setTimeout(() => actions.handleStartEditJobCarriedOut(), 500);
+                    }}
                     className="w-12 h-12 bg-[var(--surface-2)] rounded-xl flex items-center justify-center"
-                    aria-label="Scroll to Signatures"
+                    aria-label="Edit Job Details"
                   >
-                    <FileText className="w-5 h-5 text-[var(--text)]" />
+                    <ClipboardList className="w-5 h-5 text-[var(--text)]" />
                   </button>
                 </div>
               </>
