@@ -35,6 +35,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
   const [downloadingPhotos, setDownloadingPhotos] = useState(false);
   const [isPhotoDragActive, setIsPhotoDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
 
@@ -99,8 +100,8 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
     });
   };
 
-  // Upload photo to Supabase Storage
-  const uploadPhotoToStorage = async (dataURL: string, jobId: string): Promise<string> => {
+  // Upload photo/video to Supabase Storage
+  const uploadMediaToStorage = async (dataURL: string, jobId: string, fileExtension: string): Promise<string> => {
     try {
       const arr = dataURL.split(',');
       const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
@@ -113,7 +114,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
       const blob = new Blob([u8arr], { type: mime });
       
       const timestamp = Date.now();
-      const fileName = `${jobId}/${timestamp}.jpg`;
+      const fileName = `${jobId}/${timestamp}${fileExtension}`;
       
       const { data: _data, error } = await supabase.storage
         .from('job-photos')
@@ -136,15 +137,55 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
     }
   };
 
-  const uploadPhotoFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      showToast.error('Please upload an image file');
+  // Extract first frame from video as thumbnail
+  const extractVideoThumbnail = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      video.onloadeddata = () => {
+        video.currentTime = 0.1; // Seek to 0.1s to get first frame
+      };
+      
+      video.onseeked = () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx?.drawImage(video, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        URL.revokeObjectURL(video.src);
+        resolve(dataUrl);
+      };
+      
+      video.onerror = () => {
+        reject(new Error('Failed to load video'));
+      };
+      
+      video.src = URL.createObjectURL(file);
+      video.load();
+    });
+  };
+
+  const uploadPhotoFile = async (file: File, index?: number, total?: number) => {
+    const isVideo = file.type.startsWith('video/');
+    const isImage = file.type.startsWith('image/');
+
+    if (!isImage && !isVideo) {
+      showToast.error('Please upload an image or video file');
+      return;
+    }
+
+    // Check video file size (50MB max)
+    if (isVideo && file.size > 50 * 1024 * 1024) {
+      showToast.error('Video too large', 'Maximum size is 50MB');
       return;
     }
 
     // Show loading state immediately
     setIsUploading(true);
-    showToast.info('Processing photo...', 'Please wait');
+    const progressText = index !== undefined && total !== undefined ? `Uploading ${index}/${total}...` : isVideo ? 'Processing video...' : 'Processing photo...';
+    setUploadProgress(progressText);
+    showToast.info(progressText, 'Please wait');
 
     try {
       // Start GPS fetch in background (don't block on it)
@@ -156,38 +197,61 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
       const timeDiffMinutes = Math.round(timeDiffMs / 60000);
       const timestampMismatch = timeDiffMinutes > 5;
 
-      // Compress image first (much faster than reading full-res base64)
-      const base64Data = await compressImage(file, 1920, 0.85);
+      let base64Data: string;
+      let fileExtension: string;
+
+      if (isVideo) {
+        // For videos: don't compress, upload raw file
+        const reader = new FileReader();
+        base64Data = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        // Determine extension from MIME type
+        if (file.type === 'video/mp4') {
+          fileExtension = '.mp4';
+        } else if (file.type === 'video/quicktime') {
+          fileExtension = '.mov';
+        } else {
+          fileExtension = '.mp4'; // Default fallback
+        }
+      } else {
+        // For images: compress as before
+        base64Data = await compressImage(file, 1920, 0.85);
+        fileExtension = '.jpg';
+      }
       
       // Now upload (GPS can still be fetching)
-      const [photoUrl, gps] = await Promise.all([
-        uploadPhotoToStorage(base64Data, job.job_id),
+      const [mediaUrl, gps] = await Promise.all([
+        uploadMediaToStorage(base64Data, job.job_id, fileExtension),
         gpsPromise,
       ]);
 
-      // === PHOTO-BASED TIME TRACKING ===
+      // === PHOTO/VIDEO-BASED TIME TRACKING ===
       // Only lead technician (not helper) can start/stop timer
       const isLeadTechnician = job.assigned_technician_id === currentUserId;
       
-      // Check if this is the first photo and job hasn't started - auto-start timer
-      const isFirstPhoto = job.media.length === 0;
-      const shouldAutoStart = isFirstPhoto && 
+      // Check if this is the first media and job hasn't started - auto-start timer
+      const isFirstMedia = job.media.length === 0;
+      const shouldAutoStart = isFirstMedia && 
                               !job.repair_start_time && 
                               !job.started_at &&
                               isLeadTechnician &&
                               !isCurrentUserHelper;
 
-      // Check if this is a completion photo (After category) - auto-stop timer
-      const isCompletionPhoto = uploadPhotoCategory === 'after';
-      const shouldAutoStop = isCompletionPhoto && 
+      // Check if this is a completion media (After category) - auto-stop timer
+      const isCompletionMedia = uploadPhotoCategory === 'after';
+      const shouldAutoStop = isCompletionMedia && 
                              job.repair_start_time && 
                              !job.repair_end_time &&
                              isLeadTechnician &&
                              !isCurrentUserHelper;
 
       const mediaData: NewMediaData = {
-        type: 'photo',
-        url: photoUrl,
+        type: isVideo ? 'video' : 'photo',
+        url: mediaUrl,
         description: file.name,
         created_at: serverTimestamp,
         category: uploadPhotoCategory as MediaCategory,
@@ -214,7 +278,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
         isCurrentUserHelper
       );
 
-      // Auto-start job timer on first photo (lead tech only)
+      // Auto-start job timer on first media (lead tech only)
       if (shouldAutoStart) {
         const now = new Date().toISOString();
         const startedJob = await MockDb.updateJob(job.job_id, {
@@ -224,41 +288,47 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
           arrival_time: now,
         });
         onJobUpdate({ ...startedJob } as Job);
-        showToast.info('Job started', 'Timer started automatically with first photo');
+        showToast.info('Job started', `Timer started automatically with first ${isVideo ? 'video' : 'photo'}`);
       } else if (shouldAutoStop) {
         const now = new Date().toISOString();
         const stoppedJob = await MockDb.updateJob(job.job_id, {
           repair_end_time: now,
         });
         onJobUpdate({ ...stoppedJob } as Job);
-        showToast.info('Timer stopped', 'Job timer stopped with "After" photo');
+        showToast.info('Timer stopped', `Job timer stopped with "After" ${isVideo ? 'video' : 'photo'}`);
       } else {
         onJobUpdate({ ...updated } as Job);
       }
 
       const categoryLabel = PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other';
+      const mediaType = isVideo ? 'Video' : 'Photo';
 
       if (!gps && timestampMismatch) {
-        showToast.warning('Photo uploaded (flagged)', `GPS missing • Timestamp mismatch: ${timeDiffMinutes}min`);
+        showToast.warning(`${mediaType} uploaded (flagged)`, `GPS missing • Timestamp mismatch: ${timeDiffMinutes}min`);
       } else if (!gps) {
-        showToast.warning('Photo uploaded', `GPS location not captured • ${categoryLabel}`);
+        showToast.warning(`${mediaType} uploaded`, `GPS location not captured • ${categoryLabel}`);
       } else if (timestampMismatch) {
-        showToast.warning('Photo uploaded', `Timestamp mismatch: ${timeDiffMinutes}min • ${categoryLabel}`);
+        showToast.warning(`${mediaType} uploaded`, `Timestamp mismatch: ${timeDiffMinutes}min • ${categoryLabel}`);
       } else if (!shouldAutoStart && !shouldAutoStop) {
-        showToast.success('Photo uploaded', `Category: ${categoryLabel}${isCurrentUserHelper ? ' (Helper)' : ''}`);
+        showToast.success(`${mediaType} uploaded`, `Category: ${categoryLabel}${isCurrentUserHelper ? ' (Helper)' : ''}`);
       }
     } catch (e) {
-      showToast.error('Photo upload failed', (e as Error).message);
-    } finally {
-      setIsUploading(false);
+      showToast.error(`${isVideo ? 'Video' : 'Photo'} upload failed`, (e as Error).message);
     }
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files: File[] = Array.from(e.target.files || []);
     e.target.value = '';
-    if (!file) return;
-    await uploadPhotoFile(file);
+    if (files.length === 0) return;
+
+    // Upload files sequentially
+    for (let i = 0; i < files.length; i++) {
+      await uploadPhotoFile(files[i], i + 1, files.length);
+    }
+    
+    setIsUploading(false);
+    setUploadProgress('');
   };
 
   const handlePhotoDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -278,9 +348,16 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
   const handlePhotoDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsPhotoDragActive(false);
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    await uploadPhotoFile(file);
+    const files: File[] = Array.from(e.dataTransfer.files || []);
+    if (files.length === 0) return;
+
+    // Upload files sequentially
+    for (let i = 0; i < files.length; i++) {
+      await uploadPhotoFile(files[i], i + 1, files.length);
+    }
+    
+    setIsUploading(false);
+    setUploadProgress('');
   };
 
   const handleDeletePhoto = async (mediaId: string) => {
@@ -410,8 +487,8 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
                 <div className="w-14 h-14 rounded-2xl bg-[var(--accent-subtle)] border border-[var(--accent)] flex items-center justify-center mb-3">
                   <div className="w-7 h-7 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
                 </div>
-                <p className="text-sm font-semibold text-[var(--accent)]">Uploading photo...</p>
-                <p className="text-xs text-[var(--text-muted)] mt-1">Compressing and uploading</p>
+                <p className="text-sm font-semibold text-[var(--accent)]">{uploadProgress || 'Uploading...'}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1">Processing and uploading</p>
               </div>
             ) : (
               <label className="cursor-pointer flex flex-col items-center justify-center text-center min-h-[180px]">
@@ -423,8 +500,8 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
                 <p className="text-xs text-[var(--text-muted)] mt-3">
                   Uploads default to <span className="font-medium text-[var(--text-secondary)]">{PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}</span>
                 </p>
-                <span className="btn-premium btn-premium-primary mt-4 text-xs">Upload Photo</span>
-                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
+                <span className="btn-premium btn-premium-primary mt-4 text-xs">Add Photos</span>
+                <input type="file" accept="image/*,video/*" capture="environment" multiple className="hidden" onChange={handlePhotoUpload} />
               </label>
             )
           ) : (
@@ -451,17 +528,36 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
             })}
           </div>
 
-          {/* Photo Grid */}
+          {/* Photo/Video Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {filteredMedia.map((m, idx) => {
               const catInfo = PHOTO_CATEGORIES.find(c => c.value === m.category) || PHOTO_CATEGORIES.find(c => c.value === 'other');
+              const isVideo = m.type === 'video';
               return (
                 <div
                   key={m.media_id}
                   className="relative group aspect-square cursor-pointer"
                   onClick={() => setLightboxIndex(idx)}
                 >
-                  <img src={m.url} loading="lazy" decoding="async" alt="Job" className="w-full h-full object-cover rounded-xl border border-[var(--border)] transition-transform group-hover:scale-[1.02]" />
+                  {isVideo ? (
+                    <>
+                      <video 
+                        src={m.url} 
+                        className="w-full h-full object-cover rounded-xl border border-[var(--border)] transition-transform group-hover:scale-[1.02]"
+                        preload="metadata"
+                      />
+                      {/* Play icon overlay for videos */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-12 h-12 bg-black/60 rounded-full flex items-center justify-center">
+                          <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <img src={m.url} loading="lazy" decoding="async" alt="Job" className="w-full h-full object-cover rounded-xl border border-[var(--border)] transition-transform group-hover:scale-[1.02]" />
+                  )}
                   <span className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 text-[9px] font-medium text-white rounded ${catInfo?.color || 'bg-slate-500'}`}>
                     {catInfo?.label || 'Other'}
                   </span>
@@ -472,7 +568,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
                       onClick={(e) => { e.stopPropagation(); handleDeletePhoto(m.media_id); }}
                       disabled={deletingMediaId === m.media_id}
                       className="absolute top-1.5 right-1.5 p-1 bg-red-500/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                      title="Delete photo"
+                      title={`Delete ${isVideo ? 'video' : 'photo'}`}
                     >
                       {deletingMediaId === m.media_id ? (
                         <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
@@ -497,14 +593,14 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
                 {isUploading ? (
                   <div className="flex flex-col items-center">
                     <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mb-0.5" />
-                    <span className="text-[9px] text-[var(--accent)]">Uploading...</span>
+                    <span className="text-[9px] text-[var(--accent)]">{uploadProgress || 'Uploading...'}</span>
                   </div>
                 ) : (
                   <label className="cursor-pointer flex flex-col items-center">
                     <Camera className="w-5 h-5 mb-0.5" />
                     <span className="text-[9px]">Add</span>
                     <span className="text-[9px] text-[var(--text-muted)] mt-0.5">{PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}</span>
-                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
+                    <input type="file" accept="image/*,video/*" capture="environment" multiple className="hidden" onChange={handlePhotoUpload} />
                   </label>
                 )}
               </div>
