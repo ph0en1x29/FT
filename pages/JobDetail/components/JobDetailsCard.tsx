@@ -57,7 +57,8 @@ export const JobDetailsCard: React.FC<JobDetailsCardProps> = ({
               className="input-premium min-h-[100px] resize-none w-full" 
               placeholder="Describe the work performed..." 
               value={jobCarriedOutInput} 
-              onChange={(e) => onJobCarriedOutInputChange(e.target.value)} 
+              onChange={(e) => onJobCarriedOutInputChange(e.target.value)}
+              autoFocus
             />
           </div>
           <div>

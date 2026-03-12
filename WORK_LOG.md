@@ -153,3 +153,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 - JobDetailPage.tsx: added !roleFlags.isTechnician to View Report in mobile sticky bar
 [2026-03-12 00:41] [Sonnet] Hide report from technician: JobHeader.tsx, JobDetailPage.tsx
 [2026-03-12 00:44] [Sonnet] Mobile sticky bar: replaced Signatures button with Edit Job Details — JobDetailPage.tsx
+[2026-03-12 00:50] [Sonnet] Fix edit job details quick action: immediate edit + autoFocus — JobDetailPage.tsx, JobDetailsCard.tsx

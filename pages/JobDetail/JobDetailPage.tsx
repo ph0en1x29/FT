@@ -461,8 +461,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
                   </button>
                   <button
                     onClick={() => {
-                      jobDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      setTimeout(() => actions.handleStartEditJobCarriedOut(), 500);
+                      actions.handleStartEditJobCarriedOut();
+                      setTimeout(() => jobDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
                     }}
                     className="w-12 h-12 bg-[var(--surface-2)] rounded-xl flex items-center justify-center"
                     aria-label="Edit Job Details"
