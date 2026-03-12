@@ -208,7 +208,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
             </button>
           )}
           
-          {(isTechnician || isAdmin || isSupervisor) && (isInProgress || isAwaitingFinalization || isCompleted || isAwaitingAck || isDisputed) && (
+          {(isAdmin || isSupervisor) && (isInProgress || isAwaitingFinalization || isCompleted || isAwaitingAck || isDisputed) && (
             <button onClick={onPrintServiceReport} className="btn-premium btn-premium-secondary">
               <FileCheck className="w-4 h-4" /> Report
             </button>

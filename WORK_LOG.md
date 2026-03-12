@@ -148,3 +148,7 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
   - JobBoard.tsx: Improved view toggle to cohesive pill/segmented control — Changed Card/List from rounded-2xl to rounded-full, tighter bg-[var(--bg-subtle)] pill wrapper, active state gets bg-[var(--surface)] shadow-sm font-medium; Select button matches same compact rounded-full style
   - Build: ✅ Pass (✓ 2446 modules transformed, ✓ built in 3.91s)
 [2026-03-10T19:30:18Z] [Phoenix] Code quality cleanup: removed unused currentUser prop from JobListRow/JobListTable, extracted EMPTY_SET constant. Mechanical deletion — no logic changes. Files: JobListRow.tsx, JobListTable.tsx, JobBoard.tsx
+[2026-03-12 00:41] [Sonnet] Remove report buttons from technician view
+- JobHeader.tsx: removed isTechnician from Report button condition
+- JobDetailPage.tsx: added !roleFlags.isTechnician to View Report in mobile sticky bar
+[2026-03-12 00:41] [Sonnet] Hide report from technician: JobHeader.tsx, JobDetailPage.tsx

@@ -467,7 +467,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
               </>
             )}
 
-            {statusFlags.isCompleted && (
+            {statusFlags.isCompleted && !roleFlags.isTechnician && (
               <button
                 onClick={actions.handlePrintServiceReport}
                 className="w-full h-12 rounded-xl font-medium border border-[var(--border)] text-[var(--text)] bg-transparent"
