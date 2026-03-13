@@ -255,6 +255,26 @@ export const JOB_SELECT = {
     media:job_media(media_id, type, category, created_at, description, url),
     extra_charges:extra_charges(*)
   `,
+  
+  // For KPI calculations (lighter than DETAIL, includes revenue fields)
+  KPI: `
+    job_id,
+    status,
+    job_type,
+    priority,
+    is_callback,
+    assigned_technician_id,
+    created_at,
+    assigned_at,
+    arrival_time,
+    repair_start_time,
+    repair_end_time,
+    completion_time,
+    labor_cost,
+    parts_used:job_parts(quantity, sell_price_at_time),
+    extra_charges:extra_charges(amount),
+    scheduled_date
+  `,
 };
 
 // =====================

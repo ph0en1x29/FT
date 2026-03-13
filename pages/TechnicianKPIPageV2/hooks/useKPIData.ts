@@ -29,7 +29,7 @@ export const useKPIData = (
     try {
       const [techData, jobData] = await Promise.all([
         MockDb.getTechnicians(),
-        MockDb.getJobs(currentUser),
+        MockDb.getJobsForKPI(currentUser),
       ]);
       setTechnicians(techData);
       setAllJobs(jobData);
@@ -139,7 +139,7 @@ export const useKPIData = (
 
       // Revenue calculation
       const totalRevenue = completedJobs.reduce((acc, job) => {
-        const partsCost = job.parts_used.reduce((sum, p) => sum + (p.sell_price_at_time * p.quantity), 0);
+        const partsCost = (job.parts_used || []).reduce((sum, p) => sum + (p.sell_price_at_time * p.quantity), 0);
         const laborCost = job.labor_cost || 0;
         const extraCharges = (job.extra_charges || []).reduce((sum, c) => sum + c.amount, 0);
         return acc + partsCost + laborCost + extraCharges;
@@ -184,7 +184,7 @@ export const useKPIData = (
         total_revenue_generated: totalRevenue,
         avg_job_value: completedJobs.length > 0 ? totalRevenue / completedJobs.length : 0,
         total_parts_used: completedJobs.reduce((acc, job) =>
-          acc + job.parts_used.reduce((sum, p) => sum + p.quantity, 0), 0
+          acc + (job.parts_used || []).reduce((sum, p) => sum + p.quantity, 0), 0
         ),
         emergency_jobs: priorityBreakdown.emergency,
         high_priority_jobs: priorityBreakdown.high,

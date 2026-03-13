@@ -214,6 +214,64 @@ export const getJobs = async (user: User, options?: { status?: JobStatus }): Pro
 };
 
 /**
+ * Get jobs for KPI calculations - includes revenue fields (labor_cost, parts_used, extra_charges)
+ * Lighter than DETAIL but includes what KPI needs
+ */
+export const getJobsForKPI = async (user: User): Promise<Job[]> => {
+  logDebug('[getJobsForKPI] Fetching jobs for KPI calculations, user:', user.user_id, user.role);
+
+  const buildQuery = () => {
+    let query = supabase
+      .from('jobs')
+      .select(JOB_SELECT.KPI)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (user.role === UserRole.TECHNICIAN) {
+      query = query.eq('assigned_technician_id', user.user_id);
+    }
+
+    return query;
+  };
+
+  const executeQuery = async () => {
+    const { data, error } = await buildQuery();
+    if (error) throw error;
+    return data as unknown as Job[];
+  };
+
+  let data: Job[];
+  try {
+    data = await executeQuery();
+  } catch (error) {
+    if (isNetworkError(error)) {
+      try {
+        await wait(600);
+        data = await executeQuery();
+      } catch (retryError) {
+        logError('[getJobsForKPI] Error fetching jobs after retry:', retryError);
+        throw new Error((retryError as Error)?.message || 'Failed to fetch jobs');
+      }
+    } else {
+      logError('[getJobsForKPI] Error fetching jobs:', error);
+      throw new Error((error as Error)?.message || 'Failed to fetch jobs');
+    }
+  }
+
+  const allJobs = data as Job[];
+  
+  // Add defensive defaults for fields that may be missing
+  allJobs.forEach(job => {
+    job.parts_used = job.parts_used || [];
+    job.extra_charges = job.extra_charges || [];
+    job.labor_cost = job.labor_cost || 0;
+  });
+
+  logDebug('[getJobsForKPI] Found jobs:', allJobs.length || 0);
+  return allJobs;
+};
+
+/**
  * Optimized job fetch - uses parallel queries instead of one massive JOIN
  * This reduces query time from ~2s to ~200-400ms
  */

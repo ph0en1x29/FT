@@ -142,7 +142,7 @@ getJobAssignments,getJobById,
 getJobByIdFast,getJobRequests,getJobServiceRecord,
 // Job CRUD
 getJobs,
-getJobsLightweight,getJobsPendingResponse,getPendingRequests,getRecentlyDeletedJobs,getRequestCounts,getUserAssignmentType,hardDeleteJob,isUserHelperOnJob,
+getJobsForKPI,getJobsLightweight,getJobsPendingResponse,getPendingRequests,getRecentlyDeletedJobs,getRequestCounts,getUserAssignmentType,hardDeleteJob,isUserHelperOnJob,
 // Job Reassignment
 reassignJob,rejectJobAssignment,rejectRequest,releaseJobLock,removeExtraCharge,removeHelper,removePartFromJob,sendInvoice,setNoPartsUsed,signJob,bulkSwipeSignJobs,swipeSignJob,startHelperWork,startJobWithCondition,updateConditionChecklist,updateJob,updateJobCarriedOut,
 // Job Condition & Checklist
@@ -299,6 +299,7 @@ export const SupabaseDb = {
 
   // Jobs
   getJobs: jobs.getJobs,
+  getJobsForKPI: jobs.getJobsForKPI,
   getJobsLightweight: jobs.getJobsLightweight,
   getJobById: jobs.getJobById,
   getJobByIdFast: jobs.getJobByIdFast,

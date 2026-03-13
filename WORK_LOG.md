@@ -4,6 +4,16 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+## 2026-03-13
+
+[2026-03-13 02:37] [Sonnet] Fix Performance tab KPI calculations - missing query fields: services/supabaseClient.ts, services/jobService.ts, services/supabaseService.ts, pages/TechnicianKPIPageV2/hooks/useKPIData.ts
+  - services/supabaseClient.ts: Added JOB_SELECT.KPI query profile — includes job_id, status, job_type, priority, is_callback, assigned_technician_id, timestamps, labor_cost, parts_used:job_parts(quantity, sell_price_at_time), extra_charges:extra_charges(amount), scheduled_date — lighter than DETAIL but includes revenue fields for KPI calculations
+  - services/jobService.ts: Created dedicated getJobsForKPI() function — uses JOB_SELECT.KPI instead of BOARD; includes retry logic for network errors; adds defensive defaults (parts_used || [], extra_charges || [], labor_cost || 0) to prevent crashes when fields are missing
+  - services/supabaseService.ts: Exported getJobsForKPI from jobService; Added to SupabaseDb compatibility object
+  - pages/TechnicianKPIPageV2/hooks/useKPIData.ts: Switched from MockDb.getJobs() to MockDb.getJobsForKPI(); Added defensive defaults to revenue calculation (parts_used || []) and total_parts_used calculation to prevent undefined array access
+  - Root cause: Performance tab was calling getJobs() which used JOB_SELECT.BOARD that excluded labor_cost, parts_used, extra_charges; KPI calculations needed these fields for revenue metrics
+  - Build: ✅ Pass (✓ 2450 modules transformed, ✓ built in 5.73s)
+
 ## 2026-03-11
 
 [2026-03-11 19:47] [Sonnet] Fix missing logError import: services/jobStatusService.ts
