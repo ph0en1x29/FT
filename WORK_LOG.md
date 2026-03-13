@@ -155,3 +155,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-03-12 00:44] [Sonnet] Mobile sticky bar: replaced Signatures button with Edit Job Details — JobDetailPage.tsx
 [2026-03-12 00:50] [Sonnet] Fix edit job details quick action: immediate edit + autoFocus — JobDetailPage.tsx, JobDetailsCard.tsx
 [2026-03-12 01:04] [Sonnet] Multi-photo + video upload: JobPhotosSection.tsx — sequential multi-file upload with progress, video support up to 50MB, play icon overlay, poster frame extraction
+[2026-03-13 00:00] [Sonnet] fix: separate photo/video file inputs for mobile camera capture (JobPhotosSection.tsx)

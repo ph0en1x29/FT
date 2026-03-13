@@ -491,7 +491,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
                 <p className="text-xs text-[var(--text-muted)] mt-1">Processing and uploading</p>
               </div>
             ) : (
-              <label className="cursor-pointer flex flex-col items-center justify-center text-center min-h-[180px]">
+              <div className="flex flex-col items-center justify-center text-center min-h-[180px]">
                 <div className="w-14 h-14 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center mb-3">
                   <Camera className="w-7 h-7 text-[var(--text-muted)]" />
                 </div>
@@ -500,9 +500,15 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
                 <p className="text-xs text-[var(--text-muted)] mt-3">
                   Uploads default to <span className="font-medium text-[var(--text-secondary)]">{PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}</span>
                 </p>
-                <span className="btn-premium btn-premium-primary mt-4 text-xs">Add Photos</span>
-                <input type="file" accept="image/*,video/*" capture="environment" multiple className="hidden" onChange={handlePhotoUpload} />
-              </label>
+                <label className="cursor-pointer">
+                  <span className="btn-premium btn-premium-primary mt-4 text-xs">Add Photos</span>
+                  <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoUpload} />
+                </label>
+                <label className="cursor-pointer">
+                  <span className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)] underline mt-2 inline-block">Add Video</span>
+                  <input type="file" accept="video/*" className="hidden" onChange={handlePhotoUpload} />
+                </label>
+              </div>
             )
           ) : (
             <div className="text-center py-10">
@@ -596,12 +602,18 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
                     <span className="text-[9px] text-[var(--accent)]">{uploadProgress || 'Uploading...'}</span>
                   </div>
                 ) : (
-                  <label className="cursor-pointer flex flex-col items-center">
-                    <Camera className="w-5 h-5 mb-0.5" />
-                    <span className="text-[9px]">Add</span>
-                    <span className="text-[9px] text-[var(--text-muted)] mt-0.5">{PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}</span>
-                    <input type="file" accept="image/*,video/*" capture="environment" multiple className="hidden" onChange={handlePhotoUpload} />
-                  </label>
+                  <div className="flex flex-col items-center gap-1">
+                    <label className="cursor-pointer flex flex-col items-center">
+                      <Camera className="w-5 h-5 mb-0.5" />
+                      <span className="text-[9px]">Add Photo</span>
+                      <span className="text-[9px] text-[var(--text-muted)] mt-0.5">{PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}</span>
+                      <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoUpload} />
+                    </label>
+                    <label className="cursor-pointer">
+                      <span className="text-[8px] text-[var(--text-muted)] hover:text-[var(--accent)] underline">Add Video</span>
+                      <input type="file" accept="video/*" className="hidden" onChange={handlePhotoUpload} />
+                    </label>
+                  </div>
                 )}
               </div>
             )}
