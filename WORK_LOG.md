@@ -157,3 +157,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-03-12 01:04] [Sonnet] Multi-photo + video upload: JobPhotosSection.tsx — sequential multi-file upload with progress, video support up to 50MB, play icon overlay, poster frame extraction
 [2026-03-13 00:00] [Sonnet] fix: separate photo/video file inputs for mobile camera capture (JobPhotosSection.tsx)
 [2026-03-13 00:06] [Sonnet] feat: camera capture in part request form — replace URL input with live camera, compress+upload to Supabase (CreateRequestModal.tsx)
+[2026-03-13 00:29] [Sonnet] fix: Chrome compat — remove invalid CSS opacity modifier on sticky bar (JobDetailPage.tsx)

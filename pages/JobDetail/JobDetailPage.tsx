@@ -402,7 +402,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       />
 
       {(statusFlags.isInProgress || statusFlags.isCompleted) && (
-        <div className={`fixed top-16 left-0 right-0 z-30 md:hidden bg-[var(--surface)]/95 backdrop-blur-sm border-b border-[var(--border)] px-4 py-3${hasModalOpen ? ' hidden' : ''}`}>
+        <div className={`fixed top-16 left-0 right-0 z-30 md:hidden bg-[var(--surface)] border-b border-[var(--border)] px-4 py-3${hasModalOpen ? ' hidden' : ''}`}>
           <div className="flex flex-col gap-2">
             {statusFlags.isInProgress && (
               <>
