@@ -15,6 +15,14 @@ export interface CreateJobFormData {
   billing_type: 'rental-inclusive' | 'chargeable';
 }
 
+export interface DuplicateJobWarning {
+  job_id: string;
+  title: string;
+  status: string;
+  customer_name: string | null;
+  site_name: string | null;
+}
+
 export interface NewCustomerFormData {
   name: string;
   phone: string;

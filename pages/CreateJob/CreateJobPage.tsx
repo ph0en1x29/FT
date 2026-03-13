@@ -2,7 +2,7 @@ import { ArrowLeft,Building2,ClipboardList,MapPin,Phone,Save,Truck,User,UserChec
 import React,{ useMemo } from 'react';
 import { Combobox,ComboboxOption } from '../../components/Combobox';
 import { ForkliftStatus,JobPriority,JobType,User as UserType } from '../../types';
-import { ExternalForkliftSection,ForkliftSelectionSection,NewCustomerModal } from './components';
+import { DuplicateJobWarningModal,ExternalForkliftSection,ForkliftSelectionSection,NewCustomerModal } from './components';
 import { INPUT_CLASS_NAME } from './constants';
 import { useCreateJobForm } from './hooks';
 
@@ -27,6 +27,9 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
     showNewCustomerModal,
     setShowNewCustomerModal,
     newCustomerNameQuery,
+    duplicateJobWarning,
+    handleConfirmDuplicateJob,
+    handleDismissDuplicateWarning,
     handleSubmit,
     handleCreateCustomer,
     handleCreateExternalForklift,
@@ -350,6 +353,14 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
         initialName={newCustomerNameQuery}
         inputClassName={INPUT_CLASS_NAME}
       />
+
+      {duplicateJobWarning && (
+        <DuplicateJobWarningModal
+          warning={duplicateJobWarning}
+          onConfirm={handleConfirmDuplicateJob}
+          onDismiss={handleDismissDuplicateWarning}
+        />
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import React,{ useEffect,useState } from 'react';
+import React,{ useCallback,useEffect,useRef,useState } from 'react';
 import { useNavigate,useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { useForkliftsForList,useSearchCustomers,useTechnicians } from '../../../hooks/useQueryHooks';
@@ -8,7 +8,7 @@ import { supabase } from '../../../services/supabaseClient';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { Customer,Forklift,JobPriority,JobStatus,JobType,User } from '../../../types';
-import { CreateJobFormData,NewCustomerFormData } from '../types';
+import { CreateJobFormData,DuplicateJobWarning,NewCustomerFormData } from '../types';
 
 /**
  * Custom hook for managing CreateJob form state and submission logic.
@@ -81,6 +81,10 @@ export function useCreateJobForm(currentUser: User) {
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
   const [newCustomerNameQuery, setNewCustomerNameQuery] = useState('');
 
+  // Duplicate job warning state
+  const [duplicateJobWarning, setDuplicateJobWarning] = useState<DuplicateJobWarning | null>(null);
+  const skipDuplicateCheck = useRef(false);
+
   // Permission check - redirect if not allowed
   useEffect(() => {
     if (!canCreateJobs) {
@@ -135,10 +139,10 @@ export function useCreateJobForm(currentUser: User) {
     }
     
     // Check for existing active job on the same forklift
-    if (formData.forklift_id) {
+    if (formData.forklift_id && !skipDuplicateCheck.current) {
       const { data: existingJobs } = await supabase
         .from('jobs')
-        .select('job_id, title, status')
+        .select('job_id, title, status, customer:customers(name), customer_site:customer_sites!site_id(site_name)')
         .eq('forklift_id', formData.forklift_id)
         .is('deleted_at', null)
         .not('status', 'in', `("${JobStatus.COMPLETED}","${JobStatus.CANCELLED}")`)
@@ -146,13 +150,17 @@ export function useCreateJobForm(currentUser: User) {
 
       if (existingJobs && existingJobs.length > 0) {
         const existing = existingJobs[0];
-        showToast.error(
-          'Forklift already has an active job',
-          `Job "${existing.title}" is currently ${existing.status}. Complete or cancel it before creating a new one.`
-        );
+        setDuplicateJobWarning({
+          job_id: existing.job_id,
+          title: existing.title,
+          status: existing.status,
+          customer_name: (existing.customer as any)?.name ?? null,
+          site_name: (existing.customer_site as any)?.site_name ?? null,
+        });
         return;
       }
     }
+    skipDuplicateCheck.current = false;
 
     // Determine assignee
     let assignedId = '';
@@ -258,6 +266,21 @@ export function useCreateJobForm(currentUser: User) {
     }
   };
 
+  // Confirm duplicate job warning — proceed with creation
+  const handleConfirmDuplicateJob = useCallback(() => {
+    setDuplicateJobWarning(null);
+    skipDuplicateCheck.current = true;
+    // Re-submit the form programmatically
+    const form = document.querySelector('form');
+    if (form) {
+      form.requestSubmit();
+    }
+  }, []);
+
+  const handleDismissDuplicateWarning = useCallback(() => {
+    setDuplicateJobWarning(null);
+  }, []);
+
   return {
     // Form state
     formData,
@@ -282,6 +305,11 @@ export function useCreateJobForm(currentUser: User) {
     setShowNewCustomerModal,
     newCustomerNameQuery,
     
+    // Duplicate job warning
+    duplicateJobWarning,
+    handleConfirmDuplicateJob,
+    handleDismissDuplicateWarning,
+
     // Handlers
     handleSubmit,
     handleCreateCustomer,

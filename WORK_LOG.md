@@ -159,3 +159,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-03-13 00:06] [Sonnet] feat: camera capture in part request form — replace URL input with live camera, compress+upload to Supabase (CreateRequestModal.tsx)
 [2026-03-13 00:29] [Sonnet] fix: Chrome compat — remove invalid CSS opacity modifier on sticky bar (JobDetailPage.tsx)
 [2026-03-13 00:57] [Sonnet] feat: parts reconciliation modal — Admin 2 reconciles actual usage, restocks returns, then confirms. Files: PartsReconciliationModal.tsx, jobService.ts, ConfirmationStatusCard.tsx, useJobPartsHandlers.ts, useJobDetailState.ts, JobDetailPage.tsx, inventory.types.ts, supabaseService.ts, index.ts
+[2026-03-13 01:01] [Sonnet] feat: duplicate job warning modal — shows existing job details with Continue/Cancel instead of blocking. Files: useCreateJobForm.ts, CreateJobPage.tsx, DuplicateJobWarningModal.tsx, types.ts
