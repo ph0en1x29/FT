@@ -56,6 +56,8 @@ export const useJobDetailState = () => {
   const [showDeferredModal, setShowDeferredModal] = useState(false);
   const [showHourmeterAmendmentModal, setShowHourmeterAmendmentModal] = useState(false);
   const [showRejectJobModal, setShowRejectJobModal] = useState(false);
+  const [showReconciliationModal, setShowReconciliationModal] = useState(false);
+  const [submittingReconciliation, setSubmittingReconciliation] = useState(false);
 
   // Service upgrade prompt state (for Minor Service on overdue unit)
   const [serviceUpgradePrompt, setServiceUpgradePrompt] = useState<ServiceUpgradePrompt>({
@@ -187,6 +189,8 @@ export const useJobDetailState = () => {
     showDeferredModal, setShowDeferredModal,
     showHourmeterAmendmentModal, setShowHourmeterAmendmentModal,
     showRejectJobModal, setShowRejectJobModal,
+    showReconciliationModal, setShowReconciliationModal,
+    submittingReconciliation, setSubmittingReconciliation,
 
     // Service upgrade
     serviceUpgradePrompt, setServiceUpgradePrompt,

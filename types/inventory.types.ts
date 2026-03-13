@@ -40,6 +40,9 @@ export interface JobPartUsed {
   part_name: string;
   quantity: number;
   sell_price_at_time: number;
+  // Reconciliation (filled by Admin 2 / Store during parts verification)
+  quantity_used?: number | null;
+  quantity_returned?: number | null;
   // Van Stock tracking
   from_van_stock?: boolean; // True if part came from Van Stock
   van_stock_item_id?: string; // Reference to VanStockItem if from Van Stock

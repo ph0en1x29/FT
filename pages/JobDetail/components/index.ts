@@ -20,6 +20,7 @@ export { ExtraChargesSection } from './ExtraChargesSection';
 export { JobDetailsCard } from './JobDetailsCard';
 export { JobRequestsSection } from './JobRequestsSection';
 export { NotesSection } from './NotesSection';
+export { PartsReconciliationModal } from './PartsReconciliationModal';
 export { PartsSection } from './PartsSection';
 
 // Modal components

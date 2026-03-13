@@ -8,6 +8,7 @@ interface ConfirmationStatusCardProps {
   roleFlags: RoleFlags;
   statusFlags: StatusFlags;
   onConfirmParts: () => void;
+  onOpenReconciliation: () => void;
 }
 
 export const ConfirmationStatusCard: React.FC<ConfirmationStatusCardProps> = ({
@@ -15,6 +16,7 @@ export const ConfirmationStatusCard: React.FC<ConfirmationStatusCardProps> = ({
   roleFlags,
   statusFlags,
   onConfirmParts,
+  onOpenReconciliation,
 }) => {
   const { isAdmin, isAdminStore, isAccountant } = roleFlags;
   const { isAwaitingFinalization, isCompleted } = statusFlags;
@@ -61,11 +63,11 @@ export const ConfirmationStatusCard: React.FC<ConfirmationStatusCardProps> = ({
                   <span className="text-sm">Pending</span>
                 </div>
                 {(isAdminStore || isAdmin || isAccountant) && (
-                  <button 
-                    onClick={onConfirmParts}
+                  <button
+                    onClick={onOpenReconciliation}
                     className="ml-2 px-3 py-1 text-xs bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity"
                   >
-                    Verify Parts
+                    Reconcile Parts
                   </button>
                 )}
               </div>

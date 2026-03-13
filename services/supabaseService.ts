@@ -373,5 +373,6 @@ export const SupabaseDb = {
 
   // Stub implementations (TODO)
   confirmParts: jobs.confirmParts,
+  reconcileParts: jobs.reconcileParts,
   completeDeferredAcknowledgement: jobs.completeDeferredAcknowledgement,
 };

@@ -44,6 +44,7 @@ SignaturesCard,
 StartJobModal,
 MobileTechnicianWorkflowCard,
 } from './components';
+import { PartsReconciliationModal } from './components/PartsReconciliationModal';
 
 // Extracted hooks
 import { useJobActions,useJobData,useJobDetailState } from './hooks';
@@ -110,7 +111,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
     state.showDeleteModal || state.showRejectJobModal || state.showHourmeterAmendmentModal ||
     state.showChecklistWarningModal || state.showRequestModal || state.showApprovalModal ||
     state.showBulkApproveModal || state.showAssignHelperModal || state.showDeferredModal ||
-    (state.serviceUpgradePrompt?.show ?? false);
+    state.showReconciliationModal || (state.serviceUpgradePrompt?.show ?? false);
 
   // Options for comboboxes
   const partOptions: ComboboxOption[] = parts.map(p => {
@@ -294,7 +295,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             summary={job.parts_confirmed ? 'Confirmed' : 'Pending'}
           >
             <ConfirmationStatusCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
-              onConfirmParts={actions.handleConfirmParts} />
+              onConfirmParts={actions.handleConfirmParts}
+              onOpenReconciliation={() => state.setShowReconciliationModal(true)} />
           </CollapsibleCard>
           <CollapsibleCard
             title="Timeline"
@@ -393,6 +395,18 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         )}
         onConfirm={actions.handleDeferredCompletion}
         onClose={() => state.setShowDeferredModal(false)}
+      />
+      <PartsReconciliationModal
+        show={state.showReconciliationModal}
+        parts={job.parts_used || []}
+        submitting={state.submittingReconciliation}
+        onConfirm={async (entries, notes) => {
+          state.setSubmittingReconciliation(true);
+          await actions.handleReconcileParts(entries, notes);
+          state.setSubmittingReconciliation(false);
+          state.setShowReconciliationModal(false);
+        }}
+        onClose={() => state.setShowReconciliationModal(false)}
       />
       <ServiceUpgradeModal
         prompt={state.serviceUpgradePrompt}

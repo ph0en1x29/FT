@@ -233,7 +233,7 @@ export const getJobByIdFast = async (jobId: string): Promise<Job | null> => {
   // Step 2: Fetch related data in parallel (these are simple indexed queries)
   const partsPromise = supabase
     .from('job_parts')
-    .select('job_part_id, part_id, part_name, quantity, sell_price_at_time')
+    .select('job_part_id, part_id, part_name, quantity, sell_price_at_time, quantity_used, quantity_returned')
     .eq('job_id', jobId);
 
   const mediaPromise = supabase
@@ -301,7 +301,7 @@ export const getJobById = async (jobId: string): Promise<Job | null> => {
   // Step 2: Fetch related data in parallel
   const partsPromise = supabase
     .from('job_parts')
-    .select('job_part_id, job_id, part_id, part_name, quantity, sell_price_at_time, from_van_stock, van_stock_item_id')
+    .select('job_part_id, job_id, part_id, part_name, quantity, sell_price_at_time, from_van_stock, van_stock_item_id, quantity_used, quantity_returned')
     .eq('job_id', jobId);
 
   const mediaPromise = supabase
@@ -503,6 +503,99 @@ export const confirmParts = async (
   };
 
   // Unified admin: auto-confirm job as well (skip the two-step process)
+  if (userRole === 'admin') {
+    updates.job_confirmed_at = now;
+    updates.job_confirmed_by_id = userId;
+    updates.job_confirmed_by_name = userName;
+  }
+
+  const { data, error } = await supabase
+    .from('jobs')
+    .update(updates)
+    .eq('job_id', jobId)
+    .select(`
+      *,
+      customer:customers(*),
+      forklift:forklifts!forklift_id(*),
+      parts_used:job_parts(*),
+      media:job_media(*),
+      extra_charges:extra_charges(*)
+    `)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as Job;
+};
+
+/**
+ * Reconcile parts used on a job (Admin 2 / Store verification)
+ * Updates each part's quantity_used/quantity_returned, restocks returned parts,
+ * and marks parts as confirmed on the job.
+ */
+export interface PartReconciliation {
+  job_part_id: string;
+  part_id: string;
+  quantity_used: number;
+  quantity_returned: number;
+}
+
+export const reconcileParts = async (
+  jobId: string,
+  reconciliation: PartReconciliation[],
+  userId: string,
+  userName: string,
+  userRole?: string,
+  notes?: string
+): Promise<Job> => {
+  logDebug('[JobService] reconcileParts called for job:', jobId, 'parts:', reconciliation.length);
+
+  // Step 1: Update each job_part with quantity_used and quantity_returned
+  for (const item of reconciliation) {
+    const { error: partError } = await supabase
+      .from('job_parts')
+      .update({
+        quantity_used: item.quantity_used,
+        quantity_returned: item.quantity_returned,
+      })
+      .eq('job_part_id', item.job_part_id);
+
+    if (partError) throw new Error(`Failed to update part ${item.job_part_id}: ${partError.message}`);
+  }
+
+  // Step 2: Restock returned parts (increment stock_quantity on the parts table)
+  const returnedParts = reconciliation.filter(r => r.quantity_returned > 0);
+  for (const item of returnedParts) {
+    // Fetch current stock, then increment (Supabase doesn't support atomic increment without RPC)
+    const { data: partData, error: fetchErr } = await supabase
+      .from('parts')
+      .select('stock_quantity')
+      .eq('part_id', item.part_id)
+      .single();
+
+    if (fetchErr) throw new Error(`Failed to fetch part ${item.part_id}: ${fetchErr.message}`);
+
+    const newStock = (partData?.stock_quantity ?? 0) + item.quantity_returned;
+    const { error: stockErr } = await supabase
+      .from('parts')
+      .update({ stock_quantity: newStock })
+      .eq('part_id', item.part_id);
+
+    if (stockErr) throw new Error(`Failed to restock part ${item.part_id}: ${stockErr.message}`);
+  }
+
+  // Step 3: Mark parts as confirmed on the job
+  const now = new Date().toISOString();
+  const updates: Record<string, unknown> = {
+    parts_confirmed_at: now,
+    parts_confirmed_by_id: userId,
+    parts_confirmed_by_name: userName,
+  };
+
+  if (notes) {
+    updates.parts_confirmation_notes = notes;
+  }
+
+  // Unified admin: auto-confirm job as well
   if (userRole === 'admin') {
     updates.job_confirmed_at = now;
     updates.job_confirmed_by_id = userId;

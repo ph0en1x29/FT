@@ -6,6 +6,7 @@ import { createReplenishmentRequest } from '../../../services/replenishmentServi
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { Job, UserRole } from '../../../types';
+import type { ReconciliationEntry } from '../components/PartsReconciliationModal';
 import { JobDetailState } from './useJobDetailState';
 
 interface UseJobPartsHandlersParams {
@@ -109,6 +110,30 @@ export const useJobPartsHandlers = ({
       showToast.error('Could not confirm parts', (e as Error).message);
     }
   }, [job, currentUserId, currentUserName, setJob]);
+
+  const handleReconcileParts = useCallback(async (entries: ReconciliationEntry[], notes?: string) => {
+    if (!job) return;
+    try {
+      const reconciliation = entries.map((e) => ({
+        job_part_id: e.job_part_id,
+        part_id: e.part_id,
+        quantity_used: e.quantity_used,
+        quantity_returned: e.quantity_returned,
+      }));
+      const updated = await MockDb.reconcileParts(
+        job.job_id,
+        reconciliation,
+        currentUserId,
+        currentUserName,
+        currentUserRole,
+        notes
+      );
+      setJob({ ...updated } as Job);
+      showToast.success('Parts reconciled successfully');
+    } catch (e) {
+      showToast.error('Could not reconcile parts', (e as Error).message);
+    }
+  }, [job, currentUserId, currentUserName, currentUserRole, setJob]);
 
   const handleUseVanStockPart = useCallback(async () => {
     if (!job || !state.selectedVanStockItemId || !state.vanStock) return;
@@ -249,6 +274,7 @@ export const useJobPartsHandlers = ({
     handleRemovePart,
     handleToggleNoPartsUsed,
     handleConfirmParts,
+    handleReconcileParts,
     handleUseVanStockPart,
     handleSelectJobVan,
   };
