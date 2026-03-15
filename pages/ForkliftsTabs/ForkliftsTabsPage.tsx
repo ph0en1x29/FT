@@ -1,5 +1,5 @@
 import { AlertTriangle,ClipboardCheck,LayoutDashboard,Settings,Truck } from 'lucide-react';
-import React,{ useState } from 'react';
+import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AssetDashboardV3_1 from '../../components/AssetDashboard/AssetDashboardV3_1';
 import StaleDataBanner from '../../components/StaleDataBanner';
@@ -37,15 +37,12 @@ const ForkliftsTabsPage: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
   const defaultTab = isAdminOrSupervisor ? 'dashboard' : 'fleet';
   const urlTab = searchParams.get('tab') as TabType;
   
-  // If URL has dashboard tab but user doesn't have access, fallback to fleet
-  const initialTab = (urlTab === 'dashboard' && !isAdminOrSupervisor) 
+  // Derive activeTab from URL reactively (not one-time useState)
+  const activeTab: TabType = (urlTab === 'dashboard' && !isAdminOrSupervisor) 
     ? 'fleet' 
     : (urlTab || defaultTab);
-  
-  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
   const handleTabChange = (tab: TabType) => {
-    setActiveTab(tab);
     setSearchParams({ tab });
   };
 

@@ -13,7 +13,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { getFleetServiceOverview, getForkliftDailyUsage } from '../../../services/serviceTrackingService';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
@@ -21,13 +21,21 @@ import { showToast } from '../../../services/toastService';
 import { DailyUsageResult, FleetServiceOverview, UserRole } from '../../../types';
 import { ForkliftDue, TabProps } from '../types';
 
+const VALID_FILTERS = ['all', 'overdue', 'due_soon', 'job_created', 'stale'] as const;
+type FilterType = typeof VALID_FILTERS[number];
+
 const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlFilter = searchParams.get('filter');
+  const initialFilter: FilterType = urlFilter && VALID_FILTERS.includes(urlFilter as FilterType)
+    ? (urlFilter as FilterType)
+    : 'all';
   const [loading, setLoading] = useState(true);
   const [dueForklifts, setDueForklifts] = useState<ForkliftDue[]>([]);
   const [fleetOverview, setFleetOverview] = useState<FleetServiceOverview[]>([]);
   const [dailyUsage, setDailyUsage] = useState<Record<string, DailyUsageResult>>({});
-  const [filter, setFilter] = useState<'all' | 'overdue' | 'due_soon' | 'job_created' | 'stale'>('all');
+  const [filter, setFilter] = useState<FilterType>(initialFilter);
   const [timeWindow, setTimeWindow] = useState<number>(30);
   const [running, setRunning] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
