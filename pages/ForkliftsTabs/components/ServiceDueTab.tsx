@@ -114,17 +114,37 @@ const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
     return hoursRemaining <= 100 ? 1 : 4;
   };
 
-  const filteredForklifts = dueForklifts
+  // When stale filter is active, source from fleetOverview (stale units aren't in dueForklifts)
+  const staleAsDueForklifts: ForkliftDue[] = filter === 'stale'
+    ? fleetOverview
+        .filter(o => o.is_stale_data)
+        .map(o => ({
+          forklift_id: o.forklift_id,
+          serial_number: o.serial_number,
+          make: o.make,
+          model: o.model,
+          type: o.type,
+          hourmeter: o.current_hourmeter,
+          current_hourmeter: o.current_hourmeter,
+          next_service_due: null,
+          next_service_hourmeter: o.next_target_service_hour ?? null,
+          days_until_due: null,
+          hours_until_due: o.next_target_service_hour != null
+            ? o.next_target_service_hour - o.current_hourmeter
+            : null,
+          is_overdue: o.is_service_overdue,
+          has_open_job: false,
+          current_customer_id: o.current_customer_id,
+        }))
+    : [];
+
+  const filteredForklifts = (filter === 'stale' ? staleAsDueForklifts : dueForklifts
     .filter(f => {
       if (filter === 'overdue') return f.is_overdue;
       if (filter === 'due_soon') return !f.is_overdue && !f.has_open_job;
       if (filter === 'job_created') return f.has_open_job;
-      if (filter === 'stale') {
-        const overview = fleetOverview.find(o => o.forklift_id === f.forklift_id);
-        return overview?.is_stale_data;
-      }
       return true;
-    })
+    }))
     .sort((a, b) => {
       if (sortBy === 'urgency') return getUrgencyScore(a) - getUrgencyScore(b);
       if (sortBy === 'name') return `${a.make} ${a.model}`.localeCompare(`${b.make} ${b.model}`);
