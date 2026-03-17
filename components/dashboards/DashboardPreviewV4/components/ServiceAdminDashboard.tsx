@@ -69,7 +69,7 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
     const disputed = jobs.filter(job => job.status === 'Disputed');
     const awaitingServiceConfirmation = jobs.filter(job =>
       job.status === 'Awaiting Finalization' &&
-      (job.parts_confirmed_at || job.parts_confirmation_skipped || job.parts_used.length === 0) &&
+      (job.parts_confirmed_at || job.parts_confirmation_skipped || (job.parts_used?.length ?? 0) === 0) &&
       !job.job_confirmed_at
     );
     const dueToday = openJobs.filter(job => {

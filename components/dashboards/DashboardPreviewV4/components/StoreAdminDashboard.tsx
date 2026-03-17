@@ -154,7 +154,7 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
   const jobsWaitingParts = useMemo(() => {
     return jobs.filter(job =>
       job.status === 'Awaiting Finalization' &&
-      job.parts_used.length > 0 &&
+      job.parts_used?.length &&
       !job.parts_confirmed_at &&
       !job.parts_confirmation_skipped
     );
