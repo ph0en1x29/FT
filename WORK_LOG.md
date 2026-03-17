@@ -172,3 +172,4 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-03-13 01:01] [Sonnet] feat: duplicate job warning modal — shows existing job details with Continue/Cancel instead of blocking. Files: useCreateJobForm.ts, CreateJobPage.tsx, DuplicateJobWarningModal.tsx, types.ts
 [2026-03-16 20:17] [Sonnet] fix: optional chaining for parts_used crash — StoreAdminDashboard.tsx, ServiceAdminDashboard.tsx
 
+[2026-03-16 20:22] [Sonnet] fix: defensive defaults for parts_used/extra_charges in getJobs() — jobService.ts

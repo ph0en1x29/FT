@@ -209,6 +209,13 @@ export const getJobs = async (user: User, options?: { status?: JobStatus }): Pro
     allJobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 
+  // Add defensive defaults for fields that may be missing
+  allJobs.forEach(job => {
+    job.parts_used = job.parts_used || [];
+    job.extra_charges = job.extra_charges || [];
+    job.labor_cost = job.labor_cost || 0;
+  });
+
   logDebug('[getJobs] Found jobs:', allJobs.length || 0);
   return allJobs;
 };
