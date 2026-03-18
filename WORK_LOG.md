@@ -185,3 +185,10 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
   - jobRequestApprovalService.ts: Fixed issuePartToTechnician — same null default for sell_price_at_time
   - Root cause: 97% of parts (3101/3199) have null sell_price; no null guard caused "RMnull" display and DB insert failures
   - Build: ✅ Pass (✓ 2450 modules transformed, ✓ built in 4.05s)
+
+[2026-03-18 00:55] [Sonnet] cost_price fallback for remaining null sell_price spots: pages/JobDetail/JobDetailPage.tsx, pages/StoreQueue/StoreQueuePage.tsx, pages/PartRequests/PartRequestsPage.tsx
+  - JobDetailPage.tsx: Add Part dropdown subLabel now uses (sell_price ?? cost_price)?.toFixed(2) ?? '0.00'
+  - StoreQueuePage.tsx: same cost_price fallback pattern
+  - PartRequestsPage.tsx: same cost_price fallback pattern
+  - Also updated ApproveRequestModal, BulkApproveRequestsModal, jobRequestApprovalService to prefer cost_price over 0
+  - 98.6% of parts have cost_price populated vs only 3% with sell_price

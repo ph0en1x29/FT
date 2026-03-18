@@ -48,12 +48,12 @@ export const approveSparePartRequest = async (
       .eq('status', 'pending');
 
     // Validate stock for all items upfront
-    type PartInfo = { part_name: string; sell_price: number; stock_quantity: number };
+    type PartInfo = { part_name: string; sell_price: number; cost_price: number; stock_quantity: number };
     const partInfoMap: Record<string, PartInfo> = {};
     for (const item of items) {
       const { data: part, error: partError } = await supabase
         .from('parts')
-        .select('part_name, sell_price, stock_quantity')
+        .select('part_name, sell_price, cost_price, stock_quantity')
         .eq('part_id', item.partId)
         .single();
       if (partError || !part) return false;
@@ -111,7 +111,7 @@ export const approveSparePartRequest = async (
       part_id: item.partId,
       part_name: partInfoMap[item.partId].part_name,
       quantity: item.quantity,
-      sell_price_at_time: partInfoMap[item.partId].sell_price ?? 0,
+      sell_price_at_time: partInfoMap[item.partId].sell_price ?? partInfoMap[item.partId].cost_price ?? 0,
     }));
 
     const { error: insertError } = await supabase.from('job_parts').insert(jobPartsInserts);
@@ -291,7 +291,7 @@ export const issuePartToTechnician = async (
     // Get part details
     const { data: part } = await supabase
       .from('parts')
-      .select('part_name, sell_price, stock_quantity')
+      .select('part_name, sell_price, cost_price, stock_quantity')
       .eq('part_id', partId)
       .single();
 
@@ -320,7 +320,7 @@ export const issuePartToTechnician = async (
         part_id: partId,
         part_name: part.part_name,
         quantity,
-        sell_price_at_time: part.sell_price ?? 0,
+        sell_price_at_time: part.sell_price ?? part.cost_price ?? 0,
       });
 
     if (insertError) {

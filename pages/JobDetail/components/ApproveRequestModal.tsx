@@ -40,7 +40,7 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
   const partOptions: ComboboxOption[] = parts.map(p => ({
     id: p.part_id,
     label: p.part_name,
-    subLabel: `RM${p.sell_price?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
+    subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
   }));
 
   if (!show || !request) return null;
@@ -158,7 +158,7 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
             <div className="font-medium text-[var(--text)]">
               {request.admin_response_quantity}x {request.admin_response_part.part_name}
               <span className="text-[var(--text-muted)] text-sm ml-2">
-                RM{request.admin_response_part.sell_price?.toFixed(2) ?? '0.00'} each
+                RM{(request.admin_response_part.sell_price ?? request.admin_response_part.cost_price)?.toFixed(2) ?? '0.00'} each
               </span>
             </div>
             {request.issued_at && (

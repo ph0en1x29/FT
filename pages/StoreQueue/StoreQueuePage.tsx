@@ -168,7 +168,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
   const partOptions: ComboboxOption[] = useMemo(() => parts.map(p => ({
     id: p.part_id,
     label: p.part_name,
-    subLabel: `RM${p.sell_price} | Stock: ${p.stock_quantity}`,
+    subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
   })), [parts]);
 
   // ─── Load everything into a single queue ─────────────────────

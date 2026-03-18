@@ -79,7 +79,7 @@ export default function PartRequestsPage({ currentUser, hideHeader = false }: Pa
   const partOptions: ComboboxOption[] = useMemo(() => parts.map(p => ({
     id: p.part_id,
     label: p.part_name,
-    subLabel: `RM${p.sell_price} | Stock: ${p.stock_quantity}`,
+    subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
   })), [parts]);
 
   const loadRequests = useCallback(async () => {

@@ -119,7 +119,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
     const stockLabel = stock === 0 ? '⛔ OOS' : stock <= 5 ? `⚠️ ${stock}` : `${stock}`;
     return {
       id: p.part_id, label: p.part_name,
-      subLabel: roleFlags.canViewPricing ? `RM${p.sell_price} | Stock: ${stockLabel} | ${p.category}` : `Stock: ${stockLabel} | ${p.category}`
+      subLabel: roleFlags.canViewPricing ? `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${stockLabel} | ${p.category}` : `Stock: ${stockLabel} | ${p.category}`
     };
   });
   const techOptions: ComboboxOption[] = technicians.map(t => ({ id: t.user_id, label: t.name, subLabel: t.email }));
