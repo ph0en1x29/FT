@@ -192,3 +192,8 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
   - PartRequestsPage.tsx: same cost_price fallback pattern
   - Also updated ApproveRequestModal, BulkApproveRequestsModal, jobRequestApprovalService to prefer cost_price over 0
   - 98.6% of parts have cost_price populated vs only 3% with sell_price
+
+## 2026-03-18 02:05 — Fix missing cost_price in part list queries [Sonnet]
+- **Root cause**: `PARTS_LIST_SELECT` didn't include `cost_price`, so the `sell_price ?? cost_price` fallback returned undefined for 97% of parts (which have null sell_price)
+- **Files**: `services/partsService.ts`, `pages/PartRequests/PartRequestsPage.tsx`, `pages/JobDetail/hooks/useJobPartsHandlers.ts`
+- **Fix**: Added `cost_price` to `PARTS_LIST_SELECT`; fixed remaining null-price displays with `sell_price ?? cost_price ?? 0` fallback chain

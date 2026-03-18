@@ -454,7 +454,7 @@ export default function PartRequestsPage({ currentUser, hideHeader = false }: Pa
                         {req.admin_response_quantity}× {approvedPart?.part_name || 'Part'}
                       </span>
                       <span className="text-xs text-[var(--text-muted)]">
-                        RM{approvedPart?.sell_price || '—'} each
+                        RM{(approvedPart?.sell_price ?? approvedPart?.cost_price)?.toFixed(2) ?? '—'} each
                       </span>
                     </div>
                     <button

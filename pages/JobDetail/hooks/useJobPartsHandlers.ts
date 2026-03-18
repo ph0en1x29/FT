@@ -192,7 +192,7 @@ export const useJobPartsHandlers = ({
 
       // Also add to job parts for invoicing
       if (item.part) {
-        await MockDb.addPartToJob(job.job_id, item.part_id, qtyToUse, item.part.sell_price || 0, UserRole.TECHNICIAN, currentUserId, currentUserName);
+        await MockDb.addPartToJob(job.job_id, item.part_id, qtyToUse, item.part.sell_price ?? item.part.cost_price ?? 0, UserRole.TECHNICIAN, currentUserId, currentUserName);
       }
 
       // Auto-confirm parts — van stock usage is tracked and auditable,
