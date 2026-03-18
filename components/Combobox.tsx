@@ -104,14 +104,25 @@ export const Combobox: React.FC<ComboboxProps> = ({
   }, []);
 
   // In server-search mode the parent owns the list; skip client-side filter
+  // Cap rendered items at 50 to avoid DOM thrash on large lists (3000+ parts)
+  const MAX_VISIBLE = 50;
   const filteredOptions = useMemo(() => {
-    if (onSearch) return options;
-    if (!query) return options;
+    if (onSearch) return options.slice(0, MAX_VISIBLE);
+    if (!query) return options.slice(0, MAX_VISIBLE);
     const q = query.toLowerCase();
     return options.filter(opt =>
       opt.label.toLowerCase().includes(q) ||
       (opt.subLabel && opt.subLabel.toLowerCase().includes(q))
-    );
+    ).slice(0, MAX_VISIBLE);
+  }, [onSearch, options, query]);
+  const totalMatches = useMemo(() => {
+    if (onSearch) return options.length;
+    if (!query) return options.length;
+    const q = query.toLowerCase();
+    return options.filter(opt =>
+      opt.label.toLowerCase().includes(q) ||
+      (opt.subLabel && opt.subLabel.toLowerCase().includes(q))
+    ).length;
   }, [onSearch, options, query]);
 
   const inputClassName = compact
@@ -206,6 +217,12 @@ export const Combobox: React.FC<ComboboxProps> = ({
               {onSearch && !query
                 ? 'Type to search...'
                 : `No results for "${query}"`}
+            </div>
+          )}
+
+          {totalMatches > MAX_VISIBLE && (
+            <div className={`${compact ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-xs'} text-center text-slate-400 border-t border-slate-100 bg-slate-50/50`}>
+              Showing {MAX_VISIBLE} of {totalMatches} — type to narrow
             </div>
           )}
 

@@ -197,3 +197,8 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 - **Root cause**: `PARTS_LIST_SELECT` didn't include `cost_price`, so the `sell_price ?? cost_price` fallback returned undefined for 97% of parts (which have null sell_price)
 - **Files**: `services/partsService.ts`, `pages/PartRequests/PartRequestsPage.tsx`, `pages/JobDetail/hooks/useJobPartsHandlers.ts`
 - **Fix**: Added `cost_price` to `PARTS_LIST_SELECT`; fixed remaining null-price displays with `sell_price ?? cost_price ?? 0` fallback chain
+
+## 2026-03-18 02:10 — Cap Combobox render to 50 items [Sonnet]
+- **Root cause**: Admin part dropdown rendering all 3,199 `<li>` elements at once, causing lag on open
+- **Files**: `components/Combobox.tsx`
+- **Fix**: Cap visible items at 50, show "Showing 50 of N — type to narrow" hint. Typing still filters all items client-side, just limits DOM nodes.
