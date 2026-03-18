@@ -173,3 +173,15 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-03-16 20:17] [Sonnet] fix: optional chaining for parts_used crash — StoreAdminDashboard.tsx, ServiceAdminDashboard.tsx
 
 [2026-03-16 20:22] [Sonnet] fix: defensive defaults for parts_used/extra_charges in getJobs() — jobService.ts
+
+## 2026-03-18
+
+[2026-03-18 00:46] [Sonnet] Fix null sell_price causing "RMnull" display and approval failures: pages/JobDetail/components/ApproveRequestModal.tsx, pages/JobDetail/components/BulkApproveRequestsModal.tsx, services/jobRequestApprovalService.ts
+  - ApproveRequestModal.tsx: Fixed partOptions subLabel to use sell_price?.toFixed(2) ?? '0.00' (was RM${p.sell_price} showing "RMnull")
+  - ApproveRequestModal.tsx: Fixed admin_response_part.sell_price display with same null guard
+  - BulkApproveRequestsModal.tsx: Fixed partOptions subLabel with same null guard pattern
+  - BulkApproveRequestsModal.tsx: Fixed selectedPart?.sell_price display in match status line
+  - jobRequestApprovalService.ts: Fixed approveSparePartRequest — sell_price_at_time now defaults to 0 when null (job_parts.sell_price_at_time is NOT NULL)
+  - jobRequestApprovalService.ts: Fixed issuePartToTechnician — same null default for sell_price_at_time
+  - Root cause: 97% of parts (3101/3199) have null sell_price; no null guard caused "RMnull" display and DB insert failures
+  - Build: ✅ Pass (✓ 2450 modules transformed, ✓ built in 4.05s)

@@ -111,7 +111,7 @@ export const approveSparePartRequest = async (
       part_id: item.partId,
       part_name: partInfoMap[item.partId].part_name,
       quantity: item.quantity,
-      sell_price_at_time: partInfoMap[item.partId].sell_price,
+      sell_price_at_time: partInfoMap[item.partId].sell_price ?? 0,
     }));
 
     const { error: insertError } = await supabase.from('job_parts').insert(jobPartsInserts);
@@ -320,7 +320,7 @@ export const issuePartToTechnician = async (
         part_id: partId,
         part_name: part.part_name,
         quantity,
-        sell_price_at_time: part.sell_price,
+        sell_price_at_time: part.sell_price ?? 0,
       });
 
     if (insertError) {

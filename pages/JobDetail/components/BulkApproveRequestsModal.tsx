@@ -74,7 +74,7 @@ export const BulkApproveRequestsModal: React.FC<BulkApproveRequestsModalProps> =
   const partOptions: ComboboxOption[] = useMemo(() => parts.map(p => ({
     id: p.part_id,
     label: p.part_name,
-    subLabel: `RM${p.sell_price} | Stock: ${p.stock_quantity}`,
+    subLabel: `RM${p.sell_price?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
   })), [parts]);
 
   // Auto-match on open
@@ -198,7 +198,7 @@ export const BulkApproveRequestsModal: React.FC<BulkApproveRequestsModalProps> =
                     {item.partId ? (
                       <div className="flex items-center gap-1 text-xs text-green-600">
                         <Check className="w-3 h-3" />
-                        {selectedPart?.part_name} — RM{selectedPart?.sell_price} (Stock: {selectedPart?.stock_quantity})
+                        {selectedPart?.part_name} — RM{selectedPart?.sell_price?.toFixed(2) ?? '0.00'} (Stock: {selectedPart?.stock_quantity})
                       </div>
                     ) : (
                       <div className="flex items-center gap-1 text-xs text-amber-600">
