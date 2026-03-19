@@ -213,3 +213,8 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 - **Files**: services/forkliftService.ts
 - **What**: Catch Postgres 23505 unique violation on forklift_no and show user-friendly message instead of raw constraint name
 - **Why**: Client saw raw "duplicate key value violates unique constraint idx_forklifts_forklift_no_nonempty_unique" error
+
+### [2026-03-19 03:33] [Sonnet] Make forklift_no read-only on edit — AddEditForkliftModal.tsx, useFleetManagement.ts
+- **Files**: pages/ForkliftsTabs/components/AddEditForkliftModal.tsx, pages/ForkliftsTabs/components/useFleetManagement.ts
+- **What**: forklift_no field becomes read-only when editing (greyed out, not sent in update payload). customer_forklift_no stays editable.
+- **Why**: Client requirement — forklift number is immutable after creation, only customer number can change

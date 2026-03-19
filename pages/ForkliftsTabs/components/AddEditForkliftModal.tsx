@@ -90,7 +90,7 @@ const AddEditForkliftModal: React.FC<AddEditForkliftModalProps> = ({
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Forklift No</label>
-                    <input type="text" className={inputClassName} value={formData.forklift_no} onChange={e => setFormData({...formData, forklift_no: e.target.value})} placeholder="A123" />
+                    <input type="text" className={`${inputClassName}${isEditing ? ' bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`} value={formData.forklift_no} onChange={e => !isEditing && setFormData({...formData, forklift_no: e.target.value})} readOnly={isEditing} placeholder="A123" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Customer No</label>
