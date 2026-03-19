@@ -470,7 +470,12 @@ export const createForklift = async (forkliftData: Partial<Forklift>): Promise<F
       .single());
   }
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === '23505' && error.message.includes('forklift_no')) {
+      throw new Error(`Forklift number "${forkliftData.forklift_no}" already exists. Please use a unique number.`);
+    }
+    throw new Error(error.message);
+  }
   return data as Forklift;
 };
 
@@ -513,7 +518,12 @@ export const updateForklift = async (
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === '23505' && error.message.includes('forklift_no')) {
+      throw new Error(`Forklift number "${updates.forklift_no}" already exists. Please use a unique number.`);
+    }
+    throw new Error(error.message);
+  }
 
   if (updates.hourmeter !== undefined && userContext && previousHourmeter !== updates.hourmeter) {
     try {

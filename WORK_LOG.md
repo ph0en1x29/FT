@@ -208,3 +208,8 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 - **What**: Sanitize empty strings to null for timestamptz columns (last_service_date, delivery_date, etc.) in both createForklift and updateForklift
 - **Why**: Client reported 'invalid input syntax for type timestamp with time zone: ""' when editing forklifts with no service date set
 
+
+### [2026-03-19 03:30] [Sonnet] Friendly error for duplicate forklift_no — forkliftService.ts
+- **Files**: services/forkliftService.ts
+- **What**: Catch Postgres 23505 unique violation on forklift_no and show user-friendly message instead of raw constraint name
+- **Why**: Client saw raw "duplicate key value violates unique constraint idx_forklifts_forklift_no_nonempty_unique" error
