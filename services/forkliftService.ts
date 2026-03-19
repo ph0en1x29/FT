@@ -442,11 +442,18 @@ export const createForklift = async (forkliftData: Partial<Forklift>): Promise<F
     forklift_no: forkliftData.forklift_no,
     customer_forklift_no: forkliftData.customer_forklift_no,
     current_customer_id: forkliftData.current_customer_id,
-    delivery_date: forkliftData.delivery_date,
+    delivery_date: forkliftData.delivery_date || null,
     source_item_group: forkliftData.source_item_group,
     ownership_type: forkliftData.ownership_type || 'fleet',
     notes: forkliftData.notes,
   };
+
+  // Sanitize empty strings to null for timestamp/date columns
+  for (const field of ['delivery_date', 'last_service_date'] as const) {
+    if ((payload as Record<string, unknown>)[field] === '') {
+      (payload as Record<string, unknown>)[field] = null;
+    }
+  }
 
   let { data, error } = await supabase
     .from('forklifts')
@@ -486,6 +493,14 @@ export const updateForklift = async (
   const syncedUpdates = { ...updates };
   if (syncedUpdates.last_service_hourmeter !== undefined) {
     (syncedUpdates as Record<string, unknown>).last_serviced_hourmeter = syncedUpdates.last_service_hourmeter;
+  }
+
+  // Sanitize empty strings to null for timestamp/date columns (Postgres rejects "" for timestamptz)
+  const timestampFields = ['last_service_date', 'next_service_due', 'delivery_date', 'last_hourmeter_update', 'created_at', 'updated_at'] as const;
+  for (const field of timestampFields) {
+    if ((syncedUpdates as Record<string, unknown>)[field] === '') {
+      (syncedUpdates as Record<string, unknown>)[field] = null;
+    }
   }
 
   const { data, error } = await supabase
