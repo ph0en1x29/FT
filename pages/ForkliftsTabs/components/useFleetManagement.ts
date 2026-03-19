@@ -282,8 +282,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
 
     try {
       if (editingForklift) {
-        const { forklift_no: _immutable, ...editableFields } = formData;
-        await MockDb.updateForklift(editingForklift.forklift_id, editableFields, { userId: currentUser.user_id, userName: currentUser.name });
+        await MockDb.updateForklift(editingForklift.forklift_id, formData, { userId: currentUser.user_id, userName: currentUser.name });
       } else {
         await MockDb.createForklift(formData);
       }
