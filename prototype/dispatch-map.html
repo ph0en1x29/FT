@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Dispatch Map — Prototype</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }
+  
+  .layout { display: flex; height: 100vh; }
+  
+  /* Map */
+  #map { flex: 1; z-index: 1; }
+  
+  /* Sidebar */
+  .sidebar { width: 380px; background: #1e293b; border-left: 1px solid #334155; display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-header { padding: 16px 20px; border-bottom: 1px solid #334155; }
+  .sidebar-header h2 { font-size: 16px; font-weight: 600; color: #f8fafc; margin-bottom: 4px; }
+  .sidebar-header p { font-size: 12px; color: #94a3b8; }
+  
+  /* New Job Card */
+  .new-job-card { margin: 12px 16px; padding: 14px; background: #7c3aed20; border: 1px solid #7c3aed40; border-radius: 10px; }
+  .new-job-card h3 { font-size: 13px; font-weight: 600; color: #a78bfa; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .new-job-card select, .new-job-card input { width: 100%; padding: 8px 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-size: 13px; margin-bottom: 8px; outline: none; }
+  .new-job-card select:focus, .new-job-card input:focus { border-color: #7c3aed; }
+  .new-job-card .job-info { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+  
+  /* Filter bar */
+  .filter-bar { padding: 8px 16px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-btn { padding: 4px 10px; font-size: 11px; border-radius: 20px; border: 1px solid #475569; background: transparent; color: #94a3b8; cursor: pointer; transition: all 0.15s; }
+  .filter-btn:hover { border-color: #7c3aed; color: #e2e8f0; }
+  .filter-btn.active { background: #7c3aed; border-color: #7c3aed; color: white; }
+  
+  /* Tech list */
+  .tech-list { flex: 1; overflow-y: auto; padding: 8px 12px; }
+  .tech-card { padding: 12px 14px; background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; position: relative; }
+  .tech-card:hover { border-color: #475569; background: #1a2332; }
+  .tech-card.highlighted { border-color: #7c3aed; background: #7c3aed10; }
+  .tech-card.nearest { border-color: #22c55e; }
+  
+  .tech-rank { position: absolute; top: 10px; right: 12px; font-size: 20px; font-weight: 700; color: #334155; }
+  .tech-card.nearest .tech-rank { color: #22c55e40; }
+  
+  .tech-name { font-size: 14px; font-weight: 600; color: #f1f5f9; margin-bottom: 4px; }
+  .tech-meta { display: flex; gap: 12px; margin-bottom: 6px; }
+  .tech-meta span { font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 4px; }
+  .tech-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+  .status-available { background: #22c55e20; color: #4ade80; }
+  .status-on-job { background: #f59e0b20; color: #fbbf24; }
+  .status-finishing { background: #3b82f620; color: #60a5fa; }
+  
+  .tech-site { font-size: 11px; color: #64748b; margin-top: 4px; }
+  
+  .assign-btn { margin-top: 8px; width: 100%; padding: 8px; background: #7c3aed; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; display: none; }
+  .assign-btn:hover { background: #6d28d9; }
+  .tech-card.highlighted .assign-btn { display: block; }
+  
+  /* Distance badge */
+  .distance-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+  .dist-near { background: #22c55e20; color: #4ade80; }
+  .dist-mid { background: #f59e0b20; color: #fbbf24; }
+  .dist-far { background: #ef444420; color: #f87171; }
+  
+  /* Legend */
+  .legend { padding: 12px 16px; border-top: 1px solid #334155; display: flex; gap: 16px; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  
+  /* Scrollbar */
+  .tech-list::-webkit-scrollbar { width: 4px; }
+  .tech-list::-webkit-scrollbar-track { background: transparent; }
+  .tech-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+  
+  /* Pulse animation for new job marker */
+  @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.7; } }
+  .pulse-marker { animation: pulse 2s infinite; }
+  
+  /* Custom Leaflet markers */
+  .tech-marker { background: #3b82f6; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  .tech-marker.available { background: #22c55e; }
+  .tech-marker.on-job { background: #f59e0b; }
+  .tech-marker.finishing { background: #3b82f6; }
+  
+  .job-marker { background: #ef4444; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 2px 12px rgba(239,68,68,0.5); }
+  
+  .site-marker { background: #64748b; width: 8px; height: 8px; border-radius: 50%; opacity: 0.4; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div id="map"></div>
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>🗺️ Dispatch Map</h2>
+      <p>Find nearest technician for new jobs</p>
+    </div>
+    
+    <div class="new-job-card">
+      <h3>📍 New Job Location</h3>
+      <select id="jobSiteSelect" onchange="selectJobSite(this.value)">
+        <option value="">— Select a site —</option>
+      </select>
+      <div class="job-info" id="jobInfo">Select a site to find nearest technicians</div>
+    </div>
+    
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-btn" onclick="setFilter('available', this)">✅ Available</button>
+      <button class="filter-btn" onclick="setFilter('finishing', this)">⏳ Finishing</button>
+      <button class="filter-btn" onclick="setFilter('on-job', this)">🔧 On Job</button>
+      <button class="filter-btn" onclick="setRadius(5, this)">5km</button>
+      <button class="filter-btn" onclick="setRadius(10, this)">10km</button>
+      <button class="filter-btn" onclick="setRadius(25, this)">25km</button>
+    </div>
+    
+    <div class="tech-list" id="techList"></div>
+    
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Available</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> On Job</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Finishing</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> New Job</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== DATA (mock based on real FT sites/techs) ==========
+
+// Real site coordinates around Selangor/KL
+const sites = [
+  { id: 's1', name: 'JENJAROM', address: 'LOT 505, Jalan Hasta 2, 42500 Teluk Panglima Garang', lat: 2.8865, lng: 101.5165 },
+  { id: 's2', name: 'BALAKONG', address: 'Lot 4185, Kg Baru Balakong, 43300', lat: 3.0293, lng: 101.7513 },
+  { id: 's3', name: 'KOTA DAMANSARA', address: 'No. 6, Jalan PJU 3/46, Sunway Damansara', lat: 3.1553, lng: 101.5925 },
+  { id: 's4', name: 'WESTPORT - PKFZ', address: 'Port Klang Free Zone, 42920 Pulau Indah', lat: 2.9874, lng: 101.3651 },
+  { id: 's5', name: 'RAWANG', address: 'Kawasan Perindustrian Kundang Jaya, 48020', lat: 3.3218, lng: 101.5773 },
+  { id: 's6', name: 'SA-SEC 15', address: 'Lot 5, Persiaran Selangor, 40000 Shah Alam', lat: 3.0733, lng: 101.5185 },
+  { id: 's7', name: 'NORTHPORT', address: 'Selat Klang Utara, 42000 Pelabuhan Klang', lat: 3.0004, lng: 101.3928 },
+  { id: 's8', name: 'PJ', address: 'Hedgeford Innovation Park, 46050 Petaling Jaya', lat: 3.1015, lng: 101.6374 },
+  { id: 's9', name: 'SUNGAI BESI', address: 'Star Parc Point, 53300 Kuala Lumpur', lat: 3.1099, lng: 101.6973 },
+  { id: 's10', name: 'KOTA KEMUNING', address: 'Kawasan Industri Kota Kemuning, 40460 Shah Alam', lat: 3.0016, lng: 101.5374 },
+  { id: 's11', name: 'SERI KEMBANGAN', address: 'Taming Jaya, 43300 Seri Kembangan', lat: 3.0238, lng: 101.7162 },
+  { id: 's12', name: 'BUKIT RAJA', address: 'Bandar Bukit Raja, 41050 Klang', lat: 3.0862, lng: 101.4479 },
+  { id: 's13', name: 'KAPAR', address: 'Sungai Kapar Indah, 42200 Klang', lat: 3.1097, lng: 101.3884 },
+  { id: 's14', name: 'PUCHONG', address: 'Taman Perindustrian Puchong Utama, 47100', lat: 3.0218, lng: 101.6164 },
+  { id: 's15', name: 'SEREMBAN', address: 'Oakland Industrial Park, 70300 Seremban', lat: 2.7256, lng: 101.9424 },
+  { id: 's16', name: 'TELOK PANGLIMA GARANG', address: 'FIZ Telok Panglima Garang, 42507', lat: 2.8703, lng: 101.5291 },
+];
+
+// Mock technicians at various sites
+const technicians = [
+  { id: 't1', name: 'BEE PHENG SIANG', status: 'on-job', currentSite: 's2', eta: '~2 hrs left' },
+  { id: 't2', name: 'BEH CHOON SHEN', status: 'available', currentSite: 's6', eta: '' },
+  { id: 't3', name: 'BON YONG JIA', status: 'finishing', currentSite: 's4', eta: '~30 min left' },
+  { id: 't4', name: 'EU SENG CHEONG', status: 'on-job', currentSite: 's9', eta: '~3 hrs left' },
+  { id: 't5', name: 'GOH YUEH HAN', status: 'available', currentSite: 's5', eta: '' },
+  { id: 't6', name: 'LEE KAI LUN', status: 'finishing', currentSite: 's8', eta: '~45 min left' },
+  { id: 't7', name: 'LIM KHER YUAN', status: 'on-job', currentSite: 's11', eta: '~1.5 hrs left' },
+  { id: 't8', name: 'MOHAMAD YAZID', status: 'available', currentSite: 's7', eta: '' },
+  { id: 't9', name: 'MOHD BASRI', status: 'on-job', currentSite: 's1', eta: '~4 hrs left' },
+  { id: 't10', name: 'MUHAMAD HAFIZ', status: 'finishing', currentSite: 's13', eta: '~15 min left' },
+  { id: 't11', name: 'MUHAMMAD FADHIL', status: 'available', currentSite: 's14', eta: '' },
+  { id: 't12', name: 'MUHAMMAD FIRDAUS', status: 'on-job', currentSite: 's3', eta: '~2.5 hrs left' },
+  { id: 't13', name: 'NOOR AZLAN', status: 'available', currentSite: 's10', eta: '' },
+  { id: 't14', name: 'ONG WEI SHEN', status: 'finishing', currentSite: 's12', eta: '~20 min left' },
+  { id: 't15', name: 'RAJA AHMAD', status: 'on-job', currentSite: 's15', eta: '~1 hr left' },
+  { id: 't16', name: 'SYAFIQ RAHIM', status: 'available', currentSite: 's16', eta: '' },
+];
+
+// ========== MAP SETUP ==========
+
+const map = L.map('map', {
+  zoomControl: true,
+  attributionControl: false,
+}).setView([3.05, 101.55], 11);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19,
+}).addTo(map);
+
+L.control.attribution({ position: 'bottomleft', prefix: false })
+  .addAttribution('© <a href="https://www.openstreetmap.org/">OSM</a> © <a href="https://carto.com/">CARTO</a>')
+  .addTo(map);
+
+// ========== MARKERS ==========
+
+let techMarkers = {};
+let jobMarker = null;
+let radiusCircle = null;
+let distanceLines = [];
+let currentFilter = 'all';
+let currentRadius = null;
+let selectedJobSite = null;
+let selectedTechId = null;
+
+function createTechIcon(tech, index) {
+  const colors = { available: '#22c55e', 'on-job': '#f59e0b', finishing: '#3b82f6' };
+  return L.divIcon({
+    className: '',
+    html: `<div class="tech-marker ${tech.status}" style="background:${colors[tech.status]}">${index !== undefined ? index + 1 : ''}</div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
+}
+
+function createJobIcon() {
+  return L.divIcon({
+    className: '',
+    html: `<div class="job-marker pulse-marker">🔴</div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+  });
+}
+
+// Place technician markers
+function renderTechMarkers(rankedTechs) {
+  // Clear old
+  Object.values(techMarkers).forEach(m => map.removeLayer(m));
+  techMarkers = {};
+  distanceLines.forEach(l => map.removeLayer(l));
+  distanceLines = [];
+  
+  const techs = rankedTechs || technicians;
+  
+  techs.forEach((tech, i) => {
+    const site = sites.find(s => s.id === tech.currentSite);
+    if (!site) return;
+    
+    // Apply filters
+    if (currentFilter !== 'all' && tech.status !== currentFilter) return;
+    if (currentRadius && tech._distance && tech._distance > currentRadius) return;
+    
+    const marker = L.marker([site.lat, site.lng], { icon: createTechIcon(tech, selectedJobSite ? i : undefined) })
+      .addTo(map)
+      .bindPopup(`
+        <div style="font-family:-apple-system,sans-serif;min-width:180px;">
+          <b>${tech.name}</b><br>
+          <span style="color:${tech.status === 'available' ? '#22c55e' : tech.status === 'finishing' ? '#3b82f6' : '#f59e0b'}">${tech.status.toUpperCase()}</span>
+          ${tech.eta ? `<br><small>${tech.eta}</small>` : ''}
+          <br><small>📍 ${site.name}</small>
+          ${tech._distance ? `<br><small>📏 ${tech._distance.toFixed(1)} km away</small>` : ''}
+        </div>
+      `);
+    
+    marker.on('click', () => highlightTech(tech.id));
+    techMarkers[tech.id] = marker;
+    
+    // Draw distance line to job
+    if (selectedJobSite && tech._distance) {
+      const jobSite = sites.find(s => s.id === selectedJobSite);
+      if (jobSite) {
+        const opacity = Math.max(0.15, 0.6 - (tech._distance / 30));
+        const line = L.polyline([[site.lat, site.lng], [jobSite.lat, jobSite.lng]], {
+          color: tech._distance < 5 ? '#22c55e' : tech._distance < 15 ? '#f59e0b' : '#ef4444',
+          weight: 2,
+          opacity: opacity,
+          dashArray: '6 4',
+        }).addTo(map);
+        distanceLines.push(line);
+      }
+    }
+  });
+}
+
+// ========== DISTANCE CALCULATION ==========
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function rankTechnicians(jobSiteId) {
+  const jobSite = sites.find(s => s.id === jobSiteId);
+  if (!jobSite) return technicians;
+  
+  return technicians.map(tech => {
+    const techSite = sites.find(s => s.id === tech.currentSite);
+    const dist = techSite ? haversine(jobSite.lat, jobSite.lng, techSite.lat, techSite.lng) : 999;
+    return { ...tech, _distance: dist };
+  }).sort((a, b) => {
+    // Available/finishing first, then by distance
+    const statusOrder = { available: 0, finishing: 1, 'on-job': 2 };
+    const sDiff = statusOrder[a.status] - statusOrder[b.status];
+    if (sDiff !== 0) return sDiff;
+    return a._distance - b._distance;
+  });
+}
+
+// ========== UI ACTIONS ==========
+
+function selectJobSite(siteId) {
+  selectedJobSite = siteId;
+  selectedTechId = null;
+  
+  // Remove old job marker
+  if (jobMarker) map.removeLayer(jobMarker);
+  if (radiusCircle) map.removeLayer(radiusCircle);
+  
+  if (!siteId) {
+    document.getElementById('jobInfo').textContent = 'Select a site to find nearest technicians';
+    renderTechMarkers();
+    renderTechList(technicians);
+    return;
+  }
+  
+  const site = sites.find(s => s.id === siteId);
+  document.getElementById('jobInfo').innerHTML = `📍 ${site.address}`;
+  
+  // Add job marker
+  jobMarker = L.marker([site.lat, site.lng], { icon: createJobIcon() })
+    .addTo(map)
+    .bindPopup(`<b>NEW JOB</b><br>${site.name}<br><small>${site.address}</small>`)
+    .openPopup();
+  
+  // Add radius circle
+  if (currentRadius) {
+    radiusCircle = L.circle([site.lat, site.lng], { radius: currentRadius * 1000, color: '#7c3aed', fillOpacity: 0.05, weight: 1 }).addTo(map);
+  }
+  
+  // Rank and render
+  const ranked = rankTechnicians(siteId);
+  renderTechMarkers(ranked);
+  renderTechList(ranked);
+  
+  // Pan to show job + nearest tech
+  map.setView([site.lat, site.lng], 12);
+}
+
+function renderTechList(techs) {
+  const list = document.getElementById('techList');
+  const filtered = techs.filter(t => {
+    if (currentFilter !== 'all' && t.status !== currentFilter) return false;
+    if (currentRadius && t._distance && t._distance > currentRadius) return false;
+    return true;
+  });
+  
+  list.innerHTML = filtered.map((tech, i) => {
+    const site = sites.find(s => s.id === tech.currentSite);
+    const distClass = tech._distance < 5 ? 'dist-near' : tech._distance < 15 ? 'dist-mid' : 'dist-far';
+    const isNearest = i === 0 && tech.status === 'available' && selectedJobSite;
+    
+    return `
+      <div class="tech-card ${isNearest ? 'nearest' : ''} ${selectedTechId === tech.id ? 'highlighted' : ''}" 
+           onclick="highlightTech('${tech.id}')" id="card-${tech.id}">
+        <div class="tech-rank">#${i + 1}</div>
+        <div class="tech-name">${tech.name}</div>
+        <div class="tech-meta">
+          <span class="tech-status status-${tech.status}">
+            ${tech.status === 'available' ? '✅' : tech.status === 'finishing' ? '⏳' : '🔧'} 
+            ${tech.status.charAt(0).toUpperCase() + tech.status.slice(1)}
+          </span>
+          ${tech._distance ? `<span class="distance-badge ${distClass}">📏 ${tech._distance.toFixed(1)} km</span>` : ''}
+        </div>
+        ${tech.eta ? `<div class="tech-meta"><span>⏱️ ${tech.eta}</span></div>` : ''}
+        <div class="tech-site">📍 ${site ? site.name : 'Unknown'} ${site ? '— ' + site.address.substring(0, 50) + '...' : ''}</div>
+        <button class="assign-btn" onclick="assignTech('${tech.id}', '${tech.name}')">⚡ Assign ${tech.name.split(' ')[0]}</button>
+      </div>
+    `;
+  }).join('');
+  
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;">No technicians match filters</div>';
+  }
+}
+
+function highlightTech(techId) {
+  selectedTechId = selectedTechId === techId ? null : techId;
+  
+  // Re-render list to show highlight
+  const ranked = selectedJobSite ? rankTechnicians(selectedJobSite) : technicians;
+  renderTechList(ranked);
+  
+  // Pan to tech on map
+  if (selectedTechId && techMarkers[techId]) {
+    techMarkers[techId].openPopup();
+  }
+}
+
+function assignTech(techId, techName) {
+  const site = sites.find(s => s.id === selectedJobSite);
+  alert(`✅ Assigned ${techName} to job at ${site?.name}\n\n(In production, this would update the job record and notify the technician)`);
+}
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach((b, i) => {
+    if (i < 4) b.classList.remove('active'); // Only status filters
+  });
+  btn.classList.add('active');
+  
+  const ranked = selectedJobSite ? rankTechnicians(selectedJobSite) : technicians;
+  renderTechMarkers(ranked);
+  renderTechList(ranked);
+}
+
+function setRadius(km, btn) {
+  if (currentRadius === km) {
+    currentRadius = null;
+    btn.classList.remove('active');
+  } else {
+    currentRadius = km;
+    document.querySelectorAll('.filter-btn').forEach((b, i) => {
+      if (i >= 4) b.classList.remove('active');
+    });
+    btn.classList.add('active');
+  }
+  
+  if (selectedJobSite) selectJobSite(selectedJobSite);
+}
+
+// ========== INIT ==========
+
+// Populate site selector
+const select = document.getElementById('jobSiteSelect');
+sites.forEach(s => {
+  const opt = document.createElement('option');
+  opt.value = s.id;
+  opt.textContent = s.name;
+  select.appendChild(opt);
+});
+
+// Initial render
+renderTechMarkers();
+renderTechList(technicians);
+</script>
+</body>
+</html>

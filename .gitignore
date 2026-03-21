@@ -38,3 +38,10 @@ supabase/.temp/
 node_modules
 .trash-cleanup-20260227/
 tmp/
+
+# OpenClaw agent workspace files (source of truth is .openclaw/)
+BOOTSTRAP.md
+HEARTBEAT.md
+MEMORY.md
+TOOLS.md
+USER.md
