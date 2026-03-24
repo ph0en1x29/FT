@@ -5,7 +5,7 @@
  * This component is lazy-loaded to reduce initial bundle size.
  * Contains: Sidebar, TopHeader, MobileNav, MobileDrawer, and all routes.
  */
-import { Building2,CalendarDays,ChevronLeft,FileText,LayoutDashboard,List,Loader2,LogOut,Menu,Moon,Package,PackageCheck,Search,Sun,Truck,User as UserIcon,Users,X,Zap,type LucideIcon } from 'lucide-react';
+import { Building2,CalendarDays,ChevronLeft,FileText,LayoutDashboard,List,Loader2,LogOut,Map,Menu,Moon,Package,PackageCheck,Search,Sun,Truck,User as UserIcon,Users,X,Zap,type LucideIcon } from 'lucide-react';
 import React,{ lazy,Suspense,useCallback,useEffect,useState } from 'react';
 import { Link,Navigate,Route,HashRouter as Router,Routes,useLocation,useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -35,6 +35,7 @@ const EmployeeProfile = lazy(() => import('../../pages/EmployeeProfile'));
 const MyLeaveRequests = lazy(() => import('../../pages/MyLeaveRequests'));
 const PrototypeDashboards = lazy(() => import('../../pages/PrototypeDashboards'));
 const MyVanStock = lazy(() => import('../../pages/MyVanStock'));
+const AdminMapPage = lazy(() => import('../../pages/AdminMap/AdminMapPage'));
 
 // Loading fallback
 export const PageLoader = () => (
@@ -187,6 +188,7 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed, navRole }
           <NavItem to="/jobs" icon={List} label="Jobs" />
           {canViewForklifts && <NavItem to="/forklifts" icon={Truck} label="Fleet" />}
           {canViewCustomers && <NavItem to="/customers" icon={Building2} label="Customers" />}
+          {canViewCustomers && <NavItem to="/site-map" icon={Map} label="Site Map" />}
           {canManageInventory && <NavItem to="/inventory" icon={Package} label="Inventory" />}
           {canFinalizeInvoices && (
             <>
@@ -531,6 +533,7 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
                 <Route path="/forklifts/:id" element={canViewForklifts ? <ForkliftProfile currentUser={currentUser} /> : <Navigate to="/" />} />
                 <Route path="/customers" element={canViewCustomers ? <Customers /> : <Navigate to="/" />} />
                 <Route path="/customers/:id" element={canViewCustomers ? <CustomerProfile currentUser={currentUser} /> : <Navigate to="/" />} />
+                <Route path="/site-map" element={canViewCustomers ? <AdminMapPage /> : <Navigate to="/" />} />
                 <Route path="/inventory" element={canManageInventory ? <InventoryPage currentUser={currentUser} /> : <Navigate to="/" />} />
                 <Route path="/invoices" element={canFinalizeInvoices ? <Invoices currentUser={currentUser} /> : <Navigate to="/" />} />
                 <Route path="/people" element={canViewTeam ? <People currentUser={currentUser} /> : <Navigate to="/" />} />

@@ -70,6 +70,8 @@ export interface CustomerSite {
   address?: string;
   notes?: string;
   is_active: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
   created_at?: string;
   updated_at?: string;
 }

@@ -1,4 +1,4 @@
-import { Building2,MapPin,Phone,RefreshCw,UserCheck,UserPlus,X } from 'lucide-react';
+import { Building2,MapPin,Navigation,Phone,RefreshCw,UserCheck,UserPlus,X } from 'lucide-react';
 import React from 'react';
 import { Combobox,ComboboxOption } from '../../../components/Combobox';
 import { Job } from '../../../types';
@@ -129,6 +129,21 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
           )}
         </div>
       </div>
+
+      {/* Navigate button — uses lat/lng if available */}
+      {jobSite?.latitude && jobSite?.longitude && (
+        <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${jobSite.latitude},${jobSite.longitude}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-medium shadow-sm transition-colors"
+          >
+            <Navigation className="w-4 h-4" />
+            Navigate to Site
+          </a>
+        </div>
+      )}
 
       {/* Description */}
       {job.description && (

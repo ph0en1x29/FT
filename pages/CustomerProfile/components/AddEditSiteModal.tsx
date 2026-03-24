@@ -1,8 +1,24 @@
-import { Building2, Save, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { Building2, Loader2, MapPin, Save, X } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { addCustomerSite, updateCustomerSite } from '../../../services/customerService';
+import { geocodeAddress } from '../../../services/geocodeService';
 import type { CustomerSite } from '../../../types';
+
+// Fix default marker icons
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+delete (L.Icon.Default.prototype as Record<string, unknown>)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
 
 interface AddEditSiteModalProps {
   customerId: string;
@@ -12,6 +28,25 @@ interface AddEditSiteModalProps {
 
 const inputClassName = "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25 placeholder-slate-400 transition-all duration-200";
 
+// Click handler to reposition marker
+const MapClickHandler: React.FC<{ onMove: (lat: number, lng: number) => void }> = ({ onMove }) => {
+  useMapEvents({
+    click(e) {
+      onMove(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+};
+
+// Fly to a position
+const FlyTo: React.FC<{ lat: number; lng: number }> = ({ lat, lng }) => {
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo([lat, lng], 14, { duration: 0.8 });
+  }, [map, lat, lng]);
+  return null;
+};
+
 const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
   customerId,
   site,
@@ -19,12 +54,34 @@ const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    site?.latitude && site?.longitude ? { lat: site.latitude, lng: site.longitude } : null
+  );
   const [formData, setFormData] = useState({
     site_name: site?.site_name || '',
     address: site?.address || '',
     notes: site?.notes || '',
     is_active: site?.is_active ?? true,
   });
+
+  const handleGeocode = useCallback(async () => {
+    if (!formData.address.trim()) return;
+    setGeocoding(true);
+    try {
+      const result = await geocodeAddress(formData.address);
+      if (result) {
+        setCoords({ lat: result.latitude, lng: result.longitude });
+        setShowMap(true);
+      } else {
+        alert('Could not find coordinates for this address. You can manually place the pin on the map.');
+        setShowMap(true);
+      }
+    } finally {
+      setGeocoding(false);
+    }
+  }, [formData.address]);
 
   const handleSubmit = async () => {
     if (!formData.site_name.trim()) {
@@ -38,14 +95,18 @@ const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
 
     setSaving(true);
     try {
+      const payload = {
+        ...formData,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lng ?? null,
+      };
+
       if (site) {
-        // Update existing site
-        await updateCustomerSite(site.site_id, formData);
+        await updateCustomerSite(site.site_id, payload);
       } else {
-        // Add new site
         await addCustomerSite({
           customer_id: customerId,
-          ...formData,
+          ...payload,
         });
       }
       
@@ -57,6 +118,10 @@ const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
       setSaving(false);
     }
   };
+
+  const mapCenter: [number, number] = coords
+    ? [coords.lat, coords.lng]
+    : [4.2, 108.0];
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm overflow-y-auto">
@@ -97,15 +162,79 @@ const AddEditSiteModal: React.FC<AddEditSiteModalProps> = ({
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
                 Address *
               </label>
-              <input
-                type="text"
-                className={inputClassName}
-                placeholder="Full address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                autoComplete="off"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className={`${inputClassName} flex-1`}
+                  placeholder="Full address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  onClick={handleGeocode}
+                  disabled={geocoding || !formData.address.trim()}
+                  className="px-3 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-xl hover:bg-blue-100 text-sm font-medium disabled:opacity-40 shrink-0 flex items-center gap-1.5"
+                  title="Locate on map"
+                >
+                  {geocoding ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <MapPin className="w-4 h-4" />
+                  )}
+                  <span className="hidden sm:inline">Locate</span>
+                </button>
+              </div>
             </div>
+
+            {/* Mini-map preview */}
+            {showMap && (
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+                  Pin Location
+                  <span className="font-normal normal-case ml-1 text-slate-400">
+                    (click map to adjust)
+                  </span>
+                </label>
+                <div className="rounded-xl overflow-hidden border border-slate-200" style={{ height: 200 }}>
+                  <MapContainer
+                    center={mapCenter}
+                    zoom={coords ? 14 : 6}
+                    className="h-full w-full z-0"
+                    style={{ height: 200 }}
+                  >
+                    <TileLayer
+                      attribution='&copy; OSM'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <MapClickHandler onMove={(lat, lng) => setCoords({ lat, lng })} />
+                    {coords && (
+                      <>
+                        <Marker position={[coords.lat, coords.lng]} />
+                        <FlyTo lat={coords.lat} lng={coords.lng} />
+                      </>
+                    )}
+                  </MapContainer>
+                </div>
+                {coords && (
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {!showMap && coords && (
+              <button
+                type="button"
+                onClick={() => setShowMap(true)}
+                className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1"
+              >
+                <MapPin className="w-3 h-3" />
+                Show map ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)})
+              </button>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
