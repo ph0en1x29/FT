@@ -44,6 +44,24 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
   
   const canUploadPhotos = isNew || isAssigned || isInProgress || isAwaitingFinalization || isIncompleteContinuing || isIncompleteReassigned;
 
+  // Check camera permission — show user-friendly error if denied
+  const checkCameraPermission = async (): Promise<boolean> => {
+    try {
+      // navigator.permissions.query is not supported in all browsers for camera
+      if (navigator.permissions && navigator.permissions.query) {
+        const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        if (result.state === 'denied') {
+          showToast.error('Camera access denied', 'Please enable camera permission in your browser settings and try again.');
+          return false;
+        }
+      }
+      return true;
+    } catch {
+      // Permission API not supported for camera — let it pass through
+      return true;
+    }
+  };
+
   // Helper to get GPS coordinates (non-blocking, shorter timeout)
   const getGPSCoordinates = (): Promise<{ latitude: number; longitude: number; accuracy: number } | null> => {
     return new Promise((resolve) => {
@@ -68,31 +86,52 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
   };
 
   // Compress image to reduce upload size and processing time
+  // Uses requestAnimationFrame to yield to the browser between heavy canvas ops
   const compressImage = (file: File, maxWidth = 1920, quality = 0.8): Promise<string> => {
+    // Early reject files > 25MB to avoid freezing the browser
+    if (file.size > 25 * 1024 * 1024) {
+      return Promise.reject(new Error('Photo is too large (>25 MB). Please use a lower camera resolution or crop before uploading.'));
+    }
+
     return new Promise((resolve, reject) => {
       const img = new Image();
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
       
       img.onload = () => {
-        let { width, height } = img;
-        
-        // Scale down if larger than maxWidth
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        URL.revokeObjectURL(img.src); // Clean up
-        resolve(dataUrl);
+        // Yield to the browser before doing heavy canvas work
+        requestAnimationFrame(() => {
+          try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              URL.revokeObjectURL(img.src);
+              reject(new Error('Canvas not supported'));
+              return;
+            }
+
+            let { width, height } = img;
+            
+            // Scale down if larger than maxWidth
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            URL.revokeObjectURL(img.src); // Clean up
+            resolve(dataUrl);
+          } catch (err) {
+            URL.revokeObjectURL(img.src);
+            reject(err instanceof Error ? err : new Error('Failed to compress image'));
+          }
+        });
       };
       
       img.onerror = () => {
+        URL.revokeObjectURL(img.src);
         reject(new Error('Failed to load image'));
       };
       
@@ -100,9 +139,9 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
     });
   };
 
-  // Upload photo/video to Supabase Storage
+  // Upload photo/video to Supabase Storage with 1 automatic retry
   const uploadMediaToStorage = async (dataURL: string, jobId: string, fileExtension: string): Promise<string> => {
-    try {
+    const doUpload = async (): Promise<string> => {
       const arr = dataURL.split(',');
       const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
       const bstr = atob(arr[1]);
@@ -124,7 +163,7 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
         });
       
       if (error) {
-        return dataURL;
+        throw new Error(`Storage upload failed: ${error.message}`);
       }
       
       const { data: { publicUrl } } = supabase.storage
@@ -132,8 +171,22 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
         .getPublicUrl(fileName);
       
       return publicUrl;
-    } catch (_e) {
-      return dataURL;
+    };
+
+    // Attempt 1
+    try {
+      return await doUpload();
+    } catch (firstErr) {
+      // Retry once after a short delay
+      await new Promise(r => setTimeout(r, 1500));
+      try {
+        return await doUpload();
+      } catch (retryErr) {
+        // Never silently fall back to base64 — surface the error
+        throw new Error(
+          `Photo upload failed after retry. ${retryErr instanceof Error ? retryErr.message : 'Unknown error'}. Please check your connection and try again.`
+        );
+      }
     }
   };
 
@@ -181,11 +234,20 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
       return;
     }
 
-    // Show loading state immediately
+    // Early reject images > 25MB before any processing
+    if (isImage && file.size > 25 * 1024 * 1024) {
+      showToast.error('Photo too large', 'Maximum size is 25 MB. Please use a lower camera resolution.');
+      return;
+    }
+
+    // Show loading state immediately — BEFORE any heavy work
     setIsUploading(true);
-    const progressText = index !== undefined && total !== undefined ? `Uploading ${index}/${total}...` : isVideo ? 'Processing video...' : 'Processing photo...';
+    const progressText = index !== undefined && total !== undefined ? `Uploading ${index}/${total}...` : isVideo ? 'Processing video...' : 'Compressing photo...';
     setUploadProgress(progressText);
     showToast.info(progressText, 'Please wait');
+
+    // Yield a frame so the UI can render the progress state before heavy canvas work
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     try {
       // Start GPS fetch in background (don't block on it)
@@ -321,6 +383,10 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
     const files: File[] = Array.from(e.target.files || []);
     e.target.value = '';
     if (files.length === 0) return;
+
+    // Check camera permission before processing
+    const hasPermission = await checkCameraPermission();
+    if (!hasPermission) return;
 
     // Upload files sequentially
     for (let i = 0; i < files.length; i++) {
