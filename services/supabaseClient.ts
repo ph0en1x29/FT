@@ -9,6 +9,11 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { CircuitBreakerTrippedError,createCircuitBreaker } from '../utils/circuit-breaker';
+
+// Circuit breaker for Supabase Storage uploads.
+// Trips after 3 consecutive failures; auto-resets after 60 s.
+const storageCB = createCircuitBreaker({ maxFailures: 3, resetAfterMs: 60_000, label: 'StorageUpload' });
 
 // =====================
 // CLIENT INITIALIZATION
@@ -85,24 +90,27 @@ export const uploadToStorage = async (
 ): Promise<string> => {
   try {
     const blob = dataURLtoBlob(dataURL);
-    
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(fileName, blob, {
-        contentType: blob.type,
-        upsert: true,
-      });
-    
-    if (error) {
-      logError(`[Storage] Upload to ${bucket} failed:`, error.message);
-      return dataURL; // Fallback to base64
-    }
-    
+
+    const path = await storageCB.execute(async () => {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, blob, {
+          contentType: blob.type,
+          upsert: true,
+        });
+
+      if (error) throw new Error(error.message);
+      return data.path;
+    });
+
     logDebug(`[Storage] Uploaded to ${bucket}:`, fileName);
-    // Return path, not public URL - caller uses getSignedStorageUrl when needed
-    return data.path;
+    return path;
   } catch (e) {
-    logError('[Storage] Upload error:', e);
+    if (e instanceof CircuitBreakerTrippedError) {
+      logError('[Storage] Circuit breaker tripped — upload paused:', e.message);
+    } else {
+      logError('[Storage] Upload error:', e);
+    }
     return dataURL; // Fallback to base64
   }
 };

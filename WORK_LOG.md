@@ -4,6 +4,8 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+[2026-04-02 13:45] [Sonnet] feat: add circuit breaker utility (utils/circuit-breaker.ts) — createCircuitBreaker/withCircuitBreaker, CircuitBreakerTrippedError; max 3 consecutive failures, 60s auto-reset. Wrapped getJobs, getJobsForKPI (jobService.ts) and uploadToStorage (supabaseClient.ts) with dedicated CB instances. Build ✓
+
 ## 2026-03-13
 
 [2026-03-13 02:37] [Sonnet] Fix Performance tab KPI calculations - missing query fields: services/supabaseClient.ts, services/jobService.ts, services/supabaseService.ts, pages/TechnicianKPIPageV2/hooks/useKPIData.ts

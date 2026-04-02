@@ -20,6 +20,12 @@ User,
 import { JobPriority as JobPriorityEnum,JobStatus as JobStatusEnum,JobType as JobTypeEnum,UserRole } from '../types';
 import { notifyJobAssignment } from './notificationService';
 import { isNetworkError,JOB_SELECT,logDebug,logError,supabase,wait } from './supabaseClient';
+import { CircuitBreakerTrippedError,createCircuitBreaker } from '../utils/circuit-breaker';
+
+// Shared circuit breakers — one per hot query path.
+// Trips after 3 consecutive network failures; auto-resets after 60 s.
+const getJobsCB = createCircuitBreaker({ maxFailures: 3, resetAfterMs: 60_000, label: 'getJobs' });
+const getJobsForKPICB = createCircuitBreaker({ maxFailures: 3, resetAfterMs: 60_000, label: 'getJobsForKPI' });
 
 // =====================
 // LOCAL TYPE DEFINITIONS
@@ -164,20 +170,24 @@ export const getJobs = async (user: User, options?: { status?: JobStatus }): Pro
 
   let data: Job[];
   try {
-    data = await executeQuery();
-  } catch (error) {
-    if (isNetworkError(error)) {
+    data = await getJobsCB.execute(async () => {
       try {
-        await wait(600);
-        data = await executeQuery();
-      } catch (retryError) {
-        logError('[getJobs] Error fetching jobs after retry:', retryError);
-        throw new Error((retryError as Error)?.message || 'Failed to fetch jobs');
+        return await executeQuery();
+      } catch (error) {
+        if (isNetworkError(error)) {
+          await wait(600);
+          return await executeQuery();
+        }
+        throw error;
       }
-    } else {
-      logError('[getJobs] Error fetching jobs:', error);
-      throw new Error((error as Error)?.message || 'Failed to fetch jobs');
+    });
+  } catch (error) {
+    if (error instanceof CircuitBreakerTrippedError) {
+      logError('[getJobs] Circuit breaker tripped — too many consecutive failures:', error.message);
+      throw error;
     }
+    logError('[getJobs] Error fetching jobs:', error);
+    throw new Error((error as Error)?.message || 'Failed to fetch jobs');
   }
 
   let allJobs = data as Job[];
@@ -249,20 +259,24 @@ export const getJobsForKPI = async (user: User): Promise<Job[]> => {
 
   let data: Job[];
   try {
-    data = await executeQuery();
-  } catch (error) {
-    if (isNetworkError(error)) {
+    data = await getJobsForKPICB.execute(async () => {
       try {
-        await wait(600);
-        data = await executeQuery();
-      } catch (retryError) {
-        logError('[getJobsForKPI] Error fetching jobs after retry:', retryError);
-        throw new Error((retryError as Error)?.message || 'Failed to fetch jobs');
+        return await executeQuery();
+      } catch (error) {
+        if (isNetworkError(error)) {
+          await wait(600);
+          return await executeQuery();
+        }
+        throw error;
       }
-    } else {
-      logError('[getJobsForKPI] Error fetching jobs:', error);
-      throw new Error((error as Error)?.message || 'Failed to fetch jobs');
+    });
+  } catch (error) {
+    if (error instanceof CircuitBreakerTrippedError) {
+      logError('[getJobsForKPI] Circuit breaker tripped — too many consecutive failures:', error.message);
+      throw error;
     }
+    logError('[getJobsForKPI] Error fetching jobs:', error);
+    throw new Error((error as Error)?.message || 'Failed to fetch jobs');
   }
 
   const allJobs = data as Job[];
