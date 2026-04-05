@@ -168,24 +168,32 @@ export const markJobContinueTomorrow = async (
   userName: string
 ): Promise<boolean> => {
   logDebug('[JobService] markJobContinueTomorrow called for job:', jobId);
-  
+
+  // Fetch current notes so we can append without overwriting
+  const { data: currentJob } = await supabase
+    .from('jobs')
+    .select('notes')
+    .eq('job_id', jobId)
+    .single();
+
+  const currentNotes: string[] = Array.isArray(currentJob?.notes) ? currentJob.notes : [];
+  const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const noteEntry = `[Continue Tomorrow — ${dateStr} — ${userName}]: ${reason.trim()}`;
+
   const { error } = await supabase
     .from('jobs')
     .update({
-      status: 'Incomplete - Continuing',
-      notes: supabase.rpc ? undefined : undefined, // Notes handled separately if needed
+      status: JobStatusEnum.INCOMPLETE_CONTINUING,
+      notes: [...currentNotes, noteEntry],
       updated_at: new Date().toISOString(),
     })
     .eq('job_id', jobId);
-  
+
   if (error) {
     logError('[JobService] markJobContinueTomorrow failed:', error.message);
     return false;
   }
 
-  // Add continue reason as a note via job_notes or similar
-  // For now, log the reason
-  logDebug(`[JobService] Job ${jobId} marked continue tomorrow by ${userName}: ${reason}`);
   return true;
 };
 

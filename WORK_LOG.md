@@ -234,3 +234,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-04-05 01:00] [Sonnet] feat: enrich job timeline with after-photo event and repair duration: pages/JobDetail/components/JobTimeline.tsx — Added 'Work started' event from repair_start_time (only when distinct from started_at), 'Work completed' event from repair_end_time with after-photo thumbnail + GPS + repair duration badge, vertical connector line, lightbox covers both rejection proofs and after photos. Build ✅
 
 [2026-04-05 01:03] [Sonnet] fix: part request submission no longer scrolls page to top on mobile: pages/JobDetail/hooks/useJobData.ts, pages/JobDetail/hooks/useJobRequestActions.ts — loadJob accepts silent option; all request action refreshes use loadJob({ silent: true }) to skip setLoading(true) so page stays at scroll position. Build ✅
+
+[2026-04-05 01:11] [Sonnet] fix: continue tomorrow reason now saved + no scroll-to-top: services/jobStatusService.ts, pages/JobDetail/hooks/useJobActions.ts — markJobContinueTomorrow now fetches current notes and appends reason as [Continue Tomorrow — date — name]: reason entry; loadJob({ silent: true }) prevents scroll-to-top on mobile. Build ✅

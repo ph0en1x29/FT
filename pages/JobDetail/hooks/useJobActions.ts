@@ -18,7 +18,7 @@ interface UseJobActionsParams {
   currentUserName: string;
   currentUserRole: string;
   technicians: User[];
-  loadJob: () => Promise<void>;
+  loadJob: (opts?: { silent?: boolean }) => Promise<void>;
 }
 
 /**
@@ -541,7 +541,7 @@ export const useJobActions = ({
         showToast.success('Job marked to continue tomorrow');
         state.setShowContinueTomorrowModal(false);
         state.setContinueTomorrowReason('');
-        loadJob();
+        loadJob({ silent: true });
       } else {
         showToast.error('Failed to update job');
       }
