@@ -1,15 +1,15 @@
 import { Loader2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { Combobox } from '../../../components/Combobox';
+import { useSearchParts } from '../../../hooks/useQueryHooks';
 import { supabase } from '../../../services/supabaseClient';
 import { showToast } from '../../../services/toastService';
-import { Part } from '../../../types';
 
 const REASON_CODES = ['Damage', 'Theft', 'Spillage', 'Counting Error', 'Expired', 'Other'] as const;
 type ReasonCode = typeof REASON_CODES[number];
 
 interface AdjustStockModalProps {
   show: boolean;
-  parts: Part[];
   currentUser: { user_id: string; name: string };
   onClose: () => void;
   onSuccess: () => void;
@@ -17,11 +17,11 @@ interface AdjustStockModalProps {
 
 const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
   show,
-  parts,
   currentUser,
   onClose,
   onSuccess,
 }) => {
+  const { options, isSearching, search } = useSearchParts(30);
   const [selectedPartId, setSelectedPartId] = useState('');
   const [adjustType, setAdjustType] = useState<'+' | '-'>('+');
   const [quantity, setQuantity] = useState('');
@@ -42,9 +42,6 @@ const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
   }, [show]);
 
   if (!show) return null;
-
-  const allParts = parts;
-  const selectedPart = allParts.find(p => p.part_id === selectedPartId);
 
   const handleSubmit = async () => {
     if (!selectedPartId) { setError('Please select a part.'); return; }
@@ -108,21 +105,14 @@ const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
 
           <div>
             <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Part</label>
-            <select
+            <Combobox
+              options={options}
               value={selectedPartId}
-              onChange={e => setSelectedPartId(e.target.value)}
-              className="input-premium text-sm w-full"
-            >
-              <option value="">Select a part...</option>
-              {allParts.map(p => (
-                <option key={p.part_id} value={p.part_id}>{p.part_name}</option>
-              ))}
-            </select>
-            {selectedPart && (
-              <p className="text-xs text-[var(--text-muted)] mt-1">
-                Current stock: {selectedPart.is_liquid ? ((selectedPart.bulk_quantity ?? 0).toFixed(2) + ' L') : ((selectedPart.stock_quantity ?? 0) + ' ' + (selectedPart.base_unit || 'pcs'))}
-              </p>
-            )}
+              onChange={setSelectedPartId}
+              onSearch={search}
+              isSearching={isSearching}
+              placeholder="Search by part name or item code..."
+            />
           </div>
 
           <div>
@@ -151,7 +141,7 @@ const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
                 step="0.01"
                 value={quantity}
                 onChange={e => setQuantity(e.target.value)}
-                placeholder={selectedPart?.is_liquid ? "Liters" : (selectedPart?.base_unit || "pcs")}
+                placeholder="Quantity"
                 className="input-premium text-sm flex-1"
               />
             </div>

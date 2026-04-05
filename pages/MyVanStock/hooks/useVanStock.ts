@@ -1,7 +1,10 @@
-import { useCallback,useEffect,useMemo,useState } from 'react';
+import { useCallback,useMemo,useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useVanStockByTechnician,useReplenishmentsByTech,queryKeys } from '../../../hooks/useQueryHooks';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { VanStock,VanStockReplenishment,VanStockUsage } from '../../../types';
+import { VanStockUsage } from '../../../types';
+import { useEffect } from 'react';
 
 interface UseVanStockParams {
   userId: string;
@@ -15,49 +18,52 @@ interface VanStockStats {
 }
 
 export function useVanStock({ userId }: UseVanStockParams) {
-  const [vanStock, setVanStock] = useState<VanStock | null>(null);
-  const [usageHistory, setUsageHistory] = useState<VanStockUsage[]>([]);
-  const [replenishments, setReplenishments] = useState<VanStockReplenishment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const queryClient = useQueryClient();
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(false);
-    try {
-      const [stockData, historyData, replenishmentData] = await Promise.all([
-        MockDb.getVanStockByTechnician(userId),
-        MockDb.getVanStockUsageHistory(userId, 50),
-        MockDb.getReplenishmentRequests({ technicianId: userId }),
-      ]);
-      setVanStock(stockData);
-      setUsageHistory(historyData);
-      setReplenishments(replenishmentData);
-    } catch (_error) {
-      setError(true);
-      showToast.error('Failed to load Van Stock data');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+  const {
+    data: vanStock = null,
+    isLoading: loadingStock,
+    isError,
+    refetch: refetchStock,
+  } = useVanStockByTechnician(userId);
+
+  const {
+    data: replenishments = [],
+    isLoading: loadingReplenishments,
+    refetch: refetchReplenishments,
+  } = useReplenishmentsByTech(userId);
+
+  // Usage history kept as manual state (infrequently needed, not a perf bottleneck)
+  const [usageHistory, setUsageHistory] = useState<VanStockUsage[]>([]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!userId) return;
+    MockDb.getVanStockUsageHistory(userId, 50)
+      .then(setUsageHistory)
+      .catch(() => setUsageHistory([]));
+  }, [userId]);
+
+  const loading = loadingStock || loadingReplenishments;
+  const error = isError;
+
+  // Explicit refresh for manual refresh buttons
+  const loadData = useCallback(() => {
+    refetchStock();
+    refetchReplenishments();
+  }, [refetchStock, refetchReplenishments]);
 
   // Calculate stats
   const stats = useMemo<VanStockStats>(() => {
     if (!vanStock?.items) {
       return { totalItems: 0, lowStock: 0, outOfStock: 0, totalValue: 0 };
     }
-
     const items = vanStock.items;
-    const totalItems = items.length;
-    const lowStock = items.filter(item => item.quantity > 0 && item.quantity <= item.min_quantity).length;
-    const outOfStock = items.filter(item => item.quantity === 0).length;
-    const totalValue = vanStock.total_value || 0;
-
-    return { totalItems, lowStock, outOfStock, totalValue };
+    return {
+      totalItems: items.length,
+      lowStock: items.filter(item => item.quantity > 0 && item.quantity <= item.min_quantity).length,
+      outOfStock: items.filter(item => item.quantity === 0).length,
+      totalValue: vanStock.total_value || 0,
+    };
   }, [vanStock]);
 
   // Get low stock items for replenishment
@@ -73,16 +79,18 @@ export function useVanStock({ userId }: UseVanStockParams) {
     try {
       await MockDb.confirmReplenishmentReceipt(replenishmentId);
       showToast.success('Receipt confirmed');
-      await loadData();
-    } catch (_error) {
+      // Background invalidation — no UI blanking
+      queryClient.invalidateQueries({ queryKey: queryKeys.vanStockTech(userId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.replenishmentsTech(userId) });
+    } catch {
       showToast.error('Failed to confirm receipt');
     }
     setConfirmingId(null);
-  }, [userId, loadData]);
+  }, [userId, queryClient]);
 
   // Pending replenishments count
   const pendingReplenishmentsCount = useMemo(() => {
-    return replenishments.filter(r => 
+    return replenishments.filter(r =>
       r.status === 'pending' || r.status === 'approved' || r.status === 'in_progress'
     ).length;
   }, [replenishments]);

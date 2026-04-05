@@ -1,10 +1,10 @@
 /**
  * Custom hook for VanStock data management
+ * Uses React Query for background refetches — no UI blanking after mutations.
  */
-import { useCallback,useEffect,useMemo,useState } from 'react';
-import { SupabaseDb as MockDb } from '../../../services/supabaseService';
-import { showToast } from '../../../services/toastService';
-import { User,UserRole,VanStock,VanStockItem,VanStockReplenishment } from '../../../types';
+import { useMemo,useState } from 'react';
+import { useAllVanStocks,useReplenishmentsPending } from '../../../hooks/useQueryHooks';
+import { User,UserRole,VanStockItem } from '../../../types';
 import { FilterType,VanStockStats } from '../types';
 
 interface UseVanStockDataProps {
@@ -12,38 +12,30 @@ interface UseVanStockDataProps {
 }
 
 export function useVanStockData({ currentUser }: UseVanStockDataProps) {
-  const [vanStocks, setVanStocks] = useState<VanStock[]>([]);
-  const [replenishments, setReplenishments] = useState<VanStockReplenishment[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
 
   const isTechnician = currentUser.role === UserRole.TECHNICIAN;
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [stocksData, replenishmentsData] = await Promise.all([
-        MockDb.getAllVanStocks(),
-        MockDb.getReplenishmentRequests({ status: 'pending' }),
-      ]);
+  const { data: allVanStocks = [], isLoading: loadingStocks, refetch: refetchStocks } = useAllVanStocks();
+  const { data: replenishments = [], isLoading: loadingReplenishments, refetch: refetchReplenishments } = useReplenishmentsPending();
 
-      // Technicians can only see their own van stock
-      const filteredStocks = isTechnician
-        ? stocksData.filter(vs => vs.technician_id === currentUser.user_id)
-        : stocksData;
+  // Only show loading spinner on initial fetch (isLoading), not background refetches (isFetching)
+  const loading = loadingStocks || loadingReplenishments;
 
-      setVanStocks(filteredStocks);
-      setReplenishments(replenishmentsData);
-    } catch (_error) {
-      showToast.error('Failed to load Van Stock data');
-    }
-    setLoading(false);
-  }, [currentUser.user_id, isTechnician]);
+  // Technicians can only see their own van stock
+  const vanStocks = useMemo(
+    () => isTechnician
+      ? allVanStocks.filter(vs => vs.technician_id === currentUser.user_id)
+      : allVanStocks,
+    [allVanStocks, isTechnician, currentUser.user_id]
+  );
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // Explicit refresh for pull-to-refresh / manual refresh buttons
+  const loadData = () => {
+    refetchStocks();
+    refetchReplenishments();
+  };
 
   // Calculate stats
   const stats: VanStockStats = useMemo(() => {
@@ -80,7 +72,6 @@ export function useVanStockData({ currentUser }: UseVanStockDataProps) {
   const filteredVanStocks = useMemo(() => {
     let result = vanStocks;
 
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(vs =>
@@ -91,7 +82,6 @@ export function useVanStockData({ currentUser }: UseVanStockDataProps) {
       );
     }
 
-    // Type filter
     if (filterType === 'low_stock') {
       result = result.filter(vs => {
         const lowItems = vs.items?.filter(item => item.quantity <= item.min_quantity) || [];
@@ -99,7 +89,7 @@ export function useVanStockData({ currentUser }: UseVanStockDataProps) {
       });
     } else if (filterType === 'pending_audit') {
       result = result.filter(vs => {
-        if (!vs.next_audit_due) return true; // Never audited
+        if (!vs.next_audit_due) return true;
         return new Date(vs.next_audit_due) <= new Date();
       });
     } else if (filterType === 'pending_replenishment') {

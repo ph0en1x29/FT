@@ -13,7 +13,9 @@
 import { useQuery,useQueryClient } from '@tanstack/react-query';
 import { useCallback,useState } from 'react';
 import { searchCustomers } from '../services/customerService';
+import { getPartsPage } from '../services/partsService';
 import { SupabaseDb } from '../services/supabaseService';
+import type { ComboboxOption } from '../components/Combobox';
 import type { Customer } from '../types';
 import { JobStatus,User } from '../types';
 
@@ -32,6 +34,10 @@ export const queryKeys = {
   notifications: (userId: string) => ['notifications', userId] as const,
   notificationCount: (userId: string) => ['notifications', 'count', userId] as const,
   technicians: ['technicians'] as const,
+  vanStocks: ['vanStocks'] as const,
+  vanStockTech: (userId: string) => ['vanStock', 'tech', userId] as const,
+  replenishmentsPending: ['replenishments', 'pending'] as const,
+  replenishmentsTech: (userId: string) => ['replenishments', 'tech', userId] as const,
 };
 
 /**
@@ -191,6 +197,73 @@ export const useJobsLightweight = (
 };
 
 /**
+ * All van stocks (admin view) — 30s stale time
+ */
+export const useAllVanStocks = () =>
+  useQuery({
+    queryKey: queryKeys.vanStocks,
+    queryFn: () => SupabaseDb.getAllVanStocks(),
+    staleTime: 30_000,
+  });
+
+/**
+ * Single technician's van stock — 30s stale time
+ */
+export const useVanStockByTechnician = (userId: string) =>
+  useQuery({
+    queryKey: queryKeys.vanStockTech(userId),
+    queryFn: () => SupabaseDb.getVanStockByTechnician(userId),
+    staleTime: 30_000,
+    enabled: !!userId,
+  });
+
+/**
+ * Pending replenishment requests (admin view) — 30s stale time
+ */
+export const useReplenishmentsPending = () =>
+  useQuery({
+    queryKey: queryKeys.replenishmentsPending,
+    queryFn: () => SupabaseDb.getReplenishmentRequests({ status: 'pending' }),
+    staleTime: 30_000,
+  });
+
+/**
+ * Replenishment requests for a specific technician — 30s stale time
+ */
+export const useReplenishmentsByTech = (userId: string) =>
+  useQuery({
+    queryKey: queryKeys.replenishmentsTech(userId),
+    queryFn: () => SupabaseDb.getReplenishmentRequests({ technicianId: userId }),
+    staleTime: 30_000,
+    enabled: !!userId,
+  });
+
+/**
+ * Server-side parts search for Combobox LOV.
+ * Returns { id: part_id, label: part_name, subLabel: part_code }.
+ * Usage: const { options, isSearching, search } = useSearchParts();
+ *        <Combobox options={options} onSearch={search} isSearching={isSearching} ... />
+ */
+export const useSearchParts = (limit = 20) => {
+  const [options, setOptions] = useState<ComboboxOption[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const search = useCallback(async (query: string) => {
+    setIsSearching(true);
+    try {
+      const { parts } = await getPartsPage({ searchQuery: query, pageSize: limit });
+      setOptions(parts.map(p => ({ id: p.part_id, label: p.part_name, subLabel: p.part_code })));
+    } catch {
+      setOptions([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [limit]);
+
+  return { options, isSearching, search };
+};
+
+/**
  * Hook to invalidate caches after mutations
  */
 export const useInvalidateQueries = () => {
@@ -202,6 +275,9 @@ export const useInvalidateQueries = () => {
     invalidateJobs: () => queryClient.invalidateQueries({ queryKey: ['jobs'] }),
     invalidateNotifications: (userId: string) => 
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications(userId) }),
+    invalidateVanStock: () => queryClient.invalidateQueries({ queryKey: ['vanStocks'] }),
+    invalidateVanStockTech: (userId: string) => queryClient.invalidateQueries({ queryKey: queryKeys.vanStockTech(userId) }),
+    invalidateReplenishments: () => queryClient.invalidateQueries({ queryKey: ['replenishments'] }),
     invalidateAll: () => queryClient.invalidateQueries(),
   };
 };

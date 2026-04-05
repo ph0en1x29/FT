@@ -4,9 +4,10 @@
  * Manages van stock inventory for technicians
  */
 import { useState } from 'react';
+import { useInvalidateQueries } from '../../hooks/useQueryHooks';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
-import { Part,User,UserRole,VanStock } from '../../types';
+import { User,UserRole,VanStock } from '../../types';
 import {
 AddItemModal,
 AssignVanStockModal,
@@ -43,6 +44,8 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
     loadData,
   } = useVanStockData({ currentUser });
 
+  const { invalidateVanStock, invalidateReplenishments } = useInvalidateQueries();
+
   // Selected van stock for modals
   const [selectedVanStock, setSelectedVanStock] = useState<VanStock | null>(null);
 
@@ -62,7 +65,6 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
   const [vanNotes, setVanNotes] = useState('');
 
   // Form state for Add Item modal
-  const [availableParts, setAvailableParts] = useState<Part[]>([]);
   const [selectedPartId, setSelectedPartId] = useState('');
   const [itemQuantity, setItemQuantity] = useState(1);
   const [itemMinQty, setItemMinQty] = useState(1);
@@ -149,7 +151,8 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       }
       setShowAuditModal(false);
       setAuditTargets([]);
-      loadData();
+      invalidateVanStock();
+      invalidateReplenishments();
     } catch (error) {
       showToast.error('Failed to schedule audit', (error as Error).message);
     }
@@ -198,7 +201,8 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       );
       showToast.success('Van Stock assigned', `Assigned to ${technician?.name} (${vanPlate})`);
       setShowAssignModal(false);
-      loadData();
+      invalidateVanStock();
+      invalidateReplenishments();
     } catch (error) {
       showToast.error('Failed to assign Van Stock', (error as Error).message);
     }
@@ -206,25 +210,12 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
   };
 
   // Add Item modal handlers
-  const handleOpenAddItemModal = async () => {
-    try {
-      const parts = await MockDb.getParts();
-      // Only exclude parts that already exist in van with qty > 0
-      const existingPartIdsWithStock = new Set(
-        (selectedVanStock?.items || [])
-          .filter(i => (i.quantity > 0) || (i.container_quantity || 0) > 0 || (i.bulk_quantity || 0) > 0)
-          .map(i => i.part_id)
-      );
-      const available = parts.filter(p => !existingPartIdsWithStock.has(p.part_id));
-      setAvailableParts(available);
-      setSelectedPartId('');
-      setItemQuantity(1);
-      setItemMinQty(1);
-      setItemMaxQty(5);
-      setShowAddItemModal(true);
-    } catch (error) {
-      showToast.error('Failed to load parts', (error as Error).message);
-    }
+  const handleOpenAddItemModal = () => {
+    setSelectedPartId('');
+    setItemQuantity(1);
+    setItemMinQty(1);
+    setItemMaxQty(5);
+    setShowAddItemModal(true);
   };
 
   const handleAddItem = async () => {
@@ -239,8 +230,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       if (existingItem) {
         // Restock: atomic increment to avoid stale read race condition
         await MockDb.incrementVanStockItemQuantity(existingItem.item_id, itemQuantity);
-        const part = availableParts.find(p => p.part_id === selectedPartId);
-        showToast.success('Item restocked', `${part?.part_name} qty increased by ${itemQuantity}`);
+        showToast.success('Item restocked', `Quantity increased by ${itemQuantity}`);
       } else {
         // New item: insert
         await MockDb.addVanStockItem(
@@ -251,12 +241,12 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
           itemMaxQty,
           true
         );
-        const part = availableParts.find(p => p.part_id === selectedPartId);
-        showToast.success('Item added', `Added ${part?.part_name}`);
+        showToast.success('Item added to van stock');
       }
       setShowAddItemModal(false);
       setShowDetailModal(false);
-      loadData();
+      invalidateVanStock();
+      invalidateReplenishments();
     } catch (error) {
       showToast.error('Failed to add item', (error as Error).message);
     }
@@ -302,7 +292,8 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       showToast.success('Van Stock updated');
       setShowEditModal(false);
       setShowDetailModal(false);
-      loadData();
+      invalidateVanStock();
+      invalidateReplenishments();
     } catch (error) {
       showToast.error('Failed to update', (error as Error).message);
     }
@@ -326,7 +317,8 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       );
       setShowDeleteConfirm(false);
       setShowDetailModal(false);
-      loadData();
+      invalidateVanStock();
+      invalidateReplenishments();
     } catch (error) {
       showToast.error('Operation failed', (error as Error).message);
     }
@@ -369,7 +361,8 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       );
       setShowTransferModal(false);
       setShowDetailModal(false);
-      loadData();
+      invalidateVanStock();
+      invalidateReplenishments();
     } catch (error) {
       showToast.error('Transfer failed', (error as Error).message);
     }
@@ -502,7 +495,6 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
 
       <AddItemModal
         isOpen={showAddItemModal}
-        availableParts={availableParts}
         selectedPartId={selectedPartId}
         itemQuantity={itemQuantity}
         itemMinQty={itemMinQty}

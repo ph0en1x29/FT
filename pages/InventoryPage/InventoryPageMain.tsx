@@ -339,7 +339,6 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
         {/* Adjust Stock Modal — accessible from all tabs */}
         <AdjustStockModal
           show={showAdjustModal}
-          parts={parts}
           currentUser={{ user_id: currentUser.user_id, name: currentUser.name }}
           onClose={() => setShowAdjustModal(false)}
           onSuccess={() => { setShowAdjustModal(false); loadParts(); }}
