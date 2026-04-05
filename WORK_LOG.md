@@ -230,3 +230,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-04-05 00:47] [Sonnet] fix: bulk sign — wiring, status transition, after-photo gate, field fixes: pages/JobBoard/components/BulkSignOffModal.tsx, pages/JobBoard/components/SiteSignOffBanner.tsx — Fixed forklift.serial→serial_number, IC number in submit guard, after-photo gate (blocked jobs shown greyed with reason), site address uses site_name, auto-transition to AWAITING_FINALIZATION after both signatures, banner count only counts jobs ready to sign. Build ✅
 
 [2026-04-05 00:52] [Sonnet] fix: add part_code to job parts Combobox subLabel for item code search: pages/JobDetail/JobDetailPage.tsx — partOptions subLabel now shows part_code first, enabling client-side search by item code. Build ✅
+
+[2026-04-05 01:00] [Sonnet] feat: enrich job timeline with after-photo event and repair duration: pages/JobDetail/components/JobTimeline.tsx — Added 'Work started' event from repair_start_time (only when distinct from started_at), 'Work completed' event from repair_end_time with after-photo thumbnail + GPS + repair duration badge, vertical connector line, lightbox covers both rejection proofs and after photos. Build ✅
