@@ -10,7 +10,7 @@ interface UseJobRequestActionsParams {
   currentUserId: string;
   currentUserName: string;
   currentUserRole: string;
-  loadJob: () => Promise<void>;
+  loadJob: (opts?: { silent?: boolean }) => Promise<void>;
 }
 
 /**
@@ -36,7 +36,7 @@ export const useJobRequestActions = ({
       if (result) {
         showToast.success('Request submitted', 'Admin will review your request');
         state.setShowRequestModal(false);
-        loadJob(); // Refresh job data to show new request
+        loadJob({ silent: true }); // silent: no scroll-to-top
       } else {
         showToast.error('Failed to submit request');
       }
@@ -68,7 +68,7 @@ export const useJobRequestActions = ({
         showToast.success('Request approved', 'Part added to job');
         state.setShowApprovalModal(false);
         state.setApprovalRequest(null);
-        loadJob(); // Refresh job data to show new parts
+        loadJob({ silent: true }); // silent: no scroll-to-top
       } else {
         showToast.error('Failed to approve request', 'Check part availability');
       }
@@ -123,7 +123,7 @@ export const useJobRequestActions = ({
         showToast.success('Request updated');
         state.setShowRequestModal(false);
         state.setEditingRequest(null);
-        loadJob(); // Refresh job data to show updated request
+        loadJob({ silent: true }); // silent: no scroll-to-top
       } else {
         showToast.error('Failed to update request', 'You can only edit your own pending requests');
       }
@@ -139,7 +139,7 @@ export const useJobRequestActions = ({
       const success = await issuePartToTechnician(requestId, currentUserId, currentUserName, currentUserRole);
       if (success) {
         showToast.success('Part issued', 'Technician has been notified for collection');
-        loadJob();
+        loadJob({ silent: true });
       } else {
         showToast.error('Failed to issue part', 'Check stock availability');
       }
@@ -153,7 +153,7 @@ export const useJobRequestActions = ({
       const success = await markOutOfStock(requestId, currentUserId, partId, supplierNotes);
       if (success) {
         showToast.success('Marked out of stock', 'Job set to Pending Parts. Supplier order recorded.');
-        loadJob();
+        loadJob({ silent: true });
       } else {
         showToast.error('Failed to mark out of stock');
       }
@@ -167,7 +167,7 @@ export const useJobRequestActions = ({
       const success = await markPartReceived(requestId, currentUserId, notes);
       if (success) {
         showToast.success('Part received', 'Ready for issuance to technician');
-        loadJob();
+        loadJob({ silent: true });
       } else {
         showToast.error('Failed to mark as received');
       }
@@ -181,7 +181,7 @@ export const useJobRequestActions = ({
       const success = await confirmPartCollection(requestId, currentUserId);
       if (success) {
         showToast.success('Collection confirmed', 'Part marked as collected');
-        loadJob();
+        loadJob({ silent: true });
       } else {
         showToast.error('Failed to confirm collection');
       }

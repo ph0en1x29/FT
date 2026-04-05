@@ -32,9 +32,9 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
     setAvailableVans 
   } = state;
 
-  const loadJob = useCallback(async () => {
+  const loadJob = useCallback(async (opts?: { silent?: boolean }) => {
     if (!jobId) return;
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     try {
       const data = await MockDb.getJobById(jobId);
       setJob(data ? { ...data } : null);
