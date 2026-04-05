@@ -219,9 +219,10 @@ export const JOB_SELECT = {
     parts_confirmation_skipped,
     job_confirmed_at,
     created_at,
-    scheduled_date
+    scheduled_date,
+    is_pinned_by
   `,
-  
+
   // For technician dashboard (with acceptance status)
   TECHNICIAN: `
     job_id,
