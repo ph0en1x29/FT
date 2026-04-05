@@ -102,8 +102,8 @@ export {
   retryAutoCountExport
 } from './jobAutoCountService';
 
-// Pin Service
-export { pinJob, unpinJob } from './jobPinService';
+// Star Service
+export { starJob, unstarJob } from './jobStarService';
 
 // =====================
 // JOB CRUD

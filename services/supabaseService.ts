@@ -132,7 +132,7 @@ export {
 // Job Accept/Reject
 acceptJobAssignment,acknowledgeSkillfulTechRequest,
 // Job Locking
-acquireJobLock,addExtraCharge,addMedia,deleteMedia,addNote,pinJob,unpinJob,
+acquireJobLock,addExtraCharge,addMedia,deleteMedia,addNote,starJob,unstarJob,
 addPartToJob,approveAssistanceRequest,approveSparePartRequest,assignHelper,assignJob,checkExpiredJobResponses,checkJobLock,
 cleanupExpiredLocks,createJob,
 // Job Requests
@@ -315,8 +315,8 @@ export const SupabaseDb = {
   checkExpiredJobResponses: jobs.checkExpiredJobResponses,
   getJobsPendingResponse: jobs.getJobsPendingResponse,
   updateJobHourmeter: jobs.updateJobHourmeter,
-  pinJob: jobs.pinJob,
-  unpinJob: jobs.unpinJob,
+  starJob: jobs.starJob,
+  unstarJob: jobs.unstarJob,
   addNote: jobs.addNote,
   addPartToJob: jobs.addPartToJob,
   addMedia: jobs.addMedia,

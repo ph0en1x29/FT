@@ -340,8 +340,8 @@ export interface Job {
   checklist_validated_by_id?: string;
   checklist_validated_by_name?: string;
 
-  // Pinned jobs — array of user IDs who have pinned this job
-  is_pinned_by?: string[];
+  // Starred jobs — shared attention flag visible to all users
+  is_starred?: boolean;
 }
 
 // Courier item for POD tracking

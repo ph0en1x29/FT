@@ -6,8 +6,8 @@ import {
   ChevronRight,
   Clock,
   MapPin,
-  Pin,
   Square,
+  Star,
   User as UserIcon,
   Wrench,
   XCircle,
@@ -21,14 +21,14 @@ import { JobWithHelperFlag, ResponseTimeState } from '../types';
 interface JobListRowProps {
   job: JobWithHelperFlag;
   isTechnician: boolean;
-  currentUserId: string;
+  canStar: boolean;
   processingJobId: string | null;
   jobNeedsAcceptance: (job: JobWithHelperFlag) => boolean;
   getResponseTimeRemaining: (job: JobWithHelperFlag) => ResponseTimeState;
   onNavigate: (jobId: string) => void;
   onAccept: (e: React.MouseEvent, jobId: string) => void;
   onReject: (e: React.MouseEvent, jobId: string) => void;
-  onPin: (e: React.MouseEvent, jobId: string) => void;
+  onStar: (e: React.MouseEvent, jobId: string) => void;
   selectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (jobId: string) => void;
@@ -81,14 +81,14 @@ const getPriorityLabel = (job: JobWithHelperFlag) => {
 export const JobListRow: React.FC<JobListRowProps> = React.memo(({
   job,
   isTechnician,
-  currentUserId,
+  canStar,
   processingJobId,
   jobNeedsAcceptance,
   getResponseTimeRemaining,
   onNavigate,
   onAccept,
   onReject,
-  onPin,
+  onStar,
   selectionMode = false,
   isSelected = false,
   onToggleSelect,
@@ -100,7 +100,7 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
   const scheduledLabel = formatDate(job.scheduled_date || job.created_at);
   const needsAcceptance = isTechnician && jobNeedsAcceptance(job);
   const priorityLabel = getPriorityLabel(job);
-  const isPinned = job.is_pinned_by?.includes(currentUserId) ?? false;
+  const isStarred = job.is_starred ?? false;
 
   const handleClick = () => {
     if (selectionMode && onToggleSelect) {
@@ -136,11 +136,27 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
           {SelectionToggle}
           <div className="min-w-0 flex-1 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              {job.job_number && (
-                <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold tracking-[0.12em] text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                  {job.job_number}
-                </span>
-              )}
+              {/* Star + Job number */}
+              <div className="flex items-center gap-1">
+                {canStar ? (
+                  <button
+                    onClick={(e) => onStar(e, job.job_id)}
+                    aria-label={isStarred ? 'Unstar job' : 'Star job — needs attention'}
+                    className={`flex h-6 w-6 items-center justify-center rounded-full transition-colors ${
+                      isStarred ? 'text-amber-500' : 'text-slate-300 hover:text-amber-400'
+                    }`}
+                  >
+                    <Star className={`h-4 w-4 ${isStarred ? 'fill-amber-400' : ''}`} />
+                  </button>
+                ) : isStarred ? (
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                ) : null}
+                {job.job_number && (
+                  <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold tracking-[0.12em] text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                    {job.job_number}
+                  </span>
+                )}
+              </div>
               <span className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.12em] ${getStatusColor(job.status)}`}>
                 {job.status}
               </span>
@@ -231,20 +247,7 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
             ) : (
               <div className="flex items-center justify-between border-t border-[var(--border)] pt-3 text-sm text-theme-muted">
                 <span>{priorityLabel}</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => onPin(e, job.job_id)}
-                    aria-label={isPinned ? 'Unpin job' : 'Pin job'}
-                    className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
-                      isPinned
-                        ? 'bg-amber-100 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400'
-                        : 'text-theme-muted hover:text-amber-500'
-                    }`}
-                  >
-                    <Pin className={`h-4 w-4 ${isPinned ? 'fill-amber-400' : ''}`} />
-                  </button>
-                  <ChevronRight className="h-4 w-4" />
-                </div>
+                <ChevronRight className="h-4 w-4" />
               </div>
             )}
           </div>
@@ -268,10 +271,27 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
         )}
       </div>
 
-      {/* Job # */}
-      <span className="shrink-0 text-sm font-mono text-theme-muted w-[130px]">
-        {job.job_number ? `#${job.job_number}` : '—'}
-      </span>
+      {/* Star + Job # */}
+      <div className="flex items-center gap-1.5 shrink-0 w-[130px]" onClick={(e) => e.stopPropagation()}>
+        {canStar ? (
+          <button
+            onClick={(e) => onStar(e, job.job_id)}
+            aria-label={isStarred ? 'Unstar job' : 'Star job — needs attention'}
+            className={`flex h-6 w-6 items-center justify-center rounded-full transition-colors shrink-0 ${
+              isStarred ? 'text-amber-500' : 'text-slate-300 hover:text-amber-400'
+            }`}
+          >
+            <Star className={`h-3.5 w-3.5 ${isStarred ? 'fill-amber-400' : ''}`} />
+          </button>
+        ) : isStarred ? (
+          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />
+        ) : (
+          <span className="w-6 shrink-0" />
+        )}
+        <span className="text-sm font-mono text-theme-muted truncate">
+          {job.job_number ? `#${job.job_number}` : '—'}
+        </span>
+      </div>
 
       {/* Status + Type pills */}
       <div className="flex items-center gap-1.5 shrink-0 w-[150px]">
@@ -332,20 +352,7 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-1">
-            <button
-              onClick={(e) => onPin(e, job.job_id)}
-              aria-label={isPinned ? 'Unpin job' : 'Pin job'}
-              className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
-                isPinned
-                  ? 'bg-amber-100 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400'
-                  : 'text-theme-muted hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20'
-              }`}
-            >
-              <Pin className={`h-3.5 w-3.5 ${isPinned ? 'fill-amber-400' : ''}`} />
-            </button>
-            <ChevronRight className="h-4 w-4 text-theme-muted" />
-          </div>
+          <ChevronRight className="h-4 w-4 text-theme-muted" />
         )}
       </div>
     </div>

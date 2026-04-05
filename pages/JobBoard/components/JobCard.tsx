@@ -5,8 +5,8 @@ import {
   CheckSquare,
   Clock,
   MapPin,
-  Pin,
   Square,
+  Star,
   User as UserIcon,
   Wrench,
   XCircle,
@@ -21,13 +21,14 @@ interface JobCardProps {
   job: JobWithHelperFlag;
   currentUser: User;
   isTechnician: boolean;
+  canStar: boolean;
   processingJobId: string | null;
   jobNeedsAcceptance: (job: JobWithHelperFlag) => boolean;
   getResponseTimeRemaining: (job: JobWithHelperFlag) => ResponseTimeState;
   onNavigate: (jobId: string) => void;
   onAccept: (e: React.MouseEvent, jobId: string) => void;
   onReject: (e: React.MouseEvent, jobId: string) => void;
-  onPin: (e: React.MouseEvent, jobId: string) => void;
+  onStar: (e: React.MouseEvent, jobId: string) => void;
   selectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (jobId: string) => void;
@@ -66,13 +67,14 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
   job,
   currentUser,
   isTechnician,
+  canStar,
   processingJobId,
   jobNeedsAcceptance,
   getResponseTimeRemaining,
   onNavigate,
   onAccept,
   onReject,
-  onPin,
+  onStar,
   selectionMode = false,
   isSelected = false,
   onToggleSelect,
@@ -81,7 +83,7 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
   const scheduledLabel = formatDate(job.scheduled_date || job.created_at);
   const equipmentLabel = getEquipmentLabel(job);
   const needsAcceptance = isTechnician && jobNeedsAcceptance(job);
-  const isPinned = job.is_pinned_by?.includes(currentUser.user_id) ?? false;
+  const isStarred = job.is_starred ?? false;
   const footerTone =
     responseState.urgency === 'critical'
       ? 'text-red-600'
@@ -102,7 +104,7 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
     <article
       onClick={handleCardClick}
       className={`relative flex h-full min-w-0 flex-col rounded-xl border bg-[var(--surface)] p-4 shadow-sm cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] active:shadow-sm ${getStatusBorderColor(job)} ${
-        isPinned
+        isStarred
           ? 'border-amber-400 dark:border-amber-500 ring-1 ring-amber-400/30 dark:ring-amber-500/30'
           : 'border-[var(--border)] hover:border-blue-300 dark:hover:border-blue-700'
       } ${isSelected ? 'ring-2 ring-blue-500/70 bg-blue-50/40 dark:bg-blue-900/15' : ''}`}
@@ -123,11 +125,30 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
             </button>
           )}
 
-          {job.job_number && (
-            <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em] text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-              {job.job_number}
-            </span>
-          )}
+          {/* Star + Job number side by side */}
+          <div className="flex items-center gap-1.5">
+            {canStar && (
+              <button
+                onClick={(e) => onStar(e, job.job_id)}
+                aria-label={isStarred ? 'Unstar job' : 'Star job — needs attention'}
+                className={`flex h-6 w-6 items-center justify-center rounded-full transition-colors ${
+                  isStarred
+                    ? 'text-amber-500 dark:text-amber-400'
+                    : 'text-slate-300 hover:text-amber-400 dark:text-slate-600 dark:hover:text-amber-400'
+                }`}
+              >
+                <Star className={`h-4 w-4 ${isStarred ? 'fill-amber-400' : ''}`} />
+              </button>
+            )}
+            {!canStar && isStarred && (
+              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+            )}
+            {job.job_number && (
+              <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em] text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                {job.job_number}
+              </span>
+            )}
+          </div>
 
           <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${getStatusColor(job.status)}`}>
             {job.status}
@@ -161,17 +182,6 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
               size="sm"
             />
           )}
-          <button
-            onClick={(e) => onPin(e, job.job_id)}
-            aria-label={isPinned ? 'Unpin job' : 'Pin job'}
-            className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
-              isPinned
-                ? 'bg-amber-100 text-amber-500 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400'
-                : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20'
-            }`}
-          >
-            <Pin className={`h-3.5 w-3.5 ${isPinned ? 'fill-amber-400' : ''}`} />
-          </button>
         </div>
       </div>
 

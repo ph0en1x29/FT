@@ -220,7 +220,7 @@ export const JOB_SELECT = {
     job_confirmed_at,
     created_at,
     scheduled_date,
-    is_pinned_by
+    is_starred
   `,
 
   // For technician dashboard (with acceptance status)
