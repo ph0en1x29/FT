@@ -53,7 +53,7 @@ export const MobileTechnicianWorkflowCard: React.FC<MobileTechnicianWorkflowCard
             {statusFlags.needsAcceptance
               ? 'Accept this job to begin'
               : statusFlags.hasAccepted
-              ? 'Start with checklist and photos'
+              ? (job.job_type === 'Repair' ? 'Start with photos' : 'Start with checklist and photos')
               : canComplete
               ? 'Ready to complete'
               : 'Finish the remaining requirements'}

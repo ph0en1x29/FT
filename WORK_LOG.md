@@ -215,3 +215,8 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 - **Files**: services/forkliftService.ts
 - **What**: Catch Postgres 23505 unique violation on forklift_no and show user-friendly message instead of raw constraint name
 - **Why**: Client saw raw "duplicate key value violates unique constraint idx_forklifts_forklift_no_nonempty_unique" error
+
+## 2026-04-04
+
+
+[2026-04-04 21:41] [Sonnet] feat: job pin, rejection proof photo, repair checklist exemption, reassign signature fix: pages/JobBoard/JobBoard.tsx, pages/JobBoard/components/JobCard.tsx, pages/JobBoard/components/JobListRow.tsx, pages/JobBoard/components/JobListTable.tsx, pages/JobBoard/components/RejectJobModal.tsx, pages/JobBoard/hooks/useJobFilters.ts, pages/JobBoard/hooks/useJobAcceptance.ts, pages/JobDetail/JobDetailPage.tsx, pages/JobDetail/components/JobDetailModals.tsx, pages/JobDetail/components/JobTimeline.tsx, pages/JobDetail/components/MobileTechnicianWorkflowCard.tsx, pages/JobDetail/constants.ts, pages/JobDetail/hooks/useJobActions.ts, services/jobAssignmentCrudService.ts, services/jobPinService.ts, services/jobService.ts, services/supabaseService.ts, supabase/migrations/20260404_add_job_pinned_by.sql, types/common.types.ts, types/job-core.types.ts — Pin jobs (is_pinned_by[] + GIN index, amber UI, sorts to top). Mandatory proof photo on rejection (canvas timestamp+GPS overlay, job_media rejection_proof). Checklist exempt for Repair jobs. Clear technician_signature on reassign. Build ✅

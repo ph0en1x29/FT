@@ -3,6 +3,7 @@ import { CheckSquare, LayoutGrid, List, Square } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { deleteJob } from '../../services/jobCrudService';
+import { pinJob, unpinJob } from '../../services/jobPinService';
 import { showToast } from '../../services/toastService';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { UserRole } from '../../types';
@@ -48,6 +49,23 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
   const [viewMode, setViewMode] = useState<ViewMode>(defaultViewMode);
 
   const { jobs, loading, deletedJobs, canViewDeleted, fetchJobs } = useJobData({ currentUser, displayRole: activeRole });
+
+  const handleTogglePin = useCallback(async (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation();
+    const job = jobs.find(j => j.job_id === jobId);
+    if (!job) return;
+    const isPinned = job.is_pinned_by?.includes(currentUser.user_id) ?? false;
+    try {
+      if (isPinned) {
+        await unpinJob(jobId, currentUser.user_id);
+      } else {
+        await pinJob(jobId, currentUser.user_id);
+      }
+      fetchJobs();
+    } catch {
+      showToast.error(isPinned ? 'Failed to unpin job' : 'Failed to pin job');
+    }
+  }, [jobs, currentUser.user_id, fetchJobs]);
   const {
     searchQuery,
     setSearchQuery,
@@ -66,10 +84,11 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     statusCounts,
     hasActiveFilters,
     clearFilters,
-  } = useJobFilters({ jobs });
+  } = useJobFilters({ jobs, currentUserId: currentUser.user_id });
   const {
     processingJobId,
     showRejectModal,
+    rejectingJobId,
     rejectReason,
     setRejectReason,
     handleAcceptJob,
@@ -152,6 +171,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           onNavigate={handleNavigate}
           onAccept={handleAcceptJob}
           onReject={handleOpenRejectModal}
+          onPin={handleTogglePin}
           selectionMode={selectionMode}
           isSelected={selectedJobs.has(job.job_id)}
           onToggleSelect={handleToggleSelect}
@@ -170,6 +190,8 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
       onNavigate={handleNavigate}
       onAccept={handleAcceptJob}
       onReject={handleOpenRejectModal}
+      onPin={handleTogglePin}
+      currentUserId={currentUser.user_id}
       selectionMode={selectionMode}
       selectedJobs={selectedJobs}
       onToggleSelect={handleToggleSelect}
@@ -391,6 +413,9 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
 
       <RejectJobModal
         show={showRejectModal}
+        jobId={rejectingJobId}
+        currentUserId={currentUser.user_id}
+        currentUserName={currentUser.name}
         rejectReason={rejectReason}
         onReasonChange={setRejectReason}
         onConfirm={handleRejectJob}

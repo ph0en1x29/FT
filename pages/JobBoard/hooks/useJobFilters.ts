@@ -7,6 +7,7 @@ import { DateFilter,JobWithHelperFlag,SpecialFilter,StatusCounts } from '../type
 
 interface UseJobFiltersProps {
   jobs: JobWithHelperFlag[];
+  currentUserId: string;
 }
 
 interface UseJobFiltersReturn {
@@ -38,7 +39,7 @@ interface UseJobFiltersReturn {
 /**
  * Hook for managing job board filtering and search
  */
-export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn {
+export function useJobFilters({ jobs, currentUserId }: UseJobFiltersProps): UseJobFiltersReturn {
   const [searchParams, setSearchParams] = useSearchParams();
   const filterParam = searchParams.get('filter');
   const searchParam = searchParams.get('search') || '';
@@ -282,8 +283,14 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
       }
     }
 
-    // Sort by date (newest first), with priority for emergency and Slot-In jobs
+    // Sort by date (newest first), with priority for pinned, emergency and Slot-In jobs
     result.sort((a, b) => {
+      // Pinned jobs always float to the top
+      const aPinned = a.is_pinned_by?.includes(currentUserId) ?? false;
+      const bPinned = b.is_pinned_by?.includes(currentUserId) ?? false;
+      if (aPinned && !bPinned) return -1;
+      if (bPinned && !aPinned) return 1;
+
       // Slot-In jobs pending acknowledgement sorted by SLA urgency
       const aIsSlotInPending = a.job_type === JobType.SLOT_IN && !a.acknowledged_at;
       const bIsSlotInPending = b.job_type === JobType.SLOT_IN && !b.acknowledged_at;

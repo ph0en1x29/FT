@@ -325,11 +325,14 @@ export const useJobActions = ({
         showToast.error('Signatures required', 'Both technician and customer signatures are required');
         return;
       }
-      const missing = getMissingMandatoryItems(job);
-      if (missing.length > 0) {
-        setMissingChecklistItems(missing);
-        state.setShowChecklistWarningModal(true);
-        return;
+      // Repair jobs are exempt from checklist requirement
+      if (job.job_type !== 'Repair') {
+        const missing = getMissingMandatoryItems(job);
+        if (missing.length > 0) {
+          setMissingChecklistItems(missing);
+          state.setShowChecklistWarningModal(true);
+          return;
+        }
       }
     }
     try {

@@ -339,6 +339,9 @@ export interface Job {
   checklist_validated_at?: string;
   checklist_validated_by_id?: string;
   checklist_validated_by_name?: string;
+
+  // Pinned jobs — array of user IDs who have pinned this job
+  is_pinned_by?: string[];
 }
 
 // Courier item for POD tracking

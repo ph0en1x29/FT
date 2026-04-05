@@ -55,6 +55,7 @@ interface StartJobModalProps {
   lastRecordedHourmeter: number;
   conditionChecklist: ForkliftConditionChecklist;
   beforePhotos: File[];
+  isRepairJob: boolean;
   onHourmeterChange: (value: string) => void;
   onChecklistToggle: (key: string) => void;
   onCheckAll: () => void;
@@ -71,6 +72,7 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
   lastRecordedHourmeter,
   conditionChecklist,
   beforePhotos,
+  isRepairJob,
   onHourmeterChange,
   onChecklistToggle,
   onCheckAll,
@@ -171,7 +173,7 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
             </div>
           </div>
           <p className="text-center text-xs text-[var(--text-muted)]">
-            {currentStep === 1 ? 'Step 1 of 2: Before Condition Photos' : 'Step 2 of 2: Hourmeter & Checklist'}
+            {currentStep === 1 ? 'Step 1 of 2: Before Condition Photos' : isRepairJob ? 'Step 2 of 2: Hourmeter' : 'Step 2 of 2: Hourmeter & Checklist'}
           </p>
         </div>
 
@@ -315,7 +317,7 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
                 <Clock className="w-3 h-3" /> Last recorded: <span className="font-semibold text-[var(--text-secondary)]">{lastRecordedHourmeter.toLocaleString()} hrs</span>
               </p>
             </div>
-            <div className="mb-6">
+            {!isRepairJob && <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
                 <h5 className="font-bold text-[var(--text)] flex items-center gap-2">
                   <ClipboardList className="w-5 h-5" /> Condition Checklist
@@ -377,7 +379,7 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
                   </div>
                 ))}
               </div>
-            </div>
+            </div>}
             <div className="flex gap-3 justify-end border-t border-[var(--border)] pt-4">
               <button onClick={() => setCurrentStep(1)} className="btn-premium btn-premium-secondary">
                 <ChevronLeft className="w-4 h-4" /> Back
@@ -385,11 +387,11 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
               <button onClick={onClose} className="btn-premium btn-premium-secondary">Cancel</button>
               <button
                 onClick={onStartJob}
-                disabled={!startJobHourmeter || !allChecked}
-                className={`btn-premium ${startJobHourmeter && allChecked ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
+                disabled={!startJobHourmeter || (!isRepairJob && !allChecked)}
+                className={`btn-premium ${startJobHourmeter && (isRepairJob || allChecked) ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
               >
                 <Play className="w-4 h-4" /> Start Job
-                {(!startJobHourmeter || !allChecked) && (
+                {(!startJobHourmeter || (!isRepairJob && !allChecked)) && (
                   <span className="text-xs ml-1 opacity-70">
                     ({!startJobHourmeter ? 'hourmeter required' : `${checkedItems}/${totalItems} checked`})
                   </span>

@@ -8,7 +8,7 @@ import { SkeletonJobDetail } from '../../components/Skeleton';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { usePartsForList,useTechnicians } from '../../hooks/useQueryHooks';
 import { getCustomerContacts,getCustomerSites } from '../../services/customerService';
-import { JobRequest,JobStatus,MANDATORY_CHECKLIST_ITEMS,normalizeChecklistState,Part,User } from '../../types';
+import { JobRequest,JobStatus,JobType,MANDATORY_CHECKLIST_ITEMS,normalizeChecklistState,Part,User } from '../../types';
 import { CustomerContact,CustomerSite } from '../../types/customer.types';
 
 // Extracted components
@@ -205,7 +205,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
                 onTechSign={actions.handleTechnicianSwipeSign} onCustomerSign={actions.handleCustomerSwipeSign} />
             </div>
           )}
-          <div ref={checklistRef}>
+          {job.job_type !== JobType.REPAIR && <div ref={checklistRef}>
           <CollapsibleCard
             title="Condition Checklist"
             icon={<ClipboardList className="w-5 h-5 text-[var(--text-muted)]" />}
@@ -225,7 +225,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
               onCancel={actions.handleCancelChecklistEdit} onSetItemState={actions.handleSetChecklistItemState}
               onCheckAll={actions.handleCheckAll} />
           </CollapsibleCard>
-          </div>
+          </div>}
           <div ref={partsRef}>
           <CollapsibleCard
             title="Parts"
@@ -316,9 +316,9 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       </div>
 
       {/* Modals */}
-      <StartJobModal show={state.showStartJobModal} startJobHourmeter={state.startJobHourmeter} 
+      <StartJobModal show={state.showStartJobModal} startJobHourmeter={state.startJobHourmeter}
         lastRecordedHourmeter={job?.forklift?.hourmeter || 0} conditionChecklist={state.conditionChecklist}
-        beforePhotos={state.beforePhotos}
+        beforePhotos={state.beforePhotos} isRepairJob={job?.job_type === JobType.REPAIR}
         onHourmeterChange={state.setStartJobHourmeter} onChecklistToggle={actions.handleChecklistToggle}
         onCheckAll={actions.handleConditionCheckAll} onUncheckAll={actions.handleConditionUncheckAll}
         onAddPhotos={(files) => state.setBeforePhotos(prev => [...prev, ...files])}

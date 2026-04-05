@@ -120,6 +120,7 @@ export const PHOTO_CATEGORIES = [
   { value: 'condition', label: 'Condition', color: 'bg-purple-500' },
   { value: 'evidence', label: 'Evidence', color: 'bg-red-500' },
   { value: 'other', label: 'Other', color: 'bg-slate-500' },
+  { value: 'rejection_proof', label: 'Rejection Proof', color: 'bg-red-900' },
 ];
 
 /**

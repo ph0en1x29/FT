@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Clock,
   MapPin,
+  Pin,
   Square,
   User as UserIcon,
   Wrench,
@@ -20,12 +21,14 @@ import { JobWithHelperFlag, ResponseTimeState } from '../types';
 interface JobListRowProps {
   job: JobWithHelperFlag;
   isTechnician: boolean;
+  currentUserId: string;
   processingJobId: string | null;
   jobNeedsAcceptance: (job: JobWithHelperFlag) => boolean;
   getResponseTimeRemaining: (job: JobWithHelperFlag) => ResponseTimeState;
   onNavigate: (jobId: string) => void;
   onAccept: (e: React.MouseEvent, jobId: string) => void;
   onReject: (e: React.MouseEvent, jobId: string) => void;
+  onPin: (e: React.MouseEvent, jobId: string) => void;
   selectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (jobId: string) => void;
@@ -78,12 +81,14 @@ const getPriorityLabel = (job: JobWithHelperFlag) => {
 export const JobListRow: React.FC<JobListRowProps> = React.memo(({
   job,
   isTechnician,
+  currentUserId,
   processingJobId,
   jobNeedsAcceptance,
   getResponseTimeRemaining,
   onNavigate,
   onAccept,
   onReject,
+  onPin,
   selectionMode = false,
   isSelected = false,
   onToggleSelect,
@@ -95,6 +100,7 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
   const scheduledLabel = formatDate(job.scheduled_date || job.created_at);
   const needsAcceptance = isTechnician && jobNeedsAcceptance(job);
   const priorityLabel = getPriorityLabel(job);
+  const isPinned = job.is_pinned_by?.includes(currentUserId) ?? false;
 
   const handleClick = () => {
     if (selectionMode && onToggleSelect) {
@@ -225,7 +231,20 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
             ) : (
               <div className="flex items-center justify-between border-t border-[var(--border)] pt-3 text-sm text-theme-muted">
                 <span>{priorityLabel}</span>
-                <ChevronRight className="h-4 w-4" />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => onPin(e, job.job_id)}
+                    aria-label={isPinned ? 'Unpin job' : 'Pin job'}
+                    className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
+                      isPinned
+                        ? 'bg-amber-100 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400'
+                        : 'text-theme-muted hover:text-amber-500'
+                    }`}
+                  >
+                    <Pin className={`h-4 w-4 ${isPinned ? 'fill-amber-400' : ''}`} />
+                  </button>
+                  <ChevronRight className="h-4 w-4" />
+                </div>
               </div>
             )}
           </div>
@@ -291,10 +310,10 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
         {scheduledLabel}
       </span>
 
-      {/* Action / Chevron */}
-      <div className="shrink-0 w-10 flex items-center justify-end">
+      {/* Action / Pin / Chevron */}
+      <div className="shrink-0 w-10 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
         {needsAcceptance ? (
-          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1.5">
             <button
               onClick={(e) => onAccept(e, job.job_id)}
               disabled={processingJobId === job.job_id}
@@ -313,7 +332,20 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
             </button>
           </div>
         ) : (
-          <ChevronRight className="h-4 w-4 text-theme-muted" />
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => onPin(e, job.job_id)}
+              aria-label={isPinned ? 'Unpin job' : 'Pin job'}
+              className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
+                isPinned
+                  ? 'bg-amber-100 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400'
+                  : 'text-theme-muted hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+              }`}
+            >
+              <Pin className={`h-3.5 w-3.5 ${isPinned ? 'fill-amber-400' : ''}`} />
+            </button>
+            <ChevronRight className="h-4 w-4 text-theme-muted" />
+          </div>
         )}
       </div>
     </div>

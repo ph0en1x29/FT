@@ -7,12 +7,14 @@ const EMPTY_SET = new Set<string>();
 interface JobListTableProps {
   jobs: JobWithHelperFlag[];
   isTechnician: boolean;
+  currentUserId: string;
   processingJobId: string | null;
   jobNeedsAcceptance: (job: JobWithHelperFlag) => boolean;
   getResponseTimeRemaining: (job: JobWithHelperFlag) => ResponseTimeState;
   onNavigate: (jobId: string) => void;
   onAccept: (e: React.MouseEvent, jobId: string) => void;
   onReject: (e: React.MouseEvent, jobId: string) => void;
+  onPin: (e: React.MouseEvent, jobId: string) => void;
   selectionMode?: boolean;
   selectedJobs?: Set<string>;
   onToggleSelect?: (jobId: string) => void;
@@ -21,12 +23,14 @@ interface JobListTableProps {
 export const JobListTable: React.FC<JobListTableProps> = ({
   jobs,
   isTechnician,
+  currentUserId,
   processingJobId,
   jobNeedsAcceptance,
   getResponseTimeRemaining,
   onNavigate,
   onAccept,
   onReject,
+  onPin,
   selectionMode = false,
   selectedJobs = EMPTY_SET,
   onToggleSelect,
@@ -39,12 +43,14 @@ export const JobListTable: React.FC<JobListTableProps> = ({
             key={job.job_id}
             job={job}
             isTechnician={isTechnician}
+            currentUserId={currentUserId}
             processingJobId={processingJobId}
             jobNeedsAcceptance={jobNeedsAcceptance}
             getResponseTimeRemaining={getResponseTimeRemaining}
             onNavigate={onNavigate}
             onAccept={onAccept}
             onReject={onReject}
+            onPin={onPin}
             selectionMode={selectionMode}
             isSelected={selectedJobs.has(job.job_id)}
             onToggleSelect={onToggleSelect}
@@ -72,12 +78,14 @@ export const JobListTable: React.FC<JobListTableProps> = ({
               key={job.job_id}
               job={job}
               isTechnician={isTechnician}
+              currentUserId={currentUserId}
               processingJobId={processingJobId}
               jobNeedsAcceptance={jobNeedsAcceptance}
               getResponseTimeRemaining={getResponseTimeRemaining}
               onNavigate={onNavigate}
               onAccept={onAccept}
               onReject={onReject}
+              onPin={onPin}
               selectionMode={selectionMode}
               isSelected={selectedJobs.has(job.job_id)}
               onToggleSelect={onToggleSelect}

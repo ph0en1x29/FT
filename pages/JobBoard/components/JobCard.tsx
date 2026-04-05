@@ -5,6 +5,7 @@ import {
   CheckSquare,
   Clock,
   MapPin,
+  Pin,
   Square,
   User as UserIcon,
   Wrench,
@@ -26,6 +27,7 @@ interface JobCardProps {
   onNavigate: (jobId: string) => void;
   onAccept: (e: React.MouseEvent, jobId: string) => void;
   onReject: (e: React.MouseEvent, jobId: string) => void;
+  onPin: (e: React.MouseEvent, jobId: string) => void;
   selectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (jobId: string) => void;
@@ -70,6 +72,7 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
   onNavigate,
   onAccept,
   onReject,
+  onPin,
   selectionMode = false,
   isSelected = false,
   onToggleSelect,
@@ -78,6 +81,7 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
   const scheduledLabel = formatDate(job.scheduled_date || job.created_at);
   const equipmentLabel = getEquipmentLabel(job);
   const needsAcceptance = isTechnician && jobNeedsAcceptance(job);
+  const isPinned = job.is_pinned_by?.includes(currentUser.user_id) ?? false;
   const footerTone =
     responseState.urgency === 'critical'
       ? 'text-red-600'
@@ -97,9 +101,11 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
   return (
     <article
       onClick={handleCardClick}
-      className={`relative flex h-full min-w-0 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 active:scale-[0.98] active:shadow-sm ${getStatusBorderColor(job)} ${
-        isSelected ? 'ring-2 ring-blue-500/70 bg-blue-50/40 dark:bg-blue-900/15' : ''
-      }`}
+      className={`relative flex h-full min-w-0 flex-col rounded-xl border bg-[var(--surface)] p-4 shadow-sm cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] active:shadow-sm ${getStatusBorderColor(job)} ${
+        isPinned
+          ? 'border-amber-400 dark:border-amber-500 ring-1 ring-amber-400/30 dark:ring-amber-500/30'
+          : 'border-[var(--border)] hover:border-blue-300 dark:hover:border-blue-700'
+      } ${isSelected ? 'ring-2 ring-blue-500/70 bg-blue-50/40 dark:bg-blue-900/15' : ''}`}
     >
       {/* Row 1: Badges */}
       <div className="flex items-start justify-between gap-3">
@@ -155,6 +161,17 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
               size="sm"
             />
           )}
+          <button
+            onClick={(e) => onPin(e, job.job_id)}
+            aria-label={isPinned ? 'Unpin job' : 'Pin job'}
+            className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
+              isPinned
+                ? 'bg-amber-100 text-amber-500 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400'
+                : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+            }`}
+          >
+            <Pin className={`h-3.5 w-3.5 ${isPinned ? 'fill-amber-400' : ''}`} />
+          </button>
         </div>
       </div>
 

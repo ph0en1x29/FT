@@ -215,6 +215,8 @@ export const reassignJob = async (
         technician_accepted_at: null,
         technician_rejected_at: null,
         technician_rejection_reason: null,
+        technician_signature: null,
+        technician_signature_at: null,
       })
       .eq('job_id', jobId)
       .select(`

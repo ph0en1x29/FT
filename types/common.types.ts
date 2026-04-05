@@ -27,7 +27,7 @@ export const normalizeChecklistState = (value: ChecklistItemState): 'ok' | 'not_
   return undefined;
 };
 
-export type MediaCategory = 'before' | 'after' | 'spare_part' | 'condition' | 'evidence' | 'other';
+export type MediaCategory = 'before' | 'after' | 'spare_part' | 'condition' | 'evidence' | 'other' | 'rejection_proof';
 
 // Job Assignment Types (for Helper Technician feature)
 export type AssignmentType = 'lead' | 'assistant';
