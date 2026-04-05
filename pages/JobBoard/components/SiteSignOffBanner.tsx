@@ -56,7 +56,7 @@ export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
           customerId,
           customerName: job.customer?.name || 'Unknown Customer',
           siteId,
-          siteAddress: job.customer?.address || 'No address',
+          siteAddress: (job as any).customer_site?.site_name || job.customer?.address || 'No address',
           jobs: [],
           unsignedCount: 0,
         });
@@ -65,8 +65,9 @@ export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
       const group = groups.get(key)!;
       group.jobs.push(job);
       
-      // Count as unsigned if missing either signature
-      if (!job.technician_signature || !job.customer_signature) {
+      // Count as ready to sign: missing tech signature AND has after photo
+      const hasAfterPhoto = job.media?.some((m) => m.category === 'after') ?? false;
+      if (!job.technician_signature && hasAfterPhoto) {
         group.unsignedCount++;
       }
     });
@@ -98,7 +99,7 @@ export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
                     {group.siteAddress}
                   </p>
                   <p className="text-sm text-[var(--accent)] mt-1">
-                    {group.unsignedCount} jobs ready to sign off
+                    {group.unsignedCount} job{group.unsignedCount !== 1 ? 's' : ''} ready to sign off
                   </p>
                 </div>
               </div>
