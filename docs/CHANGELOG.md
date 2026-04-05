@@ -4,6 +4,98 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-05] — Technician UX, Bulk Sign Fix, Star Jobs, Van Stock Performance
+
+### Features
+
+**Rejection Proof Photo (mandatory on job rejection)**
+- Technicians must now take a live camera photo when rejecting a job assignment
+- Canvas overlay burns the timestamp and GPS coordinates directly into the image pixels (tamper-evident, surveillance-style bar at bottom)
+- Photo is uploaded to `job-photos` Supabase bucket and stored as a `job_media` record with `category = 'rejection_proof'`
+- The rejection reason text is stored in `media.description` so it persists even after the job is reassigned and `technician_rejection_reason` is cleared
+- **Timeline**: rejection events now appear in the Job Timeline with thumbnail (lightbox), reason quote, and GPS coordinates
+- **Photos section**: `rejection_proof` added as a new `MediaCategory` and filter option
+- Files: `RejectJobModal.tsx`, `useJobAcceptance.ts`, `JobBoard.tsx`, `JobTimeline.tsx`, `common.types.ts`, `constants.ts`
+
+**Star Job — Shared Attention Flag**
+- Admins, supervisors, and the assigned technician can star a job to flag it as needing attention
+- Star is a **shared flag** visible to all users — pinned jobs float to the top of everyone's board (above Emergency and Slot-In SLA)
+- DB: `is_starred boolean NOT NULL DEFAULT false` on `jobs` table with a partial index (only indexes `true` rows)
+- Star button sits beside the job ID on both card and list views; amber colour with ring when starred
+- DB migration: `supabase/migrations/20260404_add_job_pinned_by.sql` (renamed to reflect final design)
+- Files: `jobStarService.ts`, `useJobFilters.ts`, `JobCard.tsx`, `JobListRow.tsx`, `JobListTable.tsx`, `JobBoard.tsx`, `job-core.types.ts`, `supabaseClient.ts`
+
+**Enriched Job Timeline**
+- **Work started** event from `repair_start_time` (only shown when >2 min distinct from `started_at`)
+- **Work completed** event from `repair_end_time` — when the after photo was taken and timer stopped
+  - Shows after-photo thumbnail (click to open lightbox)
+  - GPS coordinates if captured
+  - Amber **Repair time: Xh Ym** duration badge
+- Vertical connector line between events for visual flow
+- Lightbox now covers both rejection proof photos and after photos
+- Labels updated: `Job created`, `Job started`, `Work started`, `Work completed`, `Sign-off completed`
+- File: `JobTimeline.tsx`
+
+### Fixes
+
+**Signature Name Fix on Job Reassignment**
+- When a job was reassigned to a new technician, the old technician's signature persisted — new tech's name never appeared
+- Root cause: `reassignJob` cleared `technician_accepted_at` but not `technician_signature`
+- Fix: added `technician_signature: null` and `technician_signature_at: null` to the `reassignJob` update payload
+- File: `jobAssignmentCrudService.ts`
+
+**Repair Job Checklist Exemption**
+- Per client request, Repair job type (`job_type === 'Repair'`) no longer requires the condition checklist
+- Checklist section hidden from job detail page for Repair jobs
+- Start Job modal (Step 2) hides checklist grid and unblocks the Start button without `allChecked`
+- Completion check in `handleStatusChange` skips `getMissingMandatoryItems` for Repair jobs
+- Mobile workflow card label reads "Start with photos" instead of "Start with checklist and photos"
+- Files: `JobDetailPage.tsx`, `JobDetailModals.tsx`, `useJobActions.ts`, `MobileTechnicianWorkflowCard.tsx`
+
+**Bulk Sign — Wiring, Status Transition, After-Photo Gate**
+- `bulkSwipeSignJobs` was writing signatures but never transitioning jobs to `AWAITING_FINALIZATION` — jobs sat permanently as "In Progress" after bulk signing
+- Fix: after both signatures succeed, calls `updateJobStatus(AWAITING_FINALIZATION)` per job via `Promise.allSettled` (individual failures don't block others — shows warning count)
+- After-photo gate: jobs without an after photo are shown greyed out in the selection list with "upload after photo first" label — only eligible jobs are pre-selected and checkable
+- `forklift.serial` → `forklift.serial_number` (field name was wrong, always showed N/A)
+- IC number added to submit button disabled guard (was missing, relied only on SwipeToSign disabled state)
+- Site address now uses `customer_site.site_name` instead of customer general address
+- `SiteSignOffBanner` ready count now only counts jobs with after photo uploaded
+- Files: `BulkSignOffModal.tsx`, `SiteSignOffBanner.tsx`
+
+**Van Stock Fast Updates + Searchable Part LOV**
+- Van stock data hooks (`useVanStockData`, `useVanStock`) migrated to React Query — mutations now do a background `invalidateVanStock()` instead of `setLoading(true)` + full refetch; no UI blanking
+- `useSearchParts` hook added to `useQueryHooks.ts` — server-side part search via `getPartsPage` (same pattern as `useSearchCustomers`)
+- `AddItemModal` (van stock) and `AdjustStockModal` (inventory): plain `<select>` replaced with `Combobox` + `useSearchParts`; `availableParts` prop and upfront `getParts()` prefetch removed
+- New React Query hooks: `useAllVanStocks`, `useVanStockByTechnician`, `useReplenishmentsPending`, `useReplenishmentsByTech`
+- Files: `useQueryHooks.ts`, `useVanStockData.ts`, `useVanStock.ts`, `AddItemModal.tsx`, `AdjustStockModal.tsx`, `VanStockPageMain.tsx`, `InventoryPageMain.tsx`
+
+**Job Parts Combobox — Search by Item Code**
+- `partOptions` subLabel updated to include `part_code` as the first element: `PRT-001 · RM12.50 · Stock: 8`
+- The existing client-side Combobox filter searches `subLabel`, so admins can now type either a part name or item code to find parts
+- File: `JobDetailPage.tsx`
+
+**Continue Tomorrow — Reason Now Saved + No Scroll-to-Top**
+- `markJobContinueTomorrow` had a placeholder `notes: supabase.rpc ? undefined : undefined` — reason was only `logDebug`'d, never persisted
+- Fix: fetches current notes array and appends `[Continue Tomorrow — DD Mon YYYY — UserName]: reason`; admin can see reason in job Notes section
+- `loadJob({ silent: true })` added to prevent scroll-to-top on mobile after confirming
+- Files: `jobStatusService.ts`, `useJobActions.ts`
+
+**Part Request Submit — No Scroll-to-Top on Mobile**
+- After submitting/approving/rejecting a part request, `loadJob()` called `setLoading(true)` which re-rendered from scratch and scrolled to top
+- Fix: `loadJob` accepts `{ silent?: boolean }` option; all post-mutation refreshes in `useJobRequestActions` use `loadJob({ silent: true })`
+- Files: `useJobData.ts`, `useJobRequestActions.ts`
+
+### Database Changes
+
+| Table | Change |
+|-------|--------|
+| `jobs` | Added `is_starred boolean NOT NULL DEFAULT false` with partial GIN index |
+| `job_media` | `category` constraint updated to include `'rejection_proof'` |
+
+Migration file: `supabase/migrations/20260404_add_job_pinned_by.sql`
+
+---
+
 ## [2026-03-10] - Job Board Performance Optimization
 
 ### Performance

@@ -286,6 +286,7 @@ Core work orders.
 | `first_hourmeter_recorded_by_id` | UUID | YES | | **(NEW 2026-01-19)** User who first recorded hourmeter |
 | `first_hourmeter_recorded_by_name` | TEXT | YES | | **(NEW 2026-01-19)** Name of first recorder |
 | `first_hourmeter_recorded_at` | TIMESTAMPTZ | YES | | **(NEW 2026-01-19)** When hourmeter was first recorded |
+| `is_starred` | BOOLEAN | NO | `false` | **(NEW 2026-04-04)** Starred jobs float to top of board; settable by admin/supervisor/assigned tech |
 
 Constraints:
 - PK: `job_id`
@@ -300,6 +301,9 @@ Foreign keys:
 - `completed_by_id` -> `users.user_id`
 - `invoiced_by_id` -> `users.user_id`
 - `deleted_by` -> `users.user_id`
+
+Notable indexes:
+- `idx_jobs_starred` on `job_id` WHERE `is_starred = true` **(NEW 2026-04-04)**
 
 ---
 
@@ -499,7 +503,7 @@ Media attachments on jobs with GPS tracking and validation.
 
 Constraints:
 - PK: `media_id`
-- CHECK: `category` IN ('before', 'after', 'spare_part', 'condition', 'evidence', 'other')
+- CHECK: `category` IN ('before', 'after', 'spare_part', 'condition', 'evidence', 'other', 'rejection_proof')
 - CHECK: `source` IN ('camera', 'gallery', 'unknown')
 
 Foreign keys:
