@@ -83,7 +83,7 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto pb-24 md:pb-8 px-2 sm:px-4">
+    <div className="min-w-0 max-w-7xl mx-auto overflow-x-hidden pb-24 md:pb-8 px-2 sm:px-4">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button 
@@ -100,16 +100,16 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
         </div>
       </div>
 
-      <div className="flex flex-col xl:flex-row gap-5">
+      <div className="min-w-0 flex flex-col xl:flex-row gap-5">
         {/* Main Form */}
-        <form onSubmit={handleSubmit} className="flex-1 bg-[var(--surface)] rounded-xl shadow-sm overflow-hidden">
+        <form onSubmit={handleSubmit} className="min-w-0 flex-1 max-w-full bg-[var(--surface)] rounded-xl shadow-sm overflow-hidden">
           {/* Section 1: Customer & Equipment */}
           <div className="border-b border-slate-100">
             <div className="px-4 md:px-6 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
               <Truck className="w-4 h-4 text-amber-600" />
               <span className="text-sm font-semibold text-amber-800">Customer & Equipment</span>
             </div>
-            <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <div className="min-w-0 p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               <Combobox 
                 label="Customer"
                 options={customerOptions}
@@ -179,7 +179,7 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
               </div>
 
               {/* Type + Priority + Technician — 3 columns on desktop */}
-              <div className={`grid grid-cols-1 sm:grid-cols-2 ${canCreateJobs ? 'lg:grid-cols-3' : ''} gap-4`}>
+              <div className={`min-w-0 grid grid-cols-1 sm:grid-cols-2 ${canCreateJobs ? 'lg:grid-cols-3' : ''} gap-4`}>
                 <Combobox
                   label="Job Type"
                   options={Object.values(JobType).map(t => ({ id: t, label: t }))}
@@ -238,7 +238,7 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
         </form>
 
         {/* Context Sidebar — visible on xl */}
-        <div className="hidden xl:block w-80 shrink-0 space-y-4">
+        <div className="hidden xl:block w-80 max-w-full shrink-0 space-y-4">
           {selectedCustomer ? (
             <>
               {/* Customer Card */}

@@ -513,17 +513,17 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
         <style>{sidebarStyles}</style>
         <Toaster position="top-center" richColors toastOptions={{ duration: 4000, className: 'text-sm !mt-2 sm:!mt-2' }} />
         <CommandPaletteWrapper isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} currentUser={currentUser} />
-        <div className="min-h-screen bg-theme-bg flex theme-transition">
+        <div className="min-h-screen bg-theme-bg flex max-w-full overflow-x-hidden theme-transition">
           <Sidebar currentUser={currentUser} onLogout={onLogout} isCollapsed={sidebarCollapsed} setIsCollapsed={setSidebarCollapsed} navRole={navRole} />
           <main
-            className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-60'} p-4 md:p-6 lg:p-8 pb-20 md:pb-8 ${devMode.isDevModeActive ? 'pt-14' : ''}`}
+            className={`min-w-0 max-w-full flex-1 overflow-x-hidden transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-60'} p-4 md:p-6 lg:p-8 pb-20 md:pb-8 ${devMode.isDevModeActive ? 'pt-14' : ''}`}
             style={{
               background: 'radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 24%), radial-gradient(circle at top left, rgba(249, 115, 22, 0.07), transparent 22%)',
             }}
           >
             <TopHeader currentUser={currentUser} isDark={isDarkTheme} onToggleTheme={toggleTheme} devModeActive={devMode.isDevModeActive} onOpenSearch={() => setCommandPaletteOpen(true)} />
             <Suspense fallback={<PageLoader />}>
-              <div className="animate-page-enter mx-auto max-w-[1560px]">
+              <div className="animate-page-enter mx-auto min-w-0 max-w-[1560px] overflow-x-hidden">
               <Routes>
                 <Route path="/" element={<PrototypeDashboards currentUser={currentUser} />} />
                 <Route path="/jobs" element={<JobsTabs currentUser={currentUser} />} />
