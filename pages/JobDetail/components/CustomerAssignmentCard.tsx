@@ -176,7 +176,7 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
               <p className="label-premium mb-0.5">Assigned Technician</p>
               <p className="value-premium">{job.assigned_technician_name}</p>
             </div>
-            <button onClick={onOpenReassignModal} className="chip-premium chip-premium-accent">
+            <button type="button" onClick={onOpenReassignModal} className="chip-premium chip-premium-accent cursor-pointer">
               <RefreshCw className="w-3.5 h-3.5" /> Reassign
             </button>
           </div>

@@ -486,8 +486,8 @@ export const ReassignModal: React.FC<ReassignModalProps> = ({
           />
         </div>
         <div className="flex gap-3">
-          <button onClick={onClose} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
-          <button onClick={onReassign} disabled={!reassignTechId} className="btn-premium btn-premium-primary flex-1 disabled:opacity-50">
+          <button type="button" onClick={onClose} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
+          <button type="button" onClick={onReassign} disabled={!reassignTechId} className="btn-premium btn-premium-primary flex-1 disabled:opacity-50">
             <RefreshCw className="w-4 h-4" /> Reassign
           </button>
         </div>
