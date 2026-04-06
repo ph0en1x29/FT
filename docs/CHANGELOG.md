@@ -4,6 +4,21 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-06] — Job Detail and Create Job Reliability Fixes
+
+### Fixes
+
+**External Forklift Add flow now keeps the newly created unit selected**
+- Creating an external forklift from the Create Job flow succeeded in the database, but the forklift list cache stayed stale
+- Root cause: `useForkliftsForList` was not refreshed after `createForklift()`, so the new unit was missing from the dropdown and the form looked like the data vanished
+- Fix: invalidate the `['forklifts', 'list']` query immediately after successful external forklift creation so the dropdown reloads and the new forklift remains selectable
+- File: `pages/CreateJob/hooks/useCreateJobForm.ts`
+
+**Job Detail Reassign button hardened**
+- The reassign entrypoint and modal actions now use explicit `type="button"` behavior instead of relying on implicit button defaults
+- This avoids dead or swallowed clicks in the Job Detail reassignment flow and makes the interaction deterministic
+- Files: `pages/JobDetail/components/CustomerAssignmentCard.tsx`, `pages/JobDetail/components/JobDetailModals.tsx`
+
 ## [2026-04-05] — Technician UX, Bulk Sign Fix, Star Jobs, Van Stock Performance
 
 ### Features

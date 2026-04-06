@@ -3,9 +3,13 @@
 
 ---
 
-> 📢 **What's New in March 2026?**
+> 📢 **What's New?**
 >
-> **🆕 Latest Update (2026-03-07):**
+> **🆕 Latest Update (2026-04-06):**
+> - **🚜 External forklift add flow fixed** — When creating a customer-owned external forklift during Create Job, the newly added unit now stays available and selected instead of seeming to disappear after pressing Add.
+> - **🔁 Reassign button made reliable** — The Reassign action in Job Detail now responds consistently and opens the reassignment flow correctly.
+>
+> **Previous update (2026-03-07):**
 > - **📱 Technician Workflow Card** — On mobile, technicians see a guided workflow card: Accept → Start → Work → Complete. Shows exactly what's left before completing (photos, hourmeter, signatures).
 > - **🖥️ Role-specific dashboards** — Service Admin sees jobs pipeline and fleet. Store Admin sees parts requests and inventory alerts. Each role loads only their own dashboard (faster).
 > - **📦 Inventory pagination** — Parts catalog loads 50 items per page with server-side filtering. Faster for large inventories.
