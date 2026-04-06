@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React,{ useCallback,useEffect,useRef,useState } from 'react';
 import { useNavigate,useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
@@ -16,6 +16,7 @@ import { CreateJobFormData,DuplicateJobWarning,NewCustomerFormData } from '../ty
  */
 export function useCreateJobForm(currentUser: User) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   
   // Server-side customer search (20 results per keystroke instead of loading all 2,147)
@@ -252,12 +253,23 @@ export function useCreateJobForm(currentUser: User) {
         type: externalForkliftData.type as any,
         hourmeter: externalForkliftData.hourmeter,
         ownership_type: 'external',
+        ownership: 'customer' as any,
         current_customer_id: formData.customer_id,
+        customer_id: formData.customer_id,
         status: 'Active' as any,
       });
 
+      await queryClient.invalidateQueries({ queryKey: ['forklifts', 'list'] });
+      await queryClient.refetchQueries({ queryKey: ['forklifts', 'list'], exact: true });
+
       // Auto-select the newly created forklift
-      setFormData(prev => ({ ...prev, forklift_id: newForklift.forklift_id }));
+      setSelectedForklift(newForklift as Forklift);
+      setFormData(prev => ({
+        ...prev,
+        forklift_id: newForklift.forklift_id,
+        hourmeter_reading: String(newForklift.hourmeter ?? externalForkliftData.hourmeter ?? 0),
+        billing_type: 'chargeable',
+      }));
       showToast.success('External forklift added and selected');
       return newForklift;
     } catch (error) {

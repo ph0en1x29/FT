@@ -1070,6 +1070,12 @@ Split large page components into maintainable modules:
 
 ---
 
+## [2026-04-06] — External Forklift Create Job Fix
+
+### Fixed
+- **External forklift now persists in Create Job flow** — adding a customer asset from "Add External Forklift" now refreshes the forklift dropdown cache, auto-selects the newly created asset immediately, and keeps billing set to chargeable instead of appearing to disappear after clicking Add.
+- **External ownership payload hardened** — customer-owned external forklifts now save with both `ownership_type='external'` and customer ownership/customer linkage fields so downstream job creation logic treats them as client assets consistently.
+
 ## Archive
 
 Detailed historical changelogs are available in `docs/archive/`.

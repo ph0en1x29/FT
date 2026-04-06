@@ -236,3 +236,5 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 [2026-04-05 01:03] [Sonnet] fix: part request submission no longer scrolls page to top on mobile: pages/JobDetail/hooks/useJobData.ts, pages/JobDetail/hooks/useJobRequestActions.ts — loadJob accepts silent option; all request action refreshes use loadJob({ silent: true }) to skip setLoading(true) so page stays at scroll position. Build ✅
 
 [2026-04-05 01:11] [Sonnet] fix: continue tomorrow reason now saved + no scroll-to-top: services/jobStatusService.ts, pages/JobDetail/hooks/useJobActions.ts — markJobContinueTomorrow now fetches current notes and appends reason as [Continue Tomorrow — date — name]: reason entry; loadJob({ silent: true }) prevents scroll-to-top on mobile. Build ✅
+
+[2026-04-06 13:45] [Codex] fix: external forklift add now persists and auto-selects in create job: pages/CreateJob/hooks/useCreateJobForm.ts, docs/CHANGELOG.md — Invalidate/refetch forklift dropdown cache after inline external asset creation, persist external ownership/customer linkage fields, and set selected forklift/hourmeter/billing immediately so client-added asset no longer appears to disappear after Add. Build ✅
