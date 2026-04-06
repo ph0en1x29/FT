@@ -56,7 +56,7 @@ const ForkliftsTabsPage: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
   ];
 
   return (
-    <div className="space-y-6 pb-24 md:pb-8">
+    <div className="min-w-0 max-w-full overflow-x-hidden space-y-6 pb-24 md:pb-8">
       {/* Header with Tabs */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
@@ -69,8 +69,8 @@ const ForkliftsTabsPage: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="border-b border-theme">
-          <nav className="flex gap-1 -mb-px overflow-x-auto scrollbar-hide">
+        <div className="min-w-0 max-w-full border-b border-theme overflow-x-auto">
+          <nav className="flex min-w-0 gap-1 -mb-px scrollbar-hide">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;

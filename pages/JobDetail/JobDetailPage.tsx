@@ -143,7 +143,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   );
 
   return (
-    <div className={`max-w-7xl mx-auto pb-24 md:pb-8 ${(statusFlags.isInProgress || statusFlags.isCompleted) && !hasModalOpen ? 'pt-16 md:pt-0' : ''} fade-in`}>
+    <div className={`min-w-0 max-w-7xl mx-auto overflow-x-hidden pb-24 md:pb-8 ${(statusFlags.isInProgress || statusFlags.isCompleted) && !hasModalOpen ? 'pt-16 md:pt-0' : ''} fade-in`}>
       <JobHeader job={job} isRealtimeConnected={true} roleFlags={roleFlags} statusFlags={statusFlags}
         exportingToAutoCount={state.exportingToAutoCount} onAcceptJob={actions.handleAcceptJob}
         onRejectJob={() => state.setShowRejectJobModal(true)} onStartJob={actions.handleOpenStartJobModal}
@@ -170,8 +170,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         </div>
       )}
 
-      <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-2">
-        <div className="lg:col-span-2 xl:col-span-3 space-y-5">
+      <div className="min-w-0 p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-2">
+        <div className="min-w-0 lg:col-span-2 xl:col-span-3 space-y-5">
           {job.forklift && <EquipmentCard job={job} activeRental={state.activeRental} currentUserId={currentUserId}
             roleFlags={roleFlags} statusFlags={statusFlags} editingHourmeter={state.editingHourmeter}
             hourmeterInput={state.hourmeterInput} onHourmeterInputChange={state.setHourmeterInput}
@@ -286,7 +286,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
           </CollapsibleCard>
           </div>
         </div>
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <FinancialSummary job={job} roleFlags={roleFlags} editingLabor={state.editingLabor} laborCostInput={state.laborCostInput}
             onLaborInputChange={state.setLaborCostInput} onStartEditLabor={actions.handleStartEditLabor}
             onSaveLabor={actions.handleSaveLabor} onCancelLaborEdit={actions.handleCancelLaborEdit} />

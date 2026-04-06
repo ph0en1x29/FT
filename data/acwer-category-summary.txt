@@ -4,41 +4,41 @@ ACWER INVENTORY - CATEGORY SUMMARY
 
 Category                             Items Total Value (RM)
 ------------------------------------------------------------
-Miscellaneous                          625       364,893.54
-Seals & Gaskets                        302        54,970.85
-Electrical                             257       177,017.07
-Bearings                               187        85,074.83
-Bushings & Shims                       175        30,312.05
-Wheels & Tyres                         170       149,674.66
-Brakes & Clutch                        152        69,707.17
-Fasteners & Hardware                   144        23,559.17
-Hoses & Fittings                       122        38,040.36
-Engine Parts                           114        80,073.58
-Brackets & Mounting                    109        36,549.45
-Covers & Panels                        102        55,452.52
-Hydraulic                               93        95,375.79
-Lights & Bulbs                          81        30,120.33
-Cables & Controls                       79        27,520.67
-Steering                                71        50,481.26
-Filters                                 63        18,754.72
-Seal Kits & Repair Kits                 50        40,246.51
-Transmission                            47        59,301.90
-Carbon Brushes & Motors                 44         8,584.38
-Springs                                 43         4,397.19
-Chains & Sprockets                      32        11,125.63
-Lithium Battery Parts                   29        20,146.11
-Fuses                                   23         2,717.66
-Batteries & Power                       22        20,867.29
-Cooling Fans                            20        12,846.07
-Controllers & Electronics               20        32,528.77
-Consumables                             14         2,586.30
-Oils & Fluids                           12        46,405.44
-LPG Parts                               11         4,360.10
-Safety & Accessories                    10         1,899.65
+Miscellaneous                          642       350,592.11
+Seals & Gaskets                        304        53,349.63
+Electrical                             261       165,844.72
+Wheels & Tyres                         209       149,085.50
+Bearings                               187        83,916.83
+Bushings & Shims                       176        27,330.07
+Brakes & Clutch                        153        64,162.26
+Fasteners & Hardware                   144        21,832.31
+Hoses & Fittings                       125        37,296.15
+Engine Parts                           116        70,478.64
+Brackets & Mounting                    109        36,287.60
+Covers & Panels                        102        53,858.70
+Hydraulic                               93        95,052.11
+Lights & Bulbs                          89        31,146.48
+Cables & Controls                       80        28,055.45
+Steering                                71        47,026.68
+Filters                                 64        20,134.14
+Seal Kits & Repair Kits                 50        36,539.89
+Transmission                            47        58,217.86
+Carbon Brushes & Motors                 44         8,575.38
+Springs                                 43         5,583.24
+Chains & Sprockets                      32        10,046.45
+Lithium Battery Parts                   30        19,176.25
+Fuses                                   23         3,007.73
+Batteries & Power                       22        19,844.64
+Cooling Fans                            20        12,335.96
+Controllers & Electronics               20        33,240.66
+Consumables                             14         3,310.20
+Oils & Fluids                           12        91,779.23
+LPG Parts                               11         4,811.60
+Safety & Accessories                    10         2,276.65
 ------------------------------------------------------------
-TOTAL                                 3223     1,655,591.02
+TOTAL                                 3303     1,644,195.14
 
-Skipped entries (empty bins, loose parts): 96
+Skipped entries (empty bins, loose parts): 43
 Duplicate item codes: 0
-Unique item codes: 3223
+Unique item codes: 3303
 Total categories: 31

@@ -60,7 +60,7 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
   const effectiveTab = availableTabs.includes(activeTab) ? activeTab : availableTabs[0] || 'active';
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-24 md:pb-8" {...pullToRefreshProps}>
+    <div className="min-w-0 max-w-full overflow-x-hidden space-y-4 md:space-y-6 pb-24 md:pb-8" {...pullToRefreshProps}>
       <PullIndicator />
       <div className="flex flex-col gap-3 md:gap-4">
         <div className="flex items-center justify-between">
@@ -82,8 +82,8 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
           )}
         </div>
 
-        <div className="border-b border-theme">
-          <nav className="flex gap-1 -mb-px overflow-x-auto scrollbar-hide">
+        <div className="min-w-0 max-w-full border-b border-theme overflow-x-auto">
+          <nav className="flex min-w-0 gap-1 -mb-px scrollbar-hide">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = effectiveTab === tab.id;
