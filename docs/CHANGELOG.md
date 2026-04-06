@@ -4,6 +4,19 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-06] — Job Detail Fixes + Inventory Stock Sync
+
+### Data
+
+**Inventory stock sync (Apr 6 snapshot)**
+- Strict sync script (`scripts/strict-sync-inventory.py`) applied ACWER's Apr 6 stock snapshot to the `parts` table
+- 3,303 items reconciled: names, quantities, costs, categories, and bin locations updated to match source
+- 3 extras (`58650-23060`, `S-02474`, `TVH/6656`) retained — referenced in active van stock, cannot be deleted
+- Source file: `data/acwer-inventory-cleaned.json` (derived from `Stock_as_at_06.04.26_11.16am.csv`)
+- Script: `scripts/strict-sync-inventory.py` — delete extras, insert missing, update common, verify post-sync
+
+---
+
 ## [2026-04-06] — Job Detail and Create Job Reliability Fixes
 
 ### Fixes
