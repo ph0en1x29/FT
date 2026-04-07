@@ -4,6 +4,10 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+[2026-04-06 23:38] [Sonnet] fix: hide QuickStats for technicians + revert list row width: pages/JobBoard/JobBoard.tsx, pages/JobBoard/components/JobListRow.tsx
+  - JobBoard.tsx: wrapped QuickStats in !isTechnician guard — status tiles (Active/New/Assigned/etc.) show fleet-wide admin counts irrelevant to technicians
+  - JobListRow.tsx: reverted Star+Job# column from w-[170px] back to w-[130px]; whitespace-nowrap from previous fix is sufficient, wider column was squeezing adjacent cells
+
 [2026-04-06 23:25] [Sonnet] fix: job number squeezing on job board cards and list rows: pages/JobBoard/components/JobListRow.tsx, pages/JobBoard/components/JobCard.tsx
   - JobListRow.tsx: widened Star+Job# column from w-[130px] to w-[170px]; replaced truncate with whitespace-nowrap so full job number always shows
   - JobCard.tsx: added shrink-0 to star+badge inner div so it never compresses in flex-wrap layout; added whitespace-nowrap to job number badge span

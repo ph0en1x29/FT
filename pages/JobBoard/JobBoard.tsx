@@ -235,13 +235,15 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
         </div>
       )}
 
-      <QuickStats
-        statusCounts={statusCounts}
-        statusFilter={statusFilter}
-        dateFilter={dateFilter}
-        onStatusFilterChange={setStatusFilter}
-        onDateFilterChange={setDateFilter}
-      />
+      {!isTechnician && (
+        <QuickStats
+          statusCounts={statusCounts}
+          statusFilter={statusFilter}
+          dateFilter={dateFilter}
+          onStatusFilterChange={setStatusFilter}
+          onDateFilterChange={setDateFilter}
+        />
+      )}
 
       <SlotInAlertBanner count={statusCounts.slotInPendingAck} onViewAll={handleViewAllSlotIn} />
 

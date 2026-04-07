@@ -4,6 +4,22 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-06] — Technician View Cleanup + List Row Fix
+
+### Fixes
+
+**QuickStats hidden for technician role**
+- Active / New / Assigned / In Progress / Awaiting / Completed stat tiles are now hidden when the logged-in user is a technician
+- Those tiles show fleet-wide dispatch counts with admin-centric hints ("Needs assignment", "Queued for dispatch") that are irrelevant noise for technicians
+- File: `pages/JobBoard/JobBoard.tsx`
+
+**List row job# column width reverted**
+- Previous fix widened the Star+Job# column from 130px → 170px which squeezed adjacent columns
+- Reverted to 130px; `whitespace-nowrap` (replacing `truncate`) is sufficient since job numbers fit comfortably within the original width
+- File: `pages/JobBoard/components/JobListRow.tsx`
+
+---
+
 ## [2026-04-06] — Job Board Auto-Commit Hook + Job Number Readability
 
 ### Config
