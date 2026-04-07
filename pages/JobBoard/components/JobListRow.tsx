@@ -272,7 +272,7 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
       </div>
 
       {/* Star + Job # */}
-      <div className="flex items-center gap-1.5 shrink-0 w-[130px]" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-1.5 shrink-0 w-[150px]" onClick={(e) => e.stopPropagation()}>
         {canStar ? (
           <button
             onClick={(e) => onStar(e, job.job_id)}
