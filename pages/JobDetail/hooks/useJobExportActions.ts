@@ -20,11 +20,17 @@ export const useJobExportActions = ({
   currentUserId,
   currentUserName,
 }: UseJobExportActionsParams) => {
-  const handlePrintServiceReport = useCallback(async () => {
+  const handlePrintServiceReport = useCallback(() => {
     if (!job) return;
+    state.setShowReportOptionsModal(true);
+  }, [job, state]);
+
+  const handleConfirmPrintServiceReport = useCallback(async (showPrices: boolean) => {
+    if (!job) return;
+    state.setShowReportOptionsModal(false);
     const { printServiceReport } = await import('../../../components/ServiceReportPDF');
-    printServiceReport(job);
-  }, [job]);
+    printServiceReport(job, undefined, showPrices);
+  }, [job, state]);
 
   const handleExportPDF = useCallback(async () => {
     if (!job) return;
@@ -46,6 +52,7 @@ export const useJobExportActions = ({
 
   return {
     handlePrintServiceReport,
+    handleConfirmPrintServiceReport,
     handleExportPDF,
     handleExportToAutoCount,
   };

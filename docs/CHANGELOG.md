@@ -4,6 +4,21 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-07] — Service Report Show/Hide Prices Confirmation
+
+### Features
+
+**Confirm price visibility before printing service reports**
+- Client requested a confirmation prompt when generating service reports so the same job can produce either a customer-facing copy (no prices) or an internal copy (with prices) without needing two separate report templates.
+- Clicking **Print Service Report** now opens a small `ReportOptionsModal` with two buttons: **"Hide Prices (Customer Copy)"** (primary) and **"Show Prices (Internal Copy)"** (secondary). Hide-prices is the visually-primary action since most reports are customer-facing.
+- The `showPrices` flag is threaded through both render paths in `components/ServiceReportPDF.tsx`: the React component (`ServiceReportPDF`) and the duplicated HTML-string template inside `printServiceReport()`. Gating both was critical — the prices were rendered twice and gating only one would have silently leaked them through the print window.
+- When `showPrices === false`, the report omits the "Unit Price" and "Amount(RM)" columns, the empty filler cells for those columns, and the entire `<tfoot>` containing Labor and TOTAL. Quantities, descriptions, item codes, and the rest of the report are unchanged.
+- New state `showReportOptionsModal` lives on `useJobDetailState`; `useJobExportActions` exposes a new `handleConfirmPrintServiceReport(showPrices)` that the modal calls. The export modal is also added to `hasModalOpen` so the mobile sticky bar hides while it's open.
+- Invoices (`InvoicePDF.tsx`) are unchanged for now — they're invoices, prices belong on them.
+- Files: `components/ServiceReportPDF.tsx`, `pages/JobDetail/components/JobDetailModals.tsx`, `pages/JobDetail/components/index.ts`, `pages/JobDetail/hooks/useJobExportActions.ts`, `pages/JobDetail/hooks/useJobDetailState.ts`, `pages/JobDetail/JobDetailPage.tsx`
+
+---
+
 ## [2026-04-07] — Parts Declaration Required Before Completion
 
 ### Fixes

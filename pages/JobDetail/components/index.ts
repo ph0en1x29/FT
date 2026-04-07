@@ -25,7 +25,7 @@ export { PartsSection } from './PartsSection';
 
 // Modal components
 export {
-ChecklistWarningModal,ContinueTomorrowModal,DeferredCompletionModal,DeleteModal,FinalizeModal,HelperModal,ReassignModal,RejectJobModal,SignatureModal,
+ChecklistWarningModal,ContinueTomorrowModal,DeferredCompletionModal,DeleteModal,FinalizeModal,HelperModal,ReassignModal,RejectJobModal,ReportOptionsModal,SignatureModal,
 StartJobModal
 } from './JobDetailModals';
 export { CustomerSignatureModal } from './CustomerSignatureModal';

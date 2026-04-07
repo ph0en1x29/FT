@@ -158,6 +158,7 @@ export const useJobDetailState = () => {
   const [jobAcknowledgement, setJobAcknowledgement] = useState<any>(null);
   const [hourmeterFlagReasons, setHourmeterFlagReasons] = useState<HourmeterFlagReason[]>([]);
   const [exportingToAutoCount, setExportingToAutoCount] = useState(false);
+  const [showReportOptionsModal, setShowReportOptionsModal] = useState(false);
 
   return {
     // Core
@@ -284,6 +285,7 @@ export const useJobDetailState = () => {
     jobAcknowledgement, setJobAcknowledgement,
     hourmeterFlagReasons, setHourmeterFlagReasons,
     exportingToAutoCount, setExportingToAutoCount,
+    showReportOptionsModal, setShowReportOptionsModal,
   };
 };
 

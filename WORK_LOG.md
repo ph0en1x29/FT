@@ -4,6 +4,17 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+[2026-04-07 17:39] [Opus] feat: service report show/hide prices confirmation modal: components/ServiceReportPDF.tsx, pages/JobDetail/components/JobDetailModals.tsx, pages/JobDetail/components/index.ts, pages/JobDetail/hooks/useJobExportActions.ts, pages/JobDetail/hooks/useJobDetailState.ts, pages/JobDetail/JobDetailPage.tsx
+  - ServiceReportPDF.tsx: added showPrices?: boolean prop (default true) to ServiceReportPDF component; gated Unit Price + Amount(RM) header columns, body cells, empty filler rows, and the entire <tfoot> Labor/TOTAL block behind showPrices in the React render path
+  - ServiceReportPDF.tsx: added showPrices: boolean = true parameter to printServiceReport(); gated the duplicated HTML string render exactly the same way (header, body, filler rows, tfoot) so both render paths stay consistent — this was a critical risk noted during planning since prices were rendered twice
+  - JobDetailModals.tsx: new ReportOptionsModal component — fixed overlay, two primary buttons "Hide Prices (Customer Copy)" and "Show Prices (Internal Copy)", X close. Hide is the recommended primary action since reports are most often customer-facing
+  - useJobDetailState.ts: added showReportOptionsModal state + setter
+  - useJobExportActions.ts: handlePrintServiceReport now opens the modal instead of immediately printing; new handleConfirmPrintServiceReport(showPrices) does the dynamic import and calls printServiceReport with the choice; both exposed via the existing ...exportActions spread in useJobActions
+  - JobDetailPage.tsx: added ReportOptionsModal to the modal stack next to RejectJobModal; included showReportOptionsModal in hasModalOpen so the mobile sticky bar hides while it's open
+  - components/index.ts: re-exported ReportOptionsModal alongside the other modals
+  - Validation: tsc --noEmit passes; eslint clean (only pre-existing unrelated warnings)
+  - Per the implementation plan at /home/jay/.claude/plans/validated-kindling-sprout.md item 5
+
 [2026-04-07 17:17] [Opus] fix: require parts declaration before lead technician can complete job: pages/JobDetail/JobDetailPage.tsx, pages/JobDetail/components/JobHeader.tsx, pages/JobDetail/components/MobileTechnicianWorkflowCard.tsx
   - JobDetailPage.tsx: derived partsDeclared = parts_used.length > 0 || state.noPartsUsed and partsDeclarationRequired (lead-tech only via isTechnician && !isHelperOnly); included in completionBlocked so the mobile sticky-bar Complete button disables until the technician adds a part or ticks "No parts were used"; added "Parts declaration required" amber chip to the warning chip row alongside the existing photo/hourmeter/signature chips; passed partsDeclared to MobileTechnicianWorkflowCard and partsDeclarationRequired to JobHeader
   - JobHeader.tsx: new partsDeclarationRequired prop; desktop Complete button disabled state and class now also gate on this flag; tooltip falls through to "Declare parts usage or tick 'No parts were used'" when all other checks pass

@@ -657,6 +657,46 @@ export const RejectJobModal: React.FC<RejectJobModalProps> = ({
   );
 };
 
+interface ReportOptionsModalProps {
+  show: boolean;
+  onSelect: (showPrices: boolean) => void;
+  onClose: () => void;
+}
+
+export const ReportOptionsModal: React.FC<ReportOptionsModalProps> = ({ show, onSelect, onClose }) => {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+        <div className="flex items-start justify-between mb-4">
+          <h4 className="font-bold text-lg text-[var(--text)]">Service Report Options</h4>
+          <button onClick={onClose} className="p-1 text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] rounded">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <p className="text-sm text-[var(--text-muted)] mb-5">
+          Should this report include prices? Hide prices for customer-facing copies.
+        </p>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => onSelect(false)}
+            className="btn-premium btn-premium-primary w-full"
+          >
+            Hide Prices (Customer Copy)
+          </button>
+          <button
+            onClick={() => onSelect(true)}
+            className="btn-premium btn-premium-secondary w-full"
+          >
+            Show Prices (Internal Copy)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Re-export from JobDetailModalsSecondary
 export {
   ChecklistWarningModal,

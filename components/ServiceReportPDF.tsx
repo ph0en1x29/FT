@@ -6,6 +6,7 @@ import { ForkliftConditionChecklist,Job,JobType } from '../types';
 interface ServiceReportProps {
   job: Job;
   reportNumber?: string;
+  showPrices?: boolean;
   companyInfo?: {
     name: string;
     address: string;
@@ -29,10 +30,11 @@ const defaultCompanyInfo = {
   email: 'service@yourcompany.com',
 };
 
-export const ServiceReportPDF: React.FC<ServiceReportProps> = ({ 
-  job, 
+export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
+  job,
   reportNumber,
-  companyInfo = defaultCompanyInfo 
+  showPrices = true,
+  companyInfo = defaultCompanyInfo
 }) => {
   const checklist = job.condition_checklist || {};
   
@@ -257,8 +259,8 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
             <th className="border border-slate-300 p-2 text-left w-24">Item Code</th>
             <th className="border border-slate-300 p-2 text-left">Item Description</th>
             <th className="border border-slate-300 p-2 text-center w-16">Qty</th>
-            <th className="border border-slate-300 p-2 text-right w-24">Unit Price</th>
-            <th className="border border-slate-300 p-2 text-right w-28">Amount(RM)</th>
+            {showPrices && <th className="border border-slate-300 p-2 text-right w-24">Unit Price</th>}
+            {showPrices && <th className="border border-slate-300 p-2 text-right w-28">Amount(RM)</th>}
           </tr>
         </thead>
         <tbody>
@@ -268,8 +270,8 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
               <td className="border border-slate-300 p-2 font-mono">{part.part_id.slice(0, 6)}</td>
               <td className="border border-slate-300 p-2">{part.part_name}</td>
               <td className="border border-slate-300 p-2 text-center">{part.quantity} unit</td>
-              <td className="border border-slate-300 p-2 text-right">{part.sell_price_at_time.toFixed(2)}</td>
-              <td className="border border-slate-300 p-2 text-right">{(part.quantity * part.sell_price_at_time).toFixed(2)}</td>
+              {showPrices && <td className="border border-slate-300 p-2 text-right">{part.sell_price_at_time.toFixed(2)}</td>}
+              {showPrices && <td className="border border-slate-300 p-2 text-right">{(part.quantity * part.sell_price_at_time).toFixed(2)}</td>}
             </tr>
           ))}
           {/* Empty rows for writing */}
@@ -279,23 +281,25 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
               <td className="border border-slate-300 p-2">&nbsp;</td>
               <td className="border border-slate-300 p-2">&nbsp;</td>
               <td className="border border-slate-300 p-2">&nbsp;</td>
-              <td className="border border-slate-300 p-2">&nbsp;</td>
-              <td className="border border-slate-300 p-2">&nbsp;</td>
+              {showPrices && <td className="border border-slate-300 p-2">&nbsp;</td>}
+              {showPrices && <td className="border border-slate-300 p-2">&nbsp;</td>}
             </tr>
           ))}
         </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={4}></td>
-            <td className="border border-slate-300 p-2 text-right font-semibold">Labor:</td>
-            <td className="border border-slate-300 p-2 text-right">{labor.toFixed(2)}</td>
-          </tr>
-          <tr>
-            <td colSpan={4}></td>
-            <td className="border border-slate-300 p-2 text-right font-bold">TOTAL AMOUNT (RM)</td>
-            <td className="border border-slate-300 p-2 text-right font-bold">{total.toFixed(2)}</td>
-          </tr>
-        </tfoot>
+        {showPrices && (
+          <tfoot>
+            <tr>
+              <td colSpan={4}></td>
+              <td className="border border-slate-300 p-2 text-right font-semibold">Labor:</td>
+              <td className="border border-slate-300 p-2 text-right">{labor.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td colSpan={4}></td>
+              <td className="border border-slate-300 p-2 text-right font-bold">TOTAL AMOUNT (RM)</td>
+              <td className="border border-slate-300 p-2 text-right font-bold">{total.toFixed(2)}</td>
+            </tr>
+          </tfoot>
+        )}
       </table>
 
       {/* Footer with Times and Signatures */}
@@ -352,7 +356,7 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
 };
 
 // Function to open print dialog for service report
-export const printServiceReport = (job: Job, reportNumber?: string) => {
+export const printServiceReport = (job: Job, reportNumber?: string, showPrices: boolean = true) => {
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     alert('Please allow pop-ups to print the service report');
@@ -535,8 +539,8 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
             <th style="width: 80px;">Item Code</th>
             <th>Item Description</th>
             <th style="width: 50px;" class="text-center">Qty</th>
-            <th style="width: 80px;" class="text-right">Unit Price</th>
-            <th style="width: 90px;" class="text-right">Amount(RM)</th>
+            ${showPrices ? '<th style="width: 80px;" class="text-right">Unit Price</th>' : ''}
+            ${showPrices ? '<th style="width: 90px;" class="text-right">Amount(RM)</th>' : ''}
           </tr>
         </thead>
         <tbody>
@@ -546,14 +550,15 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
               <td style="font-family: monospace;">${sanitizeHtml(part.part_id.slice(0, 6))}</td>
               <td>${sanitizeHtml(part.part_name)}</td>
               <td class="text-center">${part.quantity}</td>
-              <td class="text-right">${part.sell_price_at_time.toFixed(2)}</td>
-              <td class="text-right">${(part.quantity * part.sell_price_at_time).toFixed(2)}</td>
+              ${showPrices ? `<td class="text-right">${part.sell_price_at_time.toFixed(2)}</td>` : ''}
+              ${showPrices ? `<td class="text-right">${(part.quantity * part.sell_price_at_time).toFixed(2)}</td>` : ''}
             </tr>
           `).join('')}
           ${[...Array(Math.max(0, 5 - job.parts_used.length))].map(() => `
-            <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td>&nbsp;</td><td></td><td></td><td></td>${showPrices ? '<td></td><td></td>' : ''}</tr>
           `).join('')}
         </tbody>
+        ${showPrices ? `
         <tfoot>
           <tr>
             <td colspan="4"></td>
@@ -566,6 +571,7 @@ export const printServiceReport = (job: Job, reportNumber?: string) => {
             <td class="text-right"><strong>${total.toFixed(2)}</strong></td>
           </tr>
         </tfoot>
+        ` : ''}
       </table>
 
       <div class="footer-grid">

@@ -40,6 +40,7 @@ NotesSection,
 PartsSection,
 ReassignModal,
 RejectJobModal,
+ReportOptionsModal,
 SignaturesCard,
 StartJobModal,
 MobileTechnicianWorkflowCard,
@@ -114,7 +115,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
     state.showDeleteModal || state.showRejectJobModal || state.showHourmeterAmendmentModal ||
     state.showChecklistWarningModal || state.showRequestModal || state.showApprovalModal ||
     state.showBulkApproveModal || state.showAssignHelperModal || state.showDeferredModal ||
-    state.showReconciliationModal || (state.serviceUpgradePrompt?.show ?? false);
+    state.showReconciliationModal || state.showReportOptionsModal || (state.serviceUpgradePrompt?.show ?? false);
 
   // Options for comboboxes
   const partOptions: ComboboxOption[] = parts.map(p => {
@@ -348,6 +349,11 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         onConfirm={actions.handleDeleteJob} onClose={() => { state.setShowDeleteModal(false); state.setDeletionReason(''); }} />
       <RejectJobModal show={state.showRejectJobModal} job={job} reason={state.rejectJobReason} onReasonChange={state.setRejectJobReason}
         onConfirm={actions.handleRejectJob} onClose={() => { state.setShowRejectJobModal(false); state.setRejectJobReason(''); }} />
+      <ReportOptionsModal
+        show={state.showReportOptionsModal}
+        onSelect={actions.handleConfirmPrintServiceReport}
+        onClose={() => state.setShowReportOptionsModal(false)}
+      />
       {state.showHourmeterAmendmentModal && job.forklift && (
         <HourmeterAmendmentModal job={job} previousReading={job.forklift.hourmeter || 0}
           flagReasons={job.hourmeter_flag_reasons || state.hourmeterFlagReasons}
