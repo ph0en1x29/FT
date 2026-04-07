@@ -271,7 +271,9 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
         )}
       </div>
 
-      {/* Star + Job # — w-[180px] sized to fit JOB-YYYYMMDD-NNNN format (17 chars + # prefix in mono text-sm) */}
+      {/* Star + Job # — w-[180px] sized to fit BOTH the new JOB-YYMMDD-NNN format (14 chars) AND the legacy
+          JOB-YYYYMMDD-NNNN format (17 chars) that pre-2026-04-07 jobs still carry. overflow-hidden guards
+          against any future longer format. Mono text-sm + # prefix + star icon. */}
       <div className="flex items-center gap-1.5 shrink-0 w-[180px] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {canStar ? (
           <button

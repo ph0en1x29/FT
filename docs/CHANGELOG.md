@@ -4,6 +4,31 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-07] — Shorter Job Number Format + Pre-Guard Read Audit
+
+### Features
+
+**Job number format shortened from `JOB-YYYYMMDD-NNNN` to `JOB-YYMMDD-NNN`**
+- Per client feedback after the demo: the 17-character format was visually heavy in the JobBoard list and on customer-facing reports. New format is 14 characters — two-digit year, three-digit per-day sequence (max 999/day, well above any realistic dispatch volume).
+
+  | Format | Example | Length |
+  |---|---|---|
+  | Old | `JOB-20260407-0027` | 17 |
+  | New | `JOB-260407-028` | 14 |
+
+- Implemented as a single `CREATE OR REPLACE FUNCTION generate_job_number()` migration applied directly to the live DB. Per-day sequence reset semantics preserved (counts today's jobs + 1). The pre-existing race condition in `COUNT(*) + 1` is unchanged — that's a separate refactor.
+- Existing 29 jobs in the live DB keep their old 17-character numbers. No collision risk because lengths differ; the `jobs_job_number_key` unique constraint still holds. The JobBoard list column stays at `w-[180px]` so both formats render cleanly until the old ones age out naturally — `overflow-hidden` is in place as a belt-and-suspenders guard. The inline comment above the column was updated to document that the width supports both formats.
+- Files: `supabase/migrations/20260407_shorten_job_number_format.sql`, `pages/JobBoard/components/JobListRow.tsx`
+
+### Chores
+
+**Audited JobDetailPage for unguarded `job.X` reads in the pre-null-guard region**
+- Follow-up to the post-purge crash fix earlier today. Swept `JobDetailPage.tsx` lines 60-148 (between the data hook and the `if (!job) return` guard at line 142) looking for any other reads that would crash on a null job.
+- Result: every remaining `job` access is safe. Optional chains (`job?.customer_id`, `job?.contact_id`, `job?.site_id`), `enabled: !!job?.customer_id` gating on `useQuery` calls that use `job!` inside `queryFn`, and `getStatusFlags` / `getRoleFlags` which both handle a null `job` (the latter by accident — it doesn't actually use the parameter). The earlier `partsDeclared` line was the sole offender and is already fixed.
+- No additional code changes from this audit. Documenting the result so we don't re-do the work next time.
+
+---
+
 ## [2026-04-07] — JobDetailPage Crash on Null Job (Post-Purge Regression)
 
 ### Fixes
