@@ -35,15 +35,15 @@ export const ConfirmationStatusCard: React.FC<ConfirmationStatusCardProps> = ({
 
       <div className="space-y-3">
         {/* Parts Confirmation (Admin 2 - Store) */}
-        <div className="flex items-center justify-between p-3 bg-[var(--bg-subtle)] rounded-lg">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-[var(--bg-subtle)] rounded-lg">
+          <div className="flex items-center gap-2 min-w-0">
             <Box className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
             <div className="flex flex-col min-w-0">
               <span className="text-sm text-[var(--text-secondary)]">Parts Confirmation</span>
               <span className="text-xs text-[var(--text-muted)]">(Admin 2)</span>
             </div>
           </div>
-          <div className="shrink-0 ml-2">
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end min-w-0">
             {job.parts_confirmed_at ? (
               <div className="flex items-center gap-2 text-[var(--success)]">
                 <CheckCircle className="w-4 h-4" />
@@ -76,15 +76,15 @@ export const ConfirmationStatusCard: React.FC<ConfirmationStatusCardProps> = ({
         </div>
 
         {/* Job Confirmation (Admin 1 - Service) */}
-        <div className="flex items-center justify-between p-3 bg-[var(--bg-subtle)] rounded-lg">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-[var(--bg-subtle)] rounded-lg">
+          <div className="flex items-center gap-2 min-w-0">
             <Wrench className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
             <div className="flex flex-col min-w-0">
               <span className="text-sm text-[var(--text-secondary)]">Job Confirmation</span>
               <span className="text-xs text-[var(--text-muted)]">(Admin 1)</span>
             </div>
           </div>
-          <div className="shrink-0 ml-2">
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end min-w-0">
             {job.job_confirmed_at ? (
               <div className="flex items-center gap-2 text-[var(--success)]">
                 <CheckCircle className="w-4 h-4" />

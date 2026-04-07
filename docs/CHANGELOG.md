@@ -4,6 +4,22 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-07] — Job# Column Overflow + ConfirmationStatusCard Mobile Overflow
+
+### Fixes
+
+**JobBoard list: job# column no longer overflows into adjacent cells**
+- Live DB query confirmed all 29 job_numbers are 17 characters long (`JOB-YYYYMMDD-NNNN` format like `JOB-20260407-0001`). Earlier Sonnet sizing iterations from 2026-04-06 (130 → 170 → 130 → 150) were all based on a wrong assumption about format length and never tested against the production format. The current 150px column with `whitespace-nowrap` (added in a previous "never clip the last digit" fix) wasn't wide enough — the text bled past its container into neighbouring columns.
+- Bumped the desktop Star+Job# column to `w-[180px]` (`pages/JobBoard/components/JobListRow.tsx:275`), which fits 17 chars + `#` prefix in mono `text-sm` (~130px text + 24px star + 6px gap) with margin. Added `overflow-hidden` as a belt-and-suspenders guard so any future longer format clips rather than bleeds. The mobile (article) layout is unchanged — it uses flex-wrap, not fixed widths.
+- File: `pages/JobBoard/components/JobListRow.tsx`
+
+**ConfirmationStatusCard rows no longer burst out of the card on mobile**
+- Both rows (Parts Confirmation and Job Confirmation) used `flex items-center justify-between` with the right side marked `shrink-0`. When the confirmer name is long (e.g., "BEE PHENG SIANG") + the date span + the CheckCircle icon, the right side's intrinsic width exceeded the container's available width on mobile (~310px usable after padding). With `shrink-0` the right side refused to compress and visually overflowed the rounded card.
+- Changed both row containers to `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2`. On screens < `sm` (640px) the rows now stack vertically — left header on top, status/name/date on a wrapped row below. On `sm+` they remain side-by-side. Removed `shrink-0` from the right side and added `flex-wrap`, `min-w-0`, and `sm:justify-end` so the right side can wrap if still tight, and right-aligns when on the same row.
+- File: `pages/JobDetail/components/ConfirmationStatusCard.tsx`
+
+---
+
 ## [2026-04-07] — One-Off Purge: Hard-Deleted All Jobs Before 2026-04-06 (Executed)
 
 ### Chores
