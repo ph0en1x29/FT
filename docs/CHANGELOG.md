@@ -4,6 +4,23 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-07] — Renamed Existing Jobs to New Format + getRoleFlags Cleanup
+
+### Chores
+
+**Bulk-renamed the existing 29 jobs from `JOB-YYYYMMDD-NNNN` to `JOB-YYMMDD-NNN`**
+- Follow-up to the format-shortening migration earlier today. Rather than letting the old and new formats coexist in the UI for weeks until the old jobs age out naturally, Jay opted to rename the existing 29 jobs in one shot for visual consistency.
+- Safety probe before the rename: 29/29 jobs matched the old format exactly, 0 sequences over 999 (no risk of dropping a leading digit during the substring transform), 0 collisions with the renamed values.
+- Executed via `UPDATE jobs SET job_number = 'JOB-' || SUBSTRING(job_number FROM 7 FOR 6) || '-' || SUBSTRING(job_number FROM 15 FOR 3) WHERE job_number ~ '^JOB-\d{8}-\d{4}$'` inside a `BEGIN ... COMMIT` transaction with a post-update sanity check. 29 rows updated, every remaining `job_number` now matches the new format. The mixed-format era is over.
+- This was a one-off bulk update, not a migration file — the `generate_job_number()` function from earlier today handles new inserts.
+
+**Dropped dead `job: Job | null` parameter from `getRoleFlags`**
+- Identified during the post-purge null-safety audit: `pages/JobDetail/utils.ts:69` took a `job` parameter that the function body never actually read. It only used `currentUserRole`, `isCurrentUserHelper`, and `statusFlags`. The misleading signature was harmless but invited confusion (and was probably how the post-purge crash bug slipped past review — a future maintainer skimming the function would assume it handles `job` defensively).
+- Fix: removed the parameter from the signature and from the single call site in `JobDetailPage.tsx:104`. Byte-equivalent at runtime — the function never read it, so dropping it is purely a clarity improvement. The `Job` type import in `utils.ts` is preserved because other functions in the file still use it.
+- Files: `pages/JobDetail/utils.ts`, `pages/JobDetail/JobDetailPage.tsx`
+
+---
+
 ## [2026-04-07] — Shorter Job Number Format + Pre-Guard Read Audit
 
 ### Features

@@ -69,7 +69,6 @@ export function isMandatoryItem(key: string): boolean {
 export function getRoleFlags(
   currentUserRole: string,
   isCurrentUserHelper: boolean,
-  job: Job | null,
   statusFlags: StatusFlags
 ): RoleFlags {
   const normalizedRole = (currentUserRole || '').toString().toLowerCase().trim();

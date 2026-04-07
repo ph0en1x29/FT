@@ -101,7 +101,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
 
   // Derived flags
   const statusFlags = getStatusFlags(job, currentUserId, currentUserRole);
-  const roleFlags = getRoleFlags(currentUserRole, state.isCurrentUserHelper, job, statusFlags);
+  const roleFlags = getRoleFlags(currentUserRole, state.isCurrentUserHelper, statusFlags);
   const isMobileTechnicianFlow = roleFlags.isTechnician && !roleFlags.isHelperOnly && !isDesktopDefault;
   // Lead technicians must declare parts usage (either add a part or tick "No parts were used") before completing.
   // Null-safe: this runs BEFORE the `if (!job) return` guard below, so we must handle the null case here too —
