@@ -4,6 +4,15 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+[2026-04-06 22:32] [Sonnet] feat: admin 1 job description editing + external forklift nested form fix: pages/JobDetail/components/CustomerAssignmentCard.tsx, pages/JobDetail/hooks/useJobDetailState.ts, pages/JobDetail/hooks/useJobActions.ts, pages/JobDetail/JobDetailPage.tsx, pages/CreateJob/components/ExternalForkliftSection.tsx, pages/CreateJob/hooks/useCreateJobForm.ts, services/forkliftService.ts
+  - CustomerAssignmentCard.tsx: Added inline description edit UI (textarea + save/cancel) visible only to isAdminService roles on non-completed jobs; imports Edit2, Check added
+  - useJobDetailState.ts: Added editingDescription (bool) and descriptionInput (string) state + returned from hook
+  - useJobActions.ts: Added handleStartEditDescription, handleSaveDescription, handleCancelDescriptionEdit handlers; wired through return object
+  - JobDetailPage.tsx: Passed new description edit state/handlers to CustomerAssignmentCard
+  - ExternalForkliftSection.tsx: Fixed nested <form> bug — inner form caused "Add & Select" to submit the outer job creation form; replaced <form> with <div> and converted submit button to type="button" onClick={handleAdd}
+  - useCreateJobForm.ts: Changed external forklift creation status from deprecated 'Active' to 'Available'
+  - forkliftService.ts: Added ownership_type to getForkliftsForList select + return type so the post-creation useEffect correctly sets billing_type: 'chargeable' for external forklifts
+
 [2026-04-02 13:45] [Sonnet] feat: add circuit breaker utility (utils/circuit-breaker.ts) — createCircuitBreaker/withCircuitBreaker, CircuitBreakerTrippedError; max 3 consecutive failures, 60s auto-reset. Wrapped getJobs, getJobsForKPI (jobService.ts) and uploadToStorage (supabaseClient.ts) with dedicated CB instances. Build ✓
 
 ## 2026-03-13

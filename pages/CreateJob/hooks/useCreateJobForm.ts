@@ -256,7 +256,7 @@ export function useCreateJobForm(currentUser: User) {
         ownership: 'customer' as any,
         current_customer_id: formData.customer_id,
         customer_id: formData.customer_id,
-        status: 'Active' as any,
+        status: 'Available' as any,
       });
 
       await queryClient.invalidateQueries({ queryKey: ['forklifts', 'list'] });

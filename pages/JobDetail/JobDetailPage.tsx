@@ -182,6 +182,11 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
           <CustomerAssignmentCard job={job} roleFlags={roleFlags} statusFlags={statusFlags} techOptions={techOptions}
             selectedTechId={state.selectedTechId} isCurrentUserHelper={state.isCurrentUserHelper}
             jobContact={jobContact} jobSite={jobSite}
+            editingDescription={state.editingDescription} descriptionInput={state.descriptionInput}
+            onDescriptionInputChange={state.setDescriptionInput}
+            onStartEditDescription={actions.handleStartEditDescription}
+            onSaveDescription={actions.handleSaveDescription}
+            onCancelDescriptionEdit={actions.handleCancelDescriptionEdit}
             onSelectedTechIdChange={state.setSelectedTechId} onAssignJob={actions.handleAssignJob}
             onOpenReassignModal={() => state.setShowReassignModal(true)}
             onOpenHelperModal={() => state.setShowAssignHelperModal(true)} onRemoveHelper={actions.handleRemoveHelper} />

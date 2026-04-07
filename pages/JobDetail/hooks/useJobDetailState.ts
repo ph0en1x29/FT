@@ -82,6 +82,8 @@ export const useJobDetailState = () => {
   const [editingJobCarriedOut, setEditingJobCarriedOut] = useState(false);
   const [jobCarriedOutInput, setJobCarriedOutInput] = useState('');
   const [recommendationInput, setRecommendationInput] = useState('');
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionInput, setDescriptionInput] = useState('');
   const [editingChecklist, setEditingChecklist] = useState(false);
   const [checklistEditData, setChecklistEditData] = useState<ForkliftConditionChecklist>({});
 
@@ -207,6 +209,8 @@ export const useJobDetailState = () => {
     editingJobCarriedOut, setEditingJobCarriedOut,
     jobCarriedOutInput, setJobCarriedOutInput,
     recommendationInput, setRecommendationInput,
+    editingDescription, setEditingDescription,
+    descriptionInput, setDescriptionInput,
     editingChecklist, setEditingChecklist,
     checklistEditData, setChecklistEditData,
 

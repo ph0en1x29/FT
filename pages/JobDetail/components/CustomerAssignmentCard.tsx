@@ -1,4 +1,4 @@
-import { Building2,MapPin,Navigation,Phone,RefreshCw,UserCheck,UserPlus,X } from 'lucide-react';
+import { Building2,Check,Edit2,MapPin,Navigation,Phone,RefreshCw,UserCheck,UserPlus,X } from 'lucide-react';
 import React from 'react';
 import { Combobox,ComboboxOption } from '../../../components/Combobox';
 import { Job } from '../../../types';
@@ -14,6 +14,12 @@ interface CustomerAssignmentCardProps {
   isCurrentUserHelper?: boolean;
   jobContact?: CustomerContact;
   jobSite?: CustomerSite;
+  editingDescription: boolean;
+  descriptionInput: string;
+  onDescriptionInputChange: (v: string) => void;
+  onStartEditDescription: () => void;
+  onSaveDescription: () => void;
+  onCancelDescriptionEdit: () => void;
   onSelectedTechIdChange: (id: string) => void;
   onAssignJob: () => void;
   onOpenReassignModal: () => void;
@@ -30,6 +36,12 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
   isCurrentUserHelper = false,
   jobContact,
   jobSite,
+  editingDescription,
+  descriptionInput,
+  onDescriptionInputChange,
+  onStartEditDescription,
+  onSaveDescription,
+  onCancelDescriptionEdit,
   onSelectedTechIdChange,
   onAssignJob,
   onOpenReassignModal,
@@ -146,10 +158,41 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
       )}
 
       {/* Description */}
-      {job.description && (
+      {(job.description || roleFlags.isAdminService) && (
         <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
-          <p className="label-premium mb-0.5">Description</p>
-          <p className="text-[var(--text-secondary)] text-sm">{job.description}</p>
+          <div className="flex items-center justify-between mb-0.5">
+            <p className="label-premium">Description</p>
+            {roleFlags.isAdminService && !statusFlags.isCompleted && !editingDescription && (
+              <button
+                type="button"
+                onClick={onStartEditDescription}
+                className="btn-premium btn-premium-ghost text-xs"
+              >
+                <Edit2 className="w-3.5 h-3.5" /> Edit
+              </button>
+            )}
+          </div>
+          {editingDescription ? (
+            <div className="space-y-2">
+              <textarea
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={3}
+                value={descriptionInput}
+                onChange={e => onDescriptionInputChange(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <button type="button" onClick={onCancelDescriptionEdit} className="btn-premium btn-premium-ghost text-xs">
+                  <X className="w-3.5 h-3.5" /> Cancel
+                </button>
+                <button type="button" onClick={onSaveDescription} className="btn-premium btn-premium-primary text-xs">
+                  <Check className="w-3.5 h-3.5" /> Save
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[var(--text-secondary)] text-sm">{job.description || <span className="text-[var(--text-muted)] italic">No description</span>}</p>
+          )}
         </div>
       )}
 

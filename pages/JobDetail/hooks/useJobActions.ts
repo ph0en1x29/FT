@@ -745,6 +745,31 @@ export const useJobActions = ({
     state.setRecommendationInput('');
   }, [state]);
 
+  const handleStartEditDescription = useCallback(() => {
+    if (!job) return;
+    state.setEditingDescription(true);
+    state.setDescriptionInput(job.description || '');
+  }, [job, state]);
+
+  const handleSaveDescription = useCallback(async () => {
+    if (!job) return;
+    try {
+      const updated = await MockDb.updateJob(job.job_id, {
+        description: state.descriptionInput,
+      });
+      setJob({ ...updated } as Job);
+      state.setEditingDescription(false);
+      showToast.success('Description updated');
+    } catch (e) {
+      showToast.error('Could not update description', (e as Error).message);
+    }
+  }, [job, state, setJob]);
+
+  const handleCancelDescriptionEdit = useCallback(() => {
+    state.setEditingDescription(false);
+    state.setDescriptionInput('');
+  }, [state]);
+
   // Confirmation handlers moved to useJobPartsHandlers
 
   // Extra Charges handlers
@@ -926,6 +951,11 @@ export const useJobActions = ({
     handleStartEditJobCarriedOut,
     handleSaveJobCarriedOut,
     handleCancelJobCarriedOutEdit,
+
+    // Description
+    handleStartEditDescription,
+    handleSaveDescription,
+    handleCancelDescriptionEdit,
     
     // Extra Charges
     handleAddExtraCharge,

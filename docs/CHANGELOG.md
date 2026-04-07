@@ -4,6 +4,27 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-06] — External Forklift Fix + Admin Job Description Edit
+
+### Features
+
+**Admin 1 can now edit job description on Job Detail**
+- `admin` and `admin_service` (Admin 1) roles now see an **Edit** button next to the Description field on the Job Detail page
+- Clicking Edit reveals an inline textarea; Save persists the change via `updateJob`; Cancel reverts with no DB call
+- Edit button is hidden on completed jobs and for all other roles (supervisor, technician, accountant, admin_store)
+- Files: `pages/JobDetail/components/CustomerAssignmentCard.tsx`, `pages/JobDetail/hooks/useJobDetailState.ts`, `pages/JobDetail/hooks/useJobActions.ts`, `pages/JobDetail/JobDetailPage.tsx`
+
+### Fixes
+
+**External forklift "Add & Select" now correctly creates the forklift instead of submitting the job**
+- Root cause: `ExternalForkliftSection` rendered a `<form>` nested inside the outer job creation `<form>` — browsers treat nested forms as invalid HTML and associated the "Add & Select" submit button with the outer form, submitting the job immediately with no forklift linked
+- Fix: replaced the inner `<form>` with a `<div>` and changed the button to `type="button" onClick={handleAdd}`
+- Secondary fix: `getForkliftsForList` now selects `ownership_type` so the post-creation `useEffect` correctly sets `billing_type: 'chargeable'` for external forklifts instead of resetting it to `'rental-inclusive'`
+- Also corrected external forklift creation status from deprecated `'Active'` to `'Available'`
+- Files: `pages/CreateJob/components/ExternalForkliftSection.tsx`, `services/forkliftService.ts`, `pages/CreateJob/hooks/useCreateJobForm.ts`
+
+---
+
 ## [2026-04-06] — Job Detail Fixes + Inventory Stock Sync
 
 ### Data
