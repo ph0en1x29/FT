@@ -4,6 +4,26 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-07] — 15-Minute No-Reply Re-Alert for Job Assignments
+
+### Features
+
+**Admins are now re-alerted every 15 minutes when a technician doesn't respond to an assignment**
+- Client requested: *"If job is not replied by 15 mins, re-send alert to admin to either re-assign or check with technician."*
+- Phase 0 live DB introspection uncovered three sub-bugs that had to be fixed together: (a) the `technician_response_deadline` column the TS type already declared had never actually been added to the live `jobs` table, (b) `assignJob()` never set the deadline (would have failed anyway), so the frontend countdown timer at `pages/JobDetail/utils.ts:21` always returned null, and (c) `checkExpiredJobResponses()` existed in `services/jobAssignmentCrudService.ts` but was never invoked from anywhere — no scheduler.
+- The fix is **fully server-side**, zero JS/TS changes. Migration `supabase/migrations/20260407_assignment_response_alerts.sql`:
+  - Adds three columns: `technician_response_deadline` (the timer the frontend already reads), `last_response_alert_at` (15-min throttle), and `response_alert_count` (cap at 4 alerts = 1 hour total nagging window).
+  - Backfills `technician_response_deadline = assigned_at + 15 minutes` for the 120 currently-assigned jobs.
+  - Backfills `last_response_alert_at = NOW()` for the 50 currently-stale assignments so the new system doesn't burst-fire ~50 historical notifications on the very first cron tick after deployment. They re-alert at the normal 15-minute cadence from there.
+  - Adds trigger `trg_set_response_deadline` (BEFORE INSERT OR UPDATE OF assigned_at) that auto-populates `technician_response_deadline` and resets the alert tracker whenever a job is freshly assigned. Because this lives in the trigger, `assignJob()` and any other path that writes `assigned_at` gets the deadline for free — that's why no service code change is needed.
+  - Adds new SECURITY DEFINER function `escalate_assignment_response()` that finds assigned jobs past their deadline (with a 24-hour lookback cap, so historical stale data doesn't pollute the alert stream), increments the count, updates the last-alerted timestamp, and inserts one notification per active admin/admin_service/supervisor. The notification title includes the iteration counter (e.g., *"(2/4)"*) and the final alert switches priority to `urgent` with the message *"This is the final automatic reminder — please reassign or contact the technician."*
+  - Amends the existing `run_escalation_checks()` (called every 5 minutes by the existing `escalation-checks` pg_cron job) to also call the new worker. **No new cron job** — the existing 5-min schedule picks it up automatically.
+- The frontend countdown timer in `JobHeader.tsx:153` starts working automatically as soon as a job has a non-null deadline (any new assignment or any of the 120 backfilled rows).
+- Migration applied directly to the live DB and verified: all 3 columns present, 120 deadlines backfilled, 50 stale jobs suppressed, dry-run of the new function returned 0 alerts (correct — all stale jobs suppressed for 15 minutes, then they ramp up at the normal cadence).
+- Files: `supabase/migrations/20260407_assignment_response_alerts.sql`
+
+---
+
 ## [2026-04-07] — Technician Job Rejection Unblocked + On-Site Photo Proof
 
 ### Fixes
