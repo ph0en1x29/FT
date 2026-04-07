@@ -29,10 +29,13 @@ export function getResponseTimeRemaining(job: Job | null): string | null {
 }
 
 /**
- * Get mandatory checklist items that haven't been marked
+ * Get mandatory checklist items that haven't been marked.
+ * Repair jobs are always exempt — returns [] regardless of checklist state.
  */
 export function getMissingMandatoryItems(job: Job | null): string[] {
-  if (!job?.condition_checklist) return MANDATORY_CHECKLIST_ITEMS as string[];
+  if (!job) return [];
+  if (job.job_type === JobType.REPAIR) return [];
+  if (!job.condition_checklist) return MANDATORY_CHECKLIST_ITEMS as string[];
   const checklist = job.condition_checklist;
   return MANDATORY_CHECKLIST_ITEMS.filter(key => {
     const state = normalizeChecklistState(checklist[key]);

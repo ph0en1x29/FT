@@ -4,6 +4,11 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+[2026-04-07 02:35] [Sonnet] fix: repair jobs no longer blocked by checklist on completion: pages/JobDetail/utils.ts, pages/JobDetail/hooks/useJobActions.ts
+  - utils.ts: getMissingMandatoryItems now returns [] immediately for JobType.REPAIR — exemption is enforced at the source so no caller can bypass it; also guards against null job
+  - useJobActions.ts: imported JobType enum; changed raw string 'Repair' comparison to JobType.REPAIR for type safety at the call site
+  - Root cause: job_type is optional on the Job type, so undefined/null job_type caused `undefined !== 'Repair'` = true, running the checklist check and showing the blocking ChecklistWarningModal for repair jobs
+
 [2026-04-06 23:41] [Sonnet] fix: widen job# column to 150px to prevent last-digit clipping: pages/JobBoard/components/JobListRow.tsx
   - 130px left only 100px for the number after star+gap; last digits clipped by flex overflow
   - 150px gives 120px (~14 chars) — enough for any realistic job number without squeezing adjacent columns

@@ -5,7 +5,7 @@ import { checkServiceUpgradeNeeded,declineServiceUpgrade,upgradeToFullService } 
 import { CHECKLIST_CATEGORIES } from '../constants';
 import { SupabaseDb as MockDb, supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { ForkliftConditionChecklist,Job,JobStatus,User } from '../../../types';
+import { ForkliftConditionChecklist,Job,JobStatus,JobType,User } from '../../../types';
 import { getMissingMandatoryItems } from '../utils';
 import { JobDetailState } from './useJobDetailState';
 import { useJobExportActions } from './useJobExportActions';
@@ -326,7 +326,7 @@ export const useJobActions = ({
         return;
       }
       // Repair jobs are exempt from checklist requirement
-      if (job.job_type !== 'Repair') {
+      if (job.job_type !== JobType.REPAIR) {
         const missing = getMissingMandatoryItems(job);
         if (missing.length > 0) {
           setMissingChecklistItems(missing);

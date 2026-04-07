@@ -4,6 +4,18 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-07] — Repair Job Completion Unblocked
+
+### Fixes
+
+**Repair jobs no longer blocked by checklist warning on completion**
+- `getMissingMandatoryItems` in `utils.ts` now returns `[]` immediately for `JobType.REPAIR`, enforcing the exemption at the source rather than relying solely on the caller
+- Previously, `job_type` being `undefined` (it's optional on the `Job` type) caused `undefined !== 'Repair'` to evaluate `true`, triggering the `ChecklistWarningModal` with all items flagged as missing — permanently blocking completion
+- Also: imported `JobType` enum into `useJobActions.ts` and replaced the raw string `'Repair'` with `JobType.REPAIR` at the call site for type safety
+- Files: `pages/JobDetail/utils.ts`, `pages/JobDetail/hooks/useJobActions.ts`
+
+---
+
 ## [2026-04-06] — Technician View Cleanup + List Row Fix
 
 ### Fixes
