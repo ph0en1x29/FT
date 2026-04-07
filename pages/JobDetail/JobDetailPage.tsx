@@ -104,7 +104,9 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const roleFlags = getRoleFlags(currentUserRole, state.isCurrentUserHelper, job, statusFlags);
   const isMobileTechnicianFlow = roleFlags.isTechnician && !roleFlags.isHelperOnly && !isDesktopDefault;
   // Lead technicians must declare parts usage (either add a part or tick "No parts were used") before completing.
-  const partsDeclared = job.parts_used.length > 0 || state.noPartsUsed;
+  // Null-safe: this runs BEFORE the `if (!job) return` guard below, so we must handle the null case here too —
+  // otherwise navigating to a deleted job (e.g., after the 2026-04-06 purge) crashes before the "Job not found" screen renders.
+  const partsDeclared = (job?.parts_used?.length ?? 0) > 0 || state.noPartsUsed;
   const partsDeclarationRequired = roleFlags.isTechnician && !roleFlags.isHelperOnly && !partsDeclared;
   const completionBlocked = !statusFlags.hasBothSignatures || !statusFlags.hasHourmeter || !statusFlags.hasAfterPhoto || partsDeclarationRequired;
 

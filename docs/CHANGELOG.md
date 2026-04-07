@@ -4,6 +4,19 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-07] — JobDetailPage Crash on Null Job (Post-Purge Regression)
+
+### Fixes
+
+**Navigating to a deleted/missing job no longer crashes the app**
+- User report: *"TypeError: Cannot read properties of null (reading 'parts_used')"* in `JobDetailPage`. The crash showed up immediately after the 93-job purge — anyone who had one of the deleted jobs open in their app and tried to interact with it hit this instead of the friendly "Job not found" screen.
+- Root cause: the earlier "parts declaration required before completion" change added `const partsDeclared = job.parts_used.length > 0 || state.noPartsUsed;` to `pages/JobDetail/JobDetailPage.tsx:107`. This dereferences `job.parts_used` unconditionally, but the actual `if (!job) return ...` null guard sits 33 lines below at line 140. When `job` is null (initial render before data loads, or any deleted job), this line crashes before the fallback UI can render.
+- Fix: changed the unguarded dereference to an optional-chain + nullish-coalesce: `(job?.parts_used?.length ?? 0) > 0 || state.noPartsUsed`. When `job` is null this evaluates to `state.noPartsUsed`, which is safe — the downstream `partsDeclarationRequired` and `completionBlocked` are also null-safe via the existing `roleFlags.isTechnician` check (which is `false` for a null job). The Complete button is never rendered for a null job anyway because the entire return block is gated by the early return.
+- Added an inline comment above the line explaining the null-safety requirement so a future maintainer doesn't innocently revert it.
+- File: `pages/JobDetail/JobDetailPage.tsx`
+
+---
+
 ## [2026-04-07] — Job# Column Overflow + ConfirmationStatusCard Mobile Overflow
 
 ### Fixes
