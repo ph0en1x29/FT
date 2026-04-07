@@ -4,16 +4,30 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
-## [2026-04-07] — One-Off Purge Script for Old Jobs (Plan Only)
+## [2026-04-07] — One-Off Purge: Hard-Deleted All Jobs Before 2026-04-06 (Executed)
 
 ### Chores
 
-**Authored `scripts/2026-04-07_purge_old_jobs.sql` for hard-deleting jobs created before 2026-04-06**
-- Client requested removing all jobs older than 2026-04-06 to clean up the working set after the demo. The script is committed for audit but **not executed** — Jay will run it manually via the Supabase SQL editor or psql when ready, after taking a backup and confirming no field operations are in progress.
-- Phase 0 schema introspection mapped all 30 foreign keys referencing the `jobs` table: 16 CASCADE (handled automatically), 1 SET NULL, 13 NO ACTION. Of the 13 NO ACTION FKs, 10 columns are nullable (so the dependent records are preserved by setting their FK to NULL) and 3 are NOT NULL (`customer_acknowledgements`, `service_upgrade_logs`, `van_stock_usage` — these get hard-deleted along with the jobs).
-- Scope confirmed by Jay: **ALL 93 jobs** in the date range 2026-03-05 → 2026-04-04, **including the 55 active jobs** (42 Assigned + 13 In Progress). The plan flagged this as risky given that field technicians may have active work; Jay accepted the risk knowing the script is destructive and not reversible.
-- The script wraps everything in a single `BEGIN ... COMMIT` transaction with 6 numbered phases: snapshot in-scope IDs to a temp table → null out 10 nullable FK references → hard-delete 3 NOT NULL FK dependents → delete 419 orphaned notifications → `DELETE FROM jobs` (CASCADE handles ~16 child tables) → sanity check that no old jobs remain. Each step prints a `RAISE NOTICE` with the affected row count for visibility.
-- Swap the trailing `COMMIT;` to `ROLLBACK;` for a dry-run that prints all the counts without persisting anything. A live dry-run was already executed via the pooler connection and verified: all phases pass cleanly, 93 jobs would be deleted, 55 active jobs included, post-rollback DB state restored exactly.
+**Hard-deleted 93 jobs created before 2026-04-06 via `scripts/2026-04-07_purge_old_jobs.sql`**
+- Client requested removing all jobs older than 2026-04-06 to clean up the working set after the demo. **Executed live at 2026-04-07 18:35** — destructive and not reversible from this side. Recovery from here requires Supabase point-in-time-recovery.
+- Phase 0 schema introspection mapped all 30 foreign keys referencing the `jobs` table: 16 CASCADE (handled automatically), 1 SET NULL, 13 NO ACTION. Of the 13 NO ACTION FKs, 10 columns are nullable (dependent records preserved by setting their FK to NULL) and 3 are NOT NULL (`customer_acknowledgements`, `service_upgrade_logs`, `van_stock_usage` — hard-deleted).
+- Scope: **ALL 93 jobs** in the date range 2026-03-05 → 2026-04-04, **including 55 active jobs** (42 Assigned + 13 In Progress). Per Jay's explicit confirmation.
+- The script ran inside a single `BEGIN ... COMMIT` transaction with 6 numbered phases: snapshot in-scope IDs to a temp table → null out nullable FK references → hard-delete NOT NULL FK dependents → delete notifications → `DELETE FROM jobs` (CASCADE handles ~16 child tables) → sanity checks. A dry-run via `BEGIN ... ROLLBACK` was performed beforehand and the row counts matched exactly when the real run executed.
+- **Final execution counts**:
+
+  | Step | Rows |
+  |---|---|
+  | Jobs deleted | **93** |
+  | `notifications` deleted | 419 |
+  | `hourmeter_history.job_id` set NULL | 51 |
+  | `inventory_movements.job_id` set NULL | 23 |
+  | `van_stock_usage` hard-deleted | 2 |
+  | `customer_acknowledgements` hard-deleted | 0 |
+  | `service_upgrade_logs` hard-deleted | 0 |
+  | All other nullable FK updates | 0 |
+  | CASCADE child tables (job_parts, job_media, job_invoices, job_assignments, job_audit_log, etc.) | handled automatically |
+
+- **Post-execution sanity checks**: 0 jobs older than 2026-04-06 remain (PASS); 29 total jobs left in the table; 10 pre-existing orphan notifications noted (these reference jobs already deleted in a prior cleanup, not introduced by this purge).
 - File: `scripts/2026-04-07_purge_old_jobs.sql`
 
 ---

@@ -4,6 +4,15 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+[2026-04-07 18:35] [Opus] chore: EXECUTED purge of jobs created before 2026-04-06: scripts/2026-04-07_purge_old_jobs.sql
+  - Per Jay's explicit go-ahead ("go ahead and run the script you can just erase anything related and reversed it as like it never happens"), executed the previously-committed purge script live against the prod DB via the pooler connection
+  - Pre-execution sanity check: 93 jobs in scope (matches the dry-run from 4 minutes earlier — no new in-scope jobs created in the gap)
+  - Execution row counts: hourmeter_history.job_id set NULL: 51, inventory_movements.job_id set NULL: 23, van_stock_usage hard-deleted: 2, notifications deleted: 419, jobs deleted: 93. All other nullable FK updates: 0. customer_acknowledgements + service_upgrade_logs hard-deleted: 0
+  - Sanity check 1 PASS: 0 jobs older than 2026-04-06 remain. Sanity check 2: 10 pre-existing orphan notifications still present (these reference jobs deleted in a prior cleanup, not from this purge)
+  - Post-execution table state: 29 total jobs in the table (down from 122)
+  - Recovery: not possible from this side. If reversal is needed, restore from Supabase point-in-time-recovery
+  - No code or schema files changed by this entry — script was already committed in 6fbb181. This entry is the audit trail for the actual execution
+
 [2026-04-07 18:31] [Opus] chore: author one-off purge script for jobs created before 2026-04-06: scripts/2026-04-07_purge_old_jobs.sql
   - Plan-only commit. Script is NOT executed by this commit — Jay runs it manually via Supabase SQL editor or psql when ready (after taking a backup and confirming no field operations are in progress)
   - Phase 0 schema introspection of FK constraints referencing the jobs table found 30 FKs total. Behavior breakdown: 16 CASCADE (handled automatically — job_parts, job_media, job_invoices, job_audit_log, job_status_history, etc.), 1 SET NULL (hourmeter_readings), 13 NO ACTION that would block a naive DELETE
