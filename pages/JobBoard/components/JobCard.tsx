@@ -126,7 +126,7 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
           )}
 
           {/* Star + Job number side by side */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             {canStar && (
               <button
                 onClick={(e) => onStar(e, job.job_id)}
@@ -144,7 +144,7 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
               <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
             )}
             {job.job_number && (
-              <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em] text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+              <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em] text-blue-700 whitespace-nowrap dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                 {job.job_number}
               </span>
             )}

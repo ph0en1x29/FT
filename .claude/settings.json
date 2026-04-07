@@ -24,6 +24,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "You are the FT project auto-commit agent. Your job: commit and push any uncommitted changes in /home/jay/FT at the end of every session.\n\nSteps:\n1. Run: git -C /home/jay/FT status --short\n   - If output is EMPTY, stop immediately — nothing to do.\n2. Run: git -C /home/jay/FT diff HEAD --stat to understand what changed.\n3. Update /home/jay/FT/docs/CHANGELOG.md — prepend a new dated section (## [YYYY-MM-DD] — <short title>) with a bullet list of what changed. Use today's actual date.\n4. Update /home/jay/FT/WORK_LOG.md — prepend a new entry at the TOP of the log (after the header line) in this exact format:\n   [YYYY-MM-DD HH:MM] [Sonnet] <summary>: <comma-separated list of changed files>\n     - <detail line per file/change>\n   Use the current timestamp. List EVERY changed file so the pre-commit hook validation passes.\n5. Run: git -C /home/jay/FT add -A && git -C /home/jay/FT commit -m 'chore: auto-commit session changes' && git -C /home/jay/FT push\n6. If the commit fails because WORK_LOG validation didn't find an entry for a specific file, add that file to the WORK_LOG entry and retry the commit.",
+            "timeout": 120,
+            "statusMessage": "Auto-committing FT session changes..."
+          }
+        ]
       }
     ]
   }

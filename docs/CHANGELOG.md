@@ -4,6 +4,25 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-06] — Job Board Auto-Commit Hook + Job Number Readability
+
+### Config
+
+**Stop hook auto-commits FT changes at session end**
+- Added an agent-type `Stop` hook to `/home/jay/FT/.claude/settings.json`
+- At the end of every Claude session, if uncommitted FT changes exist: the agent updates CHANGELOG.md and WORK_LOG.md then runs `git add -A && git commit && git push`
+- Zero overhead when there are no uncommitted changes (exits immediately on clean `git status`)
+- Existing TypeScript check Stop hook is unaffected
+
+### Fixes
+
+**Job number no longer squeezed on Job Board**
+- List view (JobListRow): Star + Job# column was `w-[130px]` — star icon took ~30px leaving only 100px for the number; long numbers were silently truncated. Widened to `w-[170px]` and replaced `truncate` with `whitespace-nowrap`
+- Card view (JobCard): star+badge inner div lacked `shrink-0`, allowing flex layout to compress it; job number badge had no `whitespace-nowrap`, allowing text to wrap mid-number. Both fixed
+- Files: `pages/JobBoard/components/JobListRow.tsx`, `pages/JobBoard/components/JobCard.tsx`
+
+---
+
 ## [2026-04-06] — External Forklift Fix + Admin Job Description Edit
 
 ### Features
