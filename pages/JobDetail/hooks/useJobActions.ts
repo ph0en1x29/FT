@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkServiceUpgradeNeeded,declineServiceUpgrade,upgradeToFullService } from '../../../services/serviceTrackingService';
 import { CHECKLIST_CATEGORIES } from '../constants';
+import { uploadRejectionPhoto } from '../../../services/rejectionPhotoUpload';
 import { SupabaseDb as MockDb, supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { ForkliftConditionChecklist,Job,JobStatus,JobType,User } from '../../../types';
@@ -102,14 +103,30 @@ export const useJobActions = ({
       showToast.error('Please provide a reason for rejecting this job');
       return;
     }
+    if (!state.rejectionPhotoFile) {
+      showToast.error('On-site photo is required to reject a job');
+      return;
+    }
+    state.setRejectionUploading(true);
     try {
-      await MockDb.rejectJobAssignment(job.job_id, currentUserId, currentUserName, rejectJobReason.trim());
+      const { mediaId } = await uploadRejectionPhoto({
+        file: state.rejectionPhotoFile,
+        jobId: job.job_id,
+        uploadedById: currentUserId,
+        uploadedByName: currentUserName,
+      });
+      await MockDb.rejectJobAssignment(job.job_id, currentUserId, currentUserName, rejectJobReason.trim(), mediaId);
       showToast.success('Job rejected', 'Admin has been notified for reassignment.');
       setShowRejectJobModal(false);
       setRejectJobReason('');
+      if (state.rejectionPhotoPreviewUrl) URL.revokeObjectURL(state.rejectionPhotoPreviewUrl);
+      state.setRejectionPhotoFile(null);
+      state.setRejectionPhotoPreviewUrl('');
       navigate('/jobs');
     } catch (e) {
       showToast.error('Failed to reject job', (e as Error).message);
+    } finally {
+      state.setRejectionUploading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job, currentUserId, currentUserName, state, navigate]);

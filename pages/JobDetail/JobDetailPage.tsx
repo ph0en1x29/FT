@@ -348,7 +348,22 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       <DeleteModal show={state.showDeleteModal} job={job} reason={state.deletionReason} onReasonChange={state.setDeletionReason}
         onConfirm={actions.handleDeleteJob} onClose={() => { state.setShowDeleteModal(false); state.setDeletionReason(''); }} />
       <RejectJobModal show={state.showRejectJobModal} job={job} reason={state.rejectJobReason} onReasonChange={state.setRejectJobReason}
-        onConfirm={actions.handleRejectJob} onClose={() => { state.setShowRejectJobModal(false); state.setRejectJobReason(''); }} />
+        photoFile={state.rejectionPhotoFile}
+        photoPreviewUrl={state.rejectionPhotoPreviewUrl}
+        onPhotoChange={(f) => {
+          if (state.rejectionPhotoPreviewUrl) URL.revokeObjectURL(state.rejectionPhotoPreviewUrl);
+          state.setRejectionPhotoFile(f);
+          state.setRejectionPhotoPreviewUrl(f ? URL.createObjectURL(f) : '');
+        }}
+        uploading={state.rejectionUploading}
+        onConfirm={actions.handleRejectJob}
+        onClose={() => {
+          if (state.rejectionPhotoPreviewUrl) URL.revokeObjectURL(state.rejectionPhotoPreviewUrl);
+          state.setShowRejectJobModal(false);
+          state.setRejectJobReason('');
+          state.setRejectionPhotoFile(null);
+          state.setRejectionPhotoPreviewUrl('');
+        }} />
       <ReportOptionsModal
         show={state.showReportOptionsModal}
         onSelect={actions.handleConfirmPrintServiceReport}

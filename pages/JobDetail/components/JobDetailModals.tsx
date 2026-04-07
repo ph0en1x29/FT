@@ -609,6 +609,10 @@ interface RejectJobModalProps {
   job: Job;
   reason: string;
   onReasonChange: (value: string) => void;
+  photoFile: File | null;
+  photoPreviewUrl: string;
+  onPhotoChange: (file: File | null) => void;
+  uploading: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -618,38 +622,82 @@ export const RejectJobModal: React.FC<RejectJobModalProps> = ({
   job,
   reason,
   onReasonChange,
+  photoFile,
+  photoPreviewUrl,
+  onPhotoChange,
+  uploading,
   onConfirm,
   onClose,
 }) => {
   if (!show) return null;
 
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] || null;
+    onPhotoChange(f);
+    e.target.value = '';
+  };
+
+  const canConfirm = reason.trim().length > 0 && photoFile !== null && !uploading;
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+      <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated max-h-[90vh] overflow-y-auto">
         <h4 className="font-bold text-lg mb-4 text-[var(--error)] flex items-center gap-2">
           <XCircle className="w-5 h-5" /> Reject Job Assignment
         </h4>
         <div className="bg-[var(--warning-bg)] rounded-xl p-3 mb-4">
           <p className="text-sm text-[var(--warning)] font-medium">{job?.title}</p>
-          <p className="text-xs text-[var(--text-muted)] mt-1">This job will be returned to Admin for reassignment.</p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">This job will be returned to Admin for reassignment. On-site photo + reason are required.</p>
         </div>
-        <div className="mb-6">
+        <div className="mb-4">
           <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">Reason for Rejection *</label>
-          <textarea 
-            className="input-premium resize-none h-24" 
-            value={reason} 
-            onChange={(e) => onReasonChange(e.target.value)} 
-            placeholder="e.g., Already have too many jobs, Not available on scheduled date, etc." 
+          <textarea
+            className="input-premium resize-none h-24"
+            value={reason}
+            onChange={(e) => onReasonChange(e.target.value)}
+            placeholder="e.g., Weather hazard at site, vehicle blocked, customer not on premises, etc."
           />
         </div>
+        <div className="mb-6">
+          <label className="text-sm font-medium text-[var(--text-muted)] mb-2 block">On-Site Photo Proof *</label>
+          <p className="text-xs text-[var(--text-muted)] mb-2">Required so admin can verify you were on-site when rejecting. GPS location is captured automatically.</p>
+          {photoPreviewUrl ? (
+            <div className="relative mb-2">
+              <img src={photoPreviewUrl} alt="Rejection proof preview" className="w-full max-h-48 object-contain rounded-xl border border-[var(--border)]" />
+              <button
+                onClick={() => onPhotoChange(null)}
+                disabled={uploading}
+                className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 disabled:opacity-50"
+                aria-label="Remove photo"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <label className="block w-full cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileInput}
+                className="hidden"
+                disabled={uploading}
+              />
+              <div className="border-2 border-dashed border-[var(--border)] rounded-xl p-6 text-center hover:bg-[var(--bg-subtle)] transition-colors">
+                <Camera className="w-8 h-8 mx-auto text-[var(--text-muted)] mb-2" />
+                <p className="text-sm text-[var(--text-secondary)]">Tap to take photo</p>
+              </div>
+            </label>
+          )}
+        </div>
         <div className="flex gap-3">
-          <button onClick={onClose} className="btn-premium btn-premium-secondary flex-1">Cancel</button>
-          <button 
-            onClick={onConfirm} 
-            disabled={!reason.trim()} 
+          <button onClick={onClose} disabled={uploading} className="btn-premium btn-premium-secondary flex-1 disabled:opacity-50">Cancel</button>
+          <button
+            onClick={onConfirm}
+            disabled={!canConfirm}
             className="btn-premium bg-[var(--error)] text-white hover:opacity-90 flex-1 disabled:opacity-50"
           >
-            <XCircle className="w-4 h-4" /> Reject Job
+            <XCircle className="w-4 h-4" /> {uploading ? 'Uploading...' : 'Reject Job'}
           </button>
         </div>
       </div>

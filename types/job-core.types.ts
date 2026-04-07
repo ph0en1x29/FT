@@ -203,6 +203,7 @@ export interface Job {
   technician_accepted_at?: string;
   technician_rejected_at?: string;
   technician_rejection_reason?: string;
+  technician_rejection_photo_id?: string; // FK to job_media.media_id; on-site photo proof captured at rejection time
   no_response_alerted_at?: string; // When admin was alerted about no response
 
   // Forklift reference

@@ -4,6 +4,28 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-07] — Technician Job Rejection Unblocked + On-Site Photo Proof
+
+### Fixes
+
+**Technician rejection no longer blocked by status-transition trigger**
+- Client reported: *"Failed to reject job, only admin or supervisor can move jobs backward."*
+- Root cause confirmed via live DB introspection: the `validate_job_status_transition` trigger function in the live `public` schema rejected ALL backward status transitions for non-admin/non-supervisor users. The technician rejection flow legitimately moves a job from `Assigned` back to `New` (it's the only way to release the assignment back to dispatch), so it was permanently blocked. The function lived in `database/historical/` locally — meaning the migration had been deployed, then the file was archived without dropping the trigger.
+- Fix applied via `supabase/migrations/20260407_fix_tech_rejection.sql`: `CREATE OR REPLACE FUNCTION validate_job_status_transition` adds one tightly-scoped whitelist branch — a technician can backward-transition their OWN currently-assigned job from `Assigned` to `New` *only when* `NEW.technician_rejected_at IS NOT NULL` and `NEW.assigned_technician_id IS NULL`. Every other backward-transition guard remains exactly as before. Migration applied directly to the live DB inside a transaction and verified post-apply.
+
+### Features
+
+**Rejection now requires reason + on-site photo with GPS**
+- Per client feedback, rejecting a job is no longer a free action — the technician must (a) provide a written reason and (b) capture an on-site photo with GPS coordinates so admins can verify the rejection was made on-site (e.g., weather condition, blocked access, customer not present).
+- The same migration adds a nullable `jobs.technician_rejection_photo_id` UUID column with a foreign key to `job_media(media_id) ON DELETE SET NULL`. The rejection photo is uploaded via a new standalone helper at `services/rejectionPhotoUpload.ts` which captures GPS in parallel with image compression, uploads to the `job-photos` storage bucket, and inserts a `job_media` row with `category='rejection_proof'`. The new `media_id` is then written to `jobs.technician_rejection_photo_id` so the rejection proof is permanently linked to the job.
+- GPS is **required**, not best-effort. If the technician denies geolocation permission or it's unavailable, the upload throws and the rejection is blocked with the error *"Location access is required to reject a job."* This is intentional — the whole point of the photo is on-site verification.
+- The `RejectJobModal` (`pages/JobDetail/components/JobDetailModals.tsx`) was extended with a tap-to-capture photo slot using native `<input type="file" capture="environment">` so it works on mobile cameras and desktop file pickers alike. Selecting a photo shows a preview with an X to remove. The confirm button gates on `(reason && photo && !uploading)`. While uploading, both Cancel and Reject Job are disabled, and the button text becomes "Uploading...".
+- Helpers, admin-service, and supervisors are unaffected — the rejection flow only renders for lead technicians on jobs in the pre-acceptance state.
+- Deferred to a follow-up: a dedicated banner on the admin's view of the rejected job showing the rejection reason and photo thumbnail. For now the photo is visible in the existing job media gallery under the `rejection_proof` category.
+- Files: `supabase/migrations/20260407_fix_tech_rejection.sql`, `services/rejectionPhotoUpload.ts`, `services/jobAssignmentCrudService.ts`, `types/job-core.types.ts`, `pages/JobDetail/components/JobDetailModals.tsx`, `pages/JobDetail/hooks/useJobActions.ts`, `pages/JobDetail/hooks/useJobDetailState.ts`, `pages/JobDetail/JobDetailPage.tsx`
+
+---
+
 ## [2026-04-07] — Service Report Show/Hide Prices Confirmation
 
 ### Features

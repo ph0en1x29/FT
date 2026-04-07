@@ -97,7 +97,8 @@ export const rejectJobAssignment = async (
   jobId: string,
   technicianId: string,
   technicianName: string,
-  reason: string
+  reason: string,
+  rejectionPhotoId?: string
 ): Promise<Job> => {
   const now = new Date().toISOString();
 
@@ -106,6 +107,7 @@ export const rejectJobAssignment = async (
     .update({
       technician_rejected_at: now,
       technician_rejection_reason: reason,
+      technician_rejection_photo_id: rejectionPhotoId ?? null,
       status: JobStatusEnum.NEW,
       assigned_technician_id: null,
       assigned_technician_name: null,

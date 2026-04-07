@@ -159,6 +159,9 @@ export const useJobDetailState = () => {
   const [hourmeterFlagReasons, setHourmeterFlagReasons] = useState<HourmeterFlagReason[]>([]);
   const [exportingToAutoCount, setExportingToAutoCount] = useState(false);
   const [showReportOptionsModal, setShowReportOptionsModal] = useState(false);
+  const [rejectionPhotoFile, setRejectionPhotoFile] = useState<File | null>(null);
+  const [rejectionPhotoPreviewUrl, setRejectionPhotoPreviewUrl] = useState<string>('');
+  const [rejectionUploading, setRejectionUploading] = useState(false);
 
   return {
     // Core
@@ -286,6 +289,9 @@ export const useJobDetailState = () => {
     hourmeterFlagReasons, setHourmeterFlagReasons,
     exportingToAutoCount, setExportingToAutoCount,
     showReportOptionsModal, setShowReportOptionsModal,
+    rejectionPhotoFile, setRejectionPhotoFile,
+    rejectionPhotoPreviewUrl, setRejectionPhotoPreviewUrl,
+    rejectionUploading, setRejectionUploading,
   };
 };
 
