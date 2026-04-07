@@ -4,6 +4,13 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+[2026-04-07 19:28] [Opus] fix: JobBoard list header column width drift caused by my earlier job# widening: pages/JobBoard/components/JobListTable.tsx
+  - User report: "the status and the content below doesn't seem to align"
+  - Root cause: my earlier commit af201b4 (job# overflow fix) bumped the row's job# column from w-[150px] to w-[180px] in JobListRow.tsx but I missed that JobListTable.tsx ALSO defines a separate header row with its own w-[130px] for the # column at line 65. The header was at 130px while the row was at 180px — a 50px drift that pushed every column to the right of # out of alignment with its header label, including the Status column the user noticed
+  - This was a partial fix in af201b4. I should have grepped for any other place defining the same column widths before patching one of them in isolation. Lesson: when changing a fixed-width column in a "table-like" flex layout, search the entire JobBoard/components directory for the OLD width as a pattern, not just the file I'm editing
+  - Fix: changed line 65 in JobListTable.tsx from `w-[130px]` to `w-[180px]` to match the row. Single-character edit. The other header column widths (w-[150px] Status, w-[85px] Scheduled, flex-[2] Title, etc.) are already in sync with the row
+  - Validation: tsc --noEmit passes. No other files reference w-[130px] in the JobBoard directory (verified before committing)
+
 [2026-04-07 19:23] [Opus] chore: rename existing 29 jobs to new format + drop dead 'job' parameter from getRoleFlags: pages/JobDetail/utils.ts, pages/JobDetail/JobDetailPage.tsx
   - Per Jay's go-ahead on the rename: bulk-renamed all 29 existing jobs from JOB-YYYYMMDD-NNNN (17 chars) to the new JOB-YYMMDD-NNN format (14 chars). Pre-rename safety probe confirmed: 29/29 match the old format exactly, 0 sequences over 999 (no data loss risk from dropping the leading sequence digit), 0 collisions with the renamed values
   - Rename UPDATE: `UPDATE jobs SET job_number = 'JOB-' || SUBSTRING(job_number FROM 7 FOR 6) || '-' || SUBSTRING(job_number FROM 15 FOR 3) WHERE job_number ~ '^JOB-\d{8}-\d{4}$'`. Run inside BEGIN/COMMIT with a post-update sanity check that asserts every remaining job_number matches the new pattern. 29 rows updated, sanity passed, committed

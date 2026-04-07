@@ -4,6 +4,19 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-07] — JobBoard List Header/Row Column Width Drift
+
+### Fixes
+
+**Status column header no longer drifts 50px out of alignment with the rows below**
+- User report: *"the status and the content below doesn't seem to align"*
+- Root cause: an earlier fix today (commit `af201b4`) bumped the row's `#` column from `w-[150px]` to `w-[180px]` to fit the longer job# format, but the separate header definition in `pages/JobBoard/components/JobListTable.tsx:65` was still `w-[130px]`. The 50px drift pushed every column to the right of `#` out of alignment with its header label, with the Status column being the most visually obvious.
+- Fix: bumped the header `#` column from `w-[130px]` to `w-[180px]` to match the row. Single-character edit. The other header column widths (Status, Scheduled, Title, etc.) were already in sync.
+- Lesson learned: when changing a fixed-width column in a "table-like" flex layout, grep for the old width across the whole feature directory before patching one file in isolation. The header and row definitions are in separate files and easy to miss.
+- File: `pages/JobBoard/components/JobListTable.tsx`
+
+---
+
 ## [2026-04-07] — Renamed Existing Jobs to New Format + getRoleFlags Cleanup
 
 ### Chores
