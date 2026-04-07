@@ -23,6 +23,7 @@ interface JobHeaderProps {
   roleFlags: RoleFlags;
   statusFlags: StatusFlags;
   exportingToAutoCount: boolean;
+  partsDeclarationRequired: boolean;
   // Action handlers
   onAcceptJob: () => void;
   onRejectJob: () => void;
@@ -45,6 +46,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
   roleFlags,
   statusFlags,
   exportingToAutoCount,
+  partsDeclarationRequired,
   onAcceptJob,
   onRejectJob,
   onStartJob,
@@ -166,16 +168,16 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
           
           {(isTechnician || isAdminService || isSupervisor) && isInProgress && !isHelperOnly && (
             <div className="relative group">
-              <button 
-                onClick={onCompleteJob} 
-                disabled={!hasBothSignatures || !hasHourmeter || !hasAfterPhoto}
-                className={`btn-premium ${hasBothSignatures && hasHourmeter && hasAfterPhoto ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
+              <button
+                onClick={onCompleteJob}
+                disabled={!hasBothSignatures || !hasHourmeter || !hasAfterPhoto || partsDeclarationRequired}
+                className={`btn-premium ${hasBothSignatures && hasHourmeter && hasAfterPhoto && !partsDeclarationRequired ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
               >
                 <CheckCircle className="w-4 h-4" /> Complete
               </button>
-              {(!hasBothSignatures || !hasHourmeter || !hasAfterPhoto) && (
+              {(!hasBothSignatures || !hasHourmeter || !hasAfterPhoto || partsDeclarationRequired) && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[var(--text)] text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                  {!hasAfterPhoto ? '"After" photo required' : !hasHourmeter ? 'Hourmeter reading required' : 'Both signatures required'}
+                  {!hasAfterPhoto ? '"After" photo required' : !hasHourmeter ? 'Hourmeter reading required' : !hasBothSignatures ? 'Both signatures required' : "Declare parts usage or tick 'No parts were used'"}
                 </div>
               )}
             </div>

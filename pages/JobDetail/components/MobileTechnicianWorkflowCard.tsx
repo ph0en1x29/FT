@@ -6,6 +6,7 @@ import { StatusFlags } from '../types';
 interface MobileTechnicianWorkflowCardProps {
   job: Job;
   statusFlags: StatusFlags;
+  partsDeclared: boolean;
   onAcceptJob: () => void;
   onRejectJob: () => void;
   onStartJob: () => void;
@@ -18,6 +19,7 @@ interface MobileTechnicianWorkflowCardProps {
 export const MobileTechnicianWorkflowCard: React.FC<MobileTechnicianWorkflowCardProps> = ({
   job,
   statusFlags,
+  partsDeclared,
   onAcceptJob,
   onRejectJob,
   onStartJob,
@@ -31,6 +33,7 @@ export const MobileTechnicianWorkflowCard: React.FC<MobileTechnicianWorkflowCard
     !statusFlags.hasHourmeter ? 'Hourmeter' : null,
     !job.technician_signature ? 'Technician sign' : null,
     !job.customer_signature ? 'Customer sign' : null,
+    !partsDeclared ? 'Parts declaration' : null,
   ].filter(Boolean) as string[];
 
   const canComplete = blockers.length === 0;

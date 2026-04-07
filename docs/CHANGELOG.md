@@ -4,6 +4,20 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-07] — Parts Declaration Required Before Completion
+
+### Fixes
+
+**Lead technicians must declare parts usage before completing a job**
+- The Complete button was previously enabled even when a technician had neither added any parts nor ticked the "No parts were used" checkbox, allowing jobs to be closed without an explicit parts declaration. Client feedback flagged this as a data-quality issue.
+- `JobDetailPage.tsx` now derives `partsDeclared = job.parts_used.length > 0 || noPartsUsed` and `partsDeclarationRequired` (lead technicians only — helpers, admin-service, and supervisors are unaffected). `completionBlocked` includes this condition, gating the mobile sticky-bar Complete button. A new "Parts declaration required" amber chip joins the existing "After photo needed" / "Hourmeter needed" / "Signatures missing" warning row.
+- `JobHeader.tsx` (desktop) Complete button now also gates on `partsDeclarationRequired`, with a tooltip reading *"Declare parts usage or tick 'No parts were used'"*.
+- `MobileTechnicianWorkflowCard.tsx` accepts a new `partsDeclared` prop and includes "Parts declaration" in its blockers list, so the guided workflow card and its disabled-state messaging stay consistent with the sticky bar.
+- The `USER_GUIDE.md` completion checklist already documented this requirement; only the runtime enforcement was missing.
+- Files: `pages/JobDetail/JobDetailPage.tsx`, `pages/JobDetail/components/JobHeader.tsx`, `pages/JobDetail/components/MobileTechnicianWorkflowCard.tsx`
+
+---
+
 ## [2026-04-07] — Repair Job Completion Unblocked
 
 ### Fixes

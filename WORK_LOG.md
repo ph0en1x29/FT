@@ -4,6 +4,13 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+[2026-04-07 17:17] [Opus] fix: require parts declaration before lead technician can complete job: pages/JobDetail/JobDetailPage.tsx, pages/JobDetail/components/JobHeader.tsx, pages/JobDetail/components/MobileTechnicianWorkflowCard.tsx
+  - JobDetailPage.tsx: derived partsDeclared = parts_used.length > 0 || state.noPartsUsed and partsDeclarationRequired (lead-tech only via isTechnician && !isHelperOnly); included in completionBlocked so the mobile sticky-bar Complete button disables until the technician adds a part or ticks "No parts were used"; added "Parts declaration required" amber chip to the warning chip row alongside the existing photo/hourmeter/signature chips; passed partsDeclared to MobileTechnicianWorkflowCard and partsDeclarationRequired to JobHeader
+  - JobHeader.tsx: new partsDeclarationRequired prop; desktop Complete button disabled state and class now also gate on this flag; tooltip falls through to "Declare parts usage or tick 'No parts were used'" when all other checks pass
+  - MobileTechnicianWorkflowCard.tsx: added partsDeclared prop; "Parts declaration" pushed onto the blockers array so the guided workflow card's disabled Complete button and chip row stay consistent with the sticky bar
+  - Client feedback: technicians could close jobs without declaring parts usage; data-quality issue. Helpers, admin-service, and supervisors are unaffected per scope
+  - Validation: tsc --noEmit passes; eslint clean (only pre-existing max-lines warning unrelated to this change)
+
 [2026-04-07 02:35] [Sonnet] fix: repair jobs no longer blocked by checklist on completion: pages/JobDetail/utils.ts, pages/JobDetail/hooks/useJobActions.ts
   - utils.ts: getMissingMandatoryItems now returns [] immediately for JobType.REPAIR — exemption is enforced at the source so no caller can bypass it; also guards against null job
   - useJobActions.ts: imported JobType enum; changed raw string 'Repair' comparison to JobType.REPAIR for type safety at the call site

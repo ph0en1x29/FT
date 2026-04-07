@@ -102,7 +102,10 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const statusFlags = getStatusFlags(job, currentUserId, currentUserRole);
   const roleFlags = getRoleFlags(currentUserRole, state.isCurrentUserHelper, job, statusFlags);
   const isMobileTechnicianFlow = roleFlags.isTechnician && !roleFlags.isHelperOnly && !isDesktopDefault;
-  const completionBlocked = !statusFlags.hasBothSignatures || !statusFlags.hasHourmeter || !statusFlags.hasAfterPhoto;
+  // Lead technicians must declare parts usage (either add a part or tick "No parts were used") before completing.
+  const partsDeclared = job.parts_used.length > 0 || state.noPartsUsed;
+  const partsDeclarationRequired = roleFlags.isTechnician && !roleFlags.isHelperOnly && !partsDeclared;
+  const completionBlocked = !statusFlags.hasBothSignatures || !statusFlags.hasHourmeter || !statusFlags.hasAfterPhoto || partsDeclarationRequired;
 
   // Hide sticky action bar when any modal is open (prevents overlap)
   const hasModalOpen =
@@ -145,6 +148,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   return (
     <div className={`min-w-0 max-w-7xl mx-auto overflow-x-hidden pb-24 md:pb-8 ${(statusFlags.isInProgress || statusFlags.isCompleted) && !hasModalOpen ? 'pt-16 md:pt-0' : ''} fade-in`}>
       <JobHeader job={job} isRealtimeConnected={true} roleFlags={roleFlags} statusFlags={statusFlags}
+        partsDeclarationRequired={partsDeclarationRequired}
         exportingToAutoCount={state.exportingToAutoCount} onAcceptJob={actions.handleAcceptJob}
         onRejectJob={() => state.setShowRejectJobModal(true)} onStartJob={actions.handleOpenStartJobModal}
         onCompleteJob={() => actions.handleStatusChange(JobStatus.AWAITING_FINALIZATION)}
@@ -159,6 +163,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
           <MobileTechnicianWorkflowCard
             job={job}
             statusFlags={statusFlags}
+            partsDeclared={partsDeclared}
             onAcceptJob={actions.handleAcceptJob}
             onRejectJob={() => state.setShowRejectJobModal(true)}
             onStartJob={actions.handleOpenStartJobModal}
@@ -437,6 +442,9 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
                     )}
                     {!statusFlags.hasHourmeter && (
                       <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-medium text-amber-700">Hourmeter needed</span>
+                    )}
+                    {partsDeclarationRequired && (
+                      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-medium text-amber-700">Parts declaration required</span>
                     )}
                   </div>
                 )}
