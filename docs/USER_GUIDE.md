@@ -301,16 +301,18 @@ When a job is assigned to you, you have **15 minutes** to accept or reject it.
 2. The job is marked as accepted
 3. You can now start the job when ready
 
-**To Reject:**
+**To Reject** *(updated 2026-04-07 — photo proof now required)*:
 1. Click the **"Reject"** button
-2. Enter a reason for rejection (required)
-3. Click **"Reject Job"**
-4. The job returns to the admin queue for reassignment
+2. Enter a reason for rejection (required) — e.g., weather hazard at site, vehicle blocked, customer not on premises
+3. **Take an on-site photo** by tapping the camera capture area. The photo proves you were at the site when rejecting. **GPS location is captured automatically and is required** — if you deny location permission, the rejection will be blocked with a clear error
+4. Click **"Reject Job"** (it stays disabled until both reason and photo are provided)
+5. The job returns to the admin queue for reassignment, with the photo + reason attached for the admin to review
 
-**What Happens If You Don't Respond:**
-- After 15 minutes, admins are automatically notified
-- The job remains assigned to you until reassigned
-- Consider communicating with your supervisor if you can't respond in time
+**What Happens If You Don't Respond** *(updated 2026-04-07 — re-alerts now automated)*:
+- After **15 minutes**, the system sends an automatic notification to all admins/supervisors: *"⏰ No Response from Technician (1/4)"*
+- If you still haven't responded after another 15 minutes, a second alert fires: *"(2/4)"*. This continues for up to **4 alerts over 1 hour**, after which the system stops notifying and the job remains in your queue until an admin reassigns it
+- The final alert (4/4) is marked **urgent** and reads *"This is the final automatic reminder — please reassign or contact the technician."*
+- If you can't respond in time, message your supervisor directly so they can reassign manually before the alerts escalate
 
 ### Starting a Job
 
@@ -519,7 +521,7 @@ For "Completed" jobs:
 
 ### Generating Documents
 - **Invoice PDF**: Click "Generate Invoice"
-- **Service Report**: Click "Generate Service Report"
+- **Service Report**: Click "Generate Service Report" — *(updated 2026-04-07)* a confirmation appears asking whether to **Hide Prices (Customer Copy)** or **Show Prices (Internal Copy)**. Hide Prices removes the Unit Price / Amount columns and the Labor / TOTAL row, leaving parts and labor descriptions and quantities visible
 - Both can be downloaded or emailed/WhatsApp to customer
 
 ### What You CANNOT Do

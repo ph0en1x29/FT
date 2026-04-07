@@ -287,6 +287,10 @@ Core work orders.
 | `first_hourmeter_recorded_by_name` | TEXT | YES | | **(NEW 2026-01-19)** Name of first recorder |
 | `first_hourmeter_recorded_at` | TIMESTAMPTZ | YES | | **(NEW 2026-01-19)** When hourmeter was first recorded |
 | `is_starred` | BOOLEAN | NO | `false` | **(NEW 2026-04-04)** Starred jobs float to top of board; settable by admin/supervisor/assigned tech |
+| `technician_rejection_photo_id` | UUID | YES | | **(NEW 2026-04-07)** FK → `job_media(media_id)` ON DELETE SET NULL. On-site photo proof captured when a technician rejects a job assignment |
+| `technician_response_deadline` | TIMESTAMPTZ | YES | | **(NEW 2026-04-07)** Auto-populated by `trg_set_response_deadline` to `assigned_at + 15 minutes`. The frontend countdown timer reads this value |
+| `last_response_alert_at` | TIMESTAMPTZ | YES | | **(NEW 2026-04-07)** Throttle for the 15-min no-reply re-alert system — at most one alert per 15-min window |
+| `response_alert_count` | INTEGER | NO | `0` | **(NEW 2026-04-07)** Count of no-response re-alerts already sent. Capped at 4 (1-hour total nagging window) by `escalate_assignment_response()` |
 
 Constraints:
 - PK: `job_id`
@@ -2648,7 +2652,8 @@ Scheduled via pg_cron at 8:00 AM MYT daily.
 
 | Function | Trigger | Description |
 |----------|---------|-------------|
-| `validate_job_status_transition()` | `trg_validate_status_transition` ON jobs | Enforces sequential workflow and role-based status transitions |
+| `validate_job_status_transition()` | `trg_validate_status_transition` ON jobs | Enforces sequential workflow and role-based status transitions. **(UPDATED 2026-04-07)** Whitelists one backward transition: a technician rejecting their own currently-assigned job (`Assigned` → `New` when `technician_rejected_at IS NOT NULL`) |
+| `set_technician_response_deadline()` | `trg_set_response_deadline` BEFORE INSERT OR UPDATE OF assigned_at ON jobs | **(NEW 2026-04-07)** Auto-populates `technician_response_deadline` to `assigned_at + 15 minutes` whenever `assigned_at` is written. Resets `last_response_alert_at` and `response_alert_count` on a fresh assignment |
 | `validate_job_completion_requirements()` | `trg_validate_completion` ON jobs | Ensures all required fields before job completion |
 | `lock_service_record_on_invoice()` | `trg_lock_on_invoice` ON jobs | Locks service records when job is invoiced |
 | `prevent_locked_service_record_edit()` | `trg_prevent_locked_edit` ON job_service_records | Prevents unauthorized edits to locked records |

@@ -4,6 +4,17 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+[2026-04-07 19:34] [Opus] docs: update DB_SCHEMA.md and USER_GUIDE.md to reflect today's changes (no code)
+  - Jay asked: "are the change log and all related docs updated"
+  - CHANGELOG.md and WORK_LOG.md were already up-to-date (verified). DB_SCHEMA.md and USER_GUIDE.md needed updates I had missed
+  - DB_SCHEMA.md: added 4 new column rows to the jobs table section after `is_starred` (the previous most-recent addition from 2026-04-04): technician_rejection_photo_id (FK), technician_response_deadline (TIMESTAMPTZ), last_response_alert_at (TIMESTAMPTZ), response_alert_count (INTEGER NOT NULL DEFAULT 0). All marked **(NEW 2026-04-07)** following the existing convention. Updated the Trigger Functions table: added new row for set_technician_response_deadline() and amended the existing validate_job_status_transition() row to note the **(UPDATED 2026-04-07)** rejection whitelist
+  - Did NOT backfill columns that pre-existed but were never documented (technician_rejection_reason, technician_accepted_at, job_number, etc.) — DB_SCHEMA.md was already incomplete, and backfilling someone else's miss is out of scope
+  - Did NOT add the new escalate_assignment_response() function to the function table because the existing escalate_overdue_jobs() / escalate_slotin_sla() / run_escalation_checks() functions are also undocumented there. Same backfill rationale
+  - USER_GUIDE.md: updated the "To Reject" section under "Accepting Job Assignments" to describe the new on-site photo + GPS requirement (mandatory, blocks reject if location denied). Updated the adjacent "What Happens If You Don't Respond" to describe the new automated re-alert behaviour (4 alerts over 1 hour, urgent priority on the final reminder, iteration counter in title) — the previous text said "admins are automatically notified" but that was aspirational; the actual scheduler didn't exist until today
+  - USER_GUIDE.md: updated the "Generating Documents" section to describe the new Show/Hide Prices confirmation when generating a Service Report (Customer Copy vs Internal Copy)
+  - The "Completing a Job" section already lists "Recorded parts used OR checked No parts used" so no edit needed there — that line predates today's enforcement work
+  - This commit changes only docs, no code files, so the husky pre-commit per-file [Opus]/[Sonnet]/[Codex] tagging requirement does not apply
+
 [2026-04-07 19:28] [Opus] fix: JobBoard list header column width drift caused by my earlier job# widening: pages/JobBoard/components/JobListTable.tsx
   - User report: "the status and the content below doesn't seem to align"
   - Root cause: my earlier commit af201b4 (job# overflow fix) bumped the row's job# column from w-[150px] to w-[180px] in JobListRow.tsx but I missed that JobListTable.tsx ALSO defines a separate header row with its own w-[130px] for the # column at line 65. The header was at 130px while the row was at 180px — a 50px drift that pushed every column to the right of # out of alignment with its header label, including the Status column the user noticed
