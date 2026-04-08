@@ -19,7 +19,7 @@ const getJobById = async (jobId: string): Promise<Job | null> => {
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .eq('job_id', jobId)
@@ -201,7 +201,7 @@ export const updateLaborCost = async (jobId: string, laborCost: number): Promise
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -263,7 +263,7 @@ export const finalizeInvoice = async (jobId: string, accountantId: string, accou
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -292,7 +292,7 @@ export const sendInvoice = async (jobId: string, method: 'email' | 'whatsapp' | 
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();

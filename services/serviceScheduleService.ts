@@ -258,7 +258,7 @@ export const getForkliftServiceHistory = async (forkliftId: string): Promise<Job
   try {
     const { data, error } = await supabase
       .from('jobs')
-      .select(`*, customer:customers(*), parts_used:job_parts(*), media:job_media(*), extra_charges:extra_charges(*)`)
+      .select(`*, customer:customers(*), parts_used:job_parts(*), media:job_media!job_id(*), extra_charges:extra_charges(*)`)
       .eq('forklift_id', forkliftId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
@@ -276,7 +276,7 @@ export const getForkliftServiceHistoryWithCancelled = async (forkliftId: string)
   try {
     const { data, error } = await supabase
       .from('jobs')
-      .select(`*, customer:customers(*), parts_used:job_parts(*), media:job_media(*), extra_charges:extra_charges(*)`)
+      .select(`*, customer:customers(*), parts_used:job_parts(*), media:job_media!job_id(*), extra_charges:extra_charges(*)`)
       .eq('forklift_id', forkliftId)
       .order('created_at', { ascending: false });
 

@@ -88,7 +88,7 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();

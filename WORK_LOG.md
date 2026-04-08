@@ -4,6 +4,14 @@ Format: `[YYYY-MM-DD HH:MM] [Agent] Summary`
 
 <!-- Entries before 2026-03-06 trimmed — see git history -->
 
+[2026-04-07 21:50] [Sonnet] fix: disambiguate job_media embeds broken by today's technician_rejection_photo_id FK: services/jobStatusService.ts, services/jobService.ts, services/jobMediaService.ts, services/jobChecklistService.ts, services/jobInvoiceService.ts, services/jobAssignmentCrudService.ts, services/customerService.ts, services/serviceScheduleService.ts, services/supabaseClient.ts
+  - User report: technician tapping Accept on a job assignment got "failed to update status. Could not embed because more than one relationship was found for 'jobs' and 'jobs_media'"
+  - Root cause: today's earlier migration 20260407_fix_tech_rejection.sql added jobs.technician_rejection_photo_id UUID REFERENCES job_media(media_id). That created a SECOND foreign key between jobs and job_media (the first being job_media.job_id → jobs from the original schema). PostgREST embed syntax `media:job_media(*)` is now ambiguous — PostgREST sees two FKs joining the two tables and refuses to pick one
+  - The technician-Accept flow was the first user-visible failure but every embed of job_media was broken: jobStatusService re-fetches with media after status update, and 8 other services do the same in various read paths
+  - Fix: changed every `media:job_media(*)` to `media:job_media!job_id(*)` — the `!job_id` hint tells PostgREST to use the FK on job_media.job_id, ignoring the new jobs.technician_rejection_photo_id direction. Same applied to the one variant in supabaseClient.ts that selects a column subset (DETAIL_FAST). 28 occurrences across 9 files, all replaced via Edit replace_all per file
+  - Verified post-fix: `grep "job_media\("` across services/ returns no matches — every embed now carries an explicit FK hint
+  - Did NOT alter the migration or drop the new column. The new FK is intentional (rejection photo proof linkage); the right fix is on the embed side, not the schema side
+
 [2026-04-07 19:34] [Opus] docs: update DB_SCHEMA.md and USER_GUIDE.md to reflect today's changes (no code)
   - Jay asked: "are the change log and all related docs updated"
   - CHANGELOG.md and WORK_LOG.md were already up-to-date (verified). DB_SCHEMA.md and USER_GUIDE.md needed updates I had missed

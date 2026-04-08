@@ -485,7 +485,7 @@ export const updateJob = async (jobId: string, updates: Partial<Job>): Promise<J
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -522,7 +522,7 @@ export const updateJobHourmeter = async (jobId: string, hourmeterReading: number
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -551,7 +551,7 @@ export const addNote = async (jobId: string, note: string): Promise<Job> => {
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -600,7 +600,7 @@ export const confirmParts = async (
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -693,7 +693,7 @@ export const reconcileParts = async (
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();

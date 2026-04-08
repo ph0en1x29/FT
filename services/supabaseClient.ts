@@ -251,7 +251,7 @@ export const JOB_SELECT = {
     customer:customers(*),
     forklift:forklifts!forklift_id(*),
     parts_used:job_parts(*),
-    media:job_media(*),
+    media:job_media!job_id(*),
     extra_charges:extra_charges(*)
   `,
   
@@ -261,7 +261,7 @@ export const JOB_SELECT = {
     customer:customers(*),
     forklift:forklifts!forklift_id(*),
     parts_used:job_parts(*),
-    media:job_media(media_id, type, category, created_at, description, url),
+    media:job_media!job_id(media_id, type, category, created_at, description, url),
     extra_charges:extra_charges(*)
   `,
   

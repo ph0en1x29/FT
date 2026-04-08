@@ -16,7 +16,7 @@ const getJobById = async (jobId: string): Promise<Job | null> => {
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .eq('job_id', jobId)
@@ -98,7 +98,7 @@ export const signJob = async (
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -178,7 +178,7 @@ export const bulkSignJobs = async (
         customer:customers(*),
         forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
-        media:job_media(*),
+        media:job_media!job_id(*),
         extra_charges:extra_charges(*)
       `)
       .single();
@@ -243,7 +243,7 @@ export const swipeSignJob = async (
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -306,7 +306,7 @@ export const bulkSwipeSignJobs = async (
         customer:customers(*),
         forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
-        media:job_media(*),
+        media:job_media!job_id(*),
         extra_charges:extra_charges(*)
       `)
       .single();

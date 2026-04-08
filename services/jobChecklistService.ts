@@ -28,7 +28,7 @@ export const updateJobConditionChecklist = async (jobId: string, checklist: Fork
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -48,7 +48,7 @@ export const updateJobCarriedOut = async (jobId: string, jobCarriedOut: string, 
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -78,7 +78,7 @@ export const updateConditionChecklist = async (jobId: string, checklist: Forklif
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -135,7 +135,7 @@ export const updateJobRepairTimes = async (jobId: string, startTime?: string, en
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -186,7 +186,7 @@ export const startJobWithCondition = async (
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();

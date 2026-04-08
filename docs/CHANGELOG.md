@@ -4,6 +4,28 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-07] — Technician Job Accept Broken by Ambiguous `job_media` Embeds
+
+### Fixes
+
+**Technician Accept on a job assignment failed with "Could not embed because more than one relationship was found for 'jobs' and 'jobs_media'"**
+- Root cause: today's earlier migration `20260407_fix_tech_rejection.sql` added `jobs.technician_rejection_photo_id UUID REFERENCES job_media(media_id)` so the on-site rejection photo proof can be linked to a job. That introduced a **second** foreign key between `jobs` and `job_media` — the first being the original `job_media.job_id → jobs` relationship. PostgREST can no longer infer which FK to use when an embed says `media:job_media(*)` and refuses the request.
+- The technician Accept flow was the first user-visible failure (`jobStatusService.ts` re-fetches the job *with media* immediately after updating status), but every embed of `job_media` across the services layer was broken in the same way.
+- Fix: changed every `media:job_media(*)` to `media:job_media!job_id(*)`. The `!job_id` hint tells PostgREST to use the FK on `job_media.job_id`, ignoring the new `jobs.technician_rejection_photo_id` direction. The migration and the new column are left intact — the rejection-photo linkage is intentional; the right place to disambiguate is on the embed side.
+- 28 occurrences across 9 files updated:
+  - `services/jobStatusService.ts`
+  - `services/jobService.ts`
+  - `services/jobMediaService.ts`
+  - `services/jobChecklistService.ts`
+  - `services/jobInvoiceService.ts`
+  - `services/jobAssignmentCrudService.ts`
+  - `services/customerService.ts`
+  - `services/serviceScheduleService.ts`
+  - `services/supabaseClient.ts` (both `DETAIL` and `DETAIL_FAST` selectors)
+- Verified post-fix: a grep for `job_media\(` across `services/` returns no matches — every embed now carries an explicit FK hint.
+
+---
+
 ## [2026-04-07] — JobBoard List Header/Row Column Width Drift
 
 ### Fixes

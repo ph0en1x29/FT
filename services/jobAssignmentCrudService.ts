@@ -42,7 +42,7 @@ export const assignJob = async (jobId: string, technicianId: string, technicianN
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -68,7 +68,7 @@ export const acceptJobAssignment = async (jobId: string, technicianId: string, t
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -120,7 +120,7 @@ export const rejectJobAssignment = async (
       customer:customers(*),
       forklift:forklifts!forklift_id(*),
       parts_used:job_parts(*),
-      media:job_media(*),
+      media:job_media!job_id(*),
       extra_charges:extra_charges(*)
     `)
     .single();
@@ -226,7 +226,7 @@ export const reassignJob = async (
         customer:customers(*),
         forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
-        media:job_media(*),
+        media:job_media!job_id(*),
         extra_charges:extra_charges(*)
       `)
       .single();
