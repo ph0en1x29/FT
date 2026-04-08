@@ -4,6 +4,21 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-07] — Repair Jobs Blocked at Completion by Checklist Trigger
+
+### Fixes
+
+**Repair jobs could not be marked complete: "Cannot complete job: Checklist has not been filled."**
+- Client report: technicians completing a Repair job were blocked at the "Awaiting Finalization" transition with the above error, even though Repair jobs are not supposed to require a forklift condition checklist.
+- Root cause: the DB trigger function `validate_job_completion_requirements` (fired by `trg_validate_completion` on `jobs` UPDATE) raises when both `service_record.checklist_data` and `jobs.condition_checklist` are empty — with **no exemption for Repair jobs**. The frontend already exempts Repair (`pages/JobDetail/hooks/useJobActions.ts:346`, `pages/JobDetail/utils.ts:37` — `getMissingMandatoryItems()` returns `[]` for Repair), so this was a frontend/DB drift bug: the UI let the request through, the trigger killed it.
+- Fix: `CREATE OR REPLACE FUNCTION validate_job_completion_requirements()` adding one branch — `IF NEW.job_type IS DISTINCT FROM 'Repair' THEN <existing checklist check> END IF;`. Every other completion gate (job started, service notes / job carried out, parts recorded or `no_parts_used`, technician signature, customer signature) is left untouched. Repair jobs still need all of those — only the forklift condition checklist is now exempt, matching the frontend rule.
+- The condition checklist is a forklift safety/condition inspection list (horn, lights, beacon, seatbelt, brakes, steering, etc.) — it's only meaningful for inspection-type jobs (`Service`, `Full Service`, `Checking`). Repair jobs are reactive fixes and have no inspection step.
+- The other checklist-related trigger `validate_job_checklist` only sets flag columns (`checklist_completed`, `checklist_missing_items`) and honors `app_settings.checklist_enforcement_enabled`. It does not raise, so it was left untouched. This fix is scoped strictly to the blocking trigger.
+- Migration: `supabase/migrations/20260407_repair_skip_checklist_completion.sql`. Applied directly to the live DB inside `BEGIN ... COMMIT` with a post-apply sanity check asserting the new branch is present in the deployed function body.
+- No application code touched — the frontend was already correct.
+
+---
+
 ## [2026-04-07] — Technician Job Accept Broken by Ambiguous `job_media` Embeds
 
 ### Fixes
