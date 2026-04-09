@@ -167,6 +167,7 @@ export interface Job {
   assigned_technician_id: string;
   assigned_technician_name?: string;
   created_at: string;
+  updated_at?: string;
   scheduled_date?: string;
   arrival_time?: string;
   completion_time?: string;

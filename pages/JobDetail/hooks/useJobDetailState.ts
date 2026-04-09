@@ -1,4 +1,4 @@
-import { useCallback,useState } from 'react';
+import { useCallback,useRef,useState } from 'react';
 import { ForkliftConditionChecklist,HourmeterFlagReason,Job,JobRequest,JobRequestType,ServiceUpgradePrompt,VanStock } from '../../../types';
 
 /**
@@ -9,6 +9,13 @@ export const useJobDetailState = () => {
   // Core job state
   const [jobRaw, setJobRaw] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Tracks the updated_at of the most recently applied job row.
+  // The realtime listener uses this to suppress its own echoes — when a
+  // mutation completes locally, the postgres_changes broadcast that follows
+  // would otherwise trigger a redundant loadJob() that races the in-flight
+  // request and produces "signal is aborted without reason".
+  const lastSeenUpdatedAtRef = useRef<string | null>(null);
 
   // Normalize job data to ensure arrays are never null/undefined
   const normalizeJob = (j: Job | null): Job | null => {
@@ -23,9 +30,15 @@ export const useJobDetailState = () => {
 
   const setJob = useCallback((j: Job | null | ((prev: Job | null) => Job | null)) => {
     if (typeof j === 'function') {
-      setJobRaw(prev => normalizeJob(j(prev)));
+      setJobRaw(prev => {
+        const next = normalizeJob(j(prev));
+        if (next?.updated_at) lastSeenUpdatedAtRef.current = next.updated_at;
+        return next;
+      });
     } else {
-      setJobRaw(normalizeJob(j));
+      const next = normalizeJob(j);
+      if (next?.updated_at) lastSeenUpdatedAtRef.current = next.updated_at;
+      setJobRaw(next);
     }
   }, []);
 
@@ -169,6 +182,7 @@ export const useJobDetailState = () => {
     setJob,
     loading,
     setLoading,
+    lastSeenUpdatedAtRef,
 
     // Inputs
     noteInput, setNoteInput,

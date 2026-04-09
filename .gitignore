@@ -45,3 +45,6 @@ HEARTBEAT.md
 MEMORY.md
 TOOLS.md
 USER.md
+
+# Claude Code scratch memory (personal mid-session notes, not shipped)
+.claude/memory/

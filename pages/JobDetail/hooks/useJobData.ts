@@ -20,16 +20,17 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
   const navigate = useNavigate();
   
   // Destructure stable setters to avoid dependency on entire state object
-  const { 
-    setJob, 
-    setLoading, 
-    setNoPartsUsed, 
-    setActiveRental, 
-    setIsCurrentUserHelper, 
+  const {
+    setJob,
+    setLoading,
+    setNoPartsUsed,
+    setActiveRental,
+    setIsCurrentUserHelper,
     setHelperAssignmentId,
     setJobRequests,
     setVanStock,
-    setAvailableVans 
+    setAvailableVans,
+    lastSeenUpdatedAtRef,
   } = state;
 
   const loadJob = useCallback(async (opts?: { silent?: boolean }) => {
@@ -106,6 +107,7 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
   useJobRealtime({
     jobId,
     currentUserId,
+    lastSeenUpdatedAtRef,
     onJobDeleted: () => navigate('/jobs'),
     onJobUpdated: useCallback(() => loadJobRef.current(), []),
     onRequestsUpdated: useCallback(() => loadRequestsRef.current(), []),

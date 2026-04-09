@@ -1,4 +1,4 @@
-import { useEffect,useState } from 'react';
+import { MutableRefObject,useEffect,useState } from 'react';
 import { supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 
@@ -9,6 +9,7 @@ interface JobRow {
   status: string;
   assigned_technician_id: string | null;
   assigned_technician_name: string | null;
+  updated_at: string | null;
 }
 
 interface JobRequestRow {
@@ -21,6 +22,14 @@ interface JobRequestRow {
 interface UseJobRealtimeProps {
   jobId: string | undefined;
   currentUserId: string;
+  /**
+   * Ref tracking the updated_at of the most recently applied job row from a
+   * local mutation. When a postgres_changes payload's updated_at matches this
+   * ref, the event is treated as a self-echo and ignored — this prevents the
+   * redundant loadJob() that would race in-flight save requests and surface
+   * as "signal is aborted without reason".
+   */
+  lastSeenUpdatedAtRef?: MutableRefObject<string | null>;
   onJobDeleted: () => void;
   onJobUpdated: () => void;
   onRequestsUpdated: () => void;
@@ -33,6 +42,7 @@ interface UseJobRealtimeProps {
 export function useJobRealtime({
   jobId,
   currentUserId,
+  lastSeenUpdatedAtRef,
   onJobDeleted,
   onJobUpdated,
   onRequestsUpdated,
@@ -56,7 +66,19 @@ export function useJobRealtime({
         (payload) => {
           const updatedJob = payload.new as JobRow;
           const oldJob = payload.old as Partial<JobRow>;
-          
+
+          // Self-echo dedupe: if this row is the same revision we just wrote
+          // locally, skip everything. The mutation handler already applied
+          // the fresh row to state, so a reload would be wasted work — and
+          // worse, it would race the in-flight save fetch.
+          if (
+            lastSeenUpdatedAtRef?.current &&
+            updatedJob?.updated_at &&
+            updatedJob.updated_at === lastSeenUpdatedAtRef.current
+          ) {
+            return;
+          }
+
           // Check if this job was soft-deleted
           if (updatedJob?.deleted_at !== null && oldJob?.deleted_at === null) {
             showToast.warning('Job deleted', 'This job has been cancelled or deleted by admin');
@@ -94,7 +116,7 @@ export function useJobRealtime({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [jobId, currentUserId, onJobDeleted, onJobUpdated]);
+  }, [jobId, currentUserId, onJobDeleted, onJobUpdated, lastSeenUpdatedAtRef]);
 
   // Real-time subscription for job requests (approvals/rejections)
   useEffect(() => {

@@ -4,6 +4,38 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-08] — FT Tooling Stack: CLAUDE.md, Skills, Project-Scoped Agent, Memory Architecture
+
+### Changed
+
+**FT now has a first-class Claude Code tooling stack — no more re-deriving conventions on every session.**
+- `CLAUDE.md` added at the project root. Auto-loaded by Claude Code whenever cwd is inside `/home/jay/FT`. Documents tech stack, scripts, `WORK_LOG.md` + `docs/CHANGELOG.md` formats, pre-commit hook behavior, Stop-hook auto-commit implications, services-layer split, JobDetail hooks pattern, known landmines (the `media:job_media!job_id(*)` embed hint, the `jobService.ts` facade, the Phoenix-gated pre-commit audit), and the realtime self-echo gotcha with its `lastSeenUpdatedAtRef` fix.
+- `.claude/agents/ft-expert.md` added as a **project-scoped** subagent. Invoked via `Agent` with `subagent_type: ft-expert`. Reads `CLAUDE.md` + the canonical living memory file on every invocation, and appends durable session observations to daily logs in the clawd memory tree for Phoenix Dream consolidation. Default mode is research-and-report; does not write code unless told to. Only visible when cwd is inside FT.
+- Two user-level skills added in `~/.claude/skills/`: `/ft-bugfix` (explore → diagnose → present 2-3 options → **stop for user approval** → implement → typecheck → invoke `/ft-doc`) and `/ft-doc` (generates `WORK_LOG.md` + `docs/CHANGELOG.md` entries from current `git diff` in FT's exact narrative format).
+- PostToolUse hook added in `~/.claude/settings.json`. Auto-runs `npm run typecheck` after any Edit/Write inside `/home/jay/FT`. Catches type errors immediately instead of at session end.
+- Memory architecture (two layers): canonical living memory at `/home/jay/clawd/memory/projects/fieldpro.md` (tracked, consolidated by Phoenix Dream); gitignored scratch at `/home/jay/FT/.claude/memory/` (mid-session personal notes). `fieldpro.md` was refreshed from its 2026-02-07 state with current conventions, landmines, tooling pointers, and the 2026-04-07 + 2026-04-08 historical incidents. `.gitignore` updated to exclude `.claude/memory/`.
+- Motivation: every FT session was starting from zero — re-asking "what's the CHANGELOG format", "what does pre-commit gate", "what services are there", "how does realtime interact with mutations". The new stack encodes all of this once, so future sessions (and the `ft-expert` agent) load it automatically without prompting. The `/ft-bugfix` skill also enforces the user's documented "assess before execute" preference by making the options-then-approval gate a hard-coded phase, not a voluntary best-practice.
+- Caveat: Phoenix Dream cron is not currently scheduled. `ft-expert` will still append daily logs normally; invoke `/dream` manually when you want consolidation to promote signals into `fieldpro.md`.
+- Files touched: `CLAUDE.md` (new), `.claude/agents/ft-expert.md` (new), `.claude/memory/README.md` (new, gitignored dir placeholder), `.gitignore` (one new entry), `docs/CHANGELOG.md` (this entry). No application code touched — pure tooling / infrastructure.
+
+---
+
+## [2026-04-08] — Technician "Could Not Save" on Job Done + Recommendation (Realtime Self-Echo Race)
+
+### Fixes
+
+**Technician saving Job Carried Out + Recommendation got "Could not save" / "AboutError: signal is aborted without reason" — even though the DB row was actually updated.**
+- Client report: technicians tapping Save on the Job Carried Out / Recommendation form saw a red toast with the abort message. Confusingly, the field appeared correctly on next refresh — the abort fired *after* the database row had already been written.
+- Root cause: race between the save handler and the Supabase realtime self-echo. `handleSaveJobCarriedOut` (`pages/JobDetail/hooks/useJobActions.ts:744`) does the right thing — it `await`s `MockDb.updateJob(...)` and applies the returned row via `setJob({...updated})`. But the `postgres_changes` UPDATE event for that same write is broadcast back milliseconds later, while the save's PostgREST response is still in flight. The realtime listener at `pages/JobDetail/hooks/useJobRealtime.ts:84` calls `onJobUpdated()` → `loadJob()` (`pages/JobDetail/hooks/useJobData.ts:35`), which fans out a fresh `getJobById` (multiple parallel Supabase queries). The new request tears down the in-flight save's connection, its `AbortSignal` fires, the original `await` rejects with `"signal is aborted without reason"`, and the catch-block toast displays the misleading "Could not save". The DB write had already succeeded — only the response was lost.
+- Fix: dedupe realtime self-echoes against the most recently locally-applied job revision, instead of band-aiding the race with timeouts or per-handler save flags. `pages/JobDetail/hooks/useJobDetailState.ts` adds `lastSeenUpdatedAtRef = useRef<string|null>(null)` and bumps it inside `setJob()` whenever a job row with `updated_at` is applied. `pages/JobDetail/hooks/useJobData.ts` threads the ref into `useJobRealtime`. `pages/JobDetail/hooks/useJobRealtime.ts` short-circuits the `postgres_changes` UPDATE handler when `payload.new.updated_at === lastSeenUpdatedAtRef.current` — that event is the echo of a write the local UI just made, so it skips both the toasts and the redundant `loadJob()`. Remote updates from other devices/sessions still flow through normally because their `updated_at` won't match the local ref.
+- `types/job-core.types.ts` gained `updated_at?: string` on the `Job` interface. The DB column already existed and was in the realtime payload — only the TS type was missing it.
+- Considered alternatives: (1) `savingRef` flag to suppress realtime during a save — fragile, would have to be added to every mutation handler and reintroduces the same bug whenever a new handler is added; (2) debouncing the realtime reload — only narrows the race window, doesn't eliminate it, and adds latency to legitimate remote updates. Option (3), the self-echo dedupe via `updated_at` comparison, is the actual fix because it removes the redundant request entirely instead of trying to time around it.
+- Bonus wins: every other mutation handler in `useJobActions.ts` that already follows the `setJob({...updated})` pattern (description edit, extra charges, parts, helper assign/remove, etc.) inherits the same dedupe for free with no per-handler bookkeeping. Cuts one wasted `getJobById` round-trip off every save. Toasts like "Status changed to X" no longer double-fire on your own status changes.
+- Scope notes: `useJobActions.ts` was not touched — the handlers were already correct. The `job_requests` realtime subscription was left alone (it has no race because requests aren't reloaded by mutation handlers). No per-handler flags introduced. The fix is one piece of state that covers every current and future mutation on `useJobDetailState`.
+- Verification: `npx tsc --noEmit` clean. Manual test: technician opens a job, edits Job Carried Out + Recommendation, taps Save → success toast, no abort error, value persists. Cross-device sanity: a second browser changing status still produces the "Status changed" toast on the first browser, confirming legitimate remote updates aren't filtered.
+
+---
+
 ## [2026-04-07] — Repair Jobs Blocked at Completion by Checklist Trigger
 
 ### Fixes
