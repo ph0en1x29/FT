@@ -35,6 +35,28 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-09] — Fix: technicians could start jobs without before-condition photos
+
+### Fixes
+
+**Investigation of a real incident:** the Repair job `JOB-260409-014` ("BT RT - Error E:212") was found in `In Progress` state with zero `before` photos on its `job_media` — the only 2 media rows were `after` photos uploaded a minute after the status change. A direct query on the live DB confirmed the job had never had a `before` photo, despite the UI supposedly requiring one.
+
+Root cause: the before-photo requirement was enforced only by a disabled HTML button in `StartJobModal` Step 1 — no validation in the `startJobWithCondition` service call, no trigger on `jobs` (confirmed by enumerating `information_schema.triggers` — all 30+ existing triggers guard other things), and worst of all `handleStartJobWithCondition` in `useJobActions.ts` ran the photo upload loop **after** `await MockDb.startJobWithCondition(...)` had already committed the status change. Each upload was in its own try/catch that only showed a `showToast.warning`, so any upload failure between status-change and upload-completion left the job In Progress with no media rows and only a mobile toast the technician could easily miss. The BT-RT case most likely hit exactly that path. Three independent bypasses existed: (a) devtools to re-enable the disabled button, (b) silent upload failures after status change, (c) any non-UI path such as direct PostgREST, Supabase Studio, or a future mobile app had no barrier at all.
+
+Fix is defense in depth — **DB trigger + client reorder**, both landing in this release.
+
+**DB trigger (`supabase/migrations/20260409_enforce_before_photo_on_start.sql`):** new `BEFORE UPDATE` trigger `trg_enforce_before_photo_on_start` on `public.jobs` via function `enforce_before_photo_on_start()`. Fires only when status transitions from `New`/`Assigned` → `In Progress` (other transitions untouched) and raises `P0001` if no `job_media` row with `category='before'` exists for that job. Applied to the live DB via pooler; post-apply sanity check passed; verified inside a rolled-back transaction by attempting to transition a real Assigned-no-before-photo job — trigger correctly blocked with *"Cannot start job JOB-260409-009: at least one before condition photo is required."* The trigger is not SECURITY DEFINER (only reads `job_media`, raises) and has no privilege implications.
+
+**Client reorder (`pages/JobDetail/hooks/useJobActions.ts:handleStartJobWithCondition`):** rewritten as three ordered gates. **Gate 1** rejects immediately if `state.beforePhotos.length === 0` with a clear toast before any network call. **Gate 2** uploads *all* before photos **first**, creating `job_media` rows with `category='before'`, using a sequential `for` loop (not `Promise.all`) so the *first* failure aborts the whole batch — on any failure, the modal stays open, `state.beforePhotos` + hourmeter + checklist stay intact so the technician can retry without re-entering anything, and critically `startJobWithCondition` is NOT called (the job stays in its previous status). **Gate 3** only runs if every upload succeeded: now it's safe to transition the job to `In Progress`, and the DB trigger will verify one more time at the moment of the status change. Success toast now reads *"Job started — Status changed to In Progress. N before photo(s) saved."*
+
+**Why this shape is durable, not a patch:** (1) the DB trigger means no future client path, direct PostgREST call, or Supabase Studio manual edit can start a job without the photo — not just the one UI flow we fixed today; (2) the sequential client upload with "first failure aborts" semantics is the only way to guarantee atomicity between "photos exist" and "status changed"; (3) all three layers (UI affordance, service ordering, DB trigger) now agree on the invariant — removing any one of them doesn't reintroduce the bug, so future refactors are safe.
+
+Scope notes: did not touch the existing BT-RT job's state (leaving it In Progress with only after photos, since retroactively "fixing" historical data is a user decision); did not change the `StartJobModal` Step 1 disabled-button UX affordance (kept as a fast local hint on top of the real enforcement); did not change `job_media` categories or any other trigger.
+
+Verification: `npm run typecheck` clean; live DB trigger exercised against a real candidate job inside a rolled-back transaction; existing Assigned jobs that already have before photos are unaffected.
+
+---
+
 ## [2026-04-09] — Fix: admin Reassign Job failing with 400 Bad Request
 
 ### Fixes

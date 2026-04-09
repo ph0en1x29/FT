@@ -186,6 +186,15 @@ export const useJobActions = ({
 
   const handleStartJobWithCondition = useCallback(async () => {
     if (!job) return;
+
+    // Gate 1: require at least one before photo. The DB trigger
+    // trg_enforce_before_photo_on_start (migration 20260409_enforce_before_photo_on_start.sql)
+    // enforces this server-side too — this check is the friendly UX layer.
+    if (state.beforePhotos.length === 0) {
+      showToast.error('Before photos required', 'Take at least one before condition photo before starting the job.');
+      return;
+    }
+
     const hourmeter = parseInt(startJobHourmeter);
     if (isNaN(hourmeter) || hourmeter < 0) {
       showToast.error('Please enter a valid hourmeter reading');
@@ -196,77 +205,83 @@ export const useJobActions = ({
       showToast.error(`Hourmeter must be ≥ ${currentForkliftHourmeter} (forklift's current reading)`);
       return;
     }
+
+    // Gate 2: upload ALL before photos FIRST, creating job_media rows with
+    // category='before'. Only if every upload succeeds do we proceed to
+    // startJobWithCondition — which is guarded by the DB trigger as well.
+    // This fixes the BT-RT incident (2026-04-09) where the job went to
+    // In Progress with zero before photos because the old flow uploaded
+    // AFTER the status change and any upload failure was a silent toast.
+    // The hourmeter + checklist the tech entered stay in modal state on
+    // failure so they don't have to re-enter anything.
+    try {
+      for (let index = 0; index < state.beforePhotos.length; index++) {
+        const file = state.beforePhotos[index];
+
+        // Convert File to blob for storage upload
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const arr = base64Data.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+
+        const timestamp = Date.now();
+        const fileName = `${job.job_id}/before_${timestamp}_${index}.jpg`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('job-photos')
+          .upload(fileName, blob, { contentType: mime, upsert: false });
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('job-photos')
+          .getPublicUrl(fileName);
+
+        await MockDb.addMedia(
+          job.job_id,
+          {
+            type: 'photo',
+            url: publicUrl,
+            description: 'Before condition photo',
+            created_at: new Date().toISOString(),
+            category: 'before',
+            source: 'camera',
+          },
+          currentUserId,
+          currentUserName,
+          false
+        );
+      }
+    } catch (uploadErr) {
+      console.error('Before photo upload failed:', uploadErr);
+      showToast.error(
+        'Photo upload failed',
+        'Could not upload before photos. Job NOT started — please retry.'
+      );
+      // Intentionally keep modal open and state.beforePhotos intact so the
+      // technician can retry without losing hourmeter, checklist, or photos.
+      return;
+    }
+
+    // Gate 3: all photos landed as job_media rows → now it's safe to
+    // transition the job to In Progress. The DB trigger will verify the
+    // before-photo precondition one more time at the moment of the status
+    // change (defense in depth).
     try {
       const updated = await MockDb.startJobWithCondition(job.job_id, hourmeter, conditionChecklist, currentUserId, currentUserName);
       setJob({ ...updated } as Job);
       setShowStartJobModal(false);
-      showToast.success('Job started', 'Status changed to In Progress');
-      
-      // Upload before photos after job is started
-      if (state.beforePhotos.length > 0) {
-        const uploadPromises = state.beforePhotos.map(async (file, index) => {
-          try {
-            // Convert File to base64 for upload
-            const base64Data = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            });
-
-            // Upload to storage
-            const arr = base64Data.split(',');
-            const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
-            const bstr = atob(arr[1]);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while (n--) {
-              u8arr[n] = bstr.charCodeAt(n);
-            }
-            const blob = new Blob([u8arr], { type: mime });
-            
-            const timestamp = Date.now();
-            const fileName = `${job.job_id}/before_${timestamp}_${index}.jpg`;
-            
-            const { error: uploadError } = await supabase.storage
-              .from('job-photos')
-              .upload(fileName, blob, {
-                contentType: mime,
-                upsert: false,
-              });
-            
-            if (uploadError) throw uploadError;
-            
-            const { data: { publicUrl } } = supabase.storage
-              .from('job-photos')
-              .getPublicUrl(fileName);
-            
-            // Create job_media record
-            await MockDb.addMedia(
-              job.job_id,
-              {
-                type: 'photo',
-                url: publicUrl,
-                description: 'Before condition photo',
-                created_at: new Date().toISOString(),
-                category: 'before',
-                source: 'camera',
-              },
-              currentUserId,
-              currentUserName,
-              false
-            );
-          } catch (error) {
-            console.error('Failed to upload before photo:', error);
-            showToast.warning('Some photos failed to upload', 'Job started successfully');
-          }
-        });
-
-        await Promise.all(uploadPromises);
-        if (uploadPromises.length === state.beforePhotos.length) {
-          showToast.success(`${state.beforePhotos.length} before photo(s) uploaded`);
-        }
-      }
+      showToast.success('Job started', `Status changed to In Progress. ${state.beforePhotos.length} before photo(s) saved.`);
     } catch (error) {
       showToast.error('Failed to start job', (error as Error).message);
     }
