@@ -344,7 +344,7 @@ export const getCustomerJobsWithCancelled = async (customerId: string): Promise<
         customer:customers(*),
         forklift:forklifts!forklift_id(*),
         parts_used:job_parts(*),
-        media:job_media!job_id(*),
+        media:job_media!job_media_job_id_fkey(*),
         extra_charges:extra_charges(*)
       `)
       .eq('customer_id', customerId)

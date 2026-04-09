@@ -4,6 +4,20 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-09] — Fix: technician accept still failing with PostgREST "more than one relationship" error
+
+### Fixes
+
+**Technicians could not accept assigned jobs.** The toast read "Failed to accept job — could not embed because more than one relationship was found for jobs and job_media". This is the same symptom the 2026-04-07 fix (commit 132f1fa) tried to resolve, but that fix used a column-name disambiguation hint (`media:job_media!job_id(*)`) which PostgREST/Supabase was silently failing to resolve. Every job fetch that embedded media — not just accept, but any path through the service layer — was returning the ambiguity error because the 2026-04-07 migration added a second FK between `jobs` and `job_media` (`jobs.technician_rejection_photo_id → job_media.media_id`) on top of the existing `job_media.job_id → jobs.job_id`, and PostgREST could no longer pick a relationship automatically.
+
+The durable fix is to disambiguate by **foreign-key constraint name**, which is PostgREST's canonical mechanism for multi-FK relationships. Before editing any code, the live Supabase DB was queried via `pg_constraint` to read the actual constraint names rather than guessing — they are `job_media_job_id_fkey` (the one the embed should use) and `jobs_technician_rejection_photo_id_fkey` (the ambiguity source). Every occurrence of `media:job_media!job_id(*)` across the service layer was then rewritten to `media:job_media!job_media_job_id_fkey(*)` — 29 replacements across 9 files (`services/jobChecklistService.ts`, `services/jobMediaService.ts`, `services/jobAssignmentCrudService.ts`, `services/serviceScheduleService.ts`, `services/jobStatusService.ts`, `services/jobService.ts`, `services/jobInvoiceService.ts`, `services/supabaseClient.ts`, `services/customerService.ts`).
+
+**Why this is the right fix in the long run, not a patch:** it matches PostgREST's documented disambiguation contract; it is stable against future FKs added between the same two tables (adding a third FK would not reintroduce the ambiguity); it preserves the referential integrity the 2026-04-07 migration established for rejection photos (no FK was dropped); and it is local to the query layer — no schema migration, no RLS change, no trigger change, no frontend change. The two alternative options considered were dropping the second FK (lost RI for the sake of shorter embed strings — rejected) and a two-step fetch in the accept handler only (would unblock accept but leave ~28 other embed sites broken — rejected).
+
+Verification: `npm run typecheck` clean after the rewrite; live DB confirms `job_media_job_id_fkey` exists; remaining check is manual — a technician clicking Accept on an assigned job in the live app should now succeed with a "Job accepted" toast instead of the embed error.
+
+---
+
 ## [2026-04-08] — FT Tooling Stack: CLAUDE.md, Skills, Project-Scoped Agent, Memory Architecture
 
 ### Changed
