@@ -7,6 +7,7 @@ import { uploadRejectionPhoto } from '../../../services/rejectionPhotoUpload';
 import { SupabaseDb as MockDb, supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { ForkliftConditionChecklist,Job,JobStatus,JobType,User } from '../../../types';
+import { compressPhoto } from '../../../utils/compressPhoto';
 import { getMissingMandatoryItems } from '../utils';
 import { JobDetailState } from './useJobDetailState';
 import { useJobExportActions } from './useJobExportActions';
@@ -218,22 +219,9 @@ export const useJobActions = ({
       for (let index = 0; index < state.beforePhotos.length; index++) {
         const file = state.beforePhotos[index];
 
-        // Convert File to blob for storage upload
-        const base64Data = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-        const arr = base64Data.split(',');
-        const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
-        }
-        const blob = new Blob([u8arr], { type: mime });
+        // Compress to ≤ 2048px JPEG at 75% quality (~1-2 MB) so the upload
+        // stays well within the 20 MB bucket limit even on slow mobile data.
+        const { blob, mime } = await compressPhoto(file);
 
         const timestamp = Date.now();
         const fileName = `${job.job_id}/before_${timestamp}_${index}.jpg`;

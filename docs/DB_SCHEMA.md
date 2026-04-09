@@ -504,6 +504,7 @@ Media attachments on jobs with GPS tracking and validation.
 | `reviewed_by_name` | TEXT | YES | | Reviewer name |
 | `reviewed_at` | TIMESTAMPTZ | YES | | When reviewed |
 | `review_notes` | TEXT | YES | | Review notes |
+| `is_archived` | BOOLEAN | NO | `false` | **(NEW 2026-04-09)** True after archival script has recompressed this photo |
 
 Constraints:
 - PK: `media_id`
@@ -522,6 +523,7 @@ Indexes:
 - `idx_job_media_start_photo` on (`job_id`, `is_start_photo`) WHERE is_start_photo = TRUE
 - `idx_job_media_end_photo` on (`job_id`, `is_end_photo`) WHERE is_end_photo = TRUE
 - `idx_job_media_fallback_pending` on (`is_camera_fallback`, `fallback_approved`) WHERE is_camera_fallback = TRUE AND fallback_approved IS NULL
+- `idx_job_media_archive_candidates` on (`is_archived`) WHERE is_archived = FALSE **(NEW 2026-04-09)**
 
 ---
 

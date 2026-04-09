@@ -4,6 +4,26 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-09] — Fix: before-photo upload fails on large phone photos + archival compression
+
+### Fixes
+
+**Technicians could not start jobs despite taking before-condition photos.** Investigation confirmed the DB trigger `trg_enforce_before_photo_on_start` (from the earlier session) is working correctly — it properly blocks status transitions when no before photo exists. The real culprit was the `job-photos` Supabase Storage bucket having a **5 MB file size limit**, while modern phone cameras routinely produce 6–12 MB JPEGs at native resolution. When a technician took a photo and clicked "Start Job", the upload to storage was rejected for exceeding the size limit, Gate 2 caught the error and showed "Photo upload failed", and `startJobWithCondition` was never called. The technician saw their photo in the preview grid but couldn't understand why the job wouldn't start.
+
+Secondary issue: the bucket's `allowed_mime_types` only included JPEG, PNG, WebP, and GIF — no HEIC/HEIF, which iPhones use by default in some camera modes.
+
+### Changed
+
+**Storage bucket limit increased to 20 MB** (`supabase/migrations/20260409_increase_photo_bucket_limit.sql`). Also added `image/heic` and `image/heif` to the allowed MIME types. Applied to the live DB immediately as a safety net while the client-side compression deploys.
+
+**Client-side photo compression before upload** (`utils/compressPhoto.ts`). New utility using `OffscreenCanvas` + `createImageBitmap` that resizes photos to 2048px max dimension and re-encodes as JPEG at 75% quality — producing ~1–2 MB output from typical 8–12 MB phone photos. Integrated into `handleStartJobWithCondition` in `useJobActions.ts`, replacing the raw File→base64→Uint8Array→Blob conversion. This means photos are compressed before every before-photo upload, so the 20 MB bucket limit should rarely be relevant. Note: `JobPhotosSection.tsx` already had its own Canvas-based compression at 1920px/80% — the gap was specifically in the start-job flow.
+
+### Added
+
+**Photo archival script** (`scripts/archive-old-photos.mjs`). Node.js script that compresses photos on completed jobs older than 30 days to reclaim Supabase Storage space. Downloads each photo, recompresses aggressively with `sharp` (1024px max, 40% JPEG quality with mozjpeg — roughly 90% size reduction), re-uploads in place, and marks the `job_media` row as `is_archived = true`. New `is_archived` boolean column added to `job_media` via `supabase/migrations/20260409_add_job_media_is_archived.sql`. The script supports `--dry-run` (preview without changes) and `--limit N` (process at most N photos per run). Requires one-time `npm install sharp` and a `SUPABASE_SERVICE_ROLE_KEY` environment variable for storage write access.
+
+---
+
 ## [2026-04-09] — Perf: JobBoard accept/reject is now 1.5–3s faster — trigger-based admin notifications + in-place job patching
 
 ### Changed
