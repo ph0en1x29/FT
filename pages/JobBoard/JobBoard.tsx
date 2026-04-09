@@ -49,7 +49,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
   const defaultViewMode: ViewMode = isTechnician ? 'card' : 'list';
   const [viewMode, setViewMode] = useState<ViewMode>(defaultViewMode);
 
-  const { jobs, loading, deletedJobs, canViewDeleted, fetchJobs } = useJobData({ currentUser, displayRole: activeRole });
+  const { jobs, loading, deletedJobs, canViewDeleted, fetchJobs, patchJob } = useJobData({ currentUser, displayRole: activeRole });
 
   const handleToggleStar = useCallback(async (e: React.MouseEvent, jobId: string) => {
     e.stopPropagation();
@@ -97,7 +97,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     closeRejectModal,
     jobNeedsAcceptance,
     getResponseTimeRemaining,
-  } = useJobAcceptance({ currentUser, onJobUpdated: fetchJobs });
+  } = useJobAcceptance({ currentUser, onJobPatched: patchJob });
 
   
 

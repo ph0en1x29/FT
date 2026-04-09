@@ -7,7 +7,12 @@ import { ResponseTimeState } from '../types';
 
 interface UseJobAcceptanceProps {
   currentUser: User;
-  onJobUpdated: () => void;
+  /**
+   * Patch the updated job row into JobBoard state in place. Called with the
+   * fresh row returned by accept/reject. Avoids a full `fetchJobs()` refetch
+   * on every accept — which was the main source of the "accept is slow" lag.
+   */
+  onJobPatched: (updated: Job) => void;
 }
 
 interface UseJobAcceptanceReturn {
@@ -27,7 +32,7 @@ interface UseJobAcceptanceReturn {
 /**
  * Hook for managing job acceptance/rejection flow for technicians
  */
-export function useJobAcceptance({ currentUser, onJobUpdated }: UseJobAcceptanceProps): UseJobAcceptanceReturn {
+export function useJobAcceptance({ currentUser, onJobPatched }: UseJobAcceptanceProps): UseJobAcceptanceReturn {
   const [processingJobId, setProcessingJobId] = useState<string | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectingJobId, setRejectingJobId] = useState<string | null>(null);
@@ -38,11 +43,13 @@ export function useJobAcceptance({ currentUser, onJobUpdated }: UseJobAcceptance
     e.stopPropagation();
     setProcessingJobId(jobId);
     try {
-      await MockDb.acceptJobAssignment(jobId, currentUser.user_id, currentUser.name);
-      // Auto-mark the assignment notification as read
+      const updated = await MockDb.acceptJobAssignment(jobId, currentUser.user_id, currentUser.name);
+      // Patch the single updated row into JobBoard state — no full refetch.
+      // Admin notifications are fanned out by the DB trigger trg_notify_admins_on_accept.
+      onJobPatched(updated);
+      // Fire-and-forget: mark the assignment notification as read. Doesn't block the toast.
       markNotificationReadByReference(currentUser.user_id, jobId);
       showToast.success('Job accepted', 'You can now start the job when ready.');
-      onJobUpdated();
     } catch (err) {
       showToast.error('Failed to accept job', (err as Error).message);
     } finally {
@@ -66,12 +73,12 @@ export function useJobAcceptance({ currentUser, onJobUpdated }: UseJobAcceptance
     }
     setProcessingJobId(rejectingJobId);
     try {
-      await MockDb.rejectJobAssignment(rejectingJobId, currentUser.user_id, currentUser.name, rejectReason.trim());
+      const updated = await MockDb.rejectJobAssignment(rejectingJobId, currentUser.user_id, currentUser.name, rejectReason.trim());
+      onJobPatched(updated);
       showToast.success('Job rejected', 'Admin has been notified for reassignment.');
       setShowRejectModal(false);
       setRejectingJobId(null);
       setRejectReason('');
-      onJobUpdated();
     } catch (err) {
       showToast.error('Failed to reject job', (err as Error).message);
     } finally {

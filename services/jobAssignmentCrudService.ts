@@ -9,7 +9,6 @@ import type { Job } from '../types';
 import { JobStatus as JobStatusEnum, NotificationType } from '../types';
 import {
   createNotification,
-  getAdminsAndSupervisors,
   notifyJobAssignment,
   notifyJobRejectedByTech,
   notifyNoResponseFromTech
@@ -55,14 +54,17 @@ export const assignJob = async (jobId: string, technicianId: string, technicianN
   return job;
 };
 
-export const acceptJobAssignment = async (jobId: string, technicianId: string, technicianName: string): Promise<Job> => {
+export const acceptJobAssignment = async (jobId: string, _technicianId: string, _technicianName: string): Promise<Job> => {
+  // Admin/supervisor notification fan-out is handled by the Postgres trigger
+  // `trg_notify_admins_on_accept` (migration 20260409_notify_admins_on_accept.sql).
+  // That removes ~4 sequential round trips that used to block this call.
   const now = new Date().toISOString();
 
   const { data, error } = await supabase
     .from('jobs')
     .update({ technician_accepted_at: now })
     .eq('job_id', jobId)
-    .eq('assigned_technician_id', technicianId)
+    .eq('assigned_technician_id', _technicianId)
     .select(`
       *,
       customer:customers(*),
@@ -75,22 +77,7 @@ export const acceptJobAssignment = async (jobId: string, technicianId: string, t
 
   if (error) throw new Error(error.message);
 
-  const job = data as Job;
-
-  const admins = await getAdminsAndSupervisors();
-  for (const admin of admins) {
-    await createNotification({
-      user_id: admin.user_id,
-      type: NotificationType.JOB_UPDATED,
-      title: 'Job Accepted',
-      message: `${technicianName} accepted job "${job.title}".`,
-      reference_type: 'job',
-      reference_id: jobId,
-      priority: 'normal',
-    });
-  }
-
-  return job;
+  return data as Job;
 };
 
 export const rejectJobAssignment = async (

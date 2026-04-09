@@ -16,6 +16,14 @@ interface UseJobDataReturn {
   isRealtimeConnected: boolean;
   canViewDeleted: boolean;
   fetchJobs: () => Promise<void>;
+  /**
+   * Patch a single job row in local state without triggering a full refetch.
+   * Used by mutation handlers (accept, reject, etc.) that already have the
+   * freshly updated job row from the service call. Mirrors the
+   * setJob({...updated}) pattern in JobDetail — the row from `.select().single()`
+   * after a mutation is already the source of truth.
+   */
+  patchJob: (updated: Job) => void;
 }
 
 /**
@@ -151,6 +159,17 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const patchJob = useCallback((updated: Job) => {
+    setJobs(prev => {
+      const idx = prev.findIndex(j => j.job_id === updated.job_id);
+      if (idx === -1) return prev;
+      const next = [...prev];
+      // Preserve the JobWithHelperFlag augmentation from the existing row
+      next[idx] = { ...prev[idx], ...updated };
+      return next;
+    });
+  }, []);
+
   return {
     jobs,
     loading,
@@ -158,5 +177,6 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
     isRealtimeConnected,
     canViewDeleted,
     fetchJobs,
+    patchJob,
   };
 }
