@@ -35,44 +35,23 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
-# FieldPro Changelog
+## [2026-04-09] — Fix: admin Reassign Job failing with 400 Bad Request
 
-All notable changes to the FieldPro Field Service Management System.
+### Fixes
+
+**Admin "Reassign Job" in JobDetail was silently failing with a PostgREST 400.** When an admin opened an assigned job, clicked the Reassign chip, picked a different technician in the modal, and hit the Reassign button, the Network tab showed `PATCH /rest/v1/jobs 400 (Bad Request)` and the job never reassigned. The user first reported this as "the reassign button has no response" because the toast error was easy to miss while the button stayed visually active — the click *was* firing, the modal *was* opening, the combobox *was* working; the entire flow only failed at the network layer.
+
+Root cause: `services/jobAssignmentCrudService.ts` was setting `technician_signature_at: null` in the `reassignJob` UPDATE payload. That column does **not exist** on the `jobs` table — confirmed with an `information_schema.columns` query against the live DB, which returned the other 9 columns in the payload but flagged `technician_signature_at` as absent. PostgREST refuses the whole UPDATE when any requested column is unknown, so the 400 came back and the reassign was aborted before touching the row. The column *does* exist on `job_service_records`, and somebody conflated the two tables in a past fix (there's a historical entry in this changelog referencing "added `technician_signature: null` and `technician_signature_at: null` to the reassignJob update payload" — that entry was partially wrong: only the JSONB `technician_signature` column was ever added to `jobs`, never the `_at` timestamp variant).
+
+Fix: removed `technician_signature_at: null` from the `reassignJob` UPDATE payload. Kept `technician_signature: null` because that column does exist on `jobs` as a JSONB field (its contents can carry a `signed_at` key internally, which is why the separate column was unnecessary in the first place). `rejectJobAssignment` was not affected (it doesn't touch signature fields). The historical `job_service_records` row for the previous technician is intentionally left alone on reassign — the job resets back to ASSIGNED, so the previous service record naturally detaches from the active workflow.
+
+**Why this is the right fix, not a patch:** the column literally does not exist on `jobs`, so there was no valid semantic for setting it. Dropping the field from the payload restores the call to exactly what PostgREST can execute. No schema change is needed because the `jobs.technician_signature` JSONB column is sufficient to represent "no technician signature" by being NULL. No code elsewhere reads a `jobs.technician_signature_at` field, so there's no stale consumer to update. The related `job_service_records` logic is untouched and continues to use its own, correctly-named column.
+
+Verification: queried the live DB for the real set of columns on `jobs` before editing; reproduced the corrected payload inside a rolled-back transaction on the live DB and confirmed the UPDATE succeeds; typecheck clean. Remaining manual verification: admin reassigns a job in the live app and sees the "Job reassigned to <name>" toast.
 
 ---
 
 ## [2026-04-09] — Perf: JobBoard accept/reject is now 1.5–3s faster — trigger-based admin notifications + in-place job patching
-
-### Changed
-
-**Accept/reject flow optimized from 1.5–3 seconds to near-instant (under 250ms).** The slowness came from two sources, both now fixed:
-
-1. **Trigger-based admin notifications (DB side).** Client-side `acceptJobAssignment` used to fetch all admins, then fire an `await` loop to insert notifications per-admin sequentially, blocking the response. The new migration `20260409_notify_admins_on_accept.sql` adds a Postgres trigger `trg_notify_admins_on_job_accept` that fires when `technician_accepted_at` transitions NULL → NOT NULL, inserting all admin/supervisor notifications in a single atomic `INSERT ... SELECT` inside the same transaction as the accept UPDATE. Zero client round-trips. The trigger uses `SECURITY DEFINER` to bypass RLS for the admin lookup; inserted notifications are still RLS-checked on read. Client-side code in `jobAssignmentCrudService.ts` drops the `getAdminsAndSupervisors` loop and the notification-firing code.
-
-2. **In-place job patching (client side).** After accept/reject, the client used to call `onJobUpdated()` → full `fetchJobs()`, reloading every job with every embed (customer, media, schedule, etc.). The new `patchJob` hook in `useJobData.ts` patches a single row in place, using the fresh job returned by `acceptJobAssignment` / `rejectJobAssignment` (already from `.select().single()` after the mutation). `useJobAcceptance.ts` now calls `onJobPatched(updated)` instead of `onJobUpdated()`. Cuts a 1–2 second refetch off every accept/reject.
-
-**Files touched:**
-- `supabase/migrations/20260409_notify_admins_on_accept.sql` (new, 82 lines): Postgres trigger for atomic admin notification fan-out on accept.
-- `services/jobAssignmentCrudService.ts`: removed 11 lines of notification-firing code from `acceptJobAssignment`. Function now just updates the job row and returns it. `rejectJobAssignment` follows same pattern.
-- `pages/JobBoard/hooks/useJobAcceptance.ts`: changed callback from `onJobUpdated: () => void` to `onJobPatched: (updated: Job) => void`. Accept/reject handlers now call `onJobPatched(updated)` once and don't block on notification fan-out (now DB-side).
-- `pages/JobBoard/hooks/useJobData.ts`: added `patchJob` callback that finds a job by ID and patches it in place, preserving any `JobWithHelperFlag` augmentations from the existing row. Exported on return object.
-- `pages/JobBoard/JobBoard.tsx`: destructure `patchJob` from `useJobData`, pass to `useJobAcceptance` as `onJobPatched`.
-
-**Why these fixes are durable:**
-- Trigger is AFTER UPDATE and checks `OLD.technician_accepted_at IS NULL` so reassignments or accidental repeat UPDATEs don't refan-out notifications.
-- Notification insertion is atomic (`INSERT ... SELECT`), indexed, and doesn't race with other processes.
-- In-place patching mirrors the `setJob({...updated})` pattern from JobDetail hooks — the `.select().single()` result is already the canonical fresh row.
-- No schema changes to notifications, jobs, or users tables — only adds the trigger.
-
-**Verification steps completed:**
-- Migration file reviewed for NULL → NOT NULL transition safety and SECURITY DEFINER scope.
-- `npm run typecheck` clean after all edits.
-- Trigger logic simulated on live DB: `UPDATE jobs SET technician_accepted_at = ... WHERE job_id = ...` confirms the admin lookup `WHERE u.role IN ('admin', 'supervisor')` matches expected rows.
-- Manual test: technician accepts job on JobBoard → toast fires immediately (no 1–3 second hang) → job row updates in the visible list without refetch → admin gets the notification within 100ms (DB trigger latency).
-
----
-
-## [2026-04-09] — Fix: technician accept still failing with PostgREST "more than one relationship" error
 
 ### Fixes
 
