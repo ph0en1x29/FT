@@ -2465,7 +2465,7 @@ Returns numeric order for job status comparison.
 
 | Returns | Description |
 |---------|-------------|
-| INTEGER | 0=New, 1=Assigned, 2=In Progress, 3=Awaiting Finalization, 4=Completed |
+| INTEGER | 0=New, 1=Assigned, 2=In Progress/Incomplete - Continuing, 3=Awaiting Finalization, 4=Completed |
 
 ---
 

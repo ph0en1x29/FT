@@ -4,6 +4,18 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-09] — Fix: "Continue Tomorrow" blocked for technicians by status transition trigger
+
+### Fixes
+
+**Technicians saw "Failed to update job" when clicking Continue Tomorrow.** The `validate_job_status_transition` trigger uses `get_status_order()` to classify status changes as forward, backward, or same-level. That function knew about five statuses (New, Assigned, In Progress, Awaiting Finalization, Completed) but not "Incomplete - Continuing" — so it returned -1. The trigger then treated "In Progress" (index 2) to "Incomplete - Continuing" (index -1) as a backward transition and blocked it with: *"Only admin or supervisor can move jobs backward."* The same gap also blocked "Resume Job" (Incomplete - Continuing back to In Progress), since -1 to 2 looked like a 3-step forward skip.
+
+### Changed
+
+**`get_status_order()` now includes "Incomplete - Continuing" at index 2** (`supabase/migrations/20260409_fix_continue_tomorrow_status_transition.sql`). Since "In Progress" and "Incomplete - Continuing" are lateral peers in the job lifecycle (one active, one paused), they share the same index. The trigger treats transitions between equal indices as no-ops, so both Continue Tomorrow and Resume Job now pass through for all roles — technicians, admins, and supervisors alike. No app-side code changes were needed; the service function and React handler were already correct, the DB trigger was the sole blocker.
+
+---
+
 ## [2026-04-09] — Fix: before-photo upload fails on large phone photos + archival compression
 
 ### Fixes
