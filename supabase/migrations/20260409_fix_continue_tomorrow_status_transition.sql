@@ -2,21 +2,36 @@
 --
 -- Problem: "Continue Tomorrow" fails for technicians with "Failed to update job."
 --
--- Root cause: get_status_order() does not know about 'Incomplete - Continuing',
--- so it returns -1. The validate_job_status_transition trigger interprets
--- 'In Progress' (2) -> 'Incomplete - Continuing' (-1) as a backward transition
--- and blocks it for non-admin users. The same gap blocks "Resume Job"
--- ('Incomplete - Continuing' -> 'In Progress') because -1 -> 2 looks like a
--- 3-step forward skip, which is also rejected for technicians.
+-- Two blockers found:
 --
--- Fix: add 'Incomplete - Continuing' to get_status_order() at index 2 (same as
--- 'In Progress'). The two statuses are lateral peers in the job lifecycle —
--- one is active, the other is paused. Equal indices mean the trigger treats
--- both transitions as a no-op (neither forward nor backward), so they pass
--- through for all roles.
+-- 1. jobs_status_check constraint only allows 5 statuses (New, Assigned,
+--    In Progress, Awaiting Finalization, Completed). 'Incomplete - Continuing'
+--    is rejected at the constraint level before any trigger fires.
+--
+-- 2. get_status_order() does not include 'Incomplete - Continuing', returning
+--    -1. The validate_job_status_transition trigger interprets 'In Progress' (2)
+--    -> 'Incomplete - Continuing' (-1) as a backward transition and blocks it
+--    for non-admin users. Same gap blocks Resume Job in the other direction.
+--
+-- Fix: add 'Incomplete - Continuing' to the CHECK constraint AND to
+-- get_status_order() at index 2 (same as 'In Progress'). The two statuses
+-- are lateral peers in the job lifecycle — one is active, the other is paused.
 
 BEGIN;
 
+-- Fix 1: Widen the status check constraint
+ALTER TABLE public.jobs DROP CONSTRAINT jobs_status_check;
+ALTER TABLE public.jobs ADD CONSTRAINT jobs_status_check
+  CHECK (status = ANY (ARRAY[
+    'New'::text,
+    'Assigned'::text,
+    'In Progress'::text,
+    'Incomplete - Continuing'::text,
+    'Awaiting Finalization'::text,
+    'Completed'::text
+  ]));
+
+-- Fix 2: Teach get_status_order about the new status
 CREATE OR REPLACE FUNCTION get_status_order(status_val TEXT)
 RETURNS INTEGER AS $$
 BEGIN
@@ -32,7 +47,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- Post-apply sanity check
+-- Post-apply sanity checks
 DO $$
 BEGIN
   IF get_status_order('Incomplete - Continuing') != 2 THEN

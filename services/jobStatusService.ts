@@ -185,7 +185,6 @@ export const markJobContinueTomorrow = async (
     .update({
       status: JobStatusEnum.INCOMPLETE_CONTINUING,
       notes: [...currentNotes, noteEntry],
-      updated_at: new Date().toISOString(),
     })
     .eq('job_id', jobId);
 
@@ -211,7 +210,6 @@ export const resumeMultiDayJob = async (
     .from('jobs')
     .update({
       status: 'In Progress',
-      updated_at: new Date().toISOString()
     })
     .eq('job_id', jobId);
   
