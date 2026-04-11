@@ -8,7 +8,7 @@
  * - Query profiles for optimized fetches
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type LockFunc } from '@supabase/supabase-js';
 import { CircuitBreakerTrippedError,createCircuitBreaker } from '../utils/circuit-breaker';
 
 // Circuit breaker for Supabase Storage uploads.
@@ -22,7 +22,51 @@ const storageCB = createCircuitBreaker({ maxFailures: 3, resetAfterMs: 60_000, l
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+/**
+ * Resilient auth lock for @supabase/auth-js.
+ *
+ * Supabase-js serialises auth ops (signIn, getSession, token refresh) through
+ * the browser's navigator.locks API and a 10s lockAcquireTimeout. When another
+ * context (another tab, a stale refresh, a service worker) holds the lock,
+ * the timer fires `abortController.abort()` **without a reason**, producing
+ * the cryptic `AbortError: signal is aborted without reason` that was being
+ * rendered straight into the LoginPage error banner on client sites.
+ *
+ * FieldPro doesn't rely on strict cross-tab auth coordination — PostgREST
+ * validates tokens server-side and Supabase tolerates concurrent refreshes.
+ * This lock still prefers the native LockManager when it grants quickly, but
+ * if acquisition is refused (ifAvailable=true returned null) OR anything at
+ * all throws, we fall back to running the operation unlocked instead of
+ * surfacing an unreadable error to the user.
+ */
+const resilientAuthLock: LockFunc = async (name, _acquireTimeout, fn) => {
+  const locks = typeof globalThis !== 'undefined' ? globalThis.navigator?.locks : undefined;
+  if (!locks) {
+    return fn();
+  }
+  try {
+    return await locks.request(
+      name,
+      { mode: 'exclusive', ifAvailable: true },
+      async (lock) => {
+        // If the lock is already held elsewhere, `ifAvailable: true` resolves
+        // with `null` instead of blocking. In that case we still run fn(): a
+        // rare concurrent auth op is safer than blocking sign-in indefinitely
+        // or throwing AbortError at the user.
+        void lock;
+        return await fn();
+      },
+    );
+  } catch {
+    return fn();
+  }
+};
+
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    lock: resilientAuthLock,
+  },
+});
 
 // =====================
 // LOGGING HELPERS

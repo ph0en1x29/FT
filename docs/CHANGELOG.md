@@ -4,6 +4,38 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-10] — Fix: login page "AbortError: signal is aborted without reason" on client sites
+
+### Fixes
+
+**Clients on the login page were seeing a cryptic red error banner reading `AbortError: signal is aborted without reason` after clicking Sign In.** The error originated several layers below the login flow, inside `@supabase/auth-js`, which made it difficult to recognise from the surface symptom alone.
+
+**Root cause — deep dive.** Supabase-js serialises every auth operation (sign-in, `getSession`, token refresh) through the browser's `navigator.locks` API with a default 10-second `lockAcquireTimeout`. When that timer elapses, supabase-js's internal `navigatorLock` helper (`node_modules/@supabase/auth-js/dist/module/lib/locks.js:97-103`) calls:
+
+```js
+setTimeout(() => { abortController.abort(); }, acquireTimeout);
+```
+
+Crucially, `abort()` is called with **no reason argument**, so the DOMException that bubbles out has the message `"signal is aborted without reason"`. The error rethrows through `signInWithPassword` → our `services/authService.ts:login()` → `pages/LoginPage.tsx:25`, which renders `err.message` straight into the login form's error banner. End users saw a message that no amount of Googling would meaningfully explain.
+
+The lock was contended in several realistic scenarios on client sites: a user with another FieldPro tab open where auto-refresh was mid-flight, a stale tab that crashed while holding the lock, a PWA service worker revalidating tokens in the background, or even React.StrictMode's double-invoked `App.tsx` `useEffect` overlapping two `hydrateSession()` calls during dev-like conditions. All of these would leave `lock:sb-<storageKey>-auth-token` held long enough for the 10s timer to fire.
+
+**Fix — resilient auth lock in `services/supabaseClient.ts`.** Replaced the default `createClient(url, key)` with an explicit `auth.lock: resilientAuthLock`. The new lock still prefers the native Web Locks API when it grants quickly (`navigator.locks.request` with `{ mode: 'exclusive', ifAvailable: true }`), but it **never blocks and never throws**: if the lock is already held, `ifAvailable` resolves with `null` and we fall through to running the operation unlocked; if `locks.request` itself rejects for any reason, we catch and fall back the same way. For FieldPro's single-user-per-session model, cross-tab auth serialisation is a nice-to-have rather than a correctness requirement — PostgREST validates every token server-side and Supabase tolerates the rare concurrent refresh (one wins, the other simply re-refreshes on its next request). Falling back to unlocked execution is strictly safer than surfacing AbortError to a field technician who just wants to sign in.
+
+**Safety net — Sentry `ignoreErrors`.** Added `'signal is aborted without reason'` and `'LockAcquireTimeoutError'` to the filter list in `services/errorTracking.ts`. Stale browser tabs still running the old client will keep emitting the error until they reload, and without the filter, those reports would drown the Sentry inbox while the fix rolls out.
+
+### Scope notes
+
+- **Not changed:** `pages/LoginPage.tsx`, `App.tsx`'s `hydrateSession`, and `services/authService.ts` — all three were doing the right thing; the bug was one layer deeper inside supabase-js. The red error banner stays as-is because the primary fix should prevent the condition in the first place.
+- **Not used:** `lockNoOp`. A pure no-op would throw away the cross-tab benefit unconditionally. The resilient wrapper preserves it in the common case and degrades gracefully only when necessary.
+- **Not touched:** the 5-second `authFallback` stall guard in `App.tsx:33` — unrelated, still useful.
+
+### Verification
+
+`npm run typecheck` clean. The new `LockFunc` import type-checks against `@supabase/auth-js`'s exported type, re-exposed through `@supabase/supabase-js` via `export * from "@supabase/auth-js"`. The code path that produced the original AbortError (`locks.js:97-103`'s `setTimeout`→`abort`) is no longer reached because FieldPro no longer invokes supabase-js's `navigatorLock` helper at all — we call `navigator.locks.request` directly with no timeout and no AbortSignal wiring.
+
+---
+
 ## [2026-04-10] — Refactor: complete "Continue Tomorrow" fix with constraint correction + code cleanup
 
 ### Changed

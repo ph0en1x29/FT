@@ -41,6 +41,12 @@ export const initErrorTracking = () => {
       'Network request failed',
       'Load failed',
       'Failed to fetch',
+      // Supabase-js navigator.locks lock acquire timeout — mitigated at the
+      // client level via a resilient auth lock in services/supabaseClient.ts,
+      // filtered here as a safety net for stale tabs still running the old
+      // client. See CHANGELOG 2026-04-10.
+      'signal is aborted without reason',
+      'LockAcquireTimeoutError',
     ],
     
     // Don't send errors in development
