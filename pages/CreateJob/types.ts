@@ -13,6 +13,13 @@ export interface CreateJobFormData {
   contact_id: string;
   site_id: string;
   billing_type: 'rental-inclusive' | 'chargeable';
+  /**
+   * ISO-8601 string representing 07:30 Malaysia Time on the scheduled calendar day.
+   * Empty string = no schedule (job sits in the "unscheduled" backlog).
+   * When set, a reminder notification is sent to the assigned technician at the
+   * stored time via the send_scheduled_job_reminders() cron function.
+   */
+  scheduled_date: string;
 }
 
 export interface DuplicateJobWarning {

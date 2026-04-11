@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Camera,Download,Trash2 } from 'lucide-react';
+import { Camera,Download,Images,Trash2 } from 'lucide-react';
 import React,{ useMemo,useState } from 'react';
 import PhotoLightbox from '../../../components/ui/PhotoLightbox';
 import { SupabaseDb as MockDb,supabase } from '../../../services/supabaseService';
@@ -381,12 +381,16 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files: File[] = Array.from(e.target.files || []);
+    // Only gate on camera permission when the user actually used a camera-capture input.
+    // Gallery uploads must work even if camera permission is denied.
+    const usedCameraCapture = e.target.hasAttribute('capture');
     e.target.value = '';
     if (files.length === 0) return;
 
-    // Check camera permission before processing
-    const hasPermission = await checkCameraPermission();
-    if (!hasPermission) return;
+    if (usedCameraCapture) {
+      const hasPermission = await checkCameraPermission();
+      if (!hasPermission) return;
+    }
 
     // Upload files sequentially
     for (let i = 0; i < files.length; i++) {
@@ -566,10 +570,20 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
                 <p className="text-xs text-[var(--text-muted)] mt-3">
                   Uploads default to <span className="font-medium text-[var(--text-secondary)]">{PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}</span>
                 </p>
-                <label className="cursor-pointer">
-                  <span className="btn-premium btn-premium-primary mt-4 text-xs">Add Photos</span>
-                  <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoUpload} />
-                </label>
+                <div className="flex items-center gap-2 mt-4">
+                  <label className="cursor-pointer">
+                    <span className="btn-premium btn-premium-primary text-xs inline-flex items-center gap-1.5">
+                      <Camera className="w-3.5 h-3.5" /> Take Photo
+                    </span>
+                    <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoUpload} />
+                  </label>
+                  <label className="cursor-pointer">
+                    <span className="btn-premium btn-premium-ghost text-xs inline-flex items-center gap-1.5">
+                      <Images className="w-3.5 h-3.5" /> From Gallery
+                    </span>
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} />
+                  </label>
+                </div>
                 <label className="cursor-pointer">
                   <span className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)] underline mt-2 inline-block">Add Video</span>
                   <input type="file" accept="video/*" className="hidden" onChange={handlePhotoUpload} />
@@ -671,9 +685,14 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
                   <div className="flex flex-col items-center gap-1">
                     <label className="cursor-pointer flex flex-col items-center">
                       <Camera className="w-5 h-5 mb-0.5" />
-                      <span className="text-[9px]">Add Photo</span>
+                      <span className="text-[9px]">Take Photo</span>
                       <span className="text-[9px] text-[var(--text-muted)] mt-0.5">{PHOTO_CATEGORIES.find(c => c.value === uploadPhotoCategory)?.label || 'Other'}</span>
                       <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoUpload} />
+                    </label>
+                    <label className="cursor-pointer flex items-center gap-1">
+                      <Images className="w-3 h-3 text-[var(--text-muted)]" />
+                      <span className="text-[9px] text-[var(--text-muted)] hover:text-[var(--accent)] underline">Gallery</span>
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} />
                     </label>
                     <label className="cursor-pointer">
                       <span className="text-[8px] text-[var(--text-muted)] hover:text-[var(--accent)] underline">Add Video</span>

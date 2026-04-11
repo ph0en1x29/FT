@@ -3,7 +3,7 @@
  * VanStockPage - Main container component
  * Manages van stock inventory for technicians
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useInvalidateQueries } from '../../hooks/useQueryHooks';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
@@ -48,6 +48,17 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
 
   // Selected van stock for modals
   const [selectedVanStock, setSelectedVanStock] = useState<VanStock | null>(null);
+
+  // Re-sync the currently-open van stock with the fresh list after any refetch.
+  // Without this, admin-triggered transfers inside VanStockDetailModal would show
+  // stale quantities until the user closes and reopens the modal.
+  useEffect(() => {
+    if (!selectedVanStock) return;
+    const fresh = vanStocks.find(vs => vs.van_stock_id === selectedVanStock.van_stock_id);
+    if (fresh && fresh !== selectedVanStock) {
+      setSelectedVanStock(fresh);
+    }
+  }, [vanStocks, selectedVanStock]);
 
   // Modal visibility state
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -473,6 +484,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
         onDeactivate={() => handleOpenDeleteConfirm('deactivate')}
         onDelete={() => handleOpenDeleteConfirm('delete')}
         onScheduleAudit={handleScheduleAudit}
+        onRefresh={loadData}
         currentUserId={currentUser.user_id}
         currentUserName={currentUser.name}
       />

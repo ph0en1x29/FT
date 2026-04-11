@@ -345,6 +345,20 @@ export const useJobActions = ({
         showToast.error('Signatures required', 'Both technician and customer signatures are required');
         return;
       }
+      // Parts declaration is mandatory for lead technicians (helpers excluded).
+      // Admins/supervisors are exempt on the server trigger, so we skip the check here too.
+      // Mirrors the DB trigger in 20260407_repair_skip_checklist_completion.sql so the user
+      // gets a friendly toast instead of a raw "Cannot complete job: Parts must be recorded..." error.
+      if (currentUserRole === 'technician' && !state.isCurrentUserHelper) {
+        const partsDeclared = (job.parts_used?.length ?? 0) > 0 || state.noPartsUsed;
+        if (!partsDeclared) {
+          showToast.error(
+            'Parts declaration required',
+            'Add the parts used or tick "No parts were used" before completing the job'
+          );
+          return;
+        }
+      }
       // Repair jobs are exempt from checklist requirement
       if (job.job_type !== JobType.REPAIR) {
         const missing = getMissingMandatoryItems(job);
@@ -405,6 +419,34 @@ export const useJobActions = ({
       }
     }
   }, [job, state, technicians, currentUserId, currentUserName, setJob]);
+
+  // Schedule date change (admin/supervisor only — gated at the UI level by CustomerAssignmentCard).
+  // Accepts either a Malaysia-time ISO string (from DatePicker) or an empty string to clear.
+  // Allowed only while the job is still unstarted: once the tech begins work, the scheduled
+  // date becomes historical and shouldn't be rewritten.
+  const handleScheduledDateChange = useCallback(async (iso: string) => {
+    if (!job) return;
+    if (job.status !== JobStatus.NEW && job.status !== JobStatus.ASSIGNED) {
+      showToast.error('Cannot change schedule', 'Only unstarted jobs can be rescheduled');
+      return;
+    }
+    try {
+      // Pass null to clear the column, otherwise pass the ISO string verbatim.
+      // Also reset scheduled_reminder_sent_at so a newly-scheduled date fires a fresh reminder.
+      const updated = await MockDb.updateJob(job.job_id, {
+        scheduled_date: iso || null,
+        scheduled_reminder_sent_at: null,
+      } as Partial<Job>);
+      setJob({ ...updated } as Job);
+      if (iso) {
+        showToast.success('Schedule updated', 'Technician will be notified at 7:30 AM Malaysia Time on the new date');
+      } else {
+        showToast.success('Schedule cleared', 'This job is no longer scheduled');
+      }
+    } catch (error) {
+      showToast.error('Failed to update schedule', (error as Error).message);
+    }
+  }, [job, setJob]);
 
   // Acknowledgement handler
   const handleAcknowledgeJob = useCallback(async () => {
@@ -915,6 +957,7 @@ export const useJobActions = ({
     handleAssignJob,
     handleReassignJob,
     handleAcknowledgeJob,
+    handleScheduledDateChange,
     
     // Notes
     handleAddNote,

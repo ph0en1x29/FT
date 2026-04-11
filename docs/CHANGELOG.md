@@ -4,6 +4,149 @@ All notable changes to the FieldPro Field Service Management System.
 
 ---
 
+## [2026-04-10] — Feature: Admin 2 Store — atomic van stock ⇄ central warehouse transfers with audit trail
+
+### Added
+
+**Admin 2 Store (and any other store-keeper role) can now transfer parts between a van and the central warehouse in one click, with full audit trail and enforced policy guardrails.** Previously, the van stock page had three different half-paths for moving stock: (a) the multi-step replenishment workflow (tech requests → Admin 2 approves → fulfil → tech confirms, which is the right flow for scheduled loads but overkill for a quick "put two more filters on Ahmad's van"), (b) `addVanStockItem()` which just inserted a van_stock_items row without decrementing central stock (creating phantom inventory), and (c) liquid-only `prompt()`-based transfer buttons that only showed up on rows where `item.part.is_liquid` was true. Count-based parts — filters, belts, fuses, bearings, the bulk of a typical van — had no transfer path at all. This release closes that gap with a proper one-step flow.
+
+**Two new atomic PL/pgSQL RPCs in `supabase/migrations/20260410_van_stock_admin_transfer.sql`:**
+
+- `rpc_transfer_part_to_van(part_id, van_stock_id, quantity, performed_by, performed_by_name, reason)` — store → van
+- `rpc_return_part_to_store(van_stock_item_id, quantity, performed_by, performed_by_name, reason)` — van → store
+
+Both are `SECURITY DEFINER` with `SET search_path = public`. Both enforce the same guardrails: (1) quantity must be positive, (2) reason must be a non-empty string after trimming, (3) `auth.uid() → users.role` must be in `('admin','admin_service','admin_store','supervisor')` — technicians are explicitly rejected because they go through the existing request-approve-fulfill-confirm replenishment workflow instead, (4) both sides of the transfer happen inside a single PL/pgSQL function call with `FOR UPDATE` row locks on both the `parts` row and the `van_stock_items` row, so concurrent admin transfers cannot race-condition over-draw, (5) every successful call inserts a row into `inventory_movements` with `movement_type = 'transfer_to_van'` or `'return_to_store'`, the user-provided reason in `adjustment_reason`, a human-readable `format()`-built summary in `notes`, and the after-quantity fields populated on both sides. The transfer-to-van function also upserts the `van_stock_items` row automatically — if `(van_stock_id, part_id)` already exists it increments the existing quantity and stamps `last_replenished_at`, otherwise it inserts a fresh row with default `min_quantity=0`, `max_quantity=0`, `is_core_item=false` (Admin 2 can edit those later). The return-to-store function deliberately LEAVES the van_stock_items row in place even when quantity reaches zero, preserving the per-part config for the next load.
+
+**New reusable `TransferPartModal` component** (`pages/VanStockPage/components/modals/TransferPartModal.tsx`) that drives both directions through a single dual-mode UI. Mode `'in'` renders a `Combobox` part picker (backed by `useSearchParts(30)` for server-side search) OR pre-selects an existing item if the caller passed one; mode `'out'` is locked to a specific van_stock_items row with a read-only summary showing the current van quantity and a quantity input capped at that value. Both modes require a non-empty reason, validate `qty > 0` and `qty <= max_available`, and show a helpful "max X available" hint inline. The modal also point-reads `parts.stock_quantity` the moment a part is selected in in-mode, so the admin sees the current central warehouse quantity before picking a number. Submit calls `transferPartToVan()` or `returnPartToStore()` in `services/inventoryService.ts`, which wrap the RPCs and re-fetch the result with a `part:parts(*)` join for optimistic UI updates.
+
+**Per-row transfer buttons on every stock item in `VanStockDetailModal`** — the table's "Actions" column now renders consistently for both liquid and non-liquid parts (it was previously empty for non-liquid rows). Each row gets a `⬇ from Store` button and a `⬆ to Store` button, both gated on `isAdmin`. Liquid rows continue to call the existing `liquidInventoryService.transferToVan / returnToStore` flow with the sealed-container semantics that were built for the 2026-02 liquid rollout — those are functionally correct and changing them is out of scope. Non-liquid rows open the new `TransferPartModal` with the appropriate mode + pre-selected item. The "Return to Store" button is disabled and shows a "Nothing to return" tooltip when the item quantity is zero.
+
+**New "Transfer from Store" footer button** in `VanStockDetailModal`, next to the existing "Add Item" button. Opens the `TransferPartModal` in `'in'` mode with no pre-selection, so Admin 2 can transfer a brand-new SKU onto the van in one click — the upsert logic inside `rpc_transfer_part_to_van` handles the "insert fresh row" path automatically.
+
+### Changed
+
+**`VanStockDetailModal.onRefresh` prop** — new optional callback that the parent passes (wired to `loadData` in `VanStockPageMain`) so every successful transfer triggers a React Query refetch. The detail modal stays open and the per-row quantities update in place. Without this, the admin would have had to close and reopen the modal to see the new numbers after each transfer.
+
+**`VanStockPageMain.selectedVanStock` re-sync effect** — a new `useEffect` watches the `vanStocks` list and re-finds the currently-selected van whenever the list reference changes, so the modal always shows fresh data after a refetch. Pattern is a simple `vanStocks.find(vs => vs.van_stock_id === selectedVanStock.van_stock_id)` with a reference inequality check to avoid infinite loops.
+
+### Company policy enforcement (what "based on their company policy" means here)
+
+The user's request mentioned "based on their company policy" without elaborating what the policy is. The RPCs bake in these defensive guardrails, which together constitute a sensible default policy for any store-keeping operation:
+
+1. **Who**: only `admin`, `admin_service`, `admin_store`, `supervisor` can perform direct transfers. Technicians cannot — their flow remains the multi-step replenishment request-approve-fulfil-confirm cycle.
+2. **What**: every transfer requires a non-empty human-readable reason, logged to `inventory_movements.adjustment_reason` alongside the `performed_by` user ID.
+3. **How much**: quantity must be a positive integer, and must not exceed what's available on the source side. Central over-draws and van over-draws are both rejected with descriptive error messages that include the actual available quantity and the part name.
+4. **Atomic**: both sides of the transfer happen in a single transaction with `FOR UPDATE` row locks. Concurrent admin transfers cannot race. If anything inside the function raises, the whole transaction rolls back.
+5. **Audit**: every successful call creates an `inventory_movements` row that appears immediately in the existing Ledger tab. The row is indistinguishable from the movements created by the replenishment workflow or liquid transfers, so all admin operations show up in one unified ledger.
+
+If the product team wants a richer policy later (e.g., "Admin 2 can transfer up to RM 500 in value without secondary approval", "no transfers allowed during month-end audit window", "only pre-approved parts can be returned from specific vans"), the RPC is the right hook point to enforce those rules — they can be added as additional checks at the top of the function without touching any client code.
+
+### Scope notes
+
+- **Not changed:** the liquid sealed-container flow in `liquidInventoryService.ts`. It already handles liquid-specific semantics (sealed vs bulk quantities, break-container operations, base_unit vs container_unit conversion) that `TransferPartModal` doesn't model. Unifying the two is a separate task with its own design scope. Liquid rows in `VanStockDetailModal` keep their existing `prompt()` buttons, now rendered consistently with the new non-liquid buttons' icon style (`ArrowDownToLine` / `ArrowUpFromLine`).
+- **Not changed:** the existing `addVanStockItem()` service function. It still inserts a `van_stock_items` row without touching central stock, which is the correct behavior for the "register a part on a van without decrementing warehouse stock" setup path (e.g., initial van loadout from parts that are already physically on the van). The new "Transfer from Store" button is the path that actually moves central stock. The "Add Item" button's tooltip was updated to make this distinction clear.
+- **Not changed:** the existing `transferVanStockItems()` (van-to-van move). Its lack of audit trail is a pre-existing gap and is tracked separately.
+- **Not changed:** the multi-step replenishment workflow. That flow exists for a different use case (technician-initiated requests, Admin 2 approval gate, physical issue tracking, technician confirmation of receipt with photo). The new direct-transfer path is for the quick Admin 2 one-step case where approval and confirmation aren't needed — Admin 2 IS the approver and the physical issuer.
+- **Not added:** RLS row-level filtering on `van_stock_items` / `parts` / `inventory_movements`. The existing table policies are permissive and authorization happens inside the RPC via the role check. This matches the pattern used by every other privileged RPC in the codebase (e.g., `assign_temp_tech`, `review_van_access_request`).
+- **Not added:** a separate admin audit log table. `inventory_movements` is the authoritative ledger for anything that touches stock — the new RPC rows show up in the existing Ledger tab next to `use_internal`, `transfer_to_van`, `return_to_store`, and `adjustment` rows created by other paths.
+- **Not added:** a "delete empty row" cleanup after a return-to-store reaches zero. Keeping the row preserves the per-part config (min_quantity, max_quantity, is_core_item) for the next load, which is usually what the admin wants. If the admin genuinely wants to remove the part from the van's roster entirely, the existing delete path on van_stock_items handles that.
+- **Not added:** an editable "company policy" configuration UI. The user's phrase was interpreted as "bake in sensible guardrails" rather than "build a rules engine" — the latter would be a multi-week project. The RPC is the right hook point if the product team decides later that the policy should be configurable (value caps, audit windows, per-role rules).
+
+### Verification
+
+`npm run typecheck` clean. `npm run build` passes (Vite finishes in ~5s). `npx eslint` on the six changed files reports only pre-existing warnings (max-lines on `VanStockDetailModal.tsx` and `inventoryService.ts`'s seven `any` / unused-var warnings — all predating this release). **Live DB smoke test** against the Supabase-linked database (`dljiubrbatmrskrzaazt`) via node `pg` with `ssl.rejectUnauthorized=false`, six assertions all passing inside rolled-back transactions (no live data mutation):
+
+1. **Transfer 2 × FUSE 400A to van BRK 3280** — RPC returned the upserted item_id with `quantity=2.00`, verified `parts.stock_quantity` dropped 10 → 8, verified the `inventory_movements` row with `movement_type=transfer_to_van`, `notes='Transferred 2 of "FUSE 400A" from store to van'`, `adjustment_reason='Smoke test — dry run'`, `store_container_qty_after=8`, `van_container_qty_after=2`. ✅
+2. **Return 1 × FUSE 400A from van to store** — RPC returned the row with `quantity=1.00` (2 transferred, 1 returned, 1 remaining). ✅
+3. **Technician calls `rpc_transfer_part_to_van`** — rejected with `'Only store admins or supervisors can transfer stock to a van (role=technician)'`. ✅
+4. **Whitespace-only reason** — rejected with `'A reason is required for van stock transfers'`. ✅
+5. **Over-transfer (999999 units of a part with only 21 in stock)** — rejected with `'Central stock has only 21 of part "DEEP GROOVE BALL BEARING 6304DDU C3 @NSK", cannot transfer 999999'`. ✅
+6. **Zero quantity** — rejected with `'Quantity must be greater than zero'`. ✅
+
+End-to-end UI verification (admin logs in, opens van detail, clicks transfer, confirms, checks Ledger tab) deferred to the user since it requires a real `admin_store` session.
+
+---
+
+## [2026-04-10] — Feature: admin job scheduling with 7:30 AM Malaysia Time technician reminder
+
+### Added
+
+**Admins can now schedule jobs to a specific date and have the assigned technician automatically notified at 7:30 AM Malaysia Time on the morning of the scheduled day.** Previously, every job went into a single undifferentiated backlog — admins had no way to say "this job is for Friday." The `jobs.scheduled_date` column had existed since day one, but nothing wrote to it and no dispatcher consumed it, so it was effectively dead weight. This release lights that column up end-to-end: admins set the date during creation or change it later, the technician's in-app notification inbox gets a reminder at their morning route-planning time, and the existing pg_cron escalation loop does the dispatch.
+
+**New reusable `DatePicker` pop-up calendar component** (`components/DatePicker.tsx`). This is a from-scratch TypeScript/React implementation with zero external dependencies — we deliberately did not add `react-day-picker` or similar. The picker renders a month-view popover with a full day-of-week header (Monday-first: `Mon Tue Wed Thu Fri Sat Sun`), prev/next month navigation, a highlighted "today" cell, a selected-day highlight, a past-date disable rule, and a footer with a "Today" quick-jump button alongside the literal label *"Notification at 7:30 AM MYT"* so admins understand what they're committing to. The popover is portalled to `document.body` and positioned fixed under its trigger so it renders above collapsed cards and modal-style containers. Outside-click and Escape both close it. The component also exports three utility functions (`toMalaysia730ISO`, `parseMalaysiaDate`, `formatMalaysiaDateLabel`) that handle the Malaysia-time conversion consistently so callers don't have to re-derive the timezone math at every call site.
+
+**New Schedule Date field on the Create Job form** (`pages/CreateJob/CreateJobPage.tsx`). Renders inside the "Job Details" section below the Description field, gated behind the `canCreateJobs` permission so technicians viewing the same form don't see it. Label reads *"Schedule Date (Optional)"* with a `CalendarClock` icon, the `DatePicker` as the input, and helper copy below reading *"The assigned technician will be notified at 7:30 AM Malaysia Time on the selected date. Leave empty to skip scheduling."* Threaded through `CreateJobFormData.scheduled_date` → `useCreateJobForm.handleSubmit` → `services/jobService.ts::createJob`. The default is an empty string, so every existing form submission path (scheduled-service deep links, duplicate-warning re-submits, external-forklift create-then-submit) keeps working unchanged — only jobs where the admin explicitly picks a date get scheduled.
+
+**New admin-only "Change Scheduled Date" control for unstarted jobs** (`pages/JobDetail/components/CustomerAssignmentCard.tsx`). A new Scheduled Date row appears between the Description and Assign Technician sections. Visible to all roles when a date is set (so technicians can see when they're due), but only admins and supervisors on `status IN ('New', 'Assigned')` get the compact-mode `DatePicker` inline control next to it. Once the technician starts the job, the control disappears — the scheduled date becomes historical and should not be rewritten. Rescheduling calls `MockDb.updateJob({ scheduled_date, scheduled_reminder_sent_at: null })` so the reminder re-arms cleanly for the new date. The toast after save reads *"Schedule updated — Technician will be notified at 7:30 AM Malaysia Time on the new date"* or *"Schedule cleared — This job is no longer scheduled"* depending on the action.
+
+**New pg_cron worker `send_scheduled_job_reminders()`** (`supabase/migrations/20260410_scheduled_job_reminder.sql`). Hooked into the existing `run_escalation_checks()` function that already runs every 5 minutes via the `escalation-checks` cron schedule — **no new pg_cron entry, no duplicate scheduling**. The new worker selects jobs where `deleted_at IS NULL AND scheduled_date <= NOW() AND scheduled_date > NOW() - INTERVAL '24 hours' AND scheduled_reminder_sent_at IS NULL AND assigned_technician_id IS NOT NULL AND status IN ('New', 'Assigned')`, inserts a `scheduled_job` notification for each assigned technician with a message including the job title, customer name, and a route-planning nudge, and stamps `scheduled_reminder_sent_at = NOW()`. Notification priority is derived from the job's priority so High/Urgent jobs surface with the appropriate emphasis. `run_escalation_checks()`'s return string now carries four counts (`overdue`, `slot-in SLA`, `no-response`, `scheduled reminders`) for anyone tailing pg_cron logs.
+
+### Changed
+
+**`jobs.scheduled_reminder_sent_at` TIMESTAMPTZ column added** alongside a partial index `idx_jobs_scheduled_reminder_pending ON (scheduled_date) WHERE scheduled_reminder_sent_at IS NULL AND scheduled_date IS NOT NULL`. The partial index keeps the cron query cheap at scale — only rows still awaiting a reminder take up index space, so pruning happens automatically as reminders fire.
+
+**New BEFORE UPDATE trigger `trg_clear_scheduled_reminder_on_date_change`** automatically resets `scheduled_reminder_sent_at` to NULL whenever `scheduled_date` is rewritten. This is the server-side backstop for rescheduling: even if a future client path forgets to reset the sent flag, the DB re-arms the reminder on its own. Mirrors the same defense-in-depth pattern as `trg_set_response_deadline` from the 2026-04-07 assignment-response work.
+
+### Scope notes
+
+- **Not changed:** the `LeaveCalendar` component in `pages/MyLeaveRequests/`. It's a display-only HR view and coupling it to a reusable picker would tangle two unrelated concerns. The new `DatePicker` is a fresh component that any future code can import.
+- **Not changed:** the Job Board filters. The `scheduled_date` value is already rendered in `JobListRow.tsx` and `JobCard.tsx` via the existing `formatDate(job.scheduled_date || job.created_at)` fallback, so the value is visible in the list today. Adding a "Scheduled for today" filter is a separate ergonomics ticket.
+- **Not added:** email or Telegram delivery for the 7:30 AM reminder. FieldPro's notification infrastructure is in-app only and adding a second delivery channel would double the blast radius of this change. If the product team decides the in-app feed isn't loud enough, we can hook the existing Telegram bot in a separate patch.
+- **Not changed:** the column type of `scheduled_date`. It's been `TIMESTAMPTZ` since the schema was first created, and we store "07:30 MYT on the picked calendar day" by constructing an ISO string with the `+08:00` offset at the write site — no migration, no type change, no dual-column sync problem. The reason we don't store the plain `DATE` and compute the fire time inside the cron is that the stored value should be directly filterable by `scheduled_date <= NOW()` without needing a per-row `AT TIME ZONE` computation on every cron pass.
+- **Not added:** a "Scheduled" filter chip on the JobBoard — this is about the scheduling mechanism, not filter UX.
+- **Not backfilled:** no `UPDATE jobs SET scheduled_reminder_sent_at = NOW()` statement. The column was previously unused across the board, so there are zero rows with a meaningfully-past `scheduled_date` to suppress on first cron tick. The 24-hour lookback inside the worker is a second belt-and-braces guard in case that assumption ever breaks.
+- **Not changed:** any existing notification helper (`notifyJobAssignment`, `notifyPendingFinalization`, `escalate_overdue_jobs`, `escalate_slotin_sla`, `escalate_assignment_response`). The new worker uses the same `INSERT INTO notifications ...` pattern as the existing cron functions for consistency.
+
+### Verification
+
+`npm run typecheck` clean. `npm run build` passes (Vite finishes in ~6s). `npx eslint` on the nine changed files reports only pre-existing warnings (two `max-lines` warnings on `CreateJobPage.tsx` and `JobDetailPage.tsx` that predated this change, five unused-vars / explicit-any warnings in `useCreateJobForm.ts` that are pre-existing code debt). Migration applied directly to the Supabase-linked live DB (`dljiubrbatmrskrzaazt`) via `node pg` with `ssl.rejectUnauthorized=false`, wrapped in BEGIN/COMMIT, sanity DO block confirms the column, function, trigger, and partial index all landed. Manually invoked `SELECT run_escalation_checks()` — returns the new 4-part result string `'Escalated: 0 overdue, 0 slot-in SLA, 0 no-response, 0 scheduled reminders'`. The existing `escalation-checks` cron schedule is still `active=true` on `*/5 * * * *`. End-to-end UI verification (admin creates a scheduled job → cron fires → technician sees the notification) deferred to the user since it requires a live technician account and a 5-minute cron cycle.
+
+---
+
+## [2026-04-10] — Feature: gallery photo upload for technicians + stricter parts-declaration gate on completion
+
+### Added
+
+**Technicians can now attach photos from their phone's gallery, not just live camera captures.** The main Photos section on the job-detail page used to force camera-only on mobile because both file inputs carried the `capture="environment"` attribute — mobile browsers interpret that as "skip the picker, open the rear camera immediately." That behaviour dates back to the original photo-based time-tracking rollout, which deliberately required on-site live captures to protect the audit trail. Since then, technicians have asked to be able to attach pre-existing images (reference photos, supervisor-sent diagrams, earlier site shots from the same day) to the running job without having to re-photograph a screen. This change opens up that path.
+
+**New "From Gallery" button in the empty-state dropzone**, sitting next to the existing "Take Photo" button. The new button uses a plain `<input type="file" accept="image/*" multiple>` with no `capture` attribute, so mobile browsers show the native "Camera / Photo Library / Files" picker. The camera button is unchanged — technicians who want the fast live-capture path still get it. Both inputs accept multiple files so bulk selection works.
+
+**New "Gallery" link in the in-grid upload tile** once at least one photo already exists. Same split: the top tile is still the camera ("Take Photo"), followed by a small "Gallery" link (with an `Images` icon from lucide-react) and the existing "Add Video" link. Category selection is shared — whatever category the technician picks from the dropdown applies to gallery and camera uploads alike.
+
+**Gallery uploads flow through the same pipeline as camera uploads.** Compression (1920px / 85% JPEG), optional GPS capture with the 5s cached-allow timeout, device-vs-server timestamp diff flagging, the timer auto-start on first media and auto-stop on the first "After" photo, lead-tech vs. helper attribution — all unchanged. From the server's perspective a gallery upload is indistinguishable from a camera upload aside from whatever EXIF metadata the user's gallery photo happened to carry.
+
+### Changed
+
+**Camera-permission check no longer blocks gallery uploads.** `handlePhotoUpload` in `JobPhotosSection.tsx` previously ran `checkCameraPermission()` for every file input change. Users who had explicitly denied camera permission in their browser would have seen "Camera access denied" even when clicking the gallery button, which is a regression. The check is now guarded by `e.target.hasAttribute('capture')`, so it only runs when the input that fired the change was the camera-capture one. Gallery uploads proceed regardless of camera permission state.
+
+**`useJobActions.handleStatusChange` now gives a friendly toast when a technician tries to finalize a job without declaring parts.** The parts-declaration gate has been enforced at the DB trigger level since February 2026 (see the `has_parts` / `no_parts_used` branch of `validate_job_completion_requirements()` in `20260407_repair_skip_checklist_completion.sql`), and the client UI has been disabling the Complete button on all three surfaces (desktop `JobHeader`, mobile guided workflow card, mobile sticky bar) since the earlier refactor. But the client-side handler inside `handleStatusChange` itself was missing the corresponding early-return — every other prerequisite (hourmeter reading, after photo, both signatures, condition checklist for non-Repair) has a friendly toast and early-return, and parts declaration should too. If the button were ever triggered programmatically or from a path where the UI state had drifted out of sync with the DB state, the user would have seen the raw Postgres error string "Cannot complete job: Parts must be recorded, or explicitly mark no parts used." The new early-return fires `showToast.error('Parts declaration required', 'Add the parts used or tick "No parts were used" before completing the job')` and bails out cleanly. Scoped to `currentUserRole === 'technician' && !state.isCurrentUserHelper` to match the DB trigger's exemption shape — admins, admin-service, admin-store, and supervisors are allowed to finalize jobs without a parts declaration on both sides.
+
+### Audit result for Jay's question ("is job complete gated with part used or not used")
+
+Yes — end-to-end, and defense-in-depth:
+
+1. **DB trigger** — `validate_job_completion_requirements()` rejects any non-admin transition to `Awaiting Finalization` when the job has zero `job_parts` rows, zero `job_inventory_usage` rows, AND `job_service_records.no_parts_used` is NOT true. This is the real enforcement, identical for every path (web UI, PostgREST direct, future mobile app, manual Studio edit).
+2. **Desktop `JobHeader`** — Complete button disabled by `partsDeclarationRequired`, tooltip reads "Declare parts usage or tick 'No parts were used'".
+3. **`MobileTechnicianWorkflowCard`** — "Parts declaration" sits in the `blockers` array alongside After photo / Hourmeter / Technician sign / Customer sign, Complete button disabled until `blockers.length === 0`, chips render the remaining requirements.
+4. **Mobile sticky action bar** in `JobDetailPage.tsx` — amber "Parts declaration required" chip, Complete button disabled by `completionBlocked`.
+5. **`handleStatusChange` client handler** — now has the matching early-return with a friendly toast (this release).
+
+The `state.noPartsUsed` value is rehydrated from `job_service_records.no_parts_used` when the page loads (`useJobData.ts:44`), and `useJobPartsHandlers.handleToggleNoPartsUsed` persists the toggle to the server via `MockDb.setNoPartsUsed` before updating local state — so the client view of "parts declared" stays in sync with what the DB trigger will see when the transition fires.
+
+### Scope notes
+
+- **Not changed:** the before-photos capture in `StartJobModal` / `JobDetailModals.tsx` (line ~205) and either `RejectJobModal` (`pages/JobBoard/components/RejectJobModal.tsx` + `pages/JobDetail/components/JobDetailModals.tsx` line ~681). Both flows have explicit on-site integrity requirements — the Start Job modal header literally reads "Photos must be taken with camera" and the DB trigger `trg_enforce_before_photo_on_start` enforces the presence of a before-photo at the SQL level. Those inputs stay camera-only to preserve the audit trail for time-tracking and rejection disputes.
+- **Not changed:** the `CreateRequestModal.tsx` capture photo — request evidence is a separate flow from the main Photos section and the user's ask was specifically about the "Photos" area.
+- **Not changed:** the DB trigger or any migration. The gate was already in place; this release just tightens the client-side mirror of it.
+- **Not changed:** the `isMobileTechnicianFlow` `MobileTechnicianWorkflowCard` — it has a "Photos" button that scrolls to `JobPhotosSection`, so the new gallery affordance surfaces automatically from the mobile guided flow.
+- **Not added:** server-side enforcement for the "after photo" requirement — that's a separate pre-existing gap between client and server gates (client enforces, server does not), out of scope for this task.
+
+### Verification
+
+`npm run typecheck` clean. `npx eslint pages/JobDetail/components/JobPhotosSection.tsx pages/JobDetail/hooks/useJobActions.ts` reports only the three pre-existing warnings (`isCompleted` unused destructure, `firstErr` unused catch in retry helper, `extractVideoThumbnail` unused helper) — zero new warnings from this change. Manual UI verification (camera path, gallery path, and parts-declaration toast) deferred to the user since Playwright E2E is reserved for pre-release.
+
+---
+
 ## [2026-04-10] — Fix: login page "AbortError: signal is aborted without reason" on client sites
 
 ### Fixes

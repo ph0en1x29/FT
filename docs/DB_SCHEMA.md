@@ -175,7 +175,8 @@ Core work orders.
 | `assigned_technician_id` | UUID | YES | |
 | `assigned_technician_name` | TEXT | YES | |
 | `created_at` | TIMESTAMPTZ | YES | `now()` |
-| `scheduled_date` | TIMESTAMPTZ | YES | |
+| `scheduled_date` | TIMESTAMPTZ | YES | | — Admin-set schedule; when populated, stores 07:30 Malaysia Time on the target calendar day and triggers `send_scheduled_job_reminders()` on the next `escalation-checks` cron tick |
+| `scheduled_reminder_sent_at` | TIMESTAMPTZ | YES | | **(NEW 2026-04-10)** — Timestamp when the 7:30 AM MYT reminder was dispatched for this job. NULL = reminder still pending (or no schedule). Reset to NULL by trigger `trg_clear_scheduled_reminder_on_date_change` whenever `scheduled_date` is rewritten, so rescheduling re-arms the reminder. |
 | `arrival_time` | TIMESTAMPTZ | YES | |
 | `completion_time` | TIMESTAMPTZ | YES | |
 | `notes` | JSONB | YES | `'[]'::jsonb` |
@@ -2656,6 +2657,8 @@ Scheduled via pg_cron at 8:00 AM MYT daily.
 |----------|---------|-------------|
 | `validate_job_status_transition()` | `trg_validate_status_transition` ON jobs | Enforces sequential workflow and role-based status transitions. **(UPDATED 2026-04-07)** Whitelists one backward transition: a technician rejecting their own currently-assigned job (`Assigned` → `New` when `technician_rejected_at IS NOT NULL`) |
 | `set_technician_response_deadline()` | `trg_set_response_deadline` BEFORE INSERT OR UPDATE OF assigned_at ON jobs | **(NEW 2026-04-07)** Auto-populates `technician_response_deadline` to `assigned_at + 15 minutes` whenever `assigned_at` is written. Resets `last_response_alert_at` and `response_alert_count` on a fresh assignment |
+| `clear_scheduled_reminder_on_date_change()` | `trg_clear_scheduled_reminder_on_date_change` BEFORE UPDATE OF scheduled_date ON jobs | **(NEW 2026-04-10)** Resets `scheduled_reminder_sent_at` to NULL whenever `scheduled_date` is rewritten, so rescheduling a job automatically re-arms the 7:30 AM MYT reminder for the new date |
+| `send_scheduled_job_reminders()` | Called from `run_escalation_checks()` every 5 minutes | **(NEW 2026-04-10)** Selects `status IN ('New','Assigned')` jobs where `scheduled_date <= NOW()` AND `scheduled_reminder_sent_at IS NULL` AND `assigned_technician_id IS NOT NULL`, inserts a `scheduled_job` notification for the assigned technician, stamps `scheduled_reminder_sent_at = NOW()`. 24-hour lookback prevents burst-firing historical rows on cold start |
 | `validate_job_completion_requirements()` | `trg_validate_completion` ON jobs | Ensures all required fields before job completion |
 | `lock_service_record_on_invoice()` | `trg_lock_on_invoice` ON jobs | Locks service records when job is invoiced |
 | `prevent_locked_service_record_edit()` | `trg_prevent_locked_edit` ON job_service_records | Prevents unauthorized edits to locked records |
@@ -2736,6 +2739,26 @@ Schedule quarterly Van Stock audits for all active technicians.
 | Returns | Description |
 |---------|-------------|
 | INTEGER | Number of audits scheduled |
+
+#### `rpc_transfer_part_to_van(p_part_id, p_van_stock_id, p_quantity, p_performed_by, p_performed_by_name, p_reason)` **(NEW 2026-04-10)**
+Atomic Admin 2 transfer of a part FROM the central warehouse TO a van. `SECURITY DEFINER` with `SET search_path = public`.
+
+- **Role gate**: rejects caller unless `auth.uid() → users.role` is in `('admin','admin_service','admin_store','supervisor')`
+- **Validation**: quantity must be > 0, reason must be non-empty after trim, central stock must have at least `p_quantity`
+- **Row locks**: `FOR UPDATE` on both `parts` and `van_stock_items` to prevent concurrent over-draws
+- **Upsert**: if `(van_stock_id, part_id)` already exists in `van_stock_items`, increments existing row's quantity; otherwise inserts a fresh row with default `min_quantity=0`, `max_quantity=0`, `is_core_item=false`
+- **Logs**: one row in `inventory_movements` with `movement_type='transfer_to_van'`, `adjustment_reason=p_reason`, `notes='Transferred N of "X" from store to van'`, plus before/after quantities on both sides
+
+| Returns | Description |
+|---------|-------------|
+| `van_stock_items` row | The upserted or incremented van stock item |
+
+#### `rpc_return_part_to_store(p_van_stock_item_id, p_quantity, p_performed_by, p_performed_by_name, p_reason)` **(NEW 2026-04-10)**
+Atomic Admin 2 return of a part FROM a van BACK TO the central warehouse. Same role gate, validation, and audit pattern as `rpc_transfer_part_to_van`. Leaves the `van_stock_items` row in place even when quantity reaches zero, preserving per-part configuration (min/max/is_core).
+
+| Returns | Description |
+|---------|-------------|
+| `van_stock_items` row | The decremented van stock item (may have `quantity=0`) |
 
 ---
 

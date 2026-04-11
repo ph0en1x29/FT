@@ -169,6 +169,13 @@ export interface Job {
   created_at: string;
   updated_at?: string;
   scheduled_date?: string;
+  /**
+   * Null when the scheduled reminder is still pending (or no schedule is set).
+   * Stamped by the send_scheduled_job_reminders() pg_cron function when the
+   * 7:30 AM MYT notification fires, so the cron doesn't duplicate-send.
+   * Cleared automatically when admin changes scheduled_date so the reminder re-arms.
+   */
+  scheduled_reminder_sent_at?: string | null;
   arrival_time?: string;
   completion_time?: string;
   notes: string[];

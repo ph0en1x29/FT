@@ -54,6 +54,7 @@ export function useCreateJobForm(currentUser: User) {
     contact_id: prefilledContactId || '',
     site_id: prefilledSiteId || '',
     billing_type: 'rental-inclusive',
+    scheduled_date: '',
   });
 
   // Fetch selected customer details for sidebar display
@@ -194,6 +195,7 @@ export function useCreateJobForm(currentUser: User) {
           contact_id: formData.contact_id || undefined,
           site_id: formData.site_id || undefined,
           billing_type: formData.billing_type,
+          scheduled_date: formData.scheduled_date || undefined,
         },
         currentUser.user_id,  // Created by ID
         currentUser.name      // Created by Name

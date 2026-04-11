@@ -108,7 +108,7 @@ createReplenishmentRequest,createVanStock,deletePart,deleteVanStock,fulfillReple
 getAllVanStocks,getLowStockItems,
 // Parts
 getParts,
-getActiveVansList,getPartsForList,getPendingVanStockApprovals,getReplenishmentRequests,getVanStockById,getVanStockByTechnician,getVanStockUsageHistory,incrementVanStockItemQuantity,rejectVanStockUsage,scheduleVanStockAudit,transferVanStockItems,updatePart,updateVanStock,updateVanStockItemQuantity,
+getActiveVansList,getPartsForList,getPendingVanStockApprovals,getReplenishmentRequests,getVanStockById,getVanStockByTechnician,getVanStockUsageHistory,incrementVanStockItemQuantity,rejectVanStockUsage,returnPartToStore,scheduleVanStockAudit,transferPartToVan,transferVanStockItems,updatePart,updateVanStock,updateVanStockItemQuantity,
 useVanStockPart
 } from './inventoryService';
 
@@ -266,6 +266,8 @@ export const SupabaseDb = {
   updateVanStock: inventory.updateVanStock,
   deleteVanStock: inventory.deleteVanStock,
   transferVanStockItems: inventory.transferVanStockItems,
+  transferPartToVan: inventory.transferPartToVan,
+  returnPartToStore: inventory.returnPartToStore,
   addVanStockItem: inventory.addVanStockItem,
   updateVanStockItemQuantity: inventory.updateVanStockItemQuantity,
   incrementVanStockItemQuantity: inventory.incrementVanStockItemQuantity,

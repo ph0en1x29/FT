@@ -449,6 +449,7 @@ export const createJob = async (jobData: Partial<Job>, createdById?: string, cre
       site_id: jobData.site_id || null,
       notes: jobData.notes || [],
       labor_cost: jobData.labor_cost || 150,
+      scheduled_date: jobData.scheduled_date || null,
       created_by_id: createdById || null,
       created_by_name: createdByName || null,
       assigned_at: jobData.assigned_technician_id ? new Date().toISOString() : null,

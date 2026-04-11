@@ -1,6 +1,7 @@
-import { ArrowLeft,Building2,ClipboardList,MapPin,Phone,Save,Truck,User,UserCheck,Wrench } from 'lucide-react';
+import { ArrowLeft,Building2,CalendarClock,ClipboardList,MapPin,Phone,Save,Truck,User,UserCheck,Wrench } from 'lucide-react';
 import React,{ useMemo } from 'react';
 import { Combobox,ComboboxOption } from '../../components/Combobox';
+import { DatePicker } from '../../components/DatePicker';
 import { ForkliftStatus,JobPriority,JobType,User as UserType } from '../../types';
 import { DuplicateJobWarningModal,ExternalForkliftSection,ForkliftSelectionSection,NewCustomerModal } from './components';
 import { INPUT_CLASS_NAME } from './constants';
@@ -208,7 +209,7 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
               {/* Description — full width */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Description</label>
-                <textarea 
+                <textarea
                   className={`${INPUT_CLASS_NAME} h-28 resize-none`}
                   value={formData.description}
                   onChange={e => setFormData(prev => ({...prev, description: e.target.value}))}
@@ -216,6 +217,24 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
                   required
                 />
               </div>
+
+              {/* Schedule Date — optional, admin-only scheduling */}
+              {canCreateJobs && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                    <CalendarClock className="w-4 h-4 text-slate-500" />
+                    Schedule Date (Optional)
+                  </label>
+                  <DatePicker
+                    value={formData.scheduled_date}
+                    onChange={(iso) => setFormData(prev => ({ ...prev, scheduled_date: iso }))}
+                    placeholder="Unscheduled — no reminder"
+                  />
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    The assigned technician will be notified at <span className="font-semibold text-slate-700">7:30 AM Malaysia Time</span> on the selected date. Leave empty to skip scheduling.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

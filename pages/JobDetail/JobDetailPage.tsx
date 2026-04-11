@@ -197,7 +197,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onCancelDescriptionEdit={actions.handleCancelDescriptionEdit}
             onSelectedTechIdChange={state.setSelectedTechId} onAssignJob={actions.handleAssignJob}
             onOpenReassignModal={() => state.setShowReassignModal(true)}
-            onOpenHelperModal={() => state.setShowAssignHelperModal(true)} onRemoveHelper={actions.handleRemoveHelper} />
+            onOpenHelperModal={() => state.setShowAssignHelperModal(true)} onRemoveHelper={actions.handleRemoveHelper}
+            onScheduledDateChange={actions.handleScheduledDateChange} />
           <CollapsibleCard
             title="Notes"
             icon={<FileText className="w-5 h-5 text-[var(--text-muted)]" />}

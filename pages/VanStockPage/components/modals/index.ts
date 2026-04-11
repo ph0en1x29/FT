@@ -6,4 +6,5 @@ export { AssignVanStockModal } from './AssignVanStockModal';
 export { DeleteConfirmModal } from './DeleteConfirmModal';
 export { EditVanStockModal } from './EditVanStockModal';
 export { TransferItemsModal } from './TransferItemsModal';
+export { TransferPartModal } from './TransferPartModal';
 export { VanStockDetailModal } from './VanStockDetailModal';

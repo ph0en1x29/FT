@@ -1,6 +1,7 @@
-import { Building2,Check,Edit2,MapPin,Navigation,Phone,RefreshCw,UserCheck,UserPlus,X } from 'lucide-react';
+import { Building2,CalendarClock,Check,Edit2,MapPin,Navigation,Phone,RefreshCw,UserCheck,UserPlus,X } from 'lucide-react';
 import React from 'react';
 import { Combobox,ComboboxOption } from '../../../components/Combobox';
+import { DatePicker, formatMalaysiaDateLabel } from '../../../components/DatePicker';
 import { Job } from '../../../types';
 import { CustomerContact,CustomerSite } from '../../../types/customer.types';
 import { RoleFlags,StatusFlags } from '../types';
@@ -25,6 +26,7 @@ interface CustomerAssignmentCardProps {
   onOpenReassignModal: () => void;
   onOpenHelperModal?: () => void;
   onRemoveHelper?: () => void;
+  onScheduledDateChange?: (iso: string) => void;
 }
 
 export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
@@ -47,7 +49,15 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
   onOpenReassignModal,
   onOpenHelperModal,
   onRemoveHelper,
+  onScheduledDateChange,
 }) => {
+  // Lead technicians need a calm read-only view of the scheduled date too.
+  // Only admins/supervisors can edit it, and only while the job is still unstarted.
+  const canEditScheduledDate =
+    !!onScheduledDateChange &&
+    (roleFlags.isAdmin || roleFlags.isSupervisor) &&
+    (statusFlags.isNew || statusFlags.isAssigned);
+  const hasScheduledDate = !!job.scheduled_date;
   const contactPhone = jobContact?.phone || job.customer?.phone;
   const contactName = jobContact?.name || job.customer?.contact_person;
   const siteAddress = jobSite?.address;
@@ -193,6 +203,38 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
           ) : (
             <p className="text-[var(--text-secondary)] text-sm">{job.description || <span className="text-[var(--text-muted)] italic">No description</span>}</p>
           )}
+        </div>
+      )}
+
+      {/* Scheduled Date — visible to all, editable by admin/supervisor while unstarted */}
+      {(canEditScheduledDate || hasScheduledDate) && (
+        <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="label-premium mb-0.5 flex items-center gap-1">
+                <CalendarClock className="w-3 h-3" /> Scheduled Date
+              </p>
+              {hasScheduledDate ? (
+                <p className="value-premium text-sm">{formatMalaysiaDateLabel(job.scheduled_date)}</p>
+              ) : (
+                <p className="text-sm text-[var(--text-muted)] italic">Not scheduled</p>
+              )}
+              {hasScheduledDate && (
+                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">Technician reminded at 7:30 AM MYT</p>
+              )}
+            </div>
+            {canEditScheduledDate && (
+              <div className="shrink-0">
+                <DatePicker
+                  value={job.scheduled_date}
+                  onChange={(iso) => onScheduledDateChange?.(iso)}
+                  placeholder={hasScheduledDate ? 'Change…' : 'Set date'}
+                  compact
+                  allowClear
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
 

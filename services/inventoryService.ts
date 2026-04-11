@@ -250,6 +250,91 @@ export const transferVanStockItems = async (
   if (error) throw new Error(error.message);
 };
 
+/**
+ * Transfer a part FROM the central warehouse INTO a van.
+ *
+ * Delegates to the `rpc_transfer_part_to_van` PL/pgSQL function so the
+ * qty decrement on `parts`, the upsert on `van_stock_items`, and the
+ * audit row on `inventory_movements` happen inside a single transaction
+ * with row locks. The RPC also enforces the role gate (admin/admin_service/
+ * admin_store/supervisor only) and rejects empty reasons — we surface
+ * those errors verbatim to the caller.
+ *
+ * Returns the resulting `van_stock_items` row (either the upserted or
+ * the incremented one). Throws on any DB error or policy rejection.
+ */
+export const transferPartToVan = async (
+  partId: string,
+  vanStockId: string,
+  quantity: number,
+  reason: string,
+  performedById: string,
+  performedByName: string
+): Promise<VanStockItem> => {
+  const { data, error } = await supabase.rpc('rpc_transfer_part_to_van', {
+    p_part_id: partId,
+    p_van_stock_id: vanStockId,
+    p_quantity: quantity,
+    p_performed_by: performedById,
+    p_performed_by_name: performedByName,
+    p_reason: reason,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Transfer succeeded but returned no row — please refresh');
+
+  // RPC returns the van_stock_items row without the `part` join. Re-fetch so
+  // the optimistic update carries the part name/code/price into the UI state.
+  const itemId = Array.isArray(data) ? data[0]?.item_id : (data as { item_id: string }).item_id;
+  if (!itemId) throw new Error('Transfer returned invalid payload');
+
+  const { data: joined, error: joinErr } = await supabase
+    .from('van_stock_items')
+    .select('*, part:parts(*)')
+    .eq('item_id', itemId)
+    .single();
+  if (joinErr) throw new Error(joinErr.message);
+  return joined as VanStockItem;
+};
+
+/**
+ * Return a part FROM a van BACK to the central warehouse.
+ *
+ * Delegates to the `rpc_return_part_to_store` PL/pgSQL function. Same
+ * atomicity, role gate, and reason-required semantics as the inbound
+ * transfer. Leaves the `van_stock_items` row in place even when quantity
+ * reaches zero so the per-part config (min/max/is_core) survives for
+ * the next load — admins who want to fully remove an item use the
+ * existing delete path instead.
+ */
+export const returnPartToStore = async (
+  vanStockItemId: string,
+  quantity: number,
+  reason: string,
+  performedById: string,
+  performedByName: string
+): Promise<VanStockItem> => {
+  const { data, error } = await supabase.rpc('rpc_return_part_to_store', {
+    p_van_stock_item_id: vanStockItemId,
+    p_quantity: quantity,
+    p_performed_by: performedById,
+    p_performed_by_name: performedByName,
+    p_reason: reason,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Return succeeded but returned no row — please refresh');
+
+  const itemId = Array.isArray(data) ? data[0]?.item_id : (data as { item_id: string }).item_id;
+  if (!itemId) throw new Error('Return returned invalid payload');
+
+  const { data: joined, error: joinErr } = await supabase
+    .from('van_stock_items')
+    .select('*, part:parts(*)')
+    .eq('item_id', itemId)
+    .single();
+  if (joinErr) throw new Error(joinErr.message);
+  return joined as VanStockItem;
+};
+
 export const addVanStockItem = async (
   vanStockId: string,
   partId: string,

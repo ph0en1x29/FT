@@ -3,7 +3,9 @@
  */
 import {
 AlertTriangle,
+ArrowDownToLine,
 ArrowRightLeft,
+ArrowUpFromLine,
 CheckCircle,
 Edit2,
 History,
@@ -20,6 +22,7 @@ import { showToast } from '../../../../services/toastService';
 import { VanStock,VanStockItem } from '../../../../types';
 import { getLowStockItems,getStockStatusColor } from '../../hooks/useVanStockData';
 import { VanHistoryTab } from '../VanHistoryTab';
+import { TransferPartModal } from './TransferPartModal';
 
 interface VanStockDetailModalProps {
   isOpen: boolean;
@@ -32,6 +35,8 @@ interface VanStockDetailModalProps {
   onDeactivate: () => void;
   onDelete: () => void;
   onScheduleAudit: (vanStock: VanStock) => void;
+  /** Invoked after a successful store↔van transfer so the parent can re-fetch the van stock. */
+  onRefresh?: () => void;
   currentUserId?: string;
   currentUserName?: string;
 }
@@ -47,11 +52,15 @@ export function VanStockDetailModal({
   onDeactivate,
   onDelete,
   onScheduleAudit,
+  onRefresh,
   currentUserId,
   currentUserName,
 }: VanStockDetailModalProps) {
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'stock' | 'history'>('stock');
+  // Admin 2 transfer-modal state. `mode` is null when closed; `item` is null
+  // for the footer "Transfer from Store" path (no pre-selection).
+  const [transferState, setTransferState] = useState<{ mode: 'in' | 'out'; item: VanStockItem | null } | null>(null);
 
   // Close action menu when clicking outside
   useEffect(() => {
@@ -259,48 +268,81 @@ export function VanStockDetailModal({
                     <td className="p-3 text-center">
                       <StockStatusBadge item={item} />
                     </td>
-                    {item.part?.is_liquid && (
-                      <td className="p-3 text-center">
+                    <td className="p-3 text-center">
+                      {isAdmin && (
                         <div className="flex gap-1 justify-center">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              const qty = prompt('How many sealed containers to transfer FROM store TO van?');
-                              if (!qty || isNaN(Number(qty)) || Number(qty) <= 0) return;
-                              try {
-                                await transferToVan(item.part_id, item.item_id, vanStock.van_stock_id, Number(qty), currentUserId || '', currentUserName);
-                                showToast.success('Transfer complete', `${qty} container(s) moved to van`);
-                                if (onClose) onClose();
-                              } catch (err) {
-                                showToast.error('Transfer failed', (err as Error).message);
-                              }
-                            }}
-                            className="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
-                            title="Transfer sealed containers from store to van"
-                          >
-                            +Store→Van
-                          </button>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              const qty = prompt('How many sealed containers to return FROM van TO store?');
-                              if (!qty || isNaN(Number(qty)) || Number(qty) <= 0) return;
-                              try {
-                                await returnToStore(item.part_id, item.item_id, vanStock.van_stock_id, Number(qty), currentUserId || '', currentUserName);
-                                showToast.success('Return complete', `${qty} container(s) returned to store`);
-                                if (onClose) onClose();
-                              } catch (err) {
-                                showToast.error('Return failed', (err as Error).message);
-                              }
-                            }}
-                            className="px-2 py-1 text-xs bg-amber-50 text-amber-600 rounded hover:bg-amber-100"
-                            title="Return sealed containers from van to store"
-                          >
-                            Van→Store
-                          </button>
+                          {item.part?.is_liquid ? (
+                            <>
+                              {/* Liquid parts keep their sealed-container semantics — handled by the
+                                  existing liquidInventoryService. Prompt() UX preserved from the
+                                  2026-02 liquid rollout; revisit alongside a unified bulk/container picker. */}
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const qty = prompt('How many sealed containers to transfer FROM store TO van?');
+                                  if (!qty || isNaN(Number(qty)) || Number(qty) <= 0) return;
+                                  try {
+                                    await transferToVan(item.part_id, item.item_id, vanStock.van_stock_id, Number(qty), currentUserId || '', currentUserName);
+                                    showToast.success('Transfer complete', `${qty} container(s) moved to van`);
+                                    onRefresh?.();
+                                  } catch (err) {
+                                    showToast.error('Transfer failed', (err as Error).message);
+                                  }
+                                }}
+                                className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                                title="Transfer sealed containers from store to van"
+                                aria-label="Transfer from store"
+                              >
+                                <ArrowDownToLine className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const qty = prompt('How many sealed containers to return FROM van TO store?');
+                                  if (!qty || isNaN(Number(qty)) || Number(qty) <= 0) return;
+                                  try {
+                                    await returnToStore(item.part_id, item.item_id, vanStock.van_stock_id, Number(qty), currentUserId || '', currentUserName);
+                                    showToast.success('Return complete', `${qty} container(s) returned to store`);
+                                    onRefresh?.();
+                                  } catch (err) {
+                                    showToast.error('Return failed', (err as Error).message);
+                                  }
+                                }}
+                                className="p-1.5 bg-amber-50 text-amber-600 rounded hover:bg-amber-100"
+                                title="Return sealed containers from van to store"
+                                aria-label="Return to store"
+                              >
+                                <ArrowUpFromLine className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              {/* Non-liquid (count-based) parts use the new atomic RPC via TransferPartModal.
+                                  The same modal handles both directions — mode is 'in' or 'out'. */}
+                              <button
+                                type="button"
+                                onClick={() => setTransferState({ mode: 'in', item })}
+                                className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                                title="Transfer more of this part from central store to van"
+                                aria-label="Transfer from store"
+                              >
+                                <ArrowDownToLine className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setTransferState({ mode: 'out', item })}
+                                disabled={(item.quantity ?? 0) <= 0}
+                                className="p-1.5 bg-amber-50 text-amber-600 rounded hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                title={(item.quantity ?? 0) <= 0 ? 'Nothing to return' : 'Return this part from van to central store'}
+                                aria-label="Return to store"
+                              >
+                                <ArrowUpFromLine className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
                         </div>
-                      </td>
-                    )}
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -333,13 +375,25 @@ export function VanStockDetailModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t flex justify-between">
-          <button
-            onClick={onAddItem}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4" /> Add Item
-          </button>
+        <div className="p-4 border-t flex flex-wrap gap-2 justify-between">
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={onAddItem}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              title="Register a part on this van (no central stock change)"
+            >
+              <Plus className="w-4 h-4" /> Add Item
+            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setTransferState({ mode: 'in', item: null })}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                title="Transfer a part from central store to this van — decrements central stock"
+              >
+                <ArrowDownToLine className="w-4 h-4" /> Transfer from Store
+              </button>
+            )}
+          </div>
           <div className="flex gap-3">
             <button
               onClick={onClose}
@@ -356,6 +410,24 @@ export function VanStockDetailModal({
           </div>
         </div>
       </div>
+
+      {/* Store ↔ Van transfer modal — used for both directions on non-liquid parts
+          and for the footer "Transfer from Store" flow (new SKU onto a van). */}
+      {transferState && (
+        <TransferPartModal
+          isOpen={true}
+          mode={transferState.mode}
+          vanStock={vanStock}
+          vanStockItem={transferState.item}
+          currentUserId={currentUserId || ''}
+          currentUserName={currentUserName || ''}
+          onClose={() => setTransferState(null)}
+          onSuccess={() => {
+            setTransferState(null);
+            onRefresh?.();
+          }}
+        />
+      )}
     </div>
   );
 }
