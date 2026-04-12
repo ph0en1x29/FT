@@ -1,3 +1,50 @@
+# Changelog
+
+## [2026-04-12]
+
+### Added
+- shorten job_number format to JOB-YYMMDD-NNN (14 chars) (`4581f6c`)
+- 15-min no-reply re-alert for technician job assignments (`1417aff`)
+- confirm show/hide prices when generating service report (`02ad353`)
+- feat(jobs): admin 1 can edit job description + fix external forklift creation (`0b9efe4`)
+
+### Fixed
+- fix(db): exempt Repair jobs from checklist requirement in completion trigger (`b342559`)
+- disambiguate job_media embeds after technician_rejection_photo_id FK (`132f1fa`)
+- JobBoard list header/row column width drift after job# widening (`c809ca8`)
+- JobDetailPage crash on null job (post-purge regression) (`8a1682b`)
+- job# column overflow + ConfirmationStatusCard mobile overflow (`af201b4`)
+- unblock tech job rejection + require on-site photo proof (`29105f1`)
+- require parts declaration before lead technician can complete job (`48fa273`)
+- fix(jobs): repair jobs no longer blocked by checklist on completion (`a7cf894`)
+- fix(ui): widen job# list column to 150px to stop last-digit clipping (`54d9564`)
+- fix(ui): hide QuickStats for technicians + revert list row width (`73848f6`)
+- fix(ui): job number no longer squeezed on job board + auto-commit hook (`3c24287`)
+- fix(layout): make main content adapt to sidebar width (`59af686`)
+- fix(ui): prevent horizontal page overflow (`f2b1eb2`)
+- harden reassign button wiring (`e6aa968`)
+- persist external forklift selection in create job (`742cd8f`)
+
+### Documentation
+- update DB_SCHEMA and USER_GUIDE for today's changes (`517e719`)
+- record April 6 reliability fixes (`5594b17`)
+
+### Chores
+- auto-commit session changes (`3878c1b`)
+- auto-commit session changes (`ec27d9b`)
+- complete "Continue Tomorrow" fix with constraint + code cleanup (`1a51e9c`)
+- auto-commit session changes (`ef65c6c`)
+- auto-commit session changes (`11e0d45`)
+- auto-commit session changes (`6bcf8f7`)
+- auto-commit session changes (`cbc073a`)
+- auto-commit session changes (`af1e202`)
+- auto-commit session changes (`c0b6f6c`)
+- auto-commit session changes (`364c746`)
+- rename existing 29 jobs to new format + drop dead getRoleFlags param (`c86ed9f`)
+- record execution of 2026-04-06 jobs purge (`31ce28a`)
+- author one-off purge script for jobs before 2026-04-06 (`6fbb181`)
+- chore(inventory): strict-sync Apr 6 stock snapshot — 3303 items reconciled (`394f8b5`)
+
 # FieldPro Changelog
 
 All notable changes to the FieldPro Field Service Management System.
