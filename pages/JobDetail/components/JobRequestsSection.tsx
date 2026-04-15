@@ -1,4 +1,4 @@
-import { AlertTriangle,CheckCircle,CheckSquare,Clock,Edit3,Package,PackageCheck,Plus,Truck,XCircle } from 'lucide-react';
+import { AlertTriangle,CheckCircle,CheckSquare,Clock,Edit3,Package,PackageCheck,Plus,Trash2,Truck,XCircle } from 'lucide-react';
 import React,{ useEffect,useState } from 'react';
 import { getJobRequests } from '../../../services/jobRequestService';
 import { Job,JobRequest,JobRequestStatus,JobRequestType } from '../../../types';
@@ -13,6 +13,7 @@ interface JobRequestsSectionProps {
   onApproveRequest: (request: JobRequest) => void;
   onApproveAllRequests?: (requests: JobRequest[]) => void;
   onEditRequest?: (request: JobRequest) => void;
+  onDeleteRequest?: (requestId: string) => void;
   onIssuePartToTechnician?: (requestId: string) => void;
   onMarkOutOfStock?: (requestId: string, partId: string, notes?: string) => void;
   onMarkPartReceived?: (requestId: string, notes?: string) => void;
@@ -28,6 +29,7 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
   onApproveRequest,
   onApproveAllRequests,
   onEditRequest,
+  onDeleteRequest,
   onIssuePartToTechnician,
   onMarkOutOfStock,
   onMarkPartReceived,
@@ -176,15 +178,32 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
                 
                 <div className="flex items-center gap-2 flex-wrap [&>button]:min-h-[44px] [&>button]:md:min-h-0 [&>button]:px-3">
                   {/* Edit button - only for technician's own pending requests */}
-                  {request.status === 'pending' && 
-                   request.requested_by === currentUserId && 
-                   roleFlags.isTechnician && 
+                  {request.status === 'pending' &&
+                   request.requested_by === currentUserId &&
+                   roleFlags.isTechnician &&
                    onEditRequest && (
                     <button
                       onClick={() => onEditRequest(request)}
                       className="text-blue-600 hover:underline font-medium flex items-center gap-1 text-xs"
                     >
                       <Edit3 className="w-3 h-3" /> Edit
+                    </button>
+                  )}
+
+                  {/* Delete button - only for technician's own pending requests */}
+                  {request.status === 'pending' &&
+                   request.requested_by === currentUserId &&
+                   roleFlags.isTechnician &&
+                   onDeleteRequest && (
+                    <button
+                      onClick={() => {
+                        // Optimistic removal from local state
+                        setRequests(prev => prev.filter(r => r.request_id !== request.request_id));
+                        onDeleteRequest(request.request_id);
+                      }}
+                      className="text-red-500 hover:underline font-medium flex items-center gap-1 text-xs"
+                    >
+                      <Trash2 className="w-3 h-3" /> Delete
                     </button>
                   )}
                   

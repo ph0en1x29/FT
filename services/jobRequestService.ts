@@ -153,6 +153,36 @@ export {
   confirmPartCollection,
 } from './jobRequestApprovalService';
 
+/**
+ * Delete a pending job request. Only the requesting technician can delete
+ * their own pending requests (enforced by RLS + app-level guard).
+ */
+export const deleteJobRequest = async (
+  requestId: string,
+  requestedBy: string
+): Promise<boolean> => {
+  try {
+    const { data: existing, error: checkError } = await supabase
+      .from('job_requests')
+      .select('request_id, status, requested_by')
+      .eq('request_id', requestId)
+      .single();
+
+    if (checkError || !existing) return false;
+    if (existing.status !== 'pending') return false;
+    if (existing.requested_by !== requestedBy) return false;
+
+    const { error } = await supabase
+      .from('job_requests')
+      .delete()
+      .eq('request_id', requestId);
+
+    return !error;
+  } catch (_e) {
+    return false;
+  }
+};
+
 export const getRequestCounts = async (): Promise<{ pending: number; total: number }> => {
   try {
     const { count: pending, error: pendingError } = await supabase

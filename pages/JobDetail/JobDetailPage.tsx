@@ -284,6 +284,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onApproveRequest={(request) => { state.setApprovalRequest(request); state.setShowApprovalModal(true); }}
             onApproveAllRequests={(reqs) => { state.setBulkApproveRequests(reqs); state.setShowBulkApproveModal(true); }}
             onEditRequest={actions.handleEditRequest}
+            onDeleteRequest={actions.handleDeleteRequest}
             onIssuePartToTechnician={actions.handleIssuePartToTechnician}
             onMarkOutOfStock={actions.handleMarkOutOfStock}
             onMarkPartReceived={actions.handleMarkPartReceived}

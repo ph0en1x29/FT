@@ -1,5 +1,28 @@
 # Changelog
 
+## [2026-04-14] — Fix: Job Request System — Four Bugs
+
+### Fixed
+
+**Skilled technician and assistance requests invisible to Admin 1 (Service)**
+- Client report: TECH 19 requested a skilled technician for Job #JOB-260414-010 but the Admin could not see it anywhere on the admin screen.
+- Root cause: `PartRequestsPage.tsx:95` filters `.eq('request_type', 'spare_part')`, which is correct for Admin 2 (Store). But there was no equivalent dashboard for Admin 1 (Service) to see `skillful_technician` and `assistance` requests. These request types are service operations (job reassignment, helper assignment) that belong to `admin_service`, not `admin_store`.
+- Fix: created `pages/ServiceRequests/ServiceRequestsQueue.tsx`, a new dashboard component that fetches pending `skillful_technician` and `assistance` requests. For skilled tech requests, admins see an "Acknowledge" button that calls `acknowledgeSkillfulTechRequest()`. For assistance requests, admins see a technician picker (backed by `getTechnicians()`) plus an "Assign" button that calls `approveAssistanceRequest()`. Both types have a reject button. The component renders in the Approvals tab of `JobsTabs.tsx` above the existing `StoreQueue`, but only for `admin`, `admin_service`, and `supervisor` roles — `admin_store` is excluded since they can't reassign jobs (`canAssignJobs: false`). Self-hides when no pending service requests exist.
+
+**Admin approval of non-spare-part requests fails silently**
+- Client report: Admin tried to approve and assign a technician for the skilled tech request, but the action failed.
+- Root cause: `useJobRequestActions.ts:59` always called `approveSparePartRequest()` regardless of `request.request_type`. For non-spare-part requests, `ApproveRequestModal:354` passes `onApprove([], notes)` — an empty items array. `approveSparePartRequest` at `jobRequestApprovalService.ts:33` immediately returns `false` because `items.length === 0`. The correct service functions — `acknowledgeSkillfulTechRequest()` and `approveAssistanceRequest()` — were implemented and exported but never called from any UI handler.
+- Fix: rewrote `handleApproveRequest` in `useJobRequestActions.ts` to dispatch by `request.request_type`: `spare_part` routes to `approveSparePartRequest()`, `skillful_technician` routes to `acknowledgeSkillfulTechRequest()`, `assistance` routes to `approveAssistanceRequest()` with the helper tech ID passed via the items array. Added `currentUserRole` to the dependency array since it's used in the spare_part path.
+
+**Technicians cannot delete duplicate part requests caused by repeated tapping**
+- Client report: app lag causes techs to tap "submit" multiple times, creating duplicate requests. No way to clean them up.
+- Fix: three layers. (1) Added `deleteJobRequest()` to `services/jobRequestService.ts` — verifies ownership (`requested_by === userId`) and pending status before deleting. (2) Added a "Delete" button (Trash2 icon) in `JobRequestsSection.tsx` next to the existing "Edit" button, same guard: own request + pending status + technician role. Uses optimistic local state removal for instant UI feedback. (3) DB migration `20260414_allow_tech_delete_own_pending_requests.sql` updates the RLS delete policy to allow technicians to delete their own pending requests (previously only Admin/Supervisor could delete).
+
+**Job rejection fails with `job_media_category_check` constraint violation**
+- Client report: rejecting a job fails with error "new row for relation job_media violates check constraint job_media_category_check".
+- Root cause: `services/rejectionPhotoUpload.ts:147` inserts with `category: 'rejection_proof'`. The TypeScript type `MediaCategory` in `types/common.types.ts:30` includes this value. But the DB check constraint (from `database/historical/migrations/add_job_media_category.sql:30`) only allows `'before','after','spare_part','condition','evidence','other'`. The `rejection_proof` value was added to the TypeScript type when the rejection photo feature was built but was never added to the database constraint.
+- Fix: DB migration `20260414_fix_job_media_category_constraint.sql` drops and recreates the constraint with `rejection_proof` included. Idempotent, production-safe.
+
 ## [2026-04-12]
 
 ### Added

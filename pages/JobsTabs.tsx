@@ -1,5 +1,5 @@
 import { Briefcase,CheckSquare,FileText,Plus } from 'lucide-react';
-import React,{ useCallback,useEffect,useState } from 'react';
+import React,{ lazy,useCallback,useEffect,useState } from 'react';
 import { useNavigate,useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../contexts/DevModeContext';
 import usePullToRefresh from '../hooks/usePullToRefresh';
@@ -7,6 +7,8 @@ import { User,UserRole } from '../types';
 import JobBoard from './JobBoard';
 import ServiceRecords from './ServiceRecords';
 import StoreQueue from './StoreQueue';
+
+const ServiceRequestsQueue = lazy(() => import('./ServiceRequests'));
 
 type TabType = 'active' | 'history' | 'approvals';
 
@@ -108,7 +110,19 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
 
       {effectiveTab === 'active' && <React.Fragment key={`active-${refreshKey}`}><JobBoard currentUser={currentUser} hideHeader /></React.Fragment>}
       {effectiveTab === 'history' && canViewHistory && <React.Fragment key={`history-${refreshKey}`}><ServiceRecords currentUser={currentUser} hideHeader /></React.Fragment>}
-      {effectiveTab === 'approvals' && isAdminOrSupervisor && <React.Fragment key={`approvals-${refreshKey}`}><StoreQueue currentUser={currentUser} hideHeader /></React.Fragment>}
+      {effectiveTab === 'approvals' && isAdminOrSupervisor && (
+        <React.Fragment key={`approvals-${refreshKey}`}>
+          {/* Service requests (skillful tech + assistance) — visible to admin, admin_service, supervisor (not admin_store) */}
+          {[UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.SUPERVISOR].includes(
+            (displayRole || currentUser.role) as UserRole
+          ) && (
+            <React.Suspense fallback={null}>
+              <ServiceRequestsQueue currentUser={currentUser} />
+            </React.Suspense>
+          )}
+          <StoreQueue currentUser={currentUser} hideHeader />
+        </React.Fragment>
+      )}
     </div>
   );
 };

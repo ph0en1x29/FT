@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { approveSparePartRequest, createJobRequest, rejectRequest, updateJobRequest, issuePartToTechnician, markOutOfStock, markPartReceived, confirmPartCollection } from '../../../services/jobRequestService';
+import { approveSparePartRequest, acknowledgeSkillfulTechRequest, approveAssistanceRequest, createJobRequest, deleteJobRequest, rejectRequest, updateJobRequest, issuePartToTechnician, markOutOfStock, markPartReceived, confirmPartCollection } from '../../../services/jobRequestService';
 import { showToast } from '../../../services/toastService';
 import { Job, JobRequestType } from '../../../types';
 import { JobDetailState } from './useJobDetailState';
@@ -53,31 +53,63 @@ export const useJobRequestActions = ({
   ) => {
     const request = state.approvalRequest;
     if (!request) return;
-    
+
     state.setSubmittingApproval(true);
     try {
-      const success = await approveSparePartRequest(
-        request.request_id,
-        currentUserId,
-        items,
-        notes,
-        currentUserName,
-        currentUserRole
-      );
+      let success = false;
+
+      if (request.request_type === 'spare_part') {
+        success = await approveSparePartRequest(
+          request.request_id,
+          currentUserId,
+          items,
+          notes,
+          currentUserName,
+          currentUserRole
+        );
+      } else if (request.request_type === 'skillful_technician') {
+        success = await acknowledgeSkillfulTechRequest(
+          request.request_id,
+          currentUserId,
+          notes
+        );
+      } else if (request.request_type === 'assistance') {
+        // Assistance requires a helper technician ID — passed as the first item's partId
+        // when the UI provides a technician picker instead of a part picker
+        const helperTechId = items[0]?.partId;
+        if (helperTechId) {
+          success = await approveAssistanceRequest(
+            request.request_id,
+            currentUserId,
+            helperTechId,
+            notes
+          );
+        } else {
+          showToast.error('Select a helper technician');
+          state.setSubmittingApproval(false);
+          return;
+        }
+      }
+
       if (success) {
-        showToast.success('Request approved', 'Part added to job');
+        const msg = request.request_type === 'spare_part'
+          ? 'Part added to job'
+          : request.request_type === 'skillful_technician'
+            ? 'Request acknowledged — job will be reassigned'
+            : 'Helper technician assigned';
+        showToast.success('Request approved', msg);
         state.setShowApprovalModal(false);
         state.setApprovalRequest(null);
-        loadJob({ silent: true }); // silent: no scroll-to-top
+        loadJob({ silent: true });
       } else {
-        showToast.error('Failed to approve request', 'Check part availability');
+        showToast.error('Failed to approve request', 'Check availability');
       }
     } catch (e) {
       showToast.error('Error approving request', (e as Error).message);
     } finally {
       state.setSubmittingApproval(false);
     }
-  }, [state, currentUserId, currentUserName, loadJob]);
+  }, [state, currentUserId, currentUserName, currentUserRole, loadJob]);
 
   const handleRejectRequest = useCallback(async (notes: string) => {
     const request = state.approvalRequest;
@@ -223,12 +255,27 @@ export const useJobRequestActions = ({
     }
   }, [currentUserId, currentUserName, currentUserRole, loadJob, state]);
 
+  const handleDeleteRequest = useCallback(async (requestId: string) => {
+    try {
+      const success = await deleteJobRequest(requestId, currentUserId);
+      if (success) {
+        showToast.success('Request deleted');
+        loadJob({ silent: true });
+      } else {
+        showToast.error('Failed to delete request', 'You can only delete your own pending requests');
+      }
+    } catch (e) {
+      showToast.error('Error deleting request', (e as Error).message);
+    }
+  }, [currentUserId, loadJob]);
+
   return {
     handleCreateRequest,
     handleApproveRequest,
     handleRejectRequest,
     handleEditRequest,
     handleUpdateRequest,
+    handleDeleteRequest,
     handleBulkApproveRequests,
     handleIssuePartToTechnician,
     handleMarkOutOfStock,
