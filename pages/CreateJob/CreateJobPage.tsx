@@ -2,7 +2,7 @@ import { ArrowLeft,Building2,CalendarClock,ClipboardList,MapPin,Phone,Save,Truck
 import React,{ useMemo } from 'react';
 import { Combobox,ComboboxOption } from '../../components/Combobox';
 import { DatePicker } from '../../components/DatePicker';
-import { ForkliftStatus,JobPriority,JobType,User as UserType } from '../../types';
+import { CREATABLE_JOB_TYPES,ForkliftStatus,JobPriority,JobType,User as UserType } from '../../types';
 import { DuplicateJobWarningModal,ExternalForkliftSection,ForkliftSelectionSection,NewCustomerModal } from './components';
 import { INPUT_CLASS_NAME } from './constants';
 import { useCreateJobForm } from './hooks';
@@ -183,7 +183,7 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
               <div className={`min-w-0 grid grid-cols-1 sm:grid-cols-2 ${canCreateJobs ? 'lg:grid-cols-3' : ''} gap-4`}>
                 <Combobox
                   label="Job Type"
-                  options={Object.values(JobType).map(t => ({ id: t, label: t }))}
+                  options={CREATABLE_JOB_TYPES.map(t => ({ id: t, label: t }))}
                   value={formData.job_type}
                   onChange={(val) => setFormData(prev => ({...prev, job_type: val as JobType}))}
                   placeholder="Select..."

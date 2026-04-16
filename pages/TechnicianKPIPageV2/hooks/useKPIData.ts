@@ -151,6 +151,7 @@ export const useKPIData = (
       const checkingJobs = techJobs.filter(j => j.job_type === JobType.CHECKING).length;
       const slotInJobs = techJobs.filter(j => j.job_type === JobType.SLOT_IN).length;
       const courierJobs = techJobs.filter(j => j.job_type === JobType.COURIER).length;
+      const fieldTechJobs = techJobs.filter(j => j.job_type === JobType.FIELD_TECHNICAL_SERVICES).length;
 
       // Priority breakdown
       const priorityBreakdown = {
@@ -200,6 +201,7 @@ export const useKPIData = (
         checking_jobs: checkingJobs,
         slot_in_jobs: slotInJobs,
         courier_jobs: courierJobs,
+        field_tech_jobs: fieldTechJobs,
         efficiency_score: efficiencyScore,
         productivity_score: productivityScore,
         quality_score: qualityScore,

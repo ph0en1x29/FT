@@ -37,6 +37,8 @@ export const getJobTypeColor = (type?: string): StatusColor => {
       return { bg: '#ffedd5', text: '#c2410c' };
     case JobType.SERVICE:
       return { bg: '#dcfce7', text: '#166534' };
+    case JobType.FIELD_TECHNICAL_SERVICES:
+      return { bg: '#ccfbf1', text: '#0f766e' };
     default:
       return { bg: '#f4f4f5', text: '#71717a' };
   }

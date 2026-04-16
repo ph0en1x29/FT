@@ -102,6 +102,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
                 <span className={`badge ${
                   job.job_type === JobType.SLOT_IN ? 'badge-error' :
                   job.job_type === JobType.COURIER ? 'bg-cyan-100 text-cyan-700' :
+                  job.job_type === JobType.FIELD_TECHNICAL_SERVICES ? 'bg-teal-100 text-teal-700' :
                   job.job_type === JobType.REPAIR ? 'badge-warning' :
                   job.job_type === JobType.CHECKING ? 'bg-purple-100 text-purple-700' :
                   'badge-success'

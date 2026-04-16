@@ -43,6 +43,8 @@ export const getJobTypeColor = (type?: JobType): string => {
       return 'bg-red-50 text-red-700 border-red-200';
     case JobType.COURIER:
       return 'bg-blue-50 text-blue-700 border-blue-200';
+    case JobType.FIELD_TECHNICAL_SERVICES:
+      return 'bg-teal-50 text-teal-700 border-teal-200';
     default:
       return 'bg-slate-50 text-slate-600 border-slate-200';
   }

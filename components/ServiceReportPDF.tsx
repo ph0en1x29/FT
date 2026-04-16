@@ -117,6 +117,9 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
               <label className="flex items-center gap-1">
                 <input type="checkbox" checked={job.job_type === JobType.COURIER} disabled className="w-4 h-4" /> COURIER
               </label>
+              <label className="flex items-center gap-1">
+                <input type="checkbox" checked={job.job_type === JobType.FIELD_TECHNICAL_SERVICES} disabled className="w-4 h-4" /> FIELD TECHNICAL
+              </label>
             </div>
           </div>
         </div>
@@ -501,6 +504,7 @@ export const printServiceReport = (job: Job, reportNumber?: string, showPrices: 
             <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Checking' ? 'checked' : ''} disabled> CHECKING</label>
             <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Slot-In' ? 'checked' : ''} disabled> SLOT-IN</label>
             <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Courier' ? 'checked' : ''} disabled> COURIER</label>
+            <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Field Technical Services' ? 'checked' : ''} disabled> FIELD TECHNICAL</label>
           </div>
         </div>
       </div>

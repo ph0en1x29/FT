@@ -323,16 +323,20 @@ export const useJobActions = ({
   const handleStatusChange = useCallback(async (newStatus: JobStatus) => {
     if (!job) return;
     if (newStatus === JobStatus.AWAITING_FINALIZATION) {
-      // Hourmeter is mandatory before completion
-      if (!job.hourmeter_reading) {
+      // Field Technical Services are exempt from hourmeter tracking and checklist
+      const isFieldTech = job.job_type === JobType.FIELD_TECHNICAL_SERVICES;
+      // Hourmeter is mandatory before completion (except Field Technical Services)
+      if (!isFieldTech && !job.hourmeter_reading) {
         showToast.error('Hourmeter reading required', 'Please record the hourmeter reading before completing the job');
         return;
       }
       // Hourmeter must be updated from the start reading (end-of-job reading)
-      const startReading = job.forklift?.hourmeter || 0;
-      if (job.hourmeter_reading < startReading && startReading > 0) {
-        showToast.error('Invalid hourmeter reading', 'Hourmeter reading cannot be lower than the start reading');
-        return;
+      if (!isFieldTech) {
+        const startReading = job.forklift?.hourmeter || 0;
+        if (job.hourmeter_reading && job.hourmeter_reading < startReading && startReading > 0) {
+          showToast.error('Invalid hourmeter reading', 'Hourmeter reading cannot be lower than the start reading');
+          return;
+        }
       }
       // "After" photo is mandatory
       const hasAfterPhoto = job.media?.some(m => m.category === 'after');
@@ -359,8 +363,21 @@ export const useJobActions = ({
           return;
         }
       }
-      // Repair jobs are exempt from checklist requirement
-      if (job.job_type !== JobType.REPAIR) {
+      // Block completion when parts have been approved/issued but Used Parts is empty.
+      // This prevents technicians AND admins from completing with an empty Used Parts
+      // list when spare part requests were approved for the job.
+      const approvedRequests = state.jobRequests.filter(
+        r => r.request_type === 'spare_part' && (r.status === 'approved' || r.status === 'issued')
+      );
+      if (approvedRequests.length > 0 && (job.parts_used?.length ?? 0) === 0) {
+        showToast.error(
+          'Approved parts not recorded',
+          'Parts have been approved for this job. Please ensure all used parts are added to the \'Used Part\' section before completing.'
+        );
+        return;
+      }
+      // Repair and Field Technical Services jobs are exempt from checklist
+      if (job.job_type !== JobType.REPAIR && !isFieldTech) {
         const missing = getMissingMandatoryItems(job);
         if (missing.length > 0) {
           setMissingChecklistItems(missing);

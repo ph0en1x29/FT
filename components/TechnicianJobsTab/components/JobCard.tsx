@@ -14,6 +14,8 @@ const getJobTypeIcon = (type?: string) => {
       return <AlertTriangle className="w-5 h-5" />;
     case JobType.COURIER:
       return <Package className="w-5 h-5" />;
+    case JobType.FIELD_TECHNICAL_SERVICES:
+      return <Wrench className="w-5 h-5" />;
     default:
       return <Wrench className="w-5 h-5" />;
   }

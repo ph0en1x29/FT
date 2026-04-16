@@ -7,6 +7,7 @@ export {
   JobStatus,
   JobPriority,
   JobType,
+  CREATABLE_JOB_TYPES,
   SERVICE_RESET_JOB_TYPES,
   DEFAULT_DURATION_ALERTS,
 } from './job-core.types';

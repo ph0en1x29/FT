@@ -35,12 +35,23 @@ export enum JobPriority {
 export enum JobType {
   SERVICE = 'Service',           // Legacy - kept for backward compatibility
   FULL_SERVICE = 'Full Service', // PM with oil change - resets hourmeter cycle
-  MINOR_SERVICE = 'Minor Service', // PM without oil change - no reset
+  MINOR_SERVICE = 'Minor Service', // Legacy - kept for existing jobs only
   REPAIR = 'Repair',
   CHECKING = 'Checking',
   SLOT_IN = 'Slot-In',    // Emergency/same-day response (15-min SLA)
-  COURIER = 'Courier',     // Delivery/Collection with POD
+  COURIER = 'Courier',     // Legacy - kept for existing jobs only
+  FIELD_TECHNICAL_SERVICES = 'Field Technical Services', // Replaces Minor Service + Courier — no hourmeter/checklist
 }
+
+// Job types available for new job creation (excludes legacy types)
+export const CREATABLE_JOB_TYPES: JobType[] = [
+  JobType.SERVICE,
+  JobType.FULL_SERVICE,
+  JobType.REPAIR,
+  JobType.CHECKING,
+  JobType.SLOT_IN,
+  JobType.FIELD_TECHNICAL_SERVICES,
+];
 
 // Job types that reset the hourmeter service cycle
 export const SERVICE_RESET_JOB_TYPES: JobType[] = [
@@ -75,6 +86,7 @@ export const DEFAULT_DURATION_ALERTS: DurationAlertConfig[] = [
   { job_type: JobType.SLOT_IN, warning_threshold_hours: 4, alert_threshold_hours: 5, notify_supervisor: true, notify_admin: true },
   { job_type: JobType.CHECKING, warning_threshold_hours: 1.5, alert_threshold_hours: 2, notify_supervisor: true, notify_admin: false },
   { job_type: JobType.COURIER, warning_threshold_hours: 1, alert_threshold_hours: 1.5, notify_supervisor: false, notify_admin: false },
+  { job_type: JobType.FIELD_TECHNICAL_SERVICES, warning_threshold_hours: 3, alert_threshold_hours: 4, notify_supervisor: true, notify_admin: false },
 ];
 
 export interface ExtraCharge {

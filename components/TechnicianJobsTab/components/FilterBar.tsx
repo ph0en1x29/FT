@@ -61,6 +61,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
     { id: JobType.CHECKING, label: 'Checking' },
     { id: JobType.SLOT_IN, label: 'Slot-In' },
     { id: JobType.COURIER, label: 'Courier' },
+    { id: JobType.FIELD_TECHNICAL_SERVICES, label: 'Field Technical Services' },
   ], []);
 
   return (

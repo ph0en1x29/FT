@@ -44,6 +44,8 @@ export const getJobTypeTone = (type?: string): ToneStyle => {
       return toneStyles.info;
     case JobType.COURIER:
       return toneStyles.warning;
+    case JobType.FIELD_TECHNICAL_SERVICES:
+      return toneStyles.info;
     default:
       return toneStyles.neutral;
   }

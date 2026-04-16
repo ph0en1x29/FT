@@ -105,13 +105,14 @@ export const approveSparePartRequest = async (
       return false;
     }
 
-    // Add all parts to job
+    // Add all parts to job (auto-populated from approval — locked for technician)
     const jobPartsInserts = items.map(item => ({
       job_id: request.job_id,
       part_id: item.partId,
       part_name: partInfoMap[item.partId].part_name,
       quantity: item.quantity,
       sell_price_at_time: partInfoMap[item.partId].sell_price ?? partInfoMap[item.partId].cost_price ?? 0,
+      auto_populated: true,
     }));
 
     const { error: insertError } = await supabase.from('job_parts').insert(jobPartsInserts);
@@ -312,7 +313,7 @@ export const issuePartToTechnician = async (
 
     if (updateError) return false;
 
-    // Add parts to job (only happens here, not at approval)
+    // Add parts to job (auto-populated from issuance — locked for technician)
     const { error: insertError } = await supabase
       .from('job_parts')
       .insert({
@@ -321,6 +322,7 @@ export const issuePartToTechnician = async (
         part_name: part.part_name,
         quantity,
         sell_price_at_time: part.sell_price ?? part.cost_price ?? 0,
+        auto_populated: true,
       });
 
     if (insertError) {

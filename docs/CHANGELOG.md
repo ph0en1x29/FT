@@ -1,5 +1,29 @@
 # Changelog
 
+## [2026-04-16] — Field Technical Services, Auto-Populate Used Parts, Completion Validation
+
+### Added
+
+**New "Field Technical Services" job type replacing Minor Service and Courier**
+- Client request: Shin asked to consolidate "Minor Service" and "Courier" into a single "Field Technical Services" type covering charger/battery installation, parts collection from suppliers, on-site consultation, and customer training. No hourmeter tracking or checklist required for this type.
+- Implementation: Added `FIELD_TECHNICAL_SERVICES = 'Field Technical Services'` to the `JobType` enum (`types/job-core.types.ts:43`). The legacy `MINOR_SERVICE` and `COURIER` values remain in the enum for backward compatibility with existing jobs, but are excluded from the new `CREATABLE_JOB_TYPES` constant used by the Create Job form (`pages/CreateJob/CreateJobPage.tsx:186`), so only new job types appear in the dropdown.
+- Completion exemptions: Field Technical Services is exempt from both hourmeter validation and mandatory checklist in the frontend completion handler (`pages/JobDetail/hooks/useJobActions.ts:327`) and in the database trigger `validate_job_completion_requirements()`. This matches the exemption pattern already used for Repair jobs.
+- UI updates across 13 files: teal badge color in JobHeader, JobBoard, and TechnicianDashboard; new entry in technician filter bar, KPI breakdown, and service report PDF checkbox row; duration alert threshold set at 3h warning / 4h alert.
+- DB migration `20260416_field_technical_services_and_parts_validation.sql` adds the value to `jobs_job_type_check` constraint.
+
+**Auto-populate Used Parts from approved spare part requests**
+- Client request: Shin asked if approved parts could automatically appear in the Used Parts section so technicians only need to verify quantities instead of manually re-adding each part.
+- Implementation: The existing `approveSparePartRequest()` and `issuePartToTechnician()` functions in `services/jobRequestApprovalService.ts` already insert into `job_parts` when parts are approved. Added `auto_populated: true` flag to these inserts, backed by a new `auto_populated BOOLEAN DEFAULT FALSE` column on the `job_parts` table.
+- UI: `PartsSection.tsx:113` renders auto-populated parts with a lock icon and "Auto" badge. Edit, delete, and price-change buttons are hidden for these parts — technicians can view them but cannot modify or remove them.
+
+### Fixed
+
+**Completion allowed with empty Used Parts despite approved spare part requests**
+- Client report: Shin reported that technicians and admins can complete a job even when parts have been marked "Approved" but no parts appear in the Used Parts section.
+- Root cause: The completion validation in `useJobActions.ts:352` checked `parts_used.length > 0 || noPartsUsed` but never cross-referenced the `job_requests` table. A technician could toggle "No parts used" and complete the job even when spare part requests with status `approved` or `issued` existed. The database trigger `validate_job_completion_requirements()` had the same gap.
+- Fix: Added a new validation block in `handleStatusChange` (`useJobActions.ts:371`) that queries `state.jobRequests` for spare_part requests with `approved` or `issued` status. If any exist and `parts_used` is empty, completion is blocked with Shin's requested error message. The same check was added to the database trigger as a server-side backstop.
+- Error message: "Parts have been approved for this job. Please ensure all used parts are added to the 'Used Part' section before completing."
+
 ## [2026-04-15] — Hide Customer Names, Fix Customer Search, Notification Overhaul
 
 ### Fixed

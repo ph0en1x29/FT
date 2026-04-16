@@ -98,6 +98,7 @@ export interface EnhancedTechnicianKPI extends TechnicianKPI {
   checking_jobs: number;
   slot_in_jobs: number;
   courier_jobs: number;
+  field_tech_jobs: number;
 
   // Efficiency Scores (calculated)
   efficiency_score: number; // Overall efficiency rating 0-100

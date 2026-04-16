@@ -1,14 +1,38 @@
--- Fix: repair jobs cannot be completed because validate_job_completion_requirements
--- enforces a condition checklist that is only meaningful for Service / Full Service /
--- Checking jobs. The frontend already exempts Repair (useJobActions.ts) and
--- getMissingMandatoryItems() returns [] for Repair, but the DB trigger does not, so
--- the technician's status update reaches the DB and is rejected with:
---   "Cannot complete job: Checklist has not been filled."
+-- Migration: Field Technical Services job type + auto_populated parts + completion validation
+-- Date: 2026-04-16
 --
--- Fix: skip ONLY the checklist branch when job_type = 'Repair'. Every other
--- completion gate (started_at, service notes / job_carried_out, parts or
--- no_parts_used, technician signature, customer signature) is left intact.
+-- 1. Add 'Field Technical Services' to job_type constraint (new jobs only — existing
+--    Minor Service / Courier jobs remain untouched)
+-- 2. Add auto_populated boolean to job_parts (marks parts auto-added from approval)
+-- 3. Exempt 'Field Technical Services' from checklist + hourmeter in completion trigger
+-- 4. Block completion when approved spare part requests exist but Used Parts is empty
 
+BEGIN;
+
+-- ============================================
+-- 1. Update job_type CHECK constraint
+-- ============================================
+ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_job_type_check;
+
+ALTER TABLE jobs
+ADD CONSTRAINT jobs_job_type_check
+CHECK (job_type IN (
+  'Service', 'Full Service', 'Minor Service', 'Repair',
+  'Checking', 'Slot-In', 'Courier', 'Field Technical Services'
+));
+
+-- ============================================
+-- 2. Add auto_populated flag to job_parts
+-- ============================================
+ALTER TABLE job_parts
+ADD COLUMN IF NOT EXISTS auto_populated BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN job_parts.auto_populated
+  IS 'True when part was auto-added from an approved spare part request. Locked — technician cannot edit/remove.';
+
+-- ============================================
+-- 3+4. Update completion validation trigger
+-- ============================================
 CREATE OR REPLACE FUNCTION public.validate_job_completion_requirements()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -39,11 +63,8 @@ BEGIN
         RAISE EXCEPTION 'Cannot complete job: Job was never started (no start time recorded).';
     END IF;
 
-    -- Repair jobs are exempt from the condition checklist requirement.
-    -- The forklift condition checklist is only meaningful for inspection-type jobs
-    -- (Service / Full Service / Checking). The frontend already enforces this
-    -- exemption; this brings the DB trigger into agreement.
-    IF NEW.job_type IS DISTINCT FROM 'Repair' THEN
+    -- Repair and Field Technical Services are exempt from checklist
+    IF NEW.job_type NOT IN ('Repair', 'Field Technical Services') THEN
         IF (service_record.checklist_data IS NULL OR service_record.checklist_data = '{}'::JSONB)
            AND (NEW.condition_checklist IS NULL OR NEW.condition_checklist::JSONB = '{}'::JSONB) THEN
             RAISE EXCEPTION 'Cannot complete job: Checklist has not been filled.';
@@ -64,8 +85,7 @@ BEGIN
     END IF;
 
     -- Block completion when spare part requests have been approved/issued but no
-    -- parts exist in job_parts. This prevents bypassing via "no parts used" when
-    -- the admin already approved parts for this job.
+    -- parts exist in job_parts. Prevents bypassing via "no parts used" toggle.
     IF NOT has_parts AND EXISTS (
         SELECT 1 FROM job_requests
         WHERE job_id = NEW.job_id
@@ -85,3 +105,14 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Sanity check
+DO $$
+BEGIN
+  ASSERT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'job_parts' AND column_name = 'auto_populated'
+  ), 'auto_populated column missing from job_parts';
+END $$;
+
+COMMIT;

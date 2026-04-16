@@ -109,19 +109,29 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
           )}
           {job.parts_used.map(p => (
             <div key={p.job_part_id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-[var(--bg-subtle)] rounded-xl">
-              <div>
+              <div className="flex items-center gap-2">
                 <span className="font-medium text-[var(--text)]">{Number.isInteger(p.quantity) ? p.quantity : p.quantity.toFixed(2)}× {p.part_name}</span>
+                {p.auto_populated && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-[var(--info)] bg-[var(--info-bg)] px-1.5 py-0.5 rounded-full">
+                    <Lock className="w-3 h-3" /> Auto
+                  </span>
+                )}
               </div>
-              {canViewPricing && editingPartId === p.job_part_id ? (
+              {p.auto_populated ? (
+                /* Auto-populated parts are locked — no edit/delete */
+                canViewPricing ? (
+                  <span className="font-mono text-[var(--text-secondary)]">RM{p.sell_price_at_time.toFixed(2)}</span>
+                ) : null
+              ) : canViewPricing && editingPartId === p.job_part_id ? (
                 <div className="flex items-center gap-2">
                   <div className="relative w-24">
                     <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs">RM</span>
-                    <input 
-                      type="number" 
-                      className="input-premium pl-8 text-sm" 
-                      value={editingPrice} 
-                      onChange={(e) => onEditingPriceChange(e.target.value)} 
-                      autoFocus 
+                    <input
+                      type="number"
+                      className="input-premium pl-8 text-sm"
+                      value={editingPrice}
+                      onChange={(e) => onEditingPriceChange(e.target.value)}
+                      autoFocus
                     />
                   </div>
                   <button onClick={() => onSavePartPrice(p.job_part_id)} className="p-1 text-[var(--success)] hover:bg-[var(--success-bg)] rounded">

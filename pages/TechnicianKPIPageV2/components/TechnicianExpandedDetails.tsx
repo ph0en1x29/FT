@@ -75,6 +75,10 @@ export const TechnicianExpandedDetails: React.FC<TechnicianExpandedDetailsProps>
               <span className="text-slate-500">Courier</span>
               <span className="font-medium text-cyan-600">{kpi.courier_jobs}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Field Technical</span>
+              <span className="font-medium text-teal-600">{kpi.field_tech_jobs}</span>
+            </div>
           </div>
         </div>
 

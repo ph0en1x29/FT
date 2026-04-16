@@ -46,6 +46,8 @@ export interface JobPartUsed {
   // Van Stock tracking
   from_van_stock?: boolean; // True if part came from Van Stock
   van_stock_item_id?: string; // Reference to VanStockItem if from Van Stock
+  // Auto-populated from approved spare part request (locked — tech cannot edit/remove)
+  auto_populated?: boolean;
 }
 
 // =============================================
