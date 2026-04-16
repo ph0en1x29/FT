@@ -32,6 +32,7 @@ const permissionLabels: Record<keyof RolePermissions, string> = {
   canViewOwnProfile: 'View Own Profile',
   canViewPricing: 'View Pricing',
   canViewJobCosts: 'View Job Costs',
+  canViewCustomerName: 'View Customer Name',
 };
 
 // Group permissions by category for better organization
@@ -50,7 +51,7 @@ const permissionGroups: { name: string; permissions: (keyof RolePermissions)[] }
   },
   {
     name: 'Customers',
-    permissions: ['canViewCustomers', 'canEditCustomers', 'canDeleteCustomers'],
+    permissions: ['canViewCustomers', 'canEditCustomers', 'canDeleteCustomers', 'canViewCustomerName'],
   },
   {
     name: 'Fleet',

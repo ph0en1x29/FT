@@ -21,6 +21,7 @@ interface JobCardProps {
   job: JobWithHelperFlag;
   currentUser: User;
   isTechnician: boolean;
+  canViewCustomerName?: boolean;
   canStar: boolean;
   processingJobId: string | null;
   jobNeedsAcceptance: (job: JobWithHelperFlag) => boolean;
@@ -67,6 +68,7 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
   job,
   currentUser,
   isTechnician,
+  canViewCustomerName = true,
   canStar,
   processingJobId,
   jobNeedsAcceptance,
@@ -198,7 +200,7 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
 
       {/* Row 3: Inline details */}
       <div className="mt-2 flex flex-wrap gap-x-3 border-t border-[var(--border)] pt-2 text-xs text-theme-muted">
-        {job.customer?.name && (
+        {canViewCustomerName && job.customer?.name && (
           <span className="flex items-center gap-1">
             <UserIcon className="h-3.5 w-3.5" />
             {job.customer.name}

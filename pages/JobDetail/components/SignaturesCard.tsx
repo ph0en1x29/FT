@@ -22,7 +22,7 @@ export const SignaturesCard: React.FC<SignaturesCardProps> = ({
   const { isTechnician, isHelperOnly } = roleFlags;
   const { isInProgress, isAwaitingFinalization, hasBothSignatures } = statusFlags;
 
-  const [customerName, setCustomerName] = useState(job.customer?.name || '');
+  const [customerName, setCustomerName] = useState('');
   const [icNo, setIcNo] = useState('');
 
   const handleCustomerSwipe = () => {

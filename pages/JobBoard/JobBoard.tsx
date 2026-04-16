@@ -45,6 +45,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
 
   const activeRole = displayRole || currentUser.role;
   const isTechnician = activeRole === UserRole.TECHNICIAN;
+  const canViewCustomerName = hasPermission('canViewCustomerName');
   const isAdminOrSupervisor = [UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR].includes(activeRole as UserRole);
   const defaultViewMode: ViewMode = isTechnician ? 'card' : 'list';
   const [viewMode, setViewMode] = useState<ViewMode>(defaultViewMode);
@@ -165,6 +166,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           job={job}
           currentUser={currentUser}
           isTechnician={isTechnician}
+          canViewCustomerName={canViewCustomerName}
           processingJobId={processingJobId}
           jobNeedsAcceptance={jobNeedsAcceptance}
           getResponseTimeRemaining={getResponseTimeRemaining}
@@ -185,6 +187,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     <JobListTable
       jobs={items}
       isTechnician={isTechnician}
+      canViewCustomerName={canViewCustomerName}
       processingJobId={processingJobId}
       jobNeedsAcceptance={jobNeedsAcceptance}
       getResponseTimeRemaining={getResponseTimeRemaining}

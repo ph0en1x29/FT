@@ -70,8 +70,8 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
           <Building2 className="w-4 h-4 text-blue-600" />
         </div>
         <div className="min-w-0">
-          <h3 className="font-semibold text-sm text-[var(--text)]">{job.customer?.name || 'No customer'}</h3>
-          {job.customer?.account_number && (
+          <h3 className="font-semibold text-sm text-[var(--text)]">{roleFlags.canViewCustomerName ? (job.customer?.name || 'No customer') : 'Customer'}</h3>
+          {roleFlags.canViewCustomerName && job.customer?.account_number && (
             <p className="text-xs text-[var(--text-muted)]">A/C: {job.customer.account_number}</p>
           )}
         </div>

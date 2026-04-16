@@ -7,6 +7,7 @@ const EMPTY_SET = new Set<string>();
 interface JobListTableProps {
   jobs: JobWithHelperFlag[];
   isTechnician: boolean;
+  canViewCustomerName?: boolean;
   canStar: boolean;
   processingJobId: string | null;
   jobNeedsAcceptance: (job: JobWithHelperFlag) => boolean;
@@ -23,6 +24,7 @@ interface JobListTableProps {
 export const JobListTable: React.FC<JobListTableProps> = ({
   jobs,
   isTechnician,
+  canViewCustomerName = true,
   canStar,
   processingJobId,
   jobNeedsAcceptance,
@@ -43,6 +45,7 @@ export const JobListTable: React.FC<JobListTableProps> = ({
             key={job.job_id}
             job={job}
             isTechnician={isTechnician}
+            canViewCustomerName={canViewCustomerName}
             processingJobId={processingJobId}
             jobNeedsAcceptance={jobNeedsAcceptance}
             getResponseTimeRemaining={getResponseTimeRemaining}
@@ -65,7 +68,7 @@ export const JobListTable: React.FC<JobListTableProps> = ({
           <span className="shrink-0 w-[180px]">#</span>
           <span className="shrink-0 w-[150px]">Status</span>
           <span className="flex-[2] min-w-0">Title</span>
-          <span className="flex-[2] min-w-0">Customer</span>
+          {canViewCustomerName && <span className="flex-[2] min-w-0">Customer</span>}
           <span className="flex-1 min-w-0">Equipment</span>
           <span className="flex-[1.5] min-w-0">Assignee</span>
           <span className="shrink-0 w-[85px]">Scheduled</span>
@@ -78,7 +81,8 @@ export const JobListTable: React.FC<JobListTableProps> = ({
               key={job.job_id}
               job={job}
               isTechnician={isTechnician}
-                processingJobId={processingJobId}
+              canViewCustomerName={canViewCustomerName}
+              processingJobId={processingJobId}
               jobNeedsAcceptance={jobNeedsAcceptance}
               getResponseTimeRemaining={getResponseTimeRemaining}
               onNavigate={onNavigate}

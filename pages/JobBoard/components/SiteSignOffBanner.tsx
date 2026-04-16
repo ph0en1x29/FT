@@ -54,7 +54,7 @@ export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
       if (!groups.has(key)) {
         groups.set(key, {
           customerId,
-          customerName: job.customer?.name || 'Unknown Customer',
+          customerName: 'Site',
           siteId,
           siteAddress: (job as any).customer_site?.site_name || job.customer?.address || 'No address',
           jobs: [],

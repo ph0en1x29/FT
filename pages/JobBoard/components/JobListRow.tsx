@@ -21,6 +21,7 @@ import { JobWithHelperFlag, ResponseTimeState } from '../types';
 interface JobListRowProps {
   job: JobWithHelperFlag;
   isTechnician: boolean;
+  canViewCustomerName?: boolean;
   canStar: boolean;
   processingJobId: string | null;
   jobNeedsAcceptance: (job: JobWithHelperFlag) => boolean;
@@ -81,6 +82,7 @@ const getPriorityLabel = (job: JobWithHelperFlag) => {
 export const JobListRow: React.FC<JobListRowProps> = React.memo(({
   job,
   isTechnician,
+  canViewCustomerName = true,
   canStar,
   processingJobId,
   jobNeedsAcceptance,
@@ -169,7 +171,7 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
 
             <div className="space-y-1">
               <div className="break-words text-base font-semibold text-theme">{job.title}</div>
-              <div className="break-words text-sm text-theme-muted">{job.customer?.name || '—'}</div>
+              <div className="break-words text-sm text-theme-muted">{canViewCustomerName ? (job.customer?.name || '—') : '—'}</div>
             </div>
 
             <div className="grid gap-2 text-sm text-theme-muted">
@@ -313,9 +315,11 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
       </span>
 
       {/* Customer */}
-      <span className="flex-[2] min-w-0 truncate text-sm text-theme-muted">
-        {job.customer?.name || '—'}
-      </span>
+      {canViewCustomerName && (
+        <span className="flex-[2] min-w-0 truncate text-sm text-theme-muted">
+          {job.customer?.name || '—'}
+        </span>
+      )}
 
       {/* Equipment */}
       <span className="flex-1 min-w-0 truncate text-sm font-mono text-theme-muted">

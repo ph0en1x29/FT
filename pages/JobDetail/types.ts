@@ -18,6 +18,7 @@ export interface RoleFlags {
   canViewPricing: boolean;
   canEditPrices: boolean;
   canAddParts: boolean;
+  canViewCustomerName: boolean;
 }
 
 // Status flags for the job

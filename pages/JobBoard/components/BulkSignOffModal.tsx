@@ -53,9 +53,7 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
     )
   );
   const [techSigned, setTechSigned] = useState(false);
-  const [customerName, setCustomerName] = useState(
-    siteGroup.jobs[0]?.customer?.name || ''
-  );
+  const [customerName, setCustomerName] = useState('');
   const [icNumber, setIcNumber] = useState('');
   const [customerSigned, setCustomerSigned] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

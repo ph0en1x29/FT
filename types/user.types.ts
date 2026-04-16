@@ -95,6 +95,8 @@ export interface RolePermissions {
   // Pricing/Cost Visibility (questionnaire: hide from Technicians)
   canViewPricing: boolean;       // Can see cost_price, sell_price on parts
   canViewJobCosts: boolean;      // Can see labor costs, job totals
+  // Customer Name Visibility — hide from Technicians per client request
+  canViewCustomerName: boolean;
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
@@ -128,6 +130,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     // Pricing Visibility
     canViewPricing: true,
     canViewJobCosts: true,
+    canViewCustomerName: true,
   },
   // Admin 1 (Service) - Job operations, assignments, customers, forklifts. NO inventory access.
   [UserRole.ADMIN_SERVICE]: {
@@ -158,6 +161,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewOwnProfile: true,
     canViewPricing: true,
     canViewJobCosts: true,
+    canViewCustomerName: true,
   },
   // Admin 2 (Store) - Parts/inventory, approve & provide parts. NO job creation, NO customers/forklifts.
   [UserRole.ADMIN_STORE]: {
@@ -188,6 +192,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewOwnProfile: true,
     canViewPricing: true,
     canViewJobCosts: true,
+    canViewCustomerName: true,
   },
   [UserRole.SUPERVISOR]: {
     canViewDashboard: true,
@@ -219,6 +224,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     // Pricing Visibility - Supervisor can see costs
     canViewPricing: true,
     canViewJobCosts: true,
+    canViewCustomerName: true,
   },
   [UserRole.TECHNICIAN]: {
     canViewDashboard: true,  // Technicians have their own simplified dashboard
@@ -233,7 +239,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageUsers: false,
     canManageInventory: false,
     canEditInventory: false,
-    canViewCustomers: true,
+    canViewCustomers: false,
     canEditCustomers: false,
     canDeleteCustomers: false,
     canViewForklifts: true,
@@ -250,6 +256,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     // Pricing Visibility - HIDDEN from Technicians per questionnaire
     canViewPricing: false,
     canViewJobCosts: false,
+    // Customer Name Visibility - HIDDEN from Technicians per client request
+    canViewCustomerName: false,
   },
   [UserRole.ACCOUNTANT]: {
     canViewDashboard: true,
@@ -281,5 +289,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     // Pricing Visibility - Accountant can see costs for invoicing
     canViewPricing: true,
     canViewJobCosts: true,
+    canViewCustomerName: true,
   },
 };

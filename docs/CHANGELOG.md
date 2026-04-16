@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-04-15] — Hide Customer Names from Technicians
+
+### Changed
+
+**Customer names hidden from technician role across all views**
+- Client request: Clint asked that technicians should not see customer names anywhere in the app — names should appear blank by default.
+- Implementation: Added a new `canViewCustomerName` permission to the role-based permission system (`types/user.types.ts:99`), set to `false` for Technician and `true` for all other roles. This follows the same pattern as the existing `canViewPricing` permission that already hides pricing from technicians.
+- Job Board: Customer names are masked in both card view (`JobCard.tsx:201`) and list view (`JobListRow.tsx:172,318`). The "Customer" column header in desktop list view (`JobListTable.tsx:68`) is conditionally hidden for technicians so the column doesn't take up space.
+- Job Detail: The `CustomerAssignmentCard.tsx:73` header shows a generic "Customer" label instead of the customer name. Account numbers are also hidden. The customer name pre-fill in `SignaturesCard.tsx:25` and `BulkSignOffModal.tsx:56` is now blank — technicians must have the customer fill in their own name during signature collection.
+- Site Sign-Off: The `SiteSignOffBanner.tsx:57` groups jobs by site with a generic "Site" label instead of the customer name.
+- Customer page access: Technician's `canViewCustomers` permission flipped to `false` (`user.types.ts:238`), which blocks access to the Customers page, Customer Profile, Site Map, and the customer search in the command palette.
+- Dev mode: The new permission is available in both DevMode override panels (PermissionOverrides + PermissionModal) under the "Customers" group for QA testing.
+- Scope: Admin-only pages (PendingConfirmations, DeletedJobsSection, ServiceRequestsQueue, AutoCountExport) were not modified — technicians cannot access them. No database changes required — this is a client-side permission enforcement.
+
 ## [2026-04-14] — Fix: Job Request System — Four Bugs
 
 ### Fixed

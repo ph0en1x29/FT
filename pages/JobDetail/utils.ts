@@ -106,6 +106,9 @@ export function getRoleFlags(
       (isAccountant && statusFlags.isAwaitingFinalization) // Accountants only at finalization
     );
   
+  // Customer name visibility - Hidden from technicians per client request
+  const canViewCustomerName = !isTechnician;
+
   return {
     isAdmin,
     isAdminService,
@@ -118,6 +121,7 @@ export function getRoleFlags(
     canViewPricing,
     canEditPrices,
     canAddParts,
+    canViewCustomerName,
   };
 }
 
