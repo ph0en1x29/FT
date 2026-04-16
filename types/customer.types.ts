@@ -16,6 +16,7 @@ export interface Customer {
   credit_term?: string; // e.g. '30 DAYS', 'C.O.D.', 'CASH'
   agent?: string; // Sales agent code
   phone_secondary?: string; // Secondary phone
+  is_active: boolean;
 }
 
 // Customer Acknowledgement for deferred completion (#8)

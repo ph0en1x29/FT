@@ -62,7 +62,7 @@ export const useCustomersForList = () => {
  *   <Combobox options={options} onSearch={search} isSearching={isSearching} ... />
  */
 export const useSearchCustomers = (limit = 20) => {
-  const [options, setOptions] = useState<Pick<Customer, 'customer_id' | 'name'>[]>([]);
+  const [options, setOptions] = useState<Pick<Customer, 'customer_id' | 'name' | 'is_active'>[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
   const search = useCallback(async (query: string) => {

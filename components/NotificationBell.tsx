@@ -186,18 +186,18 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
             </div>
           </div>
 
-          {/* Notification List */}
+          {/* Notification List — unread only */}
           <div className="max-h-96 overflow-y-auto">
-            {notifications.length > 0 ? (
-              notifications.slice(0, 10).map(notification => (
+            {unreadCount > 0 ? (
+              notifications.filter(n => !n.is_read).slice(0, 10).map(notification => (
                 <div
                   key={notification.notification_id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`
-                    px-4 py-3 border-b border-[var(--border-subtle)] cursor-pointer 
+                    px-4 py-3 border-b border-[var(--border-subtle)] cursor-pointer
                     hover:bg-[var(--bg-subtle)] transition-colors border-l-4
                     ${getPriorityColor(notification.priority)}
-                    ${!notification.is_read ? 'bg-[var(--accent-subtle)]' : ''}
+                    bg-[var(--accent-subtle)]
                   `}
                 >
                   <div className="flex items-start gap-3">
@@ -205,7 +205,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
                       {getNotificationIcon(notification.type as NotificationType)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${!notification.is_read ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-secondary)]'}`}>
+                      <p className="text-sm font-semibold text-[var(--text)]">
                         {notification.title}
                       </p>
                       <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2">
@@ -222,34 +222,33 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
                         )}
                       </div>
                     </div>
-                    {!notification.is_read && (
-                      <button
-                        onClick={(e) => handleMarkRead(notification.notification_id, e)}
-                        className="p-1 hover:bg-[var(--bg-subtle)] rounded"
-                        title="Mark as read"
-                      >
-                        <Check className="w-4 h-4 text-[var(--text-muted)]" />
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => handleMarkRead(notification.notification_id, e)}
+                      className="p-1 hover:bg-[var(--bg-subtle)] rounded"
+                      title="Dismiss"
+                    >
+                      <Check className="w-4 h-4 text-[var(--text-muted)]" />
+                    </button>
                   </div>
                 </div>
               ))
             ) : (
               <div className="py-12 text-center text-[var(--text-muted)]">
                 <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No notifications</p>
+                <p className="text-sm">No new notifications</p>
               </div>
             )}
           </div>
 
-          {/* Footer */}
-          {notifications.length > 10 && (
-            <div className="px-4 py-2 bg-[var(--surface-2)] border-t border-[var(--border)] text-center">
-              <button className="text-sm text-[var(--accent)] hover:underline">
-                View all notifications
-              </button>
-            </div>
-          )}
+          {/* Footer — always show history link */}
+          <div className="px-4 py-2 bg-[var(--surface-2)] border-t border-[var(--border)] text-center">
+            <button
+              onClick={() => { navigate('/notifications'); setIsOpen(false); }}
+              className="text-sm text-[var(--accent)] hover:underline"
+            >
+              View notification history
+            </button>
+          </div>
         </div>
       )}
     </div>

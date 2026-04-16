@@ -104,34 +104,36 @@ export const getCustomerById = async (customerId: string): Promise<Customer | nu
 
 /**
  * Search customers by name (server-side, lightweight)
- * Returns only customer_id + name — use for dropdown search
+ * Returns customer_id + name + is_active — use for dropdown search.
+ * Includes inactive customers so admins can create jobs for them;
+ * callers should append "(Inactive)" to the label when is_active is false.
  */
 export const searchCustomers = async (
   query: string,
   limit = 20
-): Promise<Pick<Customer, 'customer_id' | 'name'>[]> => {
+): Promise<Pick<Customer, 'customer_id' | 'name' | 'is_active'>[]> => {
   const escaped = query.trim().replace(/[%_]/g, '');
   if (!escaped) {
     const { data, error } = await supabase
       .from('customers')
-      .select('customer_id, name')
-      .eq('is_active', true)
+      .select('customer_id, name, is_active')
+      .order('is_active', { ascending: false }) // active first
       .order('name')
       .limit(limit);
     if (error) throw new Error(error.message);
-    return (data || []) as Pick<Customer, 'customer_id' | 'name'>[];
+    return (data || []) as Pick<Customer, 'customer_id' | 'name' | 'is_active'>[];
   }
 
   const { data, error } = await supabase
     .from('customers')
-    .select('customer_id, name')
-    .eq('is_active', true)
+    .select('customer_id, name, is_active')
     .ilike('name', `%${escaped}%`)
+    .order('is_active', { ascending: false }) // active first
     .order('name')
     .limit(limit);
 
   if (error) throw new Error(error.message);
-  return (data || []) as Pick<Customer, 'customer_id' | 'name'>[];
+  return (data || []) as Pick<Customer, 'customer_id' | 'name' | 'is_active'>[];
 };
 
 /**

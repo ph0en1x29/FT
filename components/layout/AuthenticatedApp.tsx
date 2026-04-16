@@ -36,6 +36,7 @@ const MyLeaveRequests = lazy(() => import('../../pages/MyLeaveRequests'));
 const PrototypeDashboards = lazy(() => import('../../pages/PrototypeDashboards'));
 const MyVanStock = lazy(() => import('../../pages/MyVanStock'));
 const AdminMapPage = lazy(() => import('../../pages/AdminMap/AdminMapPage'));
+const NotificationsPage = lazy(() => import('../../pages/NotificationsPage'));
 
 // Loading fallback
 export const PageLoader = () => (
@@ -539,6 +540,7 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
                 <Route path="/people" element={canViewTeam ? <People currentUser={currentUser} /> : <Navigate to="/" />} />
                 <Route path="/people/employees/:id" element={(canViewHR || canViewOwnProfile) ? <EmployeeProfile currentUser={currentUser} /> : <Navigate to="/" />} />
                 <Route path="/my-leave" element={<MyLeaveRequests currentUser={currentUser} />} />
+                <Route path="/notifications" element={<NotificationsPage currentUser={currentUser} />} />
                 <Route path="/store" element={<Navigate to="/inventory?tab=replenishments" replace />} />
                 <Route path="/my-van-stock" element={[UserRole.TECHNICIAN, UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR].includes(navRole) ? <MyVanStock currentUser={currentUser} /> : <Navigate to="/" />} />
                 {/* Legacy redirects */}

@@ -41,7 +41,7 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
   const customerOptions: ComboboxOption[] = useMemo(() => {
     const searchOpts = customerSearchResults.map(c => ({
       id: c.customer_id,
-      label: c.name,
+      label: c.is_active === false ? `${c.name} (Inactive)` : c.name,
     }));
     // If we have a selected customer not in search results, prepend it
     if (selectedCustomer && !searchOpts.find(o => o.id === selectedCustomer.customer_id)) {

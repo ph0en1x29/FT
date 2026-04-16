@@ -1,6 +1,23 @@
 # Changelog
 
-## [2026-04-15] — Hide Customer Names from Technicians
+## [2026-04-15] — Hide Customer Names, Fix Customer Search, Notification Overhaul
+
+### Fixed
+
+**SEAGULL customer invisible in Create Job search**
+- Client report: Admin unable to find customer "SEAGULL" when creating a New Job Order, even though the profile exists in the system.
+- Root cause: `services/customerService.ts:searchCustomers()` filtered `.eq('is_active', true)` on both code paths (empty query + text search). SEAGULL's record has `is_active = false`. The bulk debtor import script (`scripts/import_debtors.cjs`) deactivated 1,814 of 2,184 customers — any unmatched customer became permanently invisible in every dropdown search, with no UI to reactivate them.
+- Fix: removed the `is_active` filter from `searchCustomers()`, added `is_active` to the selected fields and return type, ordered results with active customers first. Added `is_active: boolean` to the `Customer` TypeScript interface (`types/customer.types.ts:19`). `CreateJobPage.tsx:42` now appends "(Inactive)" to the Combobox label for deactivated customers, so admins can see the status at a glance while still being able to select the customer.
+- Did not add a reactivation UI — that's a separate feature request.
+
+### Added
+
+**Notification system overhaul: dismiss, history page, auto-cleanup**
+- Client report: notifications act like a static log. Even after clicking "View", the notification stays in the list, the badge doesn't update visually, and old notifications stack up, pushing important alerts out of view.
+- Feature 1 — View & Dismiss: `NotificationBell.tsx` dropdown now shows only unread notifications (was: all 50 regardless of read status). Clicking a notification or the checkmark dismiss button marks it as read via the existing `markAsRead()` handler, which removes it from the dropdown and decrements the badge count. "Mark all read" clears the entire dropdown.
+- Feature 2 — Notification History: new `pages/NotificationsPage.tsx` at route `/notifications` provides a full-page view of all notifications (read + unread) with Unread/All tab toggle, paginated loading (30 per page with "Load more"), and click-to-navigate to the referenced resource (job, forklift, leave). The existing dead "View all notifications" links in `NotificationBell.tsx` footer and `DashboardNotificationCard.tsx:255` now correctly navigate to this page.
+- Feature 3 — Auto-Cleanup: DB migration `20260415_notification_auto_cleanup.sql` adds `cleanup_old_notifications()` function that deletes read notifications where `read_at < NOW() - INTERVAL '30 days'`. Hooked into `run_escalation_checks()` which runs every 5 minutes via the existing `escalation-checks` pg_cron schedule. No new cron entry needed. Applied to live DB.
+- Note at bottom of history page informs users: "Read notifications are automatically cleared after 30 days."
 
 ### Changed
 
