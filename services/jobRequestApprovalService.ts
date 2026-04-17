@@ -5,10 +5,8 @@
  * Split from jobRequestService.ts for maintainability.
  */
 
-import { NotificationType } from '../types';
 import { assignHelper } from './jobAssignmentService';
 import {
-  createNotification,
   notifyRequestApproved,
   notifyRequestRejected,
 } from './notificationService';
@@ -503,12 +501,6 @@ export const approveAssistanceRequest = async (
       return false;
     }
 
-    const { data: job } = await supabase
-      .from('jobs')
-      .select('title, description')
-      .eq('job_id', request.job_id)
-      .single();
-
     const { data: helper } = await supabase
       .from('users')
       .select('name, full_name')
@@ -516,7 +508,6 @@ export const approveAssistanceRequest = async (
       .single();
 
     const helperName = helper?.full_name || helper?.name || 'Helper';
-    const jobTitle = job?.title || 'Job';
 
     // FIXED: Assign helper FIRST, only mark approved if successful
     const assignmentResult = await assignHelper(
@@ -549,23 +540,15 @@ export const approveAssistanceRequest = async (
       console.warn('Request status update failed after helper assignment:', updateError.message);
     }
 
-    // Send notifications
+    // Notify the requesting tech that their request was approved.
+    // The helper + lead-tech notifications are fired inside assignHelper()
+    // so both request-approval and direct-assign paths stay in sync.
     await notifyRequestApproved(
       request.requested_by,
       'assistance',
       request.job_id,
       `${helperName} has been assigned to help you.`
     );
-
-    await createNotification({
-      user_id: helperTechnicianId,
-      type: NotificationType.JOB_ASSIGNED,
-      title: 'Helper Assignment',
-      message: `You have been assigned to help with: ${jobTitle}`,
-      reference_type: 'job',
-      reference_id: request.job_id,
-      priority: 'high',
-    });
 
     return true;
   } catch (_e) {

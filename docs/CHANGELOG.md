@@ -1,5 +1,20 @@
 # Changelog
 
+## [2026-04-16] — Helper Technician: Exempt from Completion Gates, Notifications on Every Assign Path
+
+### Fixed
+
+**Helpers were blocked from completing jobs by hourmeter + checklist requirements**
+- Client report: the helper function is broken — helpers cannot complete a job because the system demands a hourmeter reading and a filled-in condition checklist from them. Per the client, the helper role is intentionally light: a helper assists the lead technician, and the hourmeter reading + checklist are produced by the lead on a single canonical record.
+- Root cause: `handleStatusChange` in `pages/JobDetail/hooks/useJobActions.ts` gated completion on `!isFieldTech` only. The parts-declaration gate at line 356 already excluded helpers via `!state.isCurrentUserHelper`, but the hourmeter-required gate (line 329), the hourmeter-range gate (line 334), and the missing-checklist gate (line 380) never got the same exemption when the helper role was introduced. So helpers hit "Hourmeter reading required" / checklist-warning toasts on every completion attempt.
+- Fix: extracted `state.isCurrentUserHelper` into a local `isHelper` flag at the top of the `AWAITING_FINALIZATION` branch and added `!isHelper` to the three gates. Helpers now complete jobs without hourmeter/checklist blockers; the lead technician still enforces them as before.
+
+**Helpers and admins silently not notified when a helper is assigned**
+- Client report: notifications for helper assignment are not received — neither the helper (who should know they've been added to a job) nor the admin/lead tech (who wants visibility that help is en route).
+- Root cause: two paths reach `assignHelper()` but notification side-effects only lived on one. When an admin approves a technician's "Request Helper" request, `approveAssistanceRequest` in `services/jobRequestApprovalService.ts` called `assignHelper` and then separately called `createNotification` for the helper — that worked. When an admin directly assigned a helper via the JobDetail "Assign Helper" modal, `handleAssignHelper` called `MockDb.assignHelper` which hit `services/jobAssignmentBulkService.ts:assignHelper()` — that function only INSERTed into `job_assignments` and returned. Zero notifications fired on the direct-assign path, and the lead technician was never notified on either path. Verified on the live Supabase DB: only 1 assistance request exists in the system (still pending); 2 `helper_request` admin notifications were fired on 2026-04-17 confirming the `createJobRequest → notifyAdminsOfRequest` path works — the gap is the assignment side.
+- Fix: pushed helper notification down to the lowest level. `assignHelper()` now, after a successful INSERT, fetches the job title and lead technician, then fires a `JOB_ASSIGNED` notification ("Helper Assignment") to the helper and a `JOB_UPDATED` notification ("Helper Assigned") to the lead technician (skipped if lead is missing or equals the helper). Both paths — request-approval and direct-assign — now surface the assignment to both parties. The notification block is wrapped in its own try/catch so notification failure cannot roll back the already-committed assignment. Removed the now-duplicate helper notification from `approveAssistanceRequest` along with the unused `jobTitle` local, `jobs` fetch, and `NotificationType` / `createNotification` imports. The "your request was approved" notification to the original requester (`notifyRequestApproved`) is kept — it's semantically distinct from "you've been assigned". The 5-minute dedup inside `createNotification` (user_id + type + reference_id) protects against concurrent writes.
+- Scope: did not notify admins when a helper is assigned (admin is always the one clicking Assign or Approve — self-notification is noise). The admin-notify on REQUEST creation is unchanged and already working. Did not exempt helpers from after-photo or signature requirements — the client did not call those out, and the lead tech owns the completion artifacts regardless.
+
 ## [2026-04-16] — Field Technical Services, Auto-Populate Used Parts, Completion Validation
 
 ### Added

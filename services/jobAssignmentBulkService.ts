@@ -6,6 +6,8 @@
  */
 
 import type { JobAssignment } from '../types';
+import { NotificationType } from '../types';
+import { createNotification } from './notificationService';
 import { supabase } from './supabaseClient';
 
 // =====================
@@ -78,6 +80,47 @@ export const assignHelper = async (
     if (error) {
       return null;
     }
+
+    // Notify the helper (new assignee) and the lead technician so both paths
+    // (direct admin assign + request-approval) surface the assignment. The
+    // notificationService has a 5-min dedup on (user_id, type, reference_id)
+    // so concurrent callers can't double-post.
+    try {
+      const { data: job } = await supabase
+        .from('jobs')
+        .select('title, assigned_technician_id, assigned_technician_name')
+        .eq('job_id', jobId)
+        .single();
+
+      const jobTitle = job?.title || 'a job';
+      const helperTech = (data as JobAssignment & { technician?: { name?: string; full_name?: string } })?.technician;
+      const helperName = helperTech?.full_name || helperTech?.name || 'A helper';
+
+      await createNotification({
+        user_id: technicianId,
+        type: NotificationType.JOB_ASSIGNED,
+        title: 'Helper Assignment',
+        message: `You have been assigned to help with: ${jobTitle}`,
+        reference_type: 'job',
+        reference_id: jobId,
+        priority: 'high',
+      });
+
+      if (job?.assigned_technician_id && job.assigned_technician_id !== technicianId) {
+        await createNotification({
+          user_id: job.assigned_technician_id,
+          type: NotificationType.JOB_UPDATED,
+          title: 'Helper Assigned',
+          message: `${helperName} has been assigned to help you on: ${jobTitle}`,
+          reference_type: 'job',
+          reference_id: jobId,
+          priority: 'normal',
+        });
+      }
+    } catch {
+      /* Notification failure must not roll back the assignment. */
+    }
+
     return data;
   } catch (_e) {
     return null;

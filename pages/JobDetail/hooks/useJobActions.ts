@@ -323,15 +323,17 @@ export const useJobActions = ({
   const handleStatusChange = useCallback(async (newStatus: JobStatus) => {
     if (!job) return;
     if (newStatus === JobStatus.AWAITING_FINALIZATION) {
-      // Field Technical Services are exempt from hourmeter tracking and checklist
+      // Field Technical Services are exempt from hourmeter tracking and checklist.
+      // Helpers are also exempt — hourmeter + checklist are the lead technician's responsibility.
       const isFieldTech = job.job_type === JobType.FIELD_TECHNICAL_SERVICES;
-      // Hourmeter is mandatory before completion (except Field Technical Services)
-      if (!isFieldTech && !job.hourmeter_reading) {
+      const isHelper = state.isCurrentUserHelper;
+      // Hourmeter is mandatory before completion (except Field Technical Services and helpers)
+      if (!isFieldTech && !isHelper && !job.hourmeter_reading) {
         showToast.error('Hourmeter reading required', 'Please record the hourmeter reading before completing the job');
         return;
       }
       // Hourmeter must be updated from the start reading (end-of-job reading)
-      if (!isFieldTech) {
+      if (!isFieldTech && !isHelper) {
         const startReading = job.forklift?.hourmeter || 0;
         if (job.hourmeter_reading && job.hourmeter_reading < startReading && startReading > 0) {
           showToast.error('Invalid hourmeter reading', 'Hourmeter reading cannot be lower than the start reading');
@@ -376,8 +378,9 @@ export const useJobActions = ({
         );
         return;
       }
-      // Repair and Field Technical Services jobs are exempt from checklist
-      if (job.job_type !== JobType.REPAIR && !isFieldTech) {
+      // Repair and Field Technical Services jobs are exempt from checklist.
+      // Helpers are also exempt — checklist belongs to the lead technician.
+      if (job.job_type !== JobType.REPAIR && !isFieldTech && !isHelper) {
         const missing = getMissingMandatoryItems(job);
         if (missing.length > 0) {
           setMissingChecklistItems(missing);
