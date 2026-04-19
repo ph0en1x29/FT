@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-04-19]
+
+### Fixed
+- four job request system bugs — skilled tech visibility, approval dispatch, delete duplicates, rejection photo constraint (`37f58f6`)
+
+### Documentation
+- docs(changelog): update weekly magic docs (`8eef81c`)
+
+### Chores
+- auto-commit session changes (`cbd0544`)
+- auto-commit session changes (`580ad37`)
+- auto-commit session changes (`d90839d`)
+- auto-commit session changes (`74e6bdc`)
+
 ## [2026-04-16] — Helper Technician: Exempt from Completion Gates, Notifications on Every Assign Path
 
 ### Fixed
