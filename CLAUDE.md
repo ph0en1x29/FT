@@ -85,6 +85,21 @@ Supabase realtime echoes your own writes back as `postgres_changes` events. If a
 
 **Resolved by:** `lastSeenUpdatedAtRef` in `useJobDetailState.ts`. Every locally-applied job row updates the ref; `useJobRealtime.ts` short-circuits when an incoming `payload.new.updated_at` matches it. **Don't add reloads in mutation handlers** — apply the returned row directly and let the dedupe handle the echo.
 
+## Job-type validation layering (read before editing any completion/start gate)
+
+Per-job-type policies (hourmeter, checklist, signatures, parts) live at **three layers** and drift between them caused the FTS completion bug (3 sessions to pin down). The layering contract:
+
+| Layer | Owns | Example |
+|---|---|---|
+| UI (`useJobActions`, `JobDetailPage`, `JobHeader`, `MobileTechnicianWorkflowCard`, `JobDetailModals`) | Friendly early-reject, per-job-type branching | `isHourmeterExemptJob(job.job_type)` |
+| Service (`services/jobStatusService.ts` etc.) | Generic CRUD only — **no job-type branches** | just passes the row through |
+| DB trigger (`validate_job_completion_requirements`) | Authoritative contract | `IF NEW.job_type NOT IN ('Repair','Field Technical Services') THEN ...` |
+
+**Grep markers** for cross-layer exemptions:
+- `HOURMETER_EXEMPT_JOB_TYPES` — single source in `pages/JobDetail/utils.ts:isHourmeterExemptJob`. Every hourmeter gate in UI consumes it. When adding a new exempt type, grep this marker to find all call sites.
+
+**Rule:** when adding or changing a per-job-type gate, touch **all three layers in one PR**: the UI helper, the service (usually just a comment update — don't add throws there), and the DB trigger. Verify with `grep -rn HOURMETER_EXEMPT_JOB_TYPES` or the relevant marker before shipping.
+
 ## Available tooling for FT work
 
 | Tool | Type | Use for |

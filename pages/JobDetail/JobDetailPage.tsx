@@ -50,7 +50,7 @@ import { PartsReconciliationModal } from './components/PartsReconciliationModal'
 // Extracted hooks
 import { useJobActions,useJobData,useJobDetailState } from './hooks';
 import { JobDetailProps } from './types';
-import { getRoleFlags,getStatusFlags } from './utils';
+import { getRoleFlags,getStatusFlags, isHourmeterExemptJob } from './utils';
 
 const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const { displayRole } = useDevModeContext();
@@ -108,11 +108,10 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   // otherwise navigating to a deleted job (e.g., after the 2026-04-06 purge) crashes before the "Job not found" screen renders.
   const partsDeclared = (job?.parts_used?.length ?? 0) > 0 || state.noPartsUsed;
   const partsDeclarationRequired = roleFlags.isTechnician && !roleFlags.isHelperOnly && !partsDeclared;
-  // Field Technical Services skip hourmeter — mirror the exemption already in
-  // handleStatusChange (useJobActions.ts) so the desktop in-progress banner +
-  // Complete button don't perma-disable for FTS jobs that record 0 hourmeter.
-  const isFieldTechJob = job?.job_type === JobType.FIELD_TECHNICAL_SERVICES;
-  const hourmeterRequired = !isFieldTechJob && !statusFlags.hasHourmeter;
+  // HOURMETER_EXEMPT_JOB_TYPES — FTS + Repair skip the hourmeter gate so the
+  // desktop in-progress banner + Complete button don't perma-disable when
+  // hourmeter_reading is 0 (FTS without forklift) or absent.
+  const hourmeterRequired = !isHourmeterExemptJob(job?.job_type) && !statusFlags.hasHourmeter;
   const completionBlocked = !statusFlags.hasBothSignatures || hourmeterRequired || !statusFlags.hasAfterPhoto || partsDeclarationRequired;
 
   // Hide sticky action bar when any modal is open (prevents overlap)
@@ -342,7 +341,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         lastRecordedHourmeter={job?.forklift?.hourmeter || 0} conditionChecklist={state.conditionChecklist}
         beforePhotos={state.beforePhotos}
         isRepairJob={job?.job_type === JobType.REPAIR || job?.job_type === JobType.FIELD_TECHNICAL_SERVICES}
-        skipHourmeter={job?.job_type === JobType.FIELD_TECHNICAL_SERVICES}
+        skipHourmeter={isHourmeterExemptJob(job?.job_type)}
         onHourmeterChange={state.setStartJobHourmeter} onChecklistToggle={actions.handleChecklistToggle}
         onCheckAll={actions.handleConditionCheckAll} onUncheckAll={actions.handleConditionUncheckAll}
         onAddPhotos={(files) => state.setBeforePhotos(prev => [...prev, ...files])}

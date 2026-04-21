@@ -24,12 +24,15 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
   
   const previousStatus = currentJob?.status;
   
-  // Validation for status transitions. Hourmeter + forklift gates are NOT
-  // enforced here — they're job-type-specific (Field Technical Services
-  // legitimately has no forklift and hourmeter_reading=0). The DB trigger
-  // validate_job_completion_requirements is the authoritative gate; the UI
-  // layer (useJobActions.handleStatusChange) holds the friendly early-reject
-  // with proper per-job-type branching.
+  // LAYERING CONTRACT — this service is generic CRUD only.
+  //   Hourmeter gate  → UI (isHourmeterExemptJob helper, HOURMETER_EXEMPT_JOB_TYPES)
+  //   Forklift gate   → UI (startJobWithCondition validates against forklift reading)
+  //   Checklist gate  → DB trigger validate_job_completion_requirements (FTS + Repair exempt)
+  //   Signature gate  → DB trigger (authoritative); mirrored below for a friendlier toast
+  //   Parts gate      → DB trigger
+  // NEVER add a job-type-specific throw here — services/ is intentionally
+  // job-type-blind. If a policy needs enforcement, add it in the UI for UX
+  // and/or the DB trigger for authority, then verify both stay in sync.
   if (status === JobStatusEnum.IN_PROGRESS && previousStatus !== JobStatusEnum.IN_PROGRESS) {
     if (!currentJob?.assigned_technician_id) {
       throw new Error('Cannot start job: No technician assigned');

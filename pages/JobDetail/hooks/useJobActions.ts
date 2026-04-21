@@ -8,7 +8,7 @@ import { SupabaseDb as MockDb, supabase } from '../../../services/supabaseServic
 import { showToast } from '../../../services/toastService';
 import { ForkliftConditionChecklist,Job,JobStatus,JobType,User } from '../../../types';
 import { compressPhoto } from '../../../utils/compressPhoto';
-import { getMissingMandatoryItems } from '../utils';
+import { getMissingMandatoryItems, isHourmeterExemptJob } from '../utils';
 import { JobDetailState } from './useJobDetailState';
 import { useJobExportActions } from './useJobExportActions';
 import { useJobRequestActions } from './useJobRequestActions';
@@ -196,14 +196,13 @@ export const useJobActions = ({
       return;
     }
 
-    // Field Technical Services skip hourmeter entirely (no unit tracking —
-    // covers on-site consultation, parts collection, charger/battery install).
-    // Pass through the forklift's existing reading so the jobs.hourmeter_reading
-    // column stays consistent for downstream queries.
-    const isFieldTech = job.job_type === JobType.FIELD_TECHNICAL_SERVICES;
+    // HOURMETER_EXEMPT_JOB_TYPES — FTS + Repair skip hourmeter collection at Start.
+    // Forklift's existing reading is passed through verbatim so the
+    // jobs.hourmeter_reading column stays numeric for downstream queries.
+    const isHourmeterExempt = isHourmeterExemptJob(job.job_type);
     const currentForkliftHourmeter = job.forklift?.hourmeter || 0;
     let hourmeter: number;
-    if (isFieldTech) {
+    if (isHourmeterExempt) {
       hourmeter = currentForkliftHourmeter;
     } else {
       hourmeter = parseInt(startJobHourmeter);
@@ -333,17 +332,17 @@ export const useJobActions = ({
   const handleStatusChange = useCallback(async (newStatus: JobStatus) => {
     if (!job) return;
     if (newStatus === JobStatus.AWAITING_FINALIZATION) {
-      // Field Technical Services are exempt from hourmeter tracking and checklist.
-      // Helpers are also exempt — hourmeter + checklist are the lead technician's responsibility.
-      const isFieldTech = job.job_type === JobType.FIELD_TECHNICAL_SERVICES;
+      // HOURMETER_EXEMPT_JOB_TYPES — FTS + Repair skip hourmeter gating.
+      // Helpers are also exempt — hourmeter is the lead technician's responsibility.
+      const isHourmeterExempt = isHourmeterExemptJob(job.job_type);
       const isHelper = state.isCurrentUserHelper;
-      // Hourmeter is mandatory before completion (except Field Technical Services and helpers)
-      if (!isFieldTech && !isHelper && !job.hourmeter_reading) {
+      // Hourmeter is mandatory before completion (except HOURMETER_EXEMPT_JOB_TYPES + helpers)
+      if (!isHourmeterExempt && !isHelper && !job.hourmeter_reading) {
         showToast.error('Hourmeter reading required', 'Please record the hourmeter reading before completing the job');
         return;
       }
       // Hourmeter must be updated from the start reading (end-of-job reading)
-      if (!isFieldTech && !isHelper) {
+      if (!isHourmeterExempt && !isHelper) {
         const startReading = job.forklift?.hourmeter || 0;
         if (job.hourmeter_reading && job.hourmeter_reading < startReading && startReading > 0) {
           showToast.error('Invalid hourmeter reading', 'Hourmeter reading cannot be lower than the start reading');
@@ -390,7 +389,9 @@ export const useJobActions = ({
       }
       // Repair and Field Technical Services jobs are exempt from checklist.
       // Helpers are also exempt — checklist belongs to the lead technician.
-      if (job.job_type !== JobType.REPAIR && !isFieldTech && !isHelper) {
+      // (Checklist exemption happens to overlap with HOURMETER_EXEMPT_JOB_TYPES
+      // today, but keep the explicit job_type checks to decouple the two policies.)
+      if (job.job_type !== JobType.REPAIR && job.job_type !== JobType.FIELD_TECHNICAL_SERVICES && !isHelper) {
         const missing = getMissingMandatoryItems(job);
         if (missing.length > 0) {
           setMissingChecklistItems(missing);

@@ -2,6 +2,29 @@ import { ForkliftConditionChecklist,Job,JobType,MANDATORY_CHECKLIST_ITEMS,normal
 import { RoleFlags,StatusFlags } from './types';
 
 /**
+ * HOURMETER_EXEMPT_JOB_TYPES — single source of truth for which job types
+ * skip hourmeter collection at Start AND completion gating at Complete.
+ *
+ * Grep for `HOURMETER_EXEMPT_JOB_TYPES` before adding a new exempt job type.
+ * All UI hourmeter gates (Start Job modal, desktop in-progress banner,
+ * sticky Complete button, mobile workflow card blocker list) consume this
+ * helper — no mirror check needed at each site.
+ *
+ * Layering contract:
+ *   UI (this file + useJobActions.handleStatusChange) = friendly early-reject
+ *   Service (services/jobStatusService.ts)            = generic CRUD, no gate
+ *   DB trigger (validate_job_completion_requirements) = authoritative, no hourmeter check
+ *
+ * When this list changes, only this function needs to change — DB trigger
+ * does not validate hourmeter at any point. If you add a new exempt type,
+ * also sanity-check: does the Start Job modal forklift auto-prefill still
+ * produce a usable value (0 is fine; UI branches on isHourmeterExemptJob).
+ */
+export function isHourmeterExemptJob(jobType: JobType | string | null | undefined): boolean {
+  return jobType === JobType.FIELD_TECHNICAL_SERVICES || jobType === JobType.REPAIR;
+}
+
+/**
  * Calculate repair duration from job start/end times
  */
 export function getRepairDuration(job: Job | null): { hours: number; minutes: number; total: number } | null {

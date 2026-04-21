@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import SlotInSLABadge from '../../../components/SlotInSLABadge';
 import { Job,JobPriority,JobType } from '../../../types';
 import { RoleFlags,StatusFlags } from '../types';
-import { getResponseTimeRemaining,getStatusBadgeClass } from '../utils';
+import { getResponseTimeRemaining,getStatusBadgeClass, isHourmeterExemptJob } from '../utils';
 
 interface JobHeaderProps {
   job: Job;
@@ -72,10 +72,9 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
     isAssignedToCurrentUser, needsAcceptance, hasAccepted, isAwaitingAck, isDisputed
   } = statusFlags;
 
-  // Field Technical Services skip hourmeter — mirror useJobActions.ts:341 so the
-  // sticky Complete button isn't perma-disabled for FTS jobs.
-  const isFieldTech = job.job_type === JobType.FIELD_TECHNICAL_SERVICES;
-  const hourmeterRequired = !isFieldTech && !hasHourmeter;
+  // HOURMETER_EXEMPT_JOB_TYPES — FTS + Repair skip the hourmeter gate so the
+  // sticky Complete button isn't perma-disabled.
+  const hourmeterRequired = !isHourmeterExemptJob(job.job_type) && !hasHourmeter;
 
   return (
     <div className="bg-[var(--surface)] border-b border-[var(--border)] -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 py-4 sticky top-0 z-30 shadow-premium-xs">
