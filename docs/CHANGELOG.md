@@ -1,8 +1,24 @@
 # Changelog
 
+## [2026-04-20 21:46] — Field Technical Services: Desktop UI Complete button + header button + checklist card mirroring
+
+### Fixed
+
+**FTS hourmeter/checklist exemption missing from desktop Complete button, header button, and Condition Checklist card**
+- Desktop UI inconsistency: the desktop in-progress page still gated the Complete button and checklist card visibility on the raw `statusFlags.hasHourmeter` flag, even though the completion logic and mobile UI already exempt FTS from hourmeter. This left the desktop Complete button disabled with a "Hourmeter needed" blocker for FTS jobs.
+- Root cause: three separate UI consumers of `statusFlags.hasHourmeter` (`JobDetailPage.tsx:111` for completionBlocked, `JobHeader.tsx:174-181` for the sticky Complete button, and `JobDetailPage.tsx:224` for the Condition Checklist card) were still checking the raw flag without FTS exemption. The completion handler (`useJobActions.ts:341`) already exempts FTS from hourmeter, but the UI-side guards were not mirrored.
+- Fix: (1) `JobDetailPage.tsx:109-116` — added local `isFieldTechJob` flag and extracted `hourmeterRequired = !isFieldTechJob && !statusFlags.hasHourmeter`, threading it into `completionBlocked` and the "Hourmeter needed" amber chip. (2) `JobDetailPage.tsx:226` — expanded the Condition Checklist card render guard to hide for both `REPAIR` and `FIELD_TECHNICAL_SERVICES`, matching the exemption pattern in `utils.ts:getMissingMandatoryItems`. (3) `JobHeader.tsx:75-78` — computed `isFieldTech` and `hourmeterRequired` locally, substituting them into the sticky Complete button's disabled condition, className, and tooltip string.
+- Scope notes: did not modify `statusFlags.hasHourmeter` itself — that flag is used elsewhere (e.g., hourmeter edit UI) where the raw signal is meaningful. Kept per-consumer exemptions to avoid overloading the flag. Did not touch helpers (not reported — they already go through the mobile card which handles FTS correctly).
+
 ## [2026-04-20 21:37] — Field Technical Services: Skip Hourmeter + Checklist at Job Start
 
 ### Fixed
+
+**FTS hourmeter/checklist exemption missing from desktop Complete button, header button, and Condition Checklist card**
+- Client follow-up (same session): after the mobile Complete-button fix, asked to audit everywhere else the FTS exemption was not mirrored. Found three additional unmirrored gates on the desktop path.
+- Root cause: every UI consumer of `statusFlags.hasHourmeter` needs its own FTS exemption because the flag is computed in `utils.ts:174` as raw `!!job.hourmeter_reading` — which is false for FTS since we pass the forklift's current reading (often 0 or absent) rather than a tech-entered value. Three spots still gated on the raw flag: (a) `JobDetailPage.tsx:111` which derives `completionBlocked` for the in-progress banner's green Complete button and its "Hourmeter needed" amber chip; (b) `JobHeader.tsx:174-181` which disables the sticky header's Complete button and its tooltip; (c) `JobDetailPage.tsx:224` which hid the "Condition Checklist" collapsible card for Repair only, leaving it visible (and showing "0/16 items checked") for FTS where checklist has been skipped entirely.
+- Fix: extracted a single `hourmeterRequired = !isFieldTech && !hasHourmeter` local in both `JobDetailPage` and `JobHeader` and substituted it everywhere the raw `!hasHourmeter` appeared (disabled condition, className branch, tooltip priority chain, blocker chip). Expanded the Condition Checklist card render guard on `JobDetailPage.tsx:226` to `job_type !== REPAIR && job_type !== FIELD_TECHNICAL_SERVICES`, mirroring the existing exemption in `utils.ts:getMissingMandatoryItems`.
+- Scope notes: did not modify `utils.ts:hasHourmeter` itself — the raw boolean is still consumed by the hourmeter-edit UI block where the original signal (was a reading ever recorded?) is still the right question. Per-consumer exemption keeps the semantic cleaner than overloading one flag. Did not extend helper exemption on `JobHeader`'s Complete button (not reported — helpers use the mobile card path which already handles their case).
 
 **FTS "Complete Job" button perma-disabled on mobile after the start-flow exemption**
 - Client report (follow-up in the same session): once the Start Job modal stopped collecting hourmeter for Field Technical Services, technicians found the mobile Complete Job button locked with a "Hourmeter" chip in the blocker list. They had done everything else (after photo, both signatures, parts declaration) and could not finish the job.

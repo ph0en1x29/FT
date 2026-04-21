@@ -108,7 +108,12 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   // otherwise navigating to a deleted job (e.g., after the 2026-04-06 purge) crashes before the "Job not found" screen renders.
   const partsDeclared = (job?.parts_used?.length ?? 0) > 0 || state.noPartsUsed;
   const partsDeclarationRequired = roleFlags.isTechnician && !roleFlags.isHelperOnly && !partsDeclared;
-  const completionBlocked = !statusFlags.hasBothSignatures || !statusFlags.hasHourmeter || !statusFlags.hasAfterPhoto || partsDeclarationRequired;
+  // Field Technical Services skip hourmeter — mirror the exemption already in
+  // handleStatusChange (useJobActions.ts) so the desktop in-progress banner +
+  // Complete button don't perma-disable for FTS jobs that record 0 hourmeter.
+  const isFieldTechJob = job?.job_type === JobType.FIELD_TECHNICAL_SERVICES;
+  const hourmeterRequired = !isFieldTechJob && !statusFlags.hasHourmeter;
+  const completionBlocked = !statusFlags.hasBothSignatures || hourmeterRequired || !statusFlags.hasAfterPhoto || partsDeclarationRequired;
 
   // Hide sticky action bar when any modal is open (prevents overlap)
   const hasModalOpen =
@@ -221,7 +226,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
                 onTechSign={actions.handleTechnicianSwipeSign} onCustomerSign={actions.handleCustomerSwipeSign} />
             </div>
           )}
-          {job.job_type !== JobType.REPAIR && <div ref={checklistRef}>
+          {job.job_type !== JobType.REPAIR && job.job_type !== JobType.FIELD_TECHNICAL_SERVICES && <div ref={checklistRef}>
           <CollapsibleCard
             title="Condition Checklist"
             icon={<ClipboardList className="w-5 h-5 text-[var(--text-muted)]" />}
@@ -467,7 +472,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
                     {!statusFlags.hasBothSignatures && (
                       <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-medium text-amber-700">Signatures missing</span>
                     )}
-                    {!statusFlags.hasHourmeter && (
+                    {hourmeterRequired && (
                       <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-medium text-amber-700">Hourmeter needed</span>
                     )}
                     {partsDeclarationRequired && (

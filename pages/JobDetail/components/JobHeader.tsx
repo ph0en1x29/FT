@@ -72,6 +72,11 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
     isAssignedToCurrentUser, needsAcceptance, hasAccepted, isAwaitingAck, isDisputed
   } = statusFlags;
 
+  // Field Technical Services skip hourmeter — mirror useJobActions.ts:341 so the
+  // sticky Complete button isn't perma-disabled for FTS jobs.
+  const isFieldTech = job.job_type === JobType.FIELD_TECHNICAL_SERVICES;
+  const hourmeterRequired = !isFieldTech && !hasHourmeter;
+
   return (
     <div className="bg-[var(--surface)] border-b border-[var(--border)] -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 py-4 sticky top-0 z-30 shadow-premium-xs">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
@@ -171,14 +176,14 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
             <div className="relative group">
               <button
                 onClick={onCompleteJob}
-                disabled={!hasBothSignatures || !hasHourmeter || !hasAfterPhoto || partsDeclarationRequired}
-                className={`btn-premium ${hasBothSignatures && hasHourmeter && hasAfterPhoto && !partsDeclarationRequired ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
+                disabled={!hasBothSignatures || hourmeterRequired || !hasAfterPhoto || partsDeclarationRequired}
+                className={`btn-premium ${hasBothSignatures && !hourmeterRequired && hasAfterPhoto && !partsDeclarationRequired ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
               >
                 <CheckCircle className="w-4 h-4" /> Complete
               </button>
-              {(!hasBothSignatures || !hasHourmeter || !hasAfterPhoto || partsDeclarationRequired) && (
+              {(!hasBothSignatures || hourmeterRequired || !hasAfterPhoto || partsDeclarationRequired) && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[var(--text)] text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                  {!hasAfterPhoto ? '"After" photo required' : !hasHourmeter ? 'Hourmeter reading required' : !hasBothSignatures ? 'Both signatures required' : "Declare parts usage or tick 'No parts were used'"}
+                  {!hasAfterPhoto ? '"After" photo required' : hourmeterRequired ? 'Hourmeter reading required' : !hasBothSignatures ? 'Both signatures required' : "Declare parts usage or tick 'No parts were used'"}
                 </div>
               )}
             </div>
