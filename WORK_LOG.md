@@ -1,4 +1,5 @@
-# Work Log
+[2026-04-20 23:21] [Sonnet] chore: cleanup stray debug script: .tmp_check.js
+  - .tmp_check.js: removed stray debug script from FTS troubleshooting session
 
 [2026-04-20 23:16] [Sonnet] fix: FTS job cannot complete — services/jobStatusService.ts, .tmp_check.js, WORK_LOG.md, docs/CHANGELOG.md
   - services/jobStatusService.ts: removed hourmeter + forklift gates from updateJobStatus that were blocking FTS job completion

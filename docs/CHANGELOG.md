@@ -1,4 +1,8 @@
-# Changelog
+## [2026-04-20] — Cleanup: Remove stray debug script
+
+### Fixed
+- Removed `.tmp_check.js` stray debug script left from FTS troubleshooting session.
+
 
 ## [2026-04-21] — Field Technical Services: Remove Service-Layer Hourmeter + Forklift Gates
 
