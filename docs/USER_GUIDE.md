@@ -319,8 +319,8 @@ When a job is assigned to you, you have **15 minutes** to accept or reject it.
 1. Find the job in your list (status: "Assigned")
 2. Click on the job to open details
 3. Click **"Start Job"** button
-4. Enter the current hourmeter reading
-5. Complete the **Condition Checklist** (48 inspection items)
+4. Enter the current hourmeter reading (mandatory, minimum **1**). **If the hourmeter is broken or the reading is unavailable, enter `1` and add a remark in the "Broken meter remark" field that appears.** `0` is never accepted. Field Technical Services and Repair jobs do not collect a hourmeter reading and the input is hidden for them.
+5. Complete the **Condition Checklist** (48 inspection items) — skipped for Repair and Field Technical Services
 6. The job status changes to "In Progress"
 
 ### Working on a Job

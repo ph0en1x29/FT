@@ -57,7 +57,9 @@ interface StartJobModalProps {
   beforePhotos: File[];
   isRepairJob: boolean;
   skipHourmeter?: boolean;
+  brokenMeterNote: string;
   onHourmeterChange: (value: string) => void;
+  onBrokenMeterNoteChange: (value: string) => void;
   onChecklistToggle: (key: string) => void;
   onCheckAll: () => void;
   onUncheckAll: () => void;
@@ -75,7 +77,9 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
   beforePhotos,
   isRepairJob,
   skipHourmeter = false,
+  brokenMeterNote,
   onHourmeterChange,
+  onBrokenMeterNoteChange,
   onChecklistToggle,
   onCheckAll,
   onUncheckAll,
@@ -316,6 +320,7 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
               <div className="flex items-center gap-2">
                 <input
                   type="number"
+                  min={1}
                   className="input-premium w-40"
                   value={startJobHourmeter}
                   onChange={(e) => onHourmeterChange(e.target.value)}
@@ -326,6 +331,25 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
               <p className="text-xs text-[var(--text-muted)] mt-2 flex items-center gap-1">
                 <Clock className="w-3 h-3" /> Last recorded: <span className="font-semibold text-[var(--text-secondary)]">{lastRecordedHourmeter.toLocaleString()} hrs</span>
               </p>
+              {/* Greyed instruction — technician-facing hint. Broken-meter convention
+                  is documented in USER_GUIDE.md + utils.ts:isHourmeterExemptJob. */}
+              <p className="text-xs text-[var(--text-muted)] mt-2 italic">
+                If the hourmeter is broken or reading is unavailable, enter <span className="font-semibold">1</span> and add a remark below stating the meter is broken.
+              </p>
+              {startJobHourmeter.trim() === '1' && (
+                <div className="mt-3">
+                  <label className="text-xs font-bold text-[var(--warning)] mb-1 block">
+                    Broken meter remark *
+                  </label>
+                  <textarea
+                    className="input-premium w-full text-sm"
+                    rows={2}
+                    value={brokenMeterNote}
+                    onChange={(e) => onBrokenMeterNoteChange(e.target.value)}
+                    placeholder="E.g., meter display is broken, unable to get reading"
+                  />
+                </div>
+              )}
             </div>}
             {!isRepairJob && <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
@@ -390,24 +414,40 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
                 ))}
               </div>
             </div>}
-            <div className="flex gap-3 justify-end border-t border-[var(--border)] pt-4">
-              <button onClick={() => setCurrentStep(1)} className="btn-premium btn-premium-secondary">
-                <ChevronLeft className="w-4 h-4" /> Back
-              </button>
-              <button onClick={onClose} className="btn-premium btn-premium-secondary">Cancel</button>
-              <button
-                onClick={onStartJob}
-                disabled={(!skipHourmeter && !startJobHourmeter) || (!isRepairJob && !allChecked)}
-                className={`btn-premium ${(skipHourmeter || startJobHourmeter) && (isRepairJob || allChecked) ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
-              >
-                <Play className="w-4 h-4" /> Start Job
-                {((!skipHourmeter && !startJobHourmeter) || (!isRepairJob && !allChecked)) && (
-                  <span className="text-xs ml-1 opacity-70">
-                    ({!skipHourmeter && !startJobHourmeter ? 'hourmeter required' : `${checkedItems}/${totalItems} checked`})
-                  </span>
-                )}
-              </button>
-            </div>
+            {/* Hourmeter gate: non-empty AND parseable AND ≥ 1. Technicians who
+                were entering "0" to skip must now enter "1" + a broken-meter remark. */}
+            {(() => {
+              const hourmeterParsed = parseInt(startJobHourmeter, 10);
+              const hourmeterValid = !skipHourmeter
+                ? !isNaN(hourmeterParsed) && hourmeterParsed >= 1
+                : true;
+              const brokenMeterNoteValid = skipHourmeter || startJobHourmeter.trim() !== '1' || brokenMeterNote.trim().length > 0;
+              const checklistValid = isRepairJob || allChecked;
+              const canStart = hourmeterValid && brokenMeterNoteValid && checklistValid;
+              const hint = !hourmeterValid
+                ? (startJobHourmeter.trim() === '' ? 'hourmeter required' : 'hourmeter must be ≥ 1')
+                : !brokenMeterNoteValid
+                  ? 'broken meter remark required'
+                  : !checklistValid
+                    ? `${checkedItems}/${totalItems} checked`
+                    : null;
+              return (
+                <div className="flex gap-3 justify-end border-t border-[var(--border)] pt-4">
+                  <button onClick={() => setCurrentStep(1)} className="btn-premium btn-premium-secondary">
+                    <ChevronLeft className="w-4 h-4" /> Back
+                  </button>
+                  <button onClick={onClose} className="btn-premium btn-premium-secondary">Cancel</button>
+                  <button
+                    onClick={onStartJob}
+                    disabled={!canStart}
+                    className={`btn-premium ${canStart ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
+                  >
+                    <Play className="w-4 h-4" /> Start Job
+                    {hint && <span className="text-xs ml-1 opacity-70">({hint})</span>}
+                  </button>
+                </div>
+              );
+            })()}
           </>
         )}
       </div>

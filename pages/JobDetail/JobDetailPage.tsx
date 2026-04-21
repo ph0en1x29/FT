@@ -342,7 +342,10 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         beforePhotos={state.beforePhotos}
         isRepairJob={job?.job_type === JobType.REPAIR || job?.job_type === JobType.FIELD_TECHNICAL_SERVICES}
         skipHourmeter={isHourmeterExemptJob(job?.job_type)}
-        onHourmeterChange={state.setStartJobHourmeter} onChecklistToggle={actions.handleChecklistToggle}
+        brokenMeterNote={state.brokenMeterNote}
+        onHourmeterChange={state.setStartJobHourmeter}
+        onBrokenMeterNoteChange={state.setBrokenMeterNote}
+        onChecklistToggle={actions.handleChecklistToggle}
         onCheckAll={actions.handleConditionCheckAll} onUncheckAll={actions.handleConditionUncheckAll}
         onAddPhotos={(files) => state.setBeforePhotos(prev => [...prev, ...files])}
         onRemovePhoto={(index) => state.setBeforePhotos(prev => prev.filter((_, i) => i !== index))}

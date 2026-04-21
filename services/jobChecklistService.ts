@@ -145,28 +145,42 @@ export const updateJobRepairTimes = async (jobId: string, startTime?: string, en
 };
 
 export const startJobWithCondition = async (
-  jobId: string, 
-  hourmeterReading: number, 
+  jobId: string,
+  hourmeterReading: number,
   checklist: ForkliftConditionChecklist,
   startedById?: string,
-  startedByName?: string
+  startedByName?: string,
+  // Broken-meter remark. Set only when hourmeterReading === 1 (the sentinel used
+  // when the meter is broken / unreadable). Appended to jobs.notes as a structured
+  // entry `[Broken Hourmeter — DATE — TECH]: <reason>`, same format as Continue Tomorrow.
+  brokenMeterNote?: string
 ): Promise<Job> => {
   const now = new Date().toISOString();
-  
+
   const { data: jobData, error: fetchError } = await supabase
     .from('jobs')
-    .select('forklift_id, forklift:forklifts!forklift_id(hourmeter)')
+    .select('forklift_id, notes, forklift:forklifts!forklift_id(hourmeter)')
     .is('deleted_at', null)
     .eq('job_id', jobId)
     .single();
-  
+
   if (fetchError) throw new Error(fetchError.message);
-  
+
   const currentHourmeter = (jobData?.forklift as ForkliftHourmeterRow | null)?.hourmeter || 0;
-  if (hourmeterReading < currentHourmeter) {
-    throw new Error(`Hourmeter reading (${hourmeterReading}) cannot be less than forklift's current reading (${currentHourmeter})`);
+  // Broken-meter sentinel (1) is allowed even below the forklift's last reading.
+  if (hourmeterReading !== 1 && hourmeterReading < currentHourmeter) {
+    throw new Error(`Hourmeter reading (${hourmeterReading}) cannot be less than forklift's current reading (${currentHourmeter}). Enter 1 if the meter is broken.`);
   }
-  
+
+  // Append broken-meter remark to jobs.notes when tech flagged reading as 1.
+  const existingNotes: string[] = Array.isArray(jobData?.notes) ? jobData.notes : [];
+  let updatedNotes = existingNotes;
+  if (hourmeterReading === 1 && brokenMeterNote && brokenMeterNote.trim().length > 0) {
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const noteEntry = `[Broken Hourmeter — ${dateStr} — ${startedByName || 'Technician'}]: ${brokenMeterNote.trim()}`;
+    updatedNotes = [...existingNotes, noteEntry];
+  }
+
   const { data, error } = await supabase
     .from('jobs')
     .update({
@@ -178,6 +192,7 @@ export const startJobWithCondition = async (
       started_at: now,
       started_by_id: startedById || null,
       started_by_name: startedByName || null,
+      notes: updatedNotes,
     })
     .eq('job_id', jobId)
     .is('deleted_at', null)

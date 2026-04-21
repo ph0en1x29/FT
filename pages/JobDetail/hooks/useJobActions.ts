@@ -202,17 +202,31 @@ export const useJobActions = ({
     const isHourmeterExempt = isHourmeterExemptJob(job.job_type);
     const currentForkliftHourmeter = job.forklift?.hourmeter || 0;
     let hourmeter: number;
+    let brokenMeterNoteToSave: string | undefined;
     if (isHourmeterExempt) {
       hourmeter = currentForkliftHourmeter;
     } else {
       hourmeter = parseInt(startJobHourmeter);
-      if (isNaN(hourmeter) || hourmeter < 0) {
-        showToast.error('Please enter a valid hourmeter reading');
+      // Minimum reading is 1 — "0" was being used by technicians to skip the field
+      // when the meter is broken. Policy now: enter 1 + broken-meter remark.
+      if (isNaN(hourmeter) || hourmeter < 1) {
+        showToast.error('Hourmeter required', 'Enter the hourmeter reading. If the meter is broken, enter 1 and add a broken-meter remark.');
         return;
       }
-      if (hourmeter < currentForkliftHourmeter) {
-        showToast.error(`Hourmeter must be ≥ ${currentForkliftHourmeter} (forklift's current reading)`);
+      // If tech entered the sentinel "1", require a remark so the unit history
+      // captures why the reading is 1 rather than a real value.
+      if (hourmeter === 1 && state.brokenMeterNote.trim().length === 0) {
+        showToast.error('Broken meter remark required', 'Describe why the hourmeter reads 1 (meter broken, unreadable, etc.).');
         return;
+      }
+      // Allow downward adjustment when reading = 1 (broken meter) — otherwise
+      // enforce the normal floor that readings monotonically increase.
+      if (hourmeter !== 1 && hourmeter < currentForkliftHourmeter) {
+        showToast.error(`Hourmeter must be ≥ ${currentForkliftHourmeter} (forklift's current reading) — or enter 1 if the meter is broken`);
+        return;
+      }
+      if (hourmeter === 1) {
+        brokenMeterNoteToSave = state.brokenMeterNote.trim();
       }
     }
 
@@ -275,9 +289,10 @@ export const useJobActions = ({
     // before-photo precondition one more time at the moment of the status
     // change (defense in depth).
     try {
-      const updated = await MockDb.startJobWithCondition(job.job_id, hourmeter, conditionChecklist, currentUserId, currentUserName);
+      const updated = await MockDb.startJobWithCondition(job.job_id, hourmeter, conditionChecklist, currentUserId, currentUserName, brokenMeterNoteToSave);
       setJob({ ...updated } as Job);
       setShowStartJobModal(false);
+      state.setBrokenMeterNote('');
       showToast.success('Job started', `Status changed to In Progress. ${state.beforePhotos.length} before photo(s) saved.`);
     } catch (error) {
       showToast.error('Failed to start job', (error as Error).message);

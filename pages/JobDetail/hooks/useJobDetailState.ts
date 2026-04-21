@@ -108,6 +108,10 @@ export const useJobDetailState = () => {
 
   // Start job states
   const [startJobHourmeter, setStartJobHourmeter] = useState<string>('');
+  // Broken-meter remark — required when technician enters "1" as the hourmeter
+  // (convention: "1" = meter broken/unreadable). System enforces a non-empty
+  // remark so the unit's history captures why the reading is 1 rather than real.
+  const [brokenMeterNote, setBrokenMeterNote] = useState<string>('');
   const [conditionChecklist, setConditionChecklist] = useState<ForkliftConditionChecklist>({});
   const [beforePhotos, setBeforePhotos] = useState<File[]>([]);
 
@@ -240,6 +244,7 @@ export const useJobDetailState = () => {
 
     // Start job
     startJobHourmeter, setStartJobHourmeter,
+    brokenMeterNote, setBrokenMeterNote,
     conditionChecklist, setConditionChecklist,
     beforePhotos, setBeforePhotos,
 
