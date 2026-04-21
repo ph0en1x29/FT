@@ -370,6 +370,7 @@ The checklist now uses binary states:
 - ✅ Filled the condition checklist
 - ✅ Added service notes/job carried out
 - ✅ Recorded parts used OR checked "No parts used"
+  - ⚠️ If you uploaded any photos tagged **"Parts"**, you cannot also tick **"No parts used"**. Either add the parts to the Used Parts list, or re-tag the photos as **Condition / Evidence / Other** before completing.
 - ✅ Obtained **technician signature**
 - ✅ Obtained **customer signature**
 

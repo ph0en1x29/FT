@@ -389,6 +389,25 @@ export const useJobActions = ({
           return;
         }
       }
+      // Block completion when the tech uploaded photos tagged as "Parts"
+      // (category='spare_part') but also ticked "No parts used" with zero
+      // parts declared. Mirrors the DB trigger added in
+      // 20260421_block_completion_with_spare_part_photo_conflict.sql so the
+      // user sees a friendly toast with the specific escape hatches (add
+      // parts, or re-tag the photos) rather than a raw Postgres error.
+      // Admin/supervisor bypass the DB trigger, so we only enforce here for
+      // technicians (the UI toast still helps admins but won't block them).
+      if (currentUserRole === 'technician' && !state.isCurrentUserHelper) {
+        const sparePartPhotoCount = (job.media?.filter(m => m.category === 'spare_part').length ?? 0);
+        const hasParts = (job.parts_used?.length ?? 0) > 0;
+        if (sparePartPhotoCount > 0 && !hasParts && state.noPartsUsed) {
+          showToast.error(
+            'Parts photo conflicts with "No parts used"',
+            `You uploaded ${sparePartPhotoCount} photo(s) tagged as "Parts" but ticked "No parts used". Either add the parts you used to the Used Parts list, or re-tag the photo(s) as Condition / Evidence / Other.`
+          );
+          return;
+        }
+      }
       // Block completion when parts have been approved/issued but Used Parts is empty.
       // This prevents technicians AND admins from completing with an empty Used Parts
       // list when spare part requests were approved for the job.
