@@ -196,15 +196,25 @@ export const useJobActions = ({
       return;
     }
 
-    const hourmeter = parseInt(startJobHourmeter);
-    if (isNaN(hourmeter) || hourmeter < 0) {
-      showToast.error('Please enter a valid hourmeter reading');
-      return;
-    }
+    // Field Technical Services skip hourmeter entirely (no unit tracking —
+    // covers on-site consultation, parts collection, charger/battery install).
+    // Pass through the forklift's existing reading so the jobs.hourmeter_reading
+    // column stays consistent for downstream queries.
+    const isFieldTech = job.job_type === JobType.FIELD_TECHNICAL_SERVICES;
     const currentForkliftHourmeter = job.forklift?.hourmeter || 0;
-    if (hourmeter < currentForkliftHourmeter) {
-      showToast.error(`Hourmeter must be ≥ ${currentForkliftHourmeter} (forklift's current reading)`);
-      return;
+    let hourmeter: number;
+    if (isFieldTech) {
+      hourmeter = currentForkliftHourmeter;
+    } else {
+      hourmeter = parseInt(startJobHourmeter);
+      if (isNaN(hourmeter) || hourmeter < 0) {
+        showToast.error('Please enter a valid hourmeter reading');
+        return;
+      }
+      if (hourmeter < currentForkliftHourmeter) {
+        showToast.error(`Hourmeter must be ≥ ${currentForkliftHourmeter} (forklift's current reading)`);
+        return;
+      }
     }
 
     // Gate 2: upload ALL before photos FIRST, creating job_media rows with

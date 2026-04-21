@@ -335,7 +335,9 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       {/* Modals */}
       <StartJobModal show={state.showStartJobModal} startJobHourmeter={state.startJobHourmeter}
         lastRecordedHourmeter={job?.forklift?.hourmeter || 0} conditionChecklist={state.conditionChecklist}
-        beforePhotos={state.beforePhotos} isRepairJob={job?.job_type === JobType.REPAIR}
+        beforePhotos={state.beforePhotos}
+        isRepairJob={job?.job_type === JobType.REPAIR || job?.job_type === JobType.FIELD_TECHNICAL_SERVICES}
+        skipHourmeter={job?.job_type === JobType.FIELD_TECHNICAL_SERVICES}
         onHourmeterChange={state.setStartJobHourmeter} onChecklistToggle={actions.handleChecklistToggle}
         onCheckAll={actions.handleConditionCheckAll} onUncheckAll={actions.handleConditionUncheckAll}
         onAddPhotos={(files) => state.setBeforePhotos(prev => [...prev, ...files])}

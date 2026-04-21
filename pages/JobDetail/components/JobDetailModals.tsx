@@ -56,6 +56,7 @@ interface StartJobModalProps {
   conditionChecklist: ForkliftConditionChecklist;
   beforePhotos: File[];
   isRepairJob: boolean;
+  skipHourmeter?: boolean;
   onHourmeterChange: (value: string) => void;
   onChecklistToggle: (key: string) => void;
   onCheckAll: () => void;
@@ -73,6 +74,7 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
   conditionChecklist,
   beforePhotos,
   isRepairJob,
+  skipHourmeter = false,
   onHourmeterChange,
   onChecklistToggle,
   onCheckAll,
@@ -173,7 +175,15 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
             </div>
           </div>
           <p className="text-center text-xs text-[var(--text-muted)]">
-            {currentStep === 1 ? 'Step 1 of 2: Before Condition Photos' : isRepairJob ? 'Step 2 of 2: Hourmeter' : 'Step 2 of 2: Hourmeter & Checklist'}
+            {currentStep === 1
+              ? 'Step 1 of 2: Before Condition Photos'
+              : skipHourmeter && isRepairJob
+                ? 'Step 2 of 2: Confirm Start'
+                : skipHourmeter
+                  ? 'Step 2 of 2: Checklist'
+                  : isRepairJob
+                    ? 'Step 2 of 2: Hourmeter'
+                    : 'Step 2 of 2: Hourmeter & Checklist'}
           </p>
         </div>
 
@@ -299,24 +309,24 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
             <h4 className="font-bold text-xl mb-4 text-[var(--text)] flex items-center gap-2">
               <Play className="w-5 h-5 text-[var(--accent)]" /> Start Job - Condition Check
             </h4>
-            <div className="bg-[var(--warning-bg)] p-4 rounded-xl border border-[var(--warning)] border-opacity-20 mb-6">
+            {!skipHourmeter && <div className="bg-[var(--warning-bg)] p-4 rounded-xl border border-[var(--warning)] border-opacity-20 mb-6">
               <label className="text-sm font-bold text-[var(--warning)] mb-2 block flex items-center gap-2">
                 <Gauge className="w-4 h-4" /> Current Hourmeter *
               </label>
               <div className="flex items-center gap-2">
-                <input 
-                  type="number" 
-                  className="input-premium w-40" 
-                  value={startJobHourmeter} 
-                  onChange={(e) => onHourmeterChange(e.target.value)} 
-                  placeholder="e.g., 5230" 
+                <input
+                  type="number"
+                  className="input-premium w-40"
+                  value={startJobHourmeter}
+                  onChange={(e) => onHourmeterChange(e.target.value)}
+                  placeholder="e.g., 5230"
                 />
                 <span className="text-[var(--text-muted)]">hours</span>
               </div>
               <p className="text-xs text-[var(--text-muted)] mt-2 flex items-center gap-1">
                 <Clock className="w-3 h-3" /> Last recorded: <span className="font-semibold text-[var(--text-secondary)]">{lastRecordedHourmeter.toLocaleString()} hrs</span>
               </p>
-            </div>
+            </div>}
             {!isRepairJob && <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
                 <h5 className="font-bold text-[var(--text)] flex items-center gap-2">
@@ -387,13 +397,13 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
               <button onClick={onClose} className="btn-premium btn-premium-secondary">Cancel</button>
               <button
                 onClick={onStartJob}
-                disabled={!startJobHourmeter || (!isRepairJob && !allChecked)}
-                className={`btn-premium ${startJobHourmeter && (isRepairJob || allChecked) ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
+                disabled={(!skipHourmeter && !startJobHourmeter) || (!isRepairJob && !allChecked)}
+                className={`btn-premium ${(skipHourmeter || startJobHourmeter) && (isRepairJob || allChecked) ? 'btn-premium-primary' : 'btn-premium-secondary opacity-60 cursor-not-allowed'}`}
               >
                 <Play className="w-4 h-4" /> Start Job
-                {(!startJobHourmeter || (!isRepairJob && !allChecked)) && (
+                {((!skipHourmeter && !startJobHourmeter) || (!isRepairJob && !allChecked)) && (
                   <span className="text-xs ml-1 opacity-70">
-                    ({!startJobHourmeter ? 'hourmeter required' : `${checkedItems}/${totalItems} checked`})
+                    ({!skipHourmeter && !startJobHourmeter ? 'hourmeter required' : `${checkedItems}/${totalItems} checked`})
                   </span>
                 )}
               </button>

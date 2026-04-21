@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-04-20] — Field Technical Services: Skip Hourmeter + Checklist at Job Start
+
+### Fixed
+
+**Start Job modal forced hourmeter and checklist on Field Technical Services jobs**
+- Client report: for Field Technical Services (FTS) jobs — on-site consultation, parts collection, charger/battery install — technicians should not have to fill hourmeter or a condition checklist. The completion flow was already exempt since 2026-04-16, but the Start Job modal still demanded both. Technicians either typed a throwaway hourmeter value or used the "Check All" shortcut, neither of which produced useful data.
+- Root cause: `StartJobModal` was driven by a single `isRepairJob` prop that hid only the checklist (Repair jobs still need hourmeter). FTS reused no flag at Step 2, so the hourmeter input stayed mandatory and the checklist stayed visible. `handleStartJobWithCondition` in `pages/JobDetail/hooks/useJobActions.ts` also unconditionally parsed and range-validated `startJobHourmeter`.
+- Fix (three locations): (1) `pages/JobDetail/components/JobDetailModals.tsx` — added `skipHourmeter?: boolean` prop; hides the hourmeter input block and removes hourmeter from the Start button's disabled condition and hint text. Step 2 header text now distinguishes Confirm Start / Checklist / Hourmeter / Hourmeter & Checklist based on `skipHourmeter` + `isRepairJob`. (2) `pages/JobDetail/JobDetailPage.tsx:338` — now passes `isRepairJob={REPAIR || FIELD_TECHNICAL_SERVICES}` (reusing the existing checklist-hide path) and `skipHourmeter={FIELD_TECHNICAL_SERVICES}`. (3) `pages/JobDetail/hooks/useJobActions.ts:199-218` — when the job is FTS, skip the hourmeter parse/validate and forward `job.forklift?.hourmeter || 0` to `startJobWithCondition` so the `jobs.hourmeter_reading` column stays numerically consistent for downstream queries without requiring user input.
+- Scope notes: did not rename `isRepairJob` to a more generic `skipChecklist` — two call sites touched, rename would churn the diff. Did not change the DB trigger: `validate_job_completion_requirements` already exempts FTS from checklist and has never enforced hourmeter server-side. Did not touch before-photo requirement — FTS techs still take at least one before photo, which is the only remaining gate for starting an FTS job. Did not touch Repair's Step 2 behaviour.
+- Verification: `npm run typecheck` clean. Manual test path: create an FTS job → open as technician → tap Start Job → Step 1 take a before photo → Step 2 should render with only a Back/Cancel/Start Job row (no hourmeter field, no checklist grid) → Start Job transitions to In Progress.
+
 ## [2026-04-19]
 
 ### Fixed
