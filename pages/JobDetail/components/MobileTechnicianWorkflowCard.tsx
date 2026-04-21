@@ -1,6 +1,6 @@
 import { Camera, CheckCircle2, ClipboardList, PenTool, Play, XCircle } from 'lucide-react';
 import React from 'react';
-import { Job } from '../../../types';
+import { Job, JobType } from '../../../types';
 import { StatusFlags } from '../types';
 
 interface MobileTechnicianWorkflowCardProps {
@@ -28,9 +28,13 @@ export const MobileTechnicianWorkflowCard: React.FC<MobileTechnicianWorkflowCard
   onScrollToPhotos,
   onScrollToSignatures,
 }) => {
+  // Field Technical Services skip hourmeter tracking — mirror the exemption in
+  // handleStatusChange (useJobActions.ts) so the Complete button isn't perma-disabled
+  // for FTS jobs that have no forklift or a 0 hourmeter reading.
+  const isFieldTech = job.job_type === JobType.FIELD_TECHNICAL_SERVICES;
   const blockers = [
     !statusFlags.hasAfterPhoto ? 'After photo' : null,
-    !statusFlags.hasHourmeter ? 'Hourmeter' : null,
+    !isFieldTech && !statusFlags.hasHourmeter ? 'Hourmeter' : null,
     !job.technician_signature ? 'Technician sign' : null,
     !job.customer_signature ? 'Customer sign' : null,
     !partsDeclared ? 'Parts declaration' : null,

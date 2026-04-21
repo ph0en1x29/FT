@@ -1,8 +1,14 @@
 # Changelog
 
-## [2026-04-20] — Field Technical Services: Skip Hourmeter + Checklist at Job Start
+## [2026-04-20 21:37] — Field Technical Services: Skip Hourmeter + Checklist at Job Start
 
 ### Fixed
+
+**FTS "Complete Job" button perma-disabled on mobile after the start-flow exemption**
+- Client report (follow-up in the same session): once the Start Job modal stopped collecting hourmeter for Field Technical Services, technicians found the mobile Complete Job button locked with a "Hourmeter" chip in the blocker list. They had done everything else (after photo, both signatures, parts declaration) and could not finish the job.
+- Root cause: `MobileTechnicianWorkflowCard.tsx` builds its blocker list from `statusFlags.hasHourmeter`, which is `!!job.hourmeter_reading`. FTS jobs now record 0 (or the forklift's existing reading — 0 when there's no forklift), so `hasHourmeter` is always false and "Hourmeter" stays in `blockers`, disabling the Complete button. The desktop / `handleStatusChange` completion path was already exempt from hourmeter for FTS; the UI-side blocker was a second, unmirrored check that slipped through when the exemption was originally wired.
+- Fix: added an `isFieldTech` check in `MobileTechnicianWorkflowCard.tsx` and gated the "Hourmeter" blocker entry on `!isFieldTech && !statusFlags.hasHourmeter`, mirroring the exemption pattern already in `useJobActions.ts`. Imported `JobType` for the comparison. The after-photo, signature, and parts-declaration blockers still apply to FTS as before.
+- Scope notes: did not modify `statusFlags.hasHourmeter` itself — that flag is still consumed elsewhere for rendering the hourmeter edit UI where the raw signal matters. Did not extend helper exemption on the blocker list (not reported this session).
 
 **Start Job modal forced hourmeter and checklist on Field Technical Services jobs**
 - Client report: for Field Technical Services (FTS) jobs — on-site consultation, parts collection, charger/battery install — technicians should not have to fill hourmeter or a condition checklist. The completion flow was already exempt since 2026-04-16, but the Start Job modal still demanded both. Technicians either typed a throwaway hourmeter value or used the "Check All" shortcut, neither of which produced useful data.
