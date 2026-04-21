@@ -10,6 +10,16 @@ import { RoleFlags,StatusFlags } from './types';
  * sticky Complete button, mobile workflow card blocker list) consume this
  * helper — no mirror check needed at each site.
  *
+ * Policy history:
+ *   2026-04-20: added FTS + Repair to the exempt list (client asked Repair
+ *               to match FTS behaviour).
+ *   2026-04-21: Repair removed — client confirmed Repair jobs DO need a
+ *               hourmeter reading (they're repairing a specific unit; the
+ *               reading is meaningful for service history + amendments).
+ *               Only Field Technical Services remains exempt (on-site
+ *               consultation, parts collection, charger/battery install —
+ *               truly no unit tracking).
+ *
  * Layering contract:
  *   UI (this file + useJobActions.handleStatusChange) = friendly early-reject
  *   Service (services/jobStatusService.ts)            = generic CRUD, no gate
@@ -21,7 +31,7 @@ import { RoleFlags,StatusFlags } from './types';
  * produce a usable value (0 is fine; UI branches on isHourmeterExemptJob).
  */
 export function isHourmeterExemptJob(jobType: JobType | string | null | undefined): boolean {
-  return jobType === JobType.FIELD_TECHNICAL_SERVICES || jobType === JobType.REPAIR;
+  return jobType === JobType.FIELD_TECHNICAL_SERVICES;
 }
 
 /**
