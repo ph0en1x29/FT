@@ -1,6 +1,19 @@
 # Work Log
 
-[2026-04-20 21:46] [Sonnet] fix: FTS desktop UI — Complete button + header button + checklist card — JobDetailPage.tsx, JobHeader.tsx
+[2026-04-20 23:16] [Sonnet] fix: FTS job cannot complete — services/jobStatusService.ts, .tmp_check.js, WORK_LOG.md, docs/CHANGELOG.md
+  - services/jobStatusService.ts: removed hourmeter + forklift gates from updateJobStatus that were blocking FTS job completion
+  - .tmp_check.js: temporary file created during debugging session
+  - WORK_LOG.md: updated with auto-commit entry
+  - docs/CHANGELOG.md: updated with FTS completion fix documentation
+
+[2026-04-21 02:30] [Opus] fix: FTS job cannot complete — service-layer gates block status update for jobs without forklift/hourmeter — jobStatusService.ts
+  - Client report: FTS job still fails to update status (Complete). Earlier session already exempted FTS from hourmeter + checklist in the Start flow, the DB completion trigger, and every UI consumer (mobile workflow card, desktop JobDetailPage, sticky JobHeader button). Tech has sigs, after-photo, parts declared — Complete still errors.
+  - Root cause (verified against live DB via pooler): FTS job JOB-260420-035 is stuck `status='In Progress'`, `forklift_id=null`, `hourmeter_reading=0`. The blocker is `services/jobStatusService.ts:37-40` — `updateJobStatus` has an FTS-blind service-layer gate: `if (!currentJob?.hourmeter_reading) throw 'Cannot complete job: Hourmeter reading is required'`. For FTS, `startJobWithCondition` writes `hourmeter_reading = forklift?.hourmeter || 0`, so FTS jobs without a forklift land at `0`. `!0 === true` → throws. The error bubbles through `handleStatusChange`'s catch → toast reads "Failed to update status" which is what the client experienced. Sibling bug: line 32-34 blocks `IN_PROGRESS` transitions when `forklift_id` is null (FTS is legitimately forklift-less). Live `validate_job_completion_requirements` trigger never checks hourmeter at all — the JS gate is stricter than the DB contract, redundant, and drifted.
+  - Fix: removed both FTS-blind gates from `updateJobStatus`. Kept the technician-assigned check on IN_PROGRESS (universal) and the signature check on AWAITING_FINALIZATION (mirrors DB trigger, friendlier early-reject). Added a comment explaining why hourmeter + forklift gates live at the UI + DB layers only, not in the service.
+  - Scope notes: did not touch `handleStatusChange` in useJobActions.ts — its FTS + helper + isFieldTech branching is already correct and the authoritative UI-layer gate. Did not touch `startJobWithCondition` — its hourmeter check is conditional on forklift presence and isn't hit for FTS. Did not touch the DB trigger — it already exempts FTS correctly. Did not touch BulkSignOffModal — it now inherits the fix since it calls `updateJobStatus` directly.
+  - Verification: `npm run typecheck` clean. Queried live DB to confirm JOB-260420-035 state (FTS, no forklift, hourmeter=0, both sigs, 2 after-photos, In Progress). Remaining manual verification: that job's assigned technician taps Complete — should succeed with "Status updated to Awaiting Finalization" toast; DB trigger confirms sigs + parts + job_carried_out already present.
+
+
   - Client issue: desktop in-progress page still gated Complete button on raw `statusFlags.hasHourmeter` flag, even though completion logic + mobile UI already exempt FTS from hourmeter.
   - Root cause: three UI consumers without FTS exemption — completionBlocked (JobDetailPage.tsx:111), sticky Complete button (JobHeader.tsx:174-181), Condition Checklist card (JobDetailPage.tsx:224) — all keyed off raw flag that is false for FTS because no real reading is collected.
   - Fix: (1) JobDetailPage.tsx:109-116 — added `isFieldTechJob` + `hourmeterRequired = !isFieldTechJob && !hasHourmeter`, threaded into completionBlocked + "Hourmeter needed" chip. (2) JobDetailPage.tsx:226 — expanded Condition Checklist render guard to hide for both REPAIR and FIELD_TECHNICAL_SERVICES. (3) JobHeader.tsx:75-78 — computed `isFieldTech` + `hourmeterRequired` locally, swapped into sticky Complete button's disabled/className/tooltip.

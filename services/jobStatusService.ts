@@ -24,20 +24,19 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
   
   const previousStatus = currentJob?.status;
   
-  // Validation for status transitions
+  // Validation for status transitions. Hourmeter + forklift gates are NOT
+  // enforced here — they're job-type-specific (Field Technical Services
+  // legitimately has no forklift and hourmeter_reading=0). The DB trigger
+  // validate_job_completion_requirements is the authoritative gate; the UI
+  // layer (useJobActions.handleStatusChange) holds the friendly early-reject
+  // with proper per-job-type branching.
   if (status === JobStatusEnum.IN_PROGRESS && previousStatus !== JobStatusEnum.IN_PROGRESS) {
     if (!currentJob?.assigned_technician_id) {
       throw new Error('Cannot start job: No technician assigned');
     }
-    if (!currentJob?.forklift_id) {
-      throw new Error('Cannot start job: No forklift assigned');
-    }
   }
-  
+
   if (status === JobStatusEnum.AWAITING_FINALIZATION) {
-    if (!currentJob?.hourmeter_reading) {
-      throw new Error('Cannot complete job: Hourmeter reading is required');
-    }
     const hasTechSignature = !!currentJob?.technician_signature;
     const hasCustomerSignature = !!currentJob?.customer_signature;
     if (!hasTechSignature || !hasCustomerSignature) {
