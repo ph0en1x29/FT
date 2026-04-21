@@ -1,9 +1,14 @@
-import { Briefcase,MapPin,Package,Truck } from 'lucide-react';
+import { Briefcase,Package } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 /**
- * Quick action buttons grid for common technician tasks
+ * Quick action buttons grid for common technician tasks.
+ *
+ * Fleet and Customers quick-actions intentionally removed — technicians are
+ * blocked from those pages because they expose rental rates, pricing, and
+ * customer details that are restricted (see AuthenticatedApp.tsx route guards
+ * + ROLE_PERMISSIONS[TECHNICIAN] in types/user.types.ts).
  */
 export const QuickActionsGrid: React.FC = () => {
   const navigate = useNavigate();
@@ -23,27 +28,11 @@ export const QuickActionsGrid: React.FC = () => {
       color: 'orange',
       path: '/my-van-stock',
     },
-    {
-      label: 'Fleet',
-      description: 'View forklifts',
-      icon: Truck,
-      color: 'purple',
-      path: '/forklifts',
-    },
-    {
-      label: 'Customers',
-      description: 'View locations',
-      icon: MapPin,
-      color: 'green',
-      path: '/customers',
-    },
   ];
 
   const colorMap: Record<string, string> = {
     blue: 'bg-blue-100 text-blue-600',
     orange: 'bg-orange-100 text-orange-600',
-    purple: 'bg-purple-100 text-purple-600',
-    green: 'bg-green-100 text-green-600',
   };
 
   return (

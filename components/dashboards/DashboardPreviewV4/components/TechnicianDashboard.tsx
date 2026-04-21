@@ -3,12 +3,10 @@ ArrowRight,
 Briefcase,
 Calendar,
 CheckCircle,
-MapPin,
 Package,
 Play,
 RefreshCw,
-TrendingUp,
-Truck
+TrendingUp
 } from 'lucide-react';
 import React from 'react';
 import { Job,User } from '../../../../types';
@@ -130,25 +128,9 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser, 
             </div>
           </button>
 
-          <button onClick={() => navigate('/forklifts')} className="flex items-center gap-3 p-3 rounded-2xl text-left transition-all active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(175, 82, 222, 0.15)' }}>
-              <Truck className="w-4 h-4" style={{ color: '#AF52DE' }} />
-            </div>
-            <div className="min-w-0">
-              <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>Fleet</p>
-              <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>Manage vehicles</p>
-            </div>
-          </button>
-
-          <button onClick={() => navigate('/customers')} className="flex items-center gap-3 p-3 rounded-2xl text-left transition-all active:scale-95" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(52, 199, 89, 0.15)' }}>
-              <MapPin className="w-4 h-4" style={{ color: '#34C759' }} />
-            </div>
-            <div className="min-w-0">
-              <p className="font-medium text-sm truncate" style={{ color: 'var(--text)' }}>Customers</p>
-              <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>View locations</p>
-            </div>
-          </button>
+          {/* Fleet + Customers quick-actions intentionally removed for technicians —
+              those pages expose rental rates, pricing, and customer details that are
+              restricted. Role-gated at route level in AuthenticatedApp.tsx as well. */}
         </div>
       </div>
 

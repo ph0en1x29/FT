@@ -150,8 +150,11 @@ const Sidebar = ({ currentUser, onLogout, isCollapsed, setIsCollapsed, navRole }
   };
 
   const canViewDashboard = hasPermission('canViewDashboard');
-  const canViewForklifts = hasPermission('canViewForklifts');
-  const canViewCustomers = hasPermission('canViewCustomers');
+  // Defense-in-depth: sidebar NavItems for Fleet + Customers are role-gated
+  // in addition to the permission flag — technicians must never see these.
+  const isTechnicianView = navRole === UserRole.TECHNICIAN;
+  const canViewForklifts = hasPermission('canViewForklifts') && !isTechnicianView;
+  const canViewCustomers = hasPermission('canViewCustomers') && !isTechnicianView;
   const canManageInventory = hasPermission('canManageInventory');
   const canFinalizeInvoices = hasPermission('canFinalizeInvoices');
   const canViewHR = hasPermission('canViewHR');
@@ -498,8 +501,16 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
   }, []);
 
   const _canViewDashboard = devMode.hasPermission('canViewDashboard');
-  const canViewForklifts = devMode.hasPermission('canViewForklifts');
-  const canViewCustomers = devMode.hasPermission('canViewCustomers');
+  // Defense-in-depth: route guards combine the permission flag AND an explicit
+  // role check. Even if a permission override somehow sets canViewForklifts or
+  // canViewCustomers to true for a technician, the role check still blocks
+  // because Fleet + Customers must NEVER be accessible to technicians (rental
+  // rates, pricing, and customer contact info are restricted). navRole already
+  // resolves to the preview role in dev mode, so admins previewing as
+  // technician correctly see the blocked view.
+  const isTechnicianView = navRole === UserRole.TECHNICIAN;
+  const canViewForklifts = devMode.hasPermission('canViewForklifts') && !isTechnicianView;
+  const canViewCustomers = devMode.hasPermission('canViewCustomers') && !isTechnicianView;
   const canManageInventory = devMode.hasPermission('canManageInventory');
   const canFinalizeInvoices = devMode.hasPermission('canFinalizeInvoices');
   const canCreateJobs = devMode.hasPermission('canCreateJobs');

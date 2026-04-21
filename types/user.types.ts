@@ -242,7 +242,12 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewCustomers: false,
     canEditCustomers: false,
     canDeleteCustomers: false,
-    canViewForklifts: true,
+    // Fleet is hidden from technicians — rental + pricing details exposed in
+    // ForkliftsTabs/FleetTab are restricted info (per 2026-04-21 client request).
+    // Mirrors the existing canViewCustomers + canManageInventory gates so
+    // technicians' side nav, mobile drawer, routes, and command palette all
+    // agree. /my-van-stock stays open via its own UserRole-list route guard.
+    canViewForklifts: false,
     canEditForklifts: false,
     canManageRentals: false,
     canEditRentalRates: false,
