@@ -1,4 +1,15 @@
 ## [2026-04-21] — Policy Reversal: Repair Jobs Require Hourmeter Again
+## [2026-04-21] — Acwer Service Operations Flow: Feasibility Analysis & Phase Plan
+
+### Changed
+
+**Created detailed flowchart walkthrough and feasibility matrix for Acwer's three billing paths (AMC, Non-Contract, Fleet)**
+- Added `docs/archive/client-feedback/ACWER_SERVICE_OPERATIONS_FLOW.md` — comprehensive text-based reconstruction of Acwer's service operations flowchart showing how every incoming job routes through one of three billing/workflow paths (Path A: AMC/Under Contract, Path B: Non-Contract Ad-hoc, Path C: Acwer-Owned Fleet), then merges into a common dispatch → tech assignment → parts inventory → invoicing pipeline. This document is designed to be reconstruction-readable so another AI can understand the business logic without the diagram.
+- Feasibility analysis against current FT schema: ~40% already shipped (dispatch board, tech app, parts transfer, report toggle), ~40% is scoped net-new but well-understood (contracts schema, W&T flags, quotation workflow, accident flags, recurring scheduler), ~20% requires client clarification before scoping.
+- Created 21-question client clarification checklist covering: (1) contract data storage (Excel/paper/AutoCount), (2) W&T parts master (global vs per-contract), (3) quotation issuance (PDF/verbal/AutoCount), (4) on-site vs workshop dispatch rules, (5) recurring scheduler frequency (per-unit/model/contract), (6) accident/overage detection (who flags, existing thresholds), (7) Admin 2 finalization gate (admin_service vs admin_store role), (8) internal ROI reporting (metrics + rollup). These questions are the gating items for Phase 1 scoping.
+- Drafted 4-phase implementation plan (13 weeks total): Phase 1 (2w) routing foundation + contracts schema, Phase 2 (2w) billing gates + warranty/W&T UI, Phase 3 (2w) recurring scheduler + transport tracking, Phase 4 (ongoing) ROI dashboard + AUTOCOUNT hardening. Plan is contingent on client answering the 21 clarification questions.
+- Scope notes: did not implement any code changes — this session was analysis + documentation only. The ACWER_SERVICE_OPERATIONS_FLOW.md file is a living design doc, not production code; it sits in `docs/archive/client-feedback/` and will be iterated with client feedback before any schema/UI work starts. All three flowchart paths are documented with field requirements, decision trees, and downstream integration points. The analysis is thorough enough that Phase 1 scoping can start immediately once client answers the questions.
+
 
 ### Changed
 
