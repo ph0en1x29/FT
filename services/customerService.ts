@@ -306,8 +306,11 @@ export const getCustomerFinancialSummary = async (customerId: string): Promise<a
     let totalExtraCharges = 0;
 
     ((jobs || []) as JobWithRelations[]).forEach((job) => {
-      const partsTotal = (job.parts_used || []).reduce((sum: number, p: JobPartUsed) => 
-        sum + (p.sell_price_at_time * p.quantity), 0);
+      // Skip parts in pending_return / returned — they were never billable.
+      const partsTotal = (job.parts_used || []).reduce((sum: number, p: JobPartUsed) =>
+        (p.return_status === 'pending_return' || p.return_status === 'returned')
+          ? sum
+          : sum + (p.sell_price_at_time * p.quantity), 0);
       const laborCost = job.labor_cost || 0;
       const extraCharges = (job.extra_charges || []).reduce((sum: number, c: ExtraCharge) => 
         sum + c.amount, 0);

@@ -106,7 +106,14 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   // Lead technicians must declare parts usage (either add a part or tick "No parts were used") before completing.
   // Null-safe: this runs BEFORE the `if (!job) return` guard below, so we must handle the null case here too —
   // otherwise navigating to a deleted job (e.g., after the 2026-04-06 purge) crashes before the "Job not found" screen renders.
-  const partsDeclared = (job?.parts_used?.length ?? 0) > 0 || state.noPartsUsed;
+  // Active parts = not pending_return / returned. Mirrors the DB completion trigger
+  // so the "Parts declaration" blocker chip clears once the tech has flagged
+  // every wrong-model part for return and either added a real part or ticked
+  // "No parts used".
+  const activeParts = (job?.parts_used ?? []).filter(
+    p => p.return_status !== 'pending_return' && p.return_status !== 'returned'
+  );
+  const partsDeclared = activeParts.length > 0 || state.noPartsUsed;
   const partsDeclarationRequired = roleFlags.isTechnician && !roleFlags.isHelperOnly && !partsDeclared;
   // HOURMETER_EXEMPT_JOB_TYPES — FTS + Repair skip the hourmeter gate so the
   // desktop in-progress banner + Complete button don't perma-disable when
@@ -274,7 +281,12 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onSelectJobVan={actions.handleSelectJobVan}
             sellSealed={state.sellSealed}
             onSellSealedChange={state.setSellSealed}
-            selectedPartIsLiquid={selectedPartIsLiquid} />
+            selectedPartIsLiquid={selectedPartIsLiquid}
+            currentUserId={currentUserId}
+            onPartReturnUpdated={(updated) => setJob({
+              ...job,
+              parts_used: (job.parts_used || []).map(p => p.job_part_id === updated.job_part_id ? { ...p, ...updated } : p),
+            })} />
           </CollapsibleCard>
           </div>
           <ExtraChargesSection job={job} roleFlags={roleFlags} showAddCharge={state.showAddCharge}
@@ -444,7 +456,12 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       />
       <PartsReconciliationModal
         show={state.showReconciliationModal}
-        parts={job.parts_used || []}
+        // Exclude tech-returned rows — they're already accounted for via the
+        // separate confirm_part_return RPC + inventory_movements row, so the
+        // Admin 2 reconciliation flow shouldn't see them and risk double-restock.
+        parts={(job.parts_used || []).filter(
+          p => p.return_status !== 'pending_return' && p.return_status !== 'returned'
+        )}
         submitting={state.submittingReconciliation}
         onConfirm={async (entries, notes) => {
           state.setSubmittingReconciliation(true);

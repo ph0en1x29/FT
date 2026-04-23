@@ -19,6 +19,7 @@ import { User,UserRole } from '../../types';
 import DevBanner from '../dev/DevBanner';
 import DevModeSelector from '../dev/DevModeSelector';
 import NotificationBell from '../NotificationBell';
+import { PendingReturnsNotifier } from './PendingReturnsNotifier';
 
 // Lazy load all pages
 const JobsTabs = lazy(() => import('../../pages/JobsTabs'));
@@ -519,12 +520,21 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
   const canViewOwnProfile = devMode.hasPermission('canViewOwnProfile');
   const canViewTeam = canManageUsers || canViewHR || devMode.hasPermission('canViewKPI');
 
+  // Tier-3 of the pending-returns notification stack: pop a sonner toast for
+  // brand-new tech returns when admins/supervisors are NOT on the approvals
+  // tab. The hook self-suppresses on the approvals page and on initial load,
+  // so it doesn't blast a backlog of historical pending rows.
+  const isAdminLikeRole = [
+    UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR,
+  ].includes(navRole);
+
   return (
     <FeatureFlagProvider enabled={devMode.isDev}>
       <Router>
         <style>{sidebarStyles}</style>
         <Toaster position="top-center" richColors toastOptions={{ duration: 4000, className: 'text-sm !mt-2 sm:!mt-2' }} />
         <CommandPaletteWrapper isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} currentUser={currentUser} />
+        <PendingReturnsNotifier enabled={isAdminLikeRole} />
         <div className="min-h-screen bg-theme-bg flex max-w-full overflow-x-hidden theme-transition">
           <Sidebar currentUser={currentUser} onLogout={onLogout} isCollapsed={sidebarCollapsed} setIsCollapsed={setSidebarCollapsed} navRole={navRole} />
           <main

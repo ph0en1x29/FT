@@ -11,12 +11,12 @@
  */
 
 import { useQuery,useQueryClient } from '@tanstack/react-query';
-import { useCallback,useState } from 'react';
+import { useCallback,useMemo,useState } from 'react';
 import { searchCustomers } from '../services/customerService';
 import { getPartsPage } from '../services/partsService';
 import { SupabaseDb } from '../services/supabaseService';
 import type { ComboboxOption } from '../components/Combobox';
-import type { Customer } from '../types';
+import type { Customer, Part } from '../types';
 import { JobStatus,User } from '../types';
 
 // Query keys for cache management
@@ -245,22 +245,27 @@ export const useReplenishmentsByTech = (userId: string) =>
  *        <Combobox options={options} onSearch={search} isSearching={isSearching} ... />
  */
 export const useSearchParts = (limit = 20) => {
-  const [options, setOptions] = useState<ComboboxOption[]>([]);
+  const [parts, setParts] = useState<Part[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
   const search = useCallback(async (query: string) => {
     setIsSearching(true);
     try {
-      const { parts } = await getPartsPage({ searchQuery: query, pageSize: limit });
-      setOptions(parts.map(p => ({ id: p.part_id, label: p.part_name, subLabel: p.part_code })));
+      const result = await getPartsPage({ searchQuery: query, pageSize: limit });
+      setParts(result.parts);
     } catch {
-      setOptions([]);
+      setParts([]);
     } finally {
       setIsSearching(false);
     }
   }, [limit]);
 
-  return { options, isSearching, search };
+  const options: ComboboxOption[] = useMemo(
+    () => parts.map(p => ({ id: p.part_id, label: p.part_name, subLabel: p.part_code })),
+    [parts]
+  );
+
+  return { options, parts, isSearching, search };
 };
 
 /**

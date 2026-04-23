@@ -80,7 +80,7 @@ export function PendingJobsSection({
               <div>
                 <p className="font-medium text-sm text-theme">{job.title}</p>
                 <p className="text-xs text-theme-muted">
-                  {job.customer?.name} • RM {((job.parts_used || []).reduce((sum, p) => sum + (p.sell_price_at_time || 0) * (p.quantity || 0), 0) + (job.labor_cost || 0) + ((job.extra_charges || []).reduce((sum, c) => sum + (c.amount || 0), 0))).toFixed(2)}
+                  {job.customer?.name} • RM {((job.parts_used || []).reduce((sum, p) => (p.return_status === 'pending_return' || p.return_status === 'returned') ? sum : sum + (p.sell_price_at_time || 0) * (p.quantity || 0), 0) + (job.labor_cost || 0) + ((job.extra_charges || []).reduce((sum, c) => sum + (c.amount || 0), 0))).toFixed(2)}
                 </p>
               </div>
             </div>

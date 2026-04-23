@@ -18,7 +18,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Combobox, ComboboxOption } from '../../components/Combobox';
-import { usePartsForList } from '../../hooks/useQueryHooks';
+import { usePartsForList, useSearchParts } from '../../hooks/useQueryHooks';
 import { approveSparePartRequest, rejectRequest, issuePartToTechnician } from '../../services/jobRequestService';
 import { showToast } from '../../services/toastService';
 import { supabase } from '../../services/supabaseClient';
@@ -73,14 +73,34 @@ export default function PartRequestsPage({ currentUser, hideHeader = false }: Pa
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
+  // Full cached list — used for resolving matched/approved part details (price, stock).
   const { data: cachedParts = [] } = usePartsForList();
   const parts = cachedParts as unknown as Part[];
 
-  const partOptions: ComboboxOption[] = useMemo(() => parts.map(p => ({
-    id: p.part_id,
-    label: p.part_name,
-    subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
-  })), [parts]);
+  // Server-side search powers the inline approval Combobox so admins can find any
+  // part across the ~3000-row catalog (the dropdown no longer caps at the first 50).
+  const { parts: searchedParts, isSearching, search } = useSearchParts(30);
+
+  const partOptions: ComboboxOption[] = useMemo(() => {
+    const inlinePartIds = new Set(
+      (Object.values(inlineState) as InlineApproveState[]).map(s => s.partId).filter(Boolean)
+    );
+    const seen = new Set<string>();
+    const merged: Part[] = [];
+    for (const p of searchedParts) {
+      if (!seen.has(p.part_id)) { merged.push(p); seen.add(p.part_id); }
+    }
+    for (const p of parts) {
+      if (inlinePartIds.has(p.part_id) && !seen.has(p.part_id)) {
+        merged.push(p); seen.add(p.part_id);
+      }
+    }
+    return merged.map(p => ({
+      id: p.part_id,
+      label: p.part_name,
+      subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
+    }));
+  }, [searchedParts, parts, inlineState]);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
@@ -407,6 +427,8 @@ export default function PartRequestsPage({ currentUser, hideHeader = false }: Pa
                         value={state?.partId || ''}
                         onChange={(val) => updateInline(req.request_id, { partId: val })}
                         placeholder="Select part..."
+                        onSearch={search}
+                        isSearching={isSearching}
                       />
                     </div>
                     <input
@@ -546,7 +568,12 @@ function findBestPartMatch(description: string, parts: Part[]): Part | null {
   let bestScore = 0;
 
   for (const part of parts) {
-    if (part.stock_quantity <= 0) continue;
+    // Liquids hold real stock in container_quantity + bulk_quantity (stock_quantity
+    // is 0 by design). Use the liquid totals when applicable so they aren't skipped.
+    const totalStock = part.is_liquid
+      ? (part.container_quantity || 0) + (part.bulk_quantity || 0)
+      : (part.stock_quantity || 0);
+    if (totalStock <= 0) continue;
     const partLower = part.part_name.toLowerCase();
 
     if (partLower === descLower) return part;

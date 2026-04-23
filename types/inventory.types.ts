@@ -48,6 +48,17 @@ export interface JobPartUsed {
   van_stock_item_id?: string; // Reference to VanStockItem if from Van Stock
   // Auto-populated from approved spare part request (locked — tech cannot edit/remove)
   auto_populated?: boolean;
+  // Tech-initiated return flow (introduced 2026-04-23, see migration
+  // 20260423_part_return_flow.sql). NULL = active part. 'pending_return' =
+  // tech requested return, awaiting admin physical receipt + confirm.
+  // 'returned' = admin confirmed, stock has been credited back.
+  return_status?: 'pending_return' | 'returned' | null;
+  return_reason?: string | null;
+  return_requested_by?: string | null;
+  return_requested_at?: string | null;
+  return_confirmed_by?: string | null;
+  return_confirmed_at?: string | null;
+  return_notes?: string | null;
 }
 
 // =============================================

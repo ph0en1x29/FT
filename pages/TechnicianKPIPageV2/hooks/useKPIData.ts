@@ -139,7 +139,12 @@ export const useKPIData = (
 
       // Revenue calculation
       const totalRevenue = completedJobs.reduce((acc, job) => {
-        const partsCost = (job.parts_used || []).reduce((sum, p) => sum + (p.sell_price_at_time * p.quantity), 0);
+        // Tech-returned parts (pending_return / returned) are excluded — they
+        // were never billable and shouldn't pad KPI revenue.
+        const partsCost = (job.parts_used || []).reduce((sum, p) =>
+          (p.return_status === 'pending_return' || p.return_status === 'returned')
+            ? sum
+            : sum + (p.sell_price_at_time * p.quantity), 0);
         const laborCost = job.labor_cost || 0;
         const extraCharges = (job.extra_charges || []).reduce((sum, c) => sum + c.amount, 0);
         return acc + partsCost + laborCost + extraCharges;

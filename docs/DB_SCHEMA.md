@@ -374,7 +374,7 @@ In-job requests for assistance, spare parts, or skillful technician.
 Constraints:
 - PK: `request_id`
 - CHECK: `request_type` IN ('assistance', 'spare_part', 'skillful_technician')
-- CHECK: `status` IN ('pending', 'approved', 'rejected')
+- CHECK: `status` IN ('pending', 'approved', 'issued', 'part_ordered', 'out_of_stock', 'rejected') **(refreshed 2026-04-23)**
 
 Foreign keys:
 - `job_id` -> `jobs.job_id` (CASCADE)
@@ -454,14 +454,35 @@ Parts used in a job.
 | `warranty_end_date` | TIMESTAMPTZ | YES | |
 | `from_van_stock` | BOOLEAN | YES | `false` | Whether part was taken from Van Stock |
 | `van_stock_item_id` | UUID | YES | | Reference to van_stock_items |
+| `auto_populated` | BOOLEAN | NO | `false` | True if row was auto-added from an approved spare-part request (locked — tech can't edit/remove) |
+| `return_status` | TEXT | YES | `NULL` | **(NEW 2026-04-23)** NULL = active, `'pending_return'` = tech requested return awaiting admin confirm, `'returned'` = admin confirmed and stock credited |
+| `return_reason` | TEXT | YES | | **(NEW 2026-04-23)** Mandatory when transitioning to `pending_return`. Conventional shape: `<tag>` or `<tag>: <free text>`, where tag ∈ `wrong_model | damaged | not_compatible | other` |
+| `return_requested_by` | UUID | YES | | **(NEW 2026-04-23)** FK -> `users.user_id` — tech who initiated the return |
+| `return_requested_at` | TIMESTAMPTZ | YES | | **(NEW 2026-04-23)** |
+| `return_confirmed_by` | UUID | YES | | **(NEW 2026-04-23)** FK -> `users.user_id` — admin who confirmed physical receipt |
+| `return_confirmed_at` | TIMESTAMPTZ | YES | | **(NEW 2026-04-23)** |
+| `return_notes` | TEXT | YES | | **(NEW 2026-04-23)** Optional admin note recorded at confirm time |
 
 Constraints:
 - PK: `job_part_id`
+- CHECK: `return_status IS NULL OR return_status IN ('pending_return', 'returned')` **(NEW 2026-04-23)**
 
 Foreign keys:
 - `job_id` -> `jobs.job_id`
 - `part_id` -> `parts.part_id`
 - `van_stock_item_id` -> `van_stock_items.item_id`
+- `return_requested_by` -> `users.user_id` **(NEW 2026-04-23)**
+- `return_confirmed_by` -> `users.user_id` **(NEW 2026-04-23)**
+
+Indexes:
+- `idx_job_parts_return_status` on `return_status` WHERE `return_status IS NOT NULL` **(NEW 2026-04-23)** — partial index for the admin pending-returns queue query
+
+**Return-flow RPCs** (defined in `20260423_part_return_flow.sql`):
+- `request_part_return(p_job_part_id UUID, p_reason TEXT)` — tech sets `return_status='pending_return'`. Reason mandatory. Refuses if row is already in any return state.
+- `cancel_part_return(p_job_part_id UUID)` — tech (or admin) reverts to NULL. Only valid while currently `pending_return`.
+- `confirm_part_return(p_job_part_id UUID, p_notes TEXT DEFAULT NULL)` — admin only. Locks the master `parts` row, increments `stock_quantity` for non-liquids or `container_quantity` for liquids, inserts an `inventory_movements` row with `movement_type='tech_return'`, sets `return_status='returned'` with the confirming admin + timestamp.
+
+Completion-gate interaction: `validate_job_completion_requirements` (updated in `20260423_completion_gate_skip_returns.sql`) treats `return_status IN ('pending_return', 'returned')` rows as "not actively used" — they don't satisfy the "approved spare-part request must be used" check.
 
 ---
 

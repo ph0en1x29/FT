@@ -338,6 +338,21 @@ While the job is "In Progress", you can:
 
 **Why this change?** To improve inventory accuracy and ensure proper stock management.
 
+#### Return a Part That Doesn't Fit (NEW - 2026-04-23)
+
+If an approved part turns out to be the **wrong model, damaged, or not compatible** when you try to use it on-site, you can flag the part for return so the job isn't blocked.
+
+1. In the **Parts Used** section, find the row for the part you can't use.
+2. Click the small **circular arrow icon** (Return) on that row.
+3. Pick a reason — **Wrong model**, **Damaged**, **Not compatible**, or **Other** (free-text required for "Other").
+4. Add an optional note for the admin and tap **Request Return**.
+5. The row stays visible but is greyed out with a **Pending Return** label. The job is no longer blocked by that part — you can complete the job once everything else is in order.
+6. Hand the physical part back to the warehouse. An **admin will click Confirm Return** when they receive it, and the part will be credited back to inventory.
+
+**Changed your mind?** Tap the **undo icon** on a Pending Return row before the admin confirms — the part returns to active use. Once the admin clicks Confirm Return, the row locks as **Returned** and the part can no longer be brought back without re-requesting a spare part.
+
+Returned parts (both Pending Return and confirmed Returned) are **automatically excluded from the customer invoice** — you won't be charged for parts that went back to the warehouse.
+
 #### Record Service Details
 1. Fill in "Job Carried Out" - describe the work done
 2. Add "Recommendation" - any follow-up suggestions
@@ -723,6 +738,29 @@ View and respond to requests from technicians in the Dashboard or Job Detail:
 3. Open job → "Part Requests" section
 4. Review request and click **"Approve"** or **"Reject"**
 5. Approved parts auto-added and auto-confirmed
+
+#### Confirming a Tech-Initiated Part Return (NEW - 2026-04-23)
+
+When a technician finds an approved part is the wrong model / damaged / not compatible, they can flag it for return so they're not stuck unable to complete the job. Returns wait for **your physical confirmation** at the warehouse before stock is credited.
+
+**How you'll be notified** (three surfaces):
+1. **Badge** on the **Approvals** tab (Jobs page) shows the count of returns awaiting your confirmation.
+2. **Realtime list** at the top of the **Store Queue** (Approvals tab → Pending Part Returns section) — appears instantly when a tech requests a return.
+3. **Toast** in the corner of the screen if you're on a different page when a new return arrives. Click **Review** to jump to the queue.
+
+**Confirming a return** (after the tech hands the physical part back at the warehouse):
+1. Go to **Jobs → Approvals** tab.
+2. In the **Pending Part Returns** section at the top, find the row.
+3. Confirm the part name + quantity + reason match what the tech physically returned.
+4. Click **Confirm Return**. The system automatically:
+   - Increments the part's `stock_quantity` (or `container_quantity` for liquids) back to inventory.
+   - Writes an audit entry in `inventory_movements` with type `tech_return`, your name, and the original return reason.
+   - Marks the row as **Returned** (greyed out) on the job.
+5. The job's invoice **already excluded** the returned part — no separate action needed.
+
+**Cancelling a return**: if the tech changes their mind or the return was a mistake, click **Cancel** on the row. The part goes back into active use on the job; nothing is restocked.
+
+**Important**: you cannot use **Confirm Return** to refuse a return — it's a "I received the physical part" action only. If a tech is misusing the flow (e.g. reporting parts as returned that they kept), use the audit trail (`return_reason`, `return_requested_by`, `return_requested_at`) to address it operationally.
 
 #### Finalizing Jobs
 1. Open job in "Awaiting Finalization" status

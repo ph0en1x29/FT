@@ -1,8 +1,11 @@
-import { Box,CheckCircle,Edit2,Info,Lock,Plus,Save,Trash2,Truck,X } from 'lucide-react';
-import React from 'react';
+import { Box,CheckCircle,Edit2,Info,Loader2,Lock,PackageCheck,PackageX,Plus,RotateCcw,Save,Trash2,Truck,Undo2,X } from 'lucide-react';
+import React, { useState } from 'react';
 import { Combobox,ComboboxOption } from '../../../components/Combobox';
-import { Job, VanStock } from '../../../types';
+import { showToast } from '../../../services/toastService';
+import { cancelPartReturn, confirmPartReturn } from '../../../services/jobPartReturnService';
+import { Job, JobPartUsed, VanStock } from '../../../types';
 import { RoleFlags,StatusFlags } from '../types';
+import { PartReturnModal } from './PartReturnModal';
 
 interface PartsSectionProps {
   job: Job;
@@ -42,6 +45,11 @@ interface PartsSectionProps {
   onSellSealedChange?: (val: boolean) => void;
   // Whether the currently selected part is liquid
   selectedPartIsLiquid?: boolean;
+  // Tech-initiated part return flow (2026-04-23). Parent applies the
+  // returned row to job.parts_used so realtime echo doesn't trip it.
+  onPartReturnUpdated?: (updated: JobPartUsed) => void;
+  /** True when the current viewer originally requested a Pending Return — UI shows the Cancel button only to them. */
+  currentUserId?: string;
 }
 
 export const PartsSection: React.FC<PartsSectionProps> = ({
@@ -78,9 +86,48 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   sellSealed,
   onSellSealedChange,
   selectedPartIsLiquid,
+  onPartReturnUpdated,
+  currentUserId,
 }) => {
   const { isTechnician, _isAdmin, _isSupervisor, _isAccountant, canViewPricing, canEditPrices, canAddParts, isHelperOnly } = roleFlags;
   const { isNew, isAssigned, isInProgress, isAwaitingFinalization } = statusFlags;
+
+  const [returningPart, setReturningPart] = useState<JobPartUsed | null>(null);
+  const [busyPartId, setBusyPartId] = useState<string | null>(null);
+
+  const handleCancelReturn = async (jobPartId: string) => {
+    if (busyPartId) return;
+    setBusyPartId(jobPartId);
+    try {
+      const updated = await cancelPartReturn(jobPartId);
+      showToast.success('Return cancelled', 'Part is back in active use.');
+      onPartReturnUpdated?.(updated);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to cancel return';
+      showToast.error('Could not cancel return', msg);
+    } finally {
+      setBusyPartId(null);
+    }
+  };
+
+  const handleConfirmReturn = async (jobPartId: string) => {
+    if (busyPartId) return;
+    setBusyPartId(jobPartId);
+    try {
+      const updated = await confirmPartReturn(jobPartId);
+      showToast.success('Return confirmed', 'Inventory has been restocked.');
+      onPartReturnUpdated?.(updated);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to confirm return';
+      showToast.error('Could not confirm return', msg);
+    } finally {
+      setBusyPartId(null);
+    }
+  };
+
+  const canRequestReturn = (isInProgress || isAwaitingFinalization)
+    && (isTechnician || canAddParts) && !isHelperOnly;
+  const canConfirmReturn = canAddParts; // admins / supervisors
 
   return (
     <div className="card-premium p-3 md:p-5">
@@ -107,57 +154,123 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
               <span>Verified by {job.parts_confirmed_by_name} on {new Date(job.parts_confirmed_at).toLocaleDateString()}</span>
             </div>
           )}
-          {job.parts_used.map(p => (
-            <div key={p.job_part_id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-[var(--bg-subtle)] rounded-xl">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-[var(--text)]">{Number.isInteger(p.quantity) ? p.quantity : p.quantity.toFixed(2)}× {p.part_name}</span>
+          {job.parts_used.map(p => {
+            const isPendingReturn = p.return_status === 'pending_return';
+            const isReturned = p.return_status === 'returned';
+            const isReturning = isPendingReturn || isReturned;
+            const isReturnRequester = !!p.return_requested_by && p.return_requested_by === currentUserId;
+            const isBusy = busyPartId === p.job_part_id;
+            return (
+            <div
+              key={p.job_part_id}
+              className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-[var(--bg-subtle)] rounded-xl ${
+                isPendingReturn ? 'opacity-60' : ''
+              } ${isReturned ? 'opacity-50' : ''}`}
+            >
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`font-medium text-[var(--text)] ${isReturning ? 'line-through' : ''}`}>
+                  {Number.isInteger(p.quantity) ? p.quantity : p.quantity.toFixed(2)}× {p.part_name}
+                </span>
                 {p.auto_populated && (
                   <span className="inline-flex items-center gap-1 text-[10px] text-[var(--info)] bg-[var(--info-bg)] px-1.5 py-0.5 rounded-full">
                     <Lock className="w-3 h-3" /> Auto
                   </span>
                 )}
+                {isPendingReturn && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] text-[var(--warning)] bg-[var(--warning-bg)] px-1.5 py-0.5 rounded-full"
+                    title={p.return_reason || 'Pending admin confirmation'}
+                  >
+                    <PackageX className="w-3 h-3" /> Pending Return
+                  </span>
+                )}
+                {isReturned && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] text-[var(--success)] bg-[var(--success-bg)] px-1.5 py-0.5 rounded-full"
+                    title={p.return_reason || 'Returned'}
+                  >
+                    <PackageCheck className="w-3 h-3" /> Returned
+                  </span>
+                )}
               </div>
-              {p.auto_populated ? (
-                /* Auto-populated parts are locked — no edit/delete */
-                canViewPricing ? (
-                  <span className="font-mono text-[var(--text-secondary)]">RM{p.sell_price_at_time.toFixed(2)}</span>
-                ) : null
-              ) : canViewPricing && editingPartId === p.job_part_id ? (
-                <div className="flex items-center gap-2">
-                  <div className="relative w-24">
-                    <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs">RM</span>
-                    <input
-                      type="number"
-                      className="input-premium pl-8 text-sm"
-                      value={editingPrice}
-                      onChange={(e) => onEditingPriceChange(e.target.value)}
-                      autoFocus
-                    />
-                  </div>
-                  <button onClick={() => onSavePartPrice(p.job_part_id)} className="p-1 text-[var(--success)] hover:bg-[var(--success-bg)] rounded">
-                    <Save className="w-4 h-4" />
+              <div className="flex items-center gap-2 flex-wrap">
+                {p.auto_populated ? (
+                  /* Auto-populated parts are locked — no edit/delete */
+                  canViewPricing ? (
+                    <span className="font-mono text-[var(--text-secondary)]">RM{p.sell_price_at_time.toFixed(2)}</span>
+                  ) : null
+                ) : canViewPricing && editingPartId === p.job_part_id ? (
+                  <>
+                    <div className="relative w-24">
+                      <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs">RM</span>
+                      <input
+                        type="number"
+                        className="input-premium pl-8 text-sm"
+                        value={editingPrice}
+                        onChange={(e) => onEditingPriceChange(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    <button onClick={() => onSavePartPrice(p.job_part_id)} className="p-1 text-[var(--success)] hover:bg-[var(--success-bg)] rounded">
+                      <Save className="w-4 h-4" />
+                    </button>
+                    <button onClick={onCancelEdit} className="p-1 text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] rounded">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </>
+                ) : canViewPricing ? (
+                  <>
+                    <span className="font-mono text-[var(--text-secondary)]">RM{p.sell_price_at_time.toFixed(2)}</span>
+                    {canEditPrices && !isReturning && (
+                      <>
+                        <button onClick={() => onStartEditPrice(p.job_part_id, p.sell_price_at_time)} className="p-1 text-[var(--accent)] hover:bg-[var(--accent-subtle)] rounded" title="Edit price">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => onRemovePart(p.job_part_id)} className="p-1 text-[var(--error)] hover:bg-[var(--error-bg)] rounded" title="Remove">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </>
+                ) : null}
+
+                {/* Tech / admin: request return on an active part */}
+                {!isReturning && canRequestReturn && (
+                  <button
+                    onClick={() => setReturningPart(p)}
+                    disabled={isBusy}
+                    className="p-1 text-[var(--warning)] hover:bg-[var(--warning-bg)] rounded disabled:opacity-50"
+                    title="Return this part (wrong model, damaged, etc.)"
+                  >
+                    <RotateCcw className="w-4 h-4" />
                   </button>
-                  <button onClick={onCancelEdit} className="p-1 text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] rounded">
-                    <X className="w-4 h-4" />
+                )}
+                {/* Requester (or admin): cancel a pending return */}
+                {isPendingReturn && (isReturnRequester || canConfirmReturn) && (
+                  <button
+                    onClick={() => handleCancelReturn(p.job_part_id)}
+                    disabled={isBusy}
+                    className="p-1 text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] rounded disabled:opacity-50"
+                    title="Cancel return (part will be back in active use)"
+                  >
+                    {isBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Undo2 className="w-4 h-4" />}
                   </button>
-                </div>
-              ) : canViewPricing ? (
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[var(--text-secondary)]">RM{p.sell_price_at_time.toFixed(2)}</span>
-                  {canEditPrices && (
-                    <>
-                      <button onClick={() => onStartEditPrice(p.job_part_id, p.sell_price_at_time)} className="p-1 text-[var(--accent)] hover:bg-[var(--accent-subtle)] rounded">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => onRemovePart(p.job_part_id)} className="p-1 text-[var(--error)] hover:bg-[var(--error-bg)] rounded">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              ) : null}
+                )}
+                {/* Admin: confirm physical receipt */}
+                {isPendingReturn && canConfirmReturn && (
+                  <button
+                    onClick={() => handleConfirmReturn(p.job_part_id)}
+                    disabled={isBusy}
+                    className="p-1 text-[var(--success)] hover:bg-[var(--success-bg)] rounded disabled:opacity-50"
+                    title="Confirm received — restock and close the return"
+                  >
+                    {isBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <PackageCheck className="w-4 h-4" />}
+                  </button>
+                )}
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="mb-4">
@@ -378,6 +491,13 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
           </div>
         </div>
       )}
+
+      <PartReturnModal
+        show={!!returningPart}
+        part={returningPart}
+        onClose={() => setReturningPart(null)}
+        onRequested={(updated) => onPartReturnUpdated?.(updated)}
+      />
     </div>
   );
 };

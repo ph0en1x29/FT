@@ -2,6 +2,7 @@ import { Briefcase,CheckSquare,FileText,Plus } from 'lucide-react';
 import React,{ lazy,useCallback,useEffect,useState } from 'react';
 import { useNavigate,useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../contexts/DevModeContext';
+import { usePendingReturnsCount } from '../hooks/usePendingReturns';
 import usePullToRefresh from '../hooks/usePullToRefresh';
 import { User,UserRole } from '../types';
 import JobBoard from './JobBoard';
@@ -30,6 +31,9 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
   const isAdminOrSupervisor = [UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.ADMIN_STORE, UserRole.SUPERVISOR].includes(
     (displayRole || currentUser.role) as UserRole
   );
+  // Pending tech-return count for the Approvals tab badge — hook is cheap
+  // (count-only query + realtime) but only needed for admins/supervisors.
+  const pendingReturnsCount = usePendingReturnsCount();
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -89,6 +93,7 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = effectiveTab === tab.id;
+              const showApprovalsBadge = tab.id === 'approvals' && isAdminOrSupervisor && pendingReturnsCount > 0;
               return (
                 <button
                   key={tab.id}
@@ -101,6 +106,14 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
                 >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
+                  {showApprovalsBadge && (
+                    <span
+                      className="inline-flex items-center justify-center min-w-5 px-1.5 h-5 rounded-full text-[10px] font-semibold bg-red-500 text-white"
+                      title={`${pendingReturnsCount} pending part return${pendingReturnsCount === 1 ? '' : 's'}`}
+                    >
+                      {pendingReturnsCount}
+                    </span>
+                  )}
                 </button>
               );
             })}

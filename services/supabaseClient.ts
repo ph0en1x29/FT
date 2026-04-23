@@ -324,7 +324,7 @@ export const JOB_SELECT = {
     repair_end_time,
     completion_time,
     labor_cost,
-    parts_used:job_parts(quantity, sell_price_at_time),
+    parts_used:job_parts(quantity, sell_price_at_time, return_status),
     extra_charges:extra_charges(amount),
     scheduled_date
   `,

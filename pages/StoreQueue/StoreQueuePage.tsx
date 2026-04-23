@@ -22,7 +22,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Combobox, ComboboxOption } from '../../components/Combobox';
 import SwipeableRow from '../../components/mobile/SwipeableRow';
-import { usePartsForList } from '../../hooks/useQueryHooks';
+import { usePartsForList, useSearchParts } from '../../hooks/useQueryHooks';
+import { PendingReturnsSection } from './components/PendingReturnsSection';
 import { SkeletonJobList } from '../../components/Skeleton';
 import {
   approveSparePartRequest,
@@ -163,13 +164,36 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
   const [rejectReason, setRejectReason] = useState('');
   const [rejectType, setRejectType] = useState<'request' | 'parts' | 'job'>('request');
 
+  // Full cached list — used for resolving display details of selected/approved parts.
   const { data: cachedParts = [] } = usePartsForList();
   const parts = cachedParts as unknown as Part[];
-  const partOptions: ComboboxOption[] = useMemo(() => parts.map(p => ({
-    id: p.part_id,
-    label: p.part_name,
-    subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
-  })), [parts]);
+
+  // Server-side search powers the inline approval Combobox so admins can find any
+  // part across the ~3000-row catalog (the dropdown no longer caps at the first 50).
+  const { parts: searchedParts, isSearching, search } = useSearchParts(30);
+
+  const partOptions: ComboboxOption[] = useMemo(() => {
+    const inlinePartIds = new Set<string>();
+    const allRows = Object.values(inlineState) as Array<Array<{ partId: string; quantity: string }>>;
+    for (const rows of allRows) {
+      for (const row of rows) if (row.partId) inlinePartIds.add(row.partId);
+    }
+    const seen = new Set<string>();
+    const merged: Part[] = [];
+    for (const p of searchedParts) {
+      if (!seen.has(p.part_id)) { merged.push(p); seen.add(p.part_id); }
+    }
+    for (const p of parts) {
+      if (inlinePartIds.has(p.part_id) && !seen.has(p.part_id)) {
+        merged.push(p); seen.add(p.part_id);
+      }
+    }
+    return merged.map(p => ({
+      id: p.part_id,
+      label: p.part_name,
+      subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
+    }));
+  }, [searchedParts, parts, inlineState]);
 
   // ─── Load everything into a single queue ─────────────────────
 
@@ -552,6 +576,11 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
         </div>
       )}
 
+      {/* Tech-initiated part returns awaiting physical receipt — own list,
+          own realtime subscription. Sits above the existing queue so admins
+          notice it first. */}
+      <PendingReturnsSection />
+
       {/* Filter pills */}
       <div className="flex gap-1.5 overflow-x-auto pb-1">
         {filters.map(f => (
@@ -737,6 +766,8 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                                         value={row.partId || ''}
                                         onChange={(val) => updateInline(item.requestId!, idx, { partId: val })}
                                         placeholder="Select part..."
+                                        onSearch={search}
+                                        isSearching={isSearching}
                                       />
                                     </div>
                                     <div className="flex items-center gap-2 w-full sm:w-auto">

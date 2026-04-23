@@ -302,7 +302,12 @@ export const sendInvoice = async (jobId: string, method: 'email' | 'whatsapp' | 
 };
 
 export const generateInvoiceText = (job: Job): string => {
-  const totalParts = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
+  // Tech-returned parts (pending_return / returned) are excluded from the
+  // invoice — see jobPartReturnService.isPartActiveOnInvoice.
+  const billableParts = job.parts_used.filter(
+    p => p.return_status !== 'pending_return' && p.return_status !== 'returned'
+  );
+  const totalParts = billableParts.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
   const laborCost = job.labor_cost || 150;
   const extraCharges = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
   const total = totalParts + laborCost + extraCharges;
@@ -311,7 +316,7 @@ export const generateInvoiceText = (job: Job): string => {
   text += `Customer: ${job.customer.name}\n`;
   text += `Address: ${job.customer.address}\n`;
   text += `Date: ${new Date(job.created_at).toLocaleDateString()}\n`;
-  
+
   if (job.forklift) {
     text += `\n*Equipment Serviced:*\n`;
     text += `${job.forklift.make} ${job.forklift.model}\n`;
@@ -320,13 +325,13 @@ export const generateInvoiceText = (job: Job): string => {
       text += `Hourmeter: ${job.hourmeter_reading} hrs\n`;
     }
   }
-  
+
   text += `\n*Services Provided:*\n`;
   text += `${job.description}\n\n`;
-  
-  if (job.parts_used.length > 0) {
+
+  if (billableParts.length > 0) {
     text += `*Parts Used:*\n`;
-    job.parts_used.forEach(p => {
+    billableParts.forEach(p => {
       text += `• ${p.quantity}x ${p.part_name} - ${(p.sell_price_at_time * p.quantity).toFixed(2)}\n`;
     });
     text += `\n`;

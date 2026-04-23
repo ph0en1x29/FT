@@ -253,7 +253,12 @@ export function calculateJobTotals(job: Job | null): {
     return { totalPartsCost: 0, laborCost: 150, extraChargesCost: 0, totalCost: 150 };
   }
   
-  const totalPartsCost = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
+  // Returned / pending-return parts are excluded from invoice totals — they
+  // weren't actually used. See jobPartReturnService.isPartActiveOnInvoice.
+  const totalPartsCost = job.parts_used.reduce((acc, p) =>
+    (p.return_status === 'pending_return' || p.return_status === 'returned')
+      ? acc
+      : acc + (p.sell_price_at_time * p.quantity), 0);
   const laborCost = job.labor_cost || 150;
   const extraChargesCost = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
   const totalCost = totalPartsCost + laborCost + extraChargesCost;

@@ -315,7 +315,7 @@ export const getJobByIdFast = async (jobId: string): Promise<Job | null> => {
   // Step 2: Fetch related data in parallel (these are simple indexed queries)
   const partsPromise = supabase
     .from('job_parts')
-    .select('job_part_id, part_id, part_name, quantity, sell_price_at_time, quantity_used, quantity_returned')
+    .select('job_part_id, part_id, part_name, quantity, sell_price_at_time, quantity_used, quantity_returned, auto_populated, return_status, return_reason, return_requested_by, return_requested_at, return_confirmed_by, return_confirmed_at, return_notes')
     .eq('job_id', jobId);
 
   const mediaPromise = supabase
@@ -383,7 +383,7 @@ export const getJobById = async (jobId: string): Promise<Job | null> => {
   // Step 2: Fetch related data in parallel
   const partsPromise = supabase
     .from('job_parts')
-    .select('job_part_id, job_id, part_id, part_name, quantity, sell_price_at_time, from_van_stock, van_stock_item_id, quantity_used, quantity_returned')
+    .select('job_part_id, job_id, part_id, part_name, quantity, sell_price_at_time, from_van_stock, van_stock_item_id, quantity_used, quantity_returned, auto_populated, return_status, return_reason, return_requested_by, return_requested_at, return_confirmed_by, return_confirmed_at, return_notes')
     .eq('job_id', jobId);
 
   const mediaPromise = supabase

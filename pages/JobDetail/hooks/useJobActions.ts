@@ -397,10 +397,20 @@ export const useJobActions = ({
       // parts, or re-tag the photos) rather than a raw Postgres error.
       // Admin/supervisor bypass the DB trigger, so we only enforce here for
       // technicians (the UI toast still helps admins but won't block them).
+      // Active parts = not in pending_return / returned. Used for the
+      // "no parts declared" gate (no_parts_used is the escape).
+      const activeParts = (job.parts_used ?? []).filter(
+        p => p.return_status !== 'pending_return' && p.return_status !== 'returned'
+      );
+      const hasActiveParts = activeParts.length > 0;
+      // Any job_parts row, including returned ones — pressing Return is itself
+      // an acknowledgment of an approved part. Mirrors the DB trigger predicate
+      // `has_any_parts_row` from 20260423_completion_gate_acknowledge_returned.sql.
+      const hasAnyPartsRow = (job.parts_used?.length ?? 0) > 0;
+
       if (currentUserRole === 'technician' && !state.isCurrentUserHelper) {
         const sparePartPhotoCount = (job.media?.filter(m => m.category === 'spare_part').length ?? 0);
-        const hasParts = (job.parts_used?.length ?? 0) > 0;
-        if (sparePartPhotoCount > 0 && !hasParts && state.noPartsUsed) {
+        if (sparePartPhotoCount > 0 && !hasActiveParts && state.noPartsUsed) {
           showToast.error(
             'Parts photo conflicts with "No parts used"',
             `You uploaded ${sparePartPhotoCount} photo(s) tagged as "Parts" but ticked "No parts used". Either add the parts you used to the Used Parts list, or re-tag the photo(s) as Condition / Evidence / Other.`
@@ -408,16 +418,17 @@ export const useJobActions = ({
           return;
         }
       }
-      // Block completion when parts have been approved/issued but Used Parts is empty.
-      // This prevents technicians AND admins from completing with an empty Used Parts
-      // list when spare part requests were approved for the job.
+      // Block completion only when the approved spare-part row is genuinely
+      // missing (admin deleted it / auto-populate failed). A returned row is a
+      // valid acknowledgment, so the tech can complete by ticking no_parts_used
+      // once every approved part has been flagged for return.
       const approvedRequests = state.jobRequests.filter(
         r => r.request_type === 'spare_part' && (r.status === 'approved' || r.status === 'issued')
       );
-      if (approvedRequests.length > 0 && (job.parts_used?.length ?? 0) === 0) {
+      if (approvedRequests.length > 0 && !hasAnyPartsRow) {
         showToast.error(
           'Approved parts not recorded',
-          'Parts have been approved for this job. Please ensure all used parts are added to the \'Used Part\' section before completing.'
+          'Parts have been approved for this job but the Used Parts list is empty. Ask an admin to re-add the approved part, or have it returned to inventory before completing.'
         );
         return;
       }

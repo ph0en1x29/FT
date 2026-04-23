@@ -1,7 +1,7 @@
 import { AlertTriangle, Check, CheckSquare, Package, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Combobox, ComboboxOption } from '../../../components/Combobox';
-import { usePartsForList } from '../../../hooks/useQueryHooks';
+import { usePartsForList, useSearchParts } from '../../../hooks/useQueryHooks';
 import { JobRequest, Part } from '../../../types';
 
 interface BulkApproveItem {
@@ -26,15 +26,20 @@ interface BulkApproveRequestsModalProps {
  */
 function findBestPartMatch(description: string, parts: Part[]): Part | null {
   if (!description || parts.length === 0) return null;
-  
+
   const descLower = description.toLowerCase();
   const descWords = descLower.split(/[\s,]+/).filter(w => w.length > 2);
-  
+
   let bestMatch: Part | null = null;
   let bestScore = 0;
 
   for (const part of parts) {
-    if (part.stock_quantity <= 0) continue; // Skip out-of-stock
+    // Skip out-of-stock. Liquids hold real stock in container_quantity + bulk_quantity
+    // (stock_quantity is 0 by design), so use the liquid totals when applicable.
+    const totalStock = part.is_liquid
+      ? (part.container_quantity || 0) + (part.bulk_quantity || 0)
+      : (part.stock_quantity || 0);
+    if (totalStock <= 0) continue;
     const partLower = part.part_name.toLowerCase();
     
     // Exact match
@@ -66,16 +71,36 @@ export const BulkApproveRequestsModal: React.FC<BulkApproveRequestsModalProps> =
   onApproveAll,
   onClose,
 }) => {
+  // Full cached list — only used for fuzzy auto-match across all parts on modal open.
   const { data: cachedParts = [] } = usePartsForList();
   const parts = cachedParts as unknown as Part[];
 
+  // Server-side search powers the per-row Combobox so admins can find any of the
+  // ~3000 parts (the cached list still loads, but the dropdown no longer caps at 50).
+  const { parts: searchedParts, isSearching, search } = useSearchParts(30);
+
   const [items, setItems] = useState<BulkApproveItem[]>([]);
 
-  const partOptions: ComboboxOption[] = useMemo(() => parts.map(p => ({
-    id: p.part_id,
-    label: p.part_name,
-    subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
-  })), [parts]);
+  // Combine searched parts with currently-selected/auto-matched parts so their
+  // labels render correctly in the Combobox even when not in the latest search.
+  const partOptions: ComboboxOption[] = useMemo(() => {
+    const selectedIds = new Set(items.map(i => i.partId).filter(Boolean));
+    const seenIds = new Set<string>();
+    const merged: Part[] = [];
+    for (const p of searchedParts) {
+      if (!seenIds.has(p.part_id)) { merged.push(p); seenIds.add(p.part_id); }
+    }
+    for (const p of parts) {
+      if (selectedIds.has(p.part_id) && !seenIds.has(p.part_id)) {
+        merged.push(p); seenIds.add(p.part_id);
+      }
+    }
+    return merged.map(p => ({
+      id: p.part_id,
+      label: p.part_name,
+      subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
+    }));
+  }, [searchedParts, parts, items]);
 
   // Auto-match on open
   useEffect(() => {
@@ -182,6 +207,8 @@ export const BulkApproveRequestsModal: React.FC<BulkApproveRequestsModalProps> =
                           value={item.partId}
                           onChange={(val) => updateItem(idx, { partId: val, matched: true })}
                           placeholder="Select part..."
+                          onSearch={search}
+                          isSearching={isSearching}
                         />
                       </div>
                       <input

@@ -1,8 +1,8 @@
 import { AlertTriangle,CheckCircle,Image,Package,PackageX,Send,X,XCircle } from 'lucide-react';
 import React,{ useState } from 'react';
 import { Combobox,ComboboxOption } from '../../../components/Combobox';
-import { usePartsForList } from '../../../hooks/useQueryHooks';
-import { JobRequest,Part } from '../../../types';
+import { useSearchParts } from '../../../hooks/useQueryHooks';
+import { JobRequest } from '../../../types';
 
 interface ApproveRequestModalProps {
   show: boolean;
@@ -34,8 +34,7 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
   const [notes, setNotes] = useState('');
   const [mode, setMode] = useState<'review' | 'approve' | 'reject' | 'out_of_stock'>('review');
 
-  const { data: cachedParts = [] } = usePartsForList();
-  const parts = cachedParts as unknown as Part[];
+  const { parts, isSearching, search } = useSearchParts(30);
 
   const partOptions: ComboboxOption[] = parts.map(p => ({
     id: p.part_id,
@@ -260,6 +259,8 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
                       value={item.partId}
                       onChange={(val) => setItems(prev => prev.map((r, i) => i === idx ? { ...r, partId: val } : r))}
                       placeholder="Search parts..."
+                      onSearch={search}
+                      isSearching={isSearching}
                     />
                   </div>
                   <div className="w-20 flex-shrink-0">
@@ -379,6 +380,8 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
                 value={selectedPartId}
                 onChange={setSelectedPartId}
                 placeholder="Search parts..."
+                onSearch={search}
+                isSearching={isSearching}
               />
             </div>
 
