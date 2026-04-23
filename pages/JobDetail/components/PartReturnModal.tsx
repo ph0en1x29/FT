@@ -121,16 +121,22 @@ export const PartReturnModal: React.FC<PartReturnModalProps> = ({
           </label>
           <textarea
             value={freeText}
-            onChange={e => setFreeText(e.target.value)}
+            onChange={e => setFreeText(e.target.value.slice(0, 500))}
             disabled={submitting}
+            maxLength={500}
             placeholder={reason === 'other'
               ? 'Explain why this part needs to be returned…'
               : 'Any extra context for the admin…'}
             className="input-premium w-full h-20 resize-none"
           />
-          {otherSelectedWithoutText && (
-            <p className="text-xs text-[var(--error)] mt-1">A description is required when selecting "Other".</p>
-          )}
+          <div className="flex items-center justify-between mt-1">
+            {otherSelectedWithoutText
+              ? <p className="text-xs text-[var(--error)]">A description is required when selecting "Other".</p>
+              : <span />}
+            <span className={`text-xs ${freeText.length >= 500 ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>
+              {freeText.length}/500
+            </span>
+          </div>
         </div>
 
         <div className="bg-[var(--info-bg)] rounded-lg p-3 mb-4 text-xs text-[var(--info)]">

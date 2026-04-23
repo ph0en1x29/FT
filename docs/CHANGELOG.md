@@ -1,3 +1,36 @@
+## [2026-04-23] — Part Return Flow Hardening (Security + Performance + UX Pass)
+
+### Fixed
+
+**Three-round adversarial review of the just-shipped part-return feature surfaced real exploitable + UX issues; this entry is the same-day fix pass.**
+
+**Security (new migration `supabase/migrations/20260423_part_return_security_hardening.sql`, applied to live Supabase):**
+- **RPC scoping** — `request_part_return` and `cancel_part_return` previously only checked `auth.uid() != null`. Combined with the permissive UPDATE policy on `job_parts`, any authenticated technician could flip ANY job's parts to `pending_return` (silently stripping them from the customer invoice) and cancel ANY other tech's pending return. Hardened: `request_part_return` now requires the caller to be the assigned technician, the helper, an active `job_assignments` row, OR an admin / supervisor role. `cancel_part_return` requires the original requester, the assigned tech on the job, OR admin role.
+- **Quantity guard** — `confirm_part_return` had no `quantity > 0` guard. Combined with the permissive UPDATE policy, an attacker could set `quantity = -N` and confirm to *decrement* central stock with a falsified `inventory_movements` audit row. Added an explicit guard plus a `CHECK (quantity > 0)` constraint on `job_parts` (live audit confirmed 0 violations before applying).
+- **Fractional-liquid under-credit** — the original integer cast in `confirm_part_return` truncated, so 4.7L liquid returns credited 4 containers instead of 5. Switched to `ROUND(v_qty)::INTEGER`; refuses sub-unit returns explicitly rather than writing a 0-value audit row.
+- **DELETE orphans audit** — nothing prevented an admin from `DELETE`-ing a `job_parts` row that was in `pending_return` state. The row would vanish, the audit trail would be orphaned, and `parts.stock_quantity` would never see the credit. Added a BEFORE DELETE trigger `guard_job_parts_pending_return_delete` that refuses such deletes with a helpful error pointing the admin to `cancel_part_return` or `confirm_part_return` instead.
+
+**Performance (refactored `services/pendingReturnsService.ts`, `hooks/usePendingReturns.ts`, `pages/StoreQueue/components/PendingReturnsSection.tsx`):**
+- **Realtime fanout** — three components (badge count, queue list, toast notifier) were each opening their own Supabase channel and refetching the joined `listPendingReturns` query on EVERY `job_parts` event across the org. With ~20 admins online and dozens of part edits per day, that compounded into hundreds of redundant joined queries per hour. Consolidated to a single ref-counted singleton channel `pending-returns-shared`; the channel filters at the callback boundary to actual pending_return state transitions (`transition_in` / `transition_out`) so unrelated edits (qty change, price edit, auto_populated flip) don't trigger any consumer. Channel torn down only when the last subscriber unsubscribes.
+- **Burst coalescing** — added a 400ms debounce in the queue list section so a bulk-approve flurry that creates several rows in one tick triggers a single refetch instead of N.
+- **Soft-deleted-job filter pushed to DB** — moved the `deleted_at IS NULL` check into the joined PostgREST query (`jobs!inner(...) + .is('job.deleted_at', null)`) so Postgres drops those rows before embedding customer + forklift, instead of fetching them and discarding client-side.
+
+**UX:**
+- **Toast race** — `usePendingReturnsToastNotifier` previously relied on a 1.5s timer to mark the seen-set initialized, which was racy on slow connections (post-1.5s realtime events for historical pending rows would falsely toast) and reset on every navigation (the old `location.pathname` / `location.search` deps tore down the subscription). New version pre-seeds the seen set synchronously via `listPendingReturnIds()` BEFORE subscribing, then drops the timer; reads `window.location` at toast-fire time so route changes are reflected without re-subscribing. Subscription now survives navigation; only genuinely new transitions ever toast.
+- **Workflow blocker chips** — the four blocker chips on the mobile workflow card ("After photo", "Technician sign", "Customer sign", "Parts declaration") were inert spans, leaving a tech who returned the only part on a job blocked at "Parts declaration required" with no path forward. Now they're tappable buttons that scroll to the relevant section. Added a new `onScrollToParts` prop wired to the existing `partsRef` in `JobDetailPage`.
+- **Empty pending-returns section** — the section was rendering even when no returns were pending, adding permanent visual weight to the Store Queue page. Now returns `null` when the post-load row count is zero.
+- **Reason free-text length** — the Return modal textarea had no max length. Tech could paste a 50KB blob into the audit log. Added `maxLength={500}` plus a live `N/500` counter (warning color when at limit).
+
+**Out of scope (acknowledged in review, deliberately not fixed this session):**
+- **Invoice evasion via return-then-complete** — a technician could mark every part `pending_return` immediately before completion to strip them from the customer invoice. Truly fixing this requires snapshotting `parts_used` pricing at status transition into Awaiting Finalization. Larger architectural change; the new flow doesn't make this strictly worse than the existing "delete a part row" path that already exists. Flagged for future PR.
+- **Realtime payload tenant leakage** — depends on `job_parts` having permissive RLS (per `20260201_fix_all_rls_policies.sql`). Tightening RLS is a project-wide concern and would affect more than the return flow. Flagged.
+- **Helpers can't request returns** — matches the existing FT helper-as-read-only policy; if the lead tech is offline and only the helper is on-site holding a wrong part, the helper currently has to call the lead. Operational gap, not a code bug; surfaced for product decision.
+- **Auto-populated rows show the Return button** — intentional per the migration design (the whole point of the feature is letting techs return wrong-model auto-populated parts).
+
+**Verification:** `npm run typecheck` clean. Migration applied to live DB. End-to-end RPC simulation under realistic auth contexts (all under `BEGIN ... ROLLBACK` so live data was untouched): unassigned tech → REFUSED with auth error, assigned tech → SUCCESS, admin from any role → SUCCESS, cross-tech cancel → REFUSED, DELETE on pending_return → REFUSED with helpful guidance message, INSERT with quantity=-1 → REFUSED by CHECK constraint. All 6 hardening tests passed.
+
+---
+
 ## [2026-04-23] — Tech-Initiated Part Return Flow + Admin Confirm Return + 3-Tier Notification
 
 ### Added

@@ -41,16 +41,22 @@ export const PendingReturnsSection: React.FC = () => {
 
   useEffect(() => {
     refresh();
-    const sub = subscribeToPendingReturns(({ newRow, oldRow }) => {
-      // Refetch on any transition that touches a pending_return row.
-      // (Filtering at the channel level by column value is not supported in
-      // Supabase realtime, so we filter client-side and then refetch to pick
-      // up the joined fields.)
-      if (newRow?.return_status === 'pending_return' || oldRow?.return_status === 'pending_return') {
-        refresh();
-      }
+    // Shared singleton channel — pre-filters to actual pending_return state
+    // transitions, so the predicate work happens once per event, not once
+    // per consumer. Debounce coalesces bursts (e.g. a bulk approve that
+    // triggers many rows at once).
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedRefresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(refresh, 400);
+    };
+    const sub = subscribeToPendingReturns((ev) => {
+      if (ev.type === 'transition_in' || ev.type === 'transition_out') debouncedRefresh();
     });
-    return () => sub.unsubscribe();
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      sub.unsubscribe();
+    };
   }, [refresh]);
 
   const handleConfirm = async (row: PendingReturnRow) => {
@@ -82,6 +88,10 @@ export const PendingReturnsSection: React.FC = () => {
       setBusyId(null);
     }
   };
+
+  // Hide entirely when there's nothing to show — avoids permanent visual
+  // weight on the Store Queue page when no returns are pending.
+  if (!loading && rows.length === 0) return null;
 
   return (
     <section className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">

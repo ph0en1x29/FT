@@ -185,6 +185,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onScrollToChecklist={() => checklistRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             onScrollToPhotos={() => photosRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             onScrollToSignatures={() => signaturesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            onScrollToParts={() => partsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           />
         </div>
       )}

@@ -15,6 +15,13 @@ interface MobileTechnicianWorkflowCardProps {
   onScrollToChecklist: () => void;
   onScrollToPhotos: () => void;
   onScrollToSignatures: () => void;
+  /**
+   * Scrolls the page to the Parts section. Lets the "Parts declaration"
+   * blocker chip become tappable so a tech who returned the only part on a
+   * job has a clear path back to either add a real part or tick "No parts
+   * used".
+   */
+  onScrollToParts?: () => void;
 }
 
 export const MobileTechnicianWorkflowCard: React.FC<MobileTechnicianWorkflowCardProps> = ({
@@ -28,6 +35,7 @@ export const MobileTechnicianWorkflowCard: React.FC<MobileTechnicianWorkflowCard
   onScrollToChecklist,
   onScrollToPhotos,
   onScrollToSignatures,
+  onScrollToParts,
 }) => {
   // HOURMETER_EXEMPT_JOB_TYPES — FTS + Repair drop the "Hourmeter" blocker chip
   // so the Complete button isn't perma-disabled for jobs without a meaningful reading.
@@ -88,15 +96,19 @@ export const MobileTechnicianWorkflowCard: React.FC<MobileTechnicianWorkflowCard
 
       {!statusFlags.needsAcceptance && !statusFlags.hasAccepted && blockers.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {blockers.map(blocker => (
-            <span
-              key={blocker}
-              className="rounded-full px-3 py-1 text-xs font-medium"
-              style={{ background: 'rgba(255, 149, 0, 0.12)', color: '#B45309' }}
-            >
-              {blocker}
-            </span>
-          ))}
+          {blockers.map(blocker => {
+            const action =
+              blocker === 'After photo' ? onScrollToPhotos
+              : blocker === 'Technician sign' ? onScrollToSignatures
+              : blocker === 'Customer sign' ? onScrollToSignatures
+              : blocker === 'Parts declaration' ? onScrollToParts
+              : undefined;
+            const className = "rounded-full px-3 py-1 text-xs font-medium";
+            const style = { background: 'rgba(255, 149, 0, 0.12)', color: '#B45309' };
+            return action
+              ? <button key={blocker} onClick={action} className={className} style={style}>{blocker} →</button>
+              : <span key={blocker} className={className} style={style}>{blocker}</span>;
+          })}
         </div>
       )}
 
