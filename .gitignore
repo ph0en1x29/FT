@@ -14,6 +14,10 @@ build/
 .env.local
 .env.*.local
 
+# Local DB snapshots (e.g. pre-destructive backup before van stock wipe)
+.van-stock-nuclear-snapshot-*.json
+.db-snapshot-*.json
+
 
 # Editor directories and files
 .vscode/*

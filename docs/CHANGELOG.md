@@ -1,3 +1,26 @@
+## [2026-04-23] — Van Stock Nuclear Wipe (Client Request: Demo Phase Reset)
+
+### Removed
+
+**Client-requested full deletion of all Van Stock inventory and audit records to start demo afresh**
+
+- **Context**: Demo phase soft launch. Client request (direct email): "wipe everything and start fresh — nuclear is fine since we're in demo phase."
+- **Scope**: Hard-delete all `van_stocks` (23 parent records), `van_stock_items` (131), audit logs (`van_audit_log` 6 rows), access control (`van_access_requests` 1), usage tracking (`van_stock_usage` 7), and all `inventory_movements` rows referencing a van (185 rows spanning parts, liquids, and historical movements). Preserved job records by NULLing `jobs.job_van_stock_id` (20 pointers) instead of deleting jobs — customer work history remains intact.
+- **Pre-wipe safeguards**: Full FK audit + JSON snapshot (`/home/jay/FT/.van-stock-nuclear-snapshot-1776922565504.json`, 291 KB) captured all affected rows in dependency order. Snapshot is gitignored via `.van-stock-nuclear-snapshot-*.json` + `.db-snapshot-*.json` rules added to `.gitignore`.
+- **Execution (single transaction with temporary trigger bypass)**: 
+  1. Disabled the immutability trigger `trg_prevent_delete` on `inventory_movements` (which normally raises "Inventory movements are immutable. Use a reversal entry instead.") via `ALTER TABLE ... DISABLE TRIGGER ALL` to allow the 185-row delete.
+  2. DELETE `inventory_movements` where van refs exist (185 rows).
+  3. DELETE `van_stock_usage` (7 rows).
+  4. UPDATE `jobs` SET `job_van_stock_id = NULL` (20 jobs preserved with NULL pointer).
+  5. DELETE `van_stocks` (23 records; CASCADE auto-removed 131 items + 6 audit + 1 access request).
+  6. Re-enabled the trigger via `ALTER TABLE ... ENABLE TRIGGER ALL` immediately BEFORE COMMIT and verified `tgenabled = 'O'`.
+  7. Sanity assertions before COMMIT: `SELECT COUNT(*) FROM van_stocks` = 0, etc.
+  8. Post-commit verification: all 7 audit counts = 0, trigger re-enabled, jobs preserved with NULL pointers.
+- **Restore path** (if client changes mind during demo): Read the snapshot JSON, INSERT back in dependency order (van_stocks → van_stock_items → van_audit_log → van_access_requests → van_stock_usage → inventory_movements with trigger disabled → UPDATE jobs SET job_van_stock_id). Path is documented in WORK_LOG.md for future recovery.
+- **Why preserve jobs**: Even a nuclear wipe shouldn't obliterate customer work history. Job records are the source of truth for revenue, technician hours, and customer satisfaction metrics. Keeping them with a NULL van pointer allows the demo to start fresh for inventory while preserving the audit trail for billing and analytics.
+
+---
+
 ## [2026-04-23] — Part Return Flow Hardening (Security + Performance + UX Pass)
 
 ### Fixed
