@@ -1,3 +1,62 @@
+## [2026-04-25] — Dependency Refresh + Security Override (system maintenance)
+
+### Updated (in-range minor/patch only — manifest unchanged)
+
+`npm update` bumped every dep with an available in-range update. No package.json semver range was widened; only `package-lock.json` moved.
+
+| Package | From | To |
+|---|---|---|
+| react / react-dom | 19.2.3 | 19.2.5 |
+| @sentry/react | 10.38.0 | 10.50.0 |
+| @supabase/supabase-js | 2.90.1 | 2.104.1 |
+| @tanstack/react-query | 5.90.20 | 5.100.5 |
+| react-router-dom | 7.12.0 | 7.14.2 |
+| @vitejs/plugin-react | 5.1.2 | 5.2.0 |
+| typescript-eslint | 8.54.0 | 8.59.0 |
+| @playwright/test | 1.57.0 | 1.59.1 |
+| eslint | 9.39.2 | 9.39.4 |
+| dotenv | 17.2.3 | 17.4.2 |
+| pg | 8.18.0 | 8.20.0 |
+| @axe-core/playwright | 4.11.0 | 4.11.2 |
+
+### Security override
+
+`npm audit` was reporting **4 high-severity vulnerabilities** before this refresh, all transitive via `serialize-javascript ≤ 7.0.4` (RCE via RegExp.flags + CPU-exhaustion DoS). The dep chain was `vite-plugin-pwa → workbox-build → @rollup/plugin-terser → serialize-javascript`. The advisory's recommended `npm audit fix --force` would have downgraded `vite-plugin-pwa` to 0.19.8 (a breaking move that would lose features).
+
+Instead, added an `overrides` block to `package.json`:
+
+```json
+"overrides": {
+  "serialize-javascript": "^7.0.5"
+}
+```
+
+This forces `serialize-javascript` 7.0.5 (API-compatible patch within the same major) across the entire dep tree, regardless of what transitive consumers ask for. After `npm install`: `npm audit` reports **0 vulnerabilities**.
+
+Note: actual exploit risk for this codebase was minimal — `serialize-javascript` runs at BUILD time inside `@rollup/plugin-terser`, not at runtime, and no untrusted input flows through it during a normal CI/dev build. The override is hygiene work (clean audit baseline for future runs) rather than a critical-incident response.
+
+### Held back — major upgrades for separate PRs
+
+Each item below is a major-version migration with non-trivial breaking-change surface. Bundling them with the maintenance work would pollute the diff and risk delaying the safer in-range bumps. Recommend evaluating each in a dedicated PR:
+
+| Package | Current | Latest | Risk note |
+|---|---|---|---|
+| **typescript** | 5.8.3 | 6.0.3 | New strict-mode behavior + module-resolution changes; needs TS 6.0 release-notes review + targeted strict-flag tweaks. |
+| **vite** | 6.4.2 | 8.0.10 | Two majors behind. Each major has config-shape changes and plugin-API breaks. |
+| **@vitejs/plugin-react** | 5.2.0 | 6.0.1 | Paired with Vite — bump together. |
+| **eslint** | 9.39.4 | 10.2.1 | Config-format changes and rule-defaults shifts. |
+| **lucide-react** | 0.556 | 1.11.0 | Major API change for the icon library — every `<Icon />` import would need review for unclear ROI. |
+| **@types/node** | 22.19.17 | 25.6.0 | Node typings; bump should track the deployment Node version, not jump independently. |
+
+### Verification
+
+- `npm run typecheck`: clean.
+- `npm run lint`: 0 errors / 104 pre-existing warnings (unchanged from prior session).
+- `npm run build`: clean. Bundle composition stable.
+- `npm audit`: 0 vulnerabilities.
+
+---
+
 ## [2026-04-25] — Phase 2.5: Plumb Mutation Return Rows (loadJob landmine closure)
 
 **System maintenance + stability upgrade.** Closes a dormant 2026-04-08 race condition class: 7 mutation handlers in JobDetail were calling `loadJob()` after a service write instead of applying the returned row via `setJob({...updated})`. The dedupe pattern at `lastSeenUpdatedAtRef` (which prevents the realtime echo from racing the in-flight mutation's PostgREST response) only works when the handler applies the returned row directly. The bug was dormant — services returned `boolean`/`void`, so the dedupe pattern was impossible without the service refactor that this entry delivers.
