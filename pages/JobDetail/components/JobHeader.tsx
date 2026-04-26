@@ -72,8 +72,8 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
     isAssignedToCurrentUser, needsAcceptance, hasAccepted, isAwaitingAck, isDisputed
   } = statusFlags;
 
-  // HOURMETER_EXEMPT_JOB_TYPES — FTS + Repair skip the hourmeter gate so the
-  // sticky Complete button isn't perma-disabled.
+  // HOURMETER_EXEMPT_JOB_TYPES — FTS skips the hourmeter gate so the
+  // sticky Complete button isn't perma-disabled. (Repair removed 2026-04-21.)
   const hourmeterRequired = !isHourmeterExemptJob(job.job_type) && !hasHourmeter;
 
   return (

@@ -87,10 +87,6 @@ export default defineConfig(({ mode }) => {
                 if (id.includes('@supabase')) {
                   return 'vendor-supabase';
                 }
-                // Charts - only needed on dashboard
-                if (id.includes('recharts') || id.includes('d3-')) {
-                  return 'vendor-charts';
-                }
                 // Icons - split from main bundle
                 if (id.includes('lucide-react')) {
                   return 'vendor-icons';

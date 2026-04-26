@@ -1,3 +1,47 @@
+## [2026-04-25] — Phase 1 Cleanup: Dead-Code Removal Sweep
+
+### Removed
+
+**70 source files / 1 dependency removed in a verified-safe sweep.** Scoped via four parallel agent scans (code-structure survey, performance audit, ts-prune/knip/depcheck, ft-expert architecture review) and gated by a Phase 0 verification pass that excluded several agent-flagged services after finding live callers.
+
+- **`services/jobPinService.ts`** — `pinJob` and `unpinJob` had zero call sites repo-wide. Confirmed via grep on import statements with both absolute (`services/jobPinService`) and relative (`../services/jobPinService`) patterns.
+- **`pages/PendingConfirmations/`, `pages/ServiceDue/` + shim, `pages/ServiceIntervalsConfig/` + shim, `pages/PartRequests/`, `pages/StoreManager/`** — six unrouted page directories. ServiceDue and ServiceIntervalsConfig had `<Navigate>` redirects in the router pointing at `/forklifts` tabs; their original page components were never reached. PendingConfirmations was superseded by `pages/StoreQueue/`, which remains routed as the `/jobs?tab=approvals` content (the StoreQueue dir was *not* deleted; an initial mass-delete batch caught it but typecheck rejected it within seconds and it was restored — see WORK_LOG.md for the postmortem).
+- **`components/dashboards/AccountantDashboard*` and `components/dashboards/TechnicianDashboard*`** — 33 files across two superseded modular dashboard trees. The active dashboards live in `components/dashboards/DashboardPreviewV4/components/` and were imported via relative `./components/...` paths, so the legacy top-level paths were never resolved.
+- **`components/AssetDashboard.tsx`, `components/AssetDashboard/index.tsx`** — both files self-marked `@deprecated`. The active forklift dashboard `components/AssetDashboard/AssetDashboardV3_1.tsx` is imported directly by `pages/ForkliftsTabs/ForkliftsTabsPage.tsx`, bypassing both shims.
+- **`components/PullToRefresh.tsx`** — superseded by `hooks/usePullToRefresh.tsx`. The only consumer (`pages/JobsTabs.tsx`) imports the hook variant.
+- **`recharts` dependency** — last consumers (`RevenueChart.tsx` and `InvoiceStatusChart.tsx` inside the legacy AccountantDashboard tree) were deleted in this sweep. `npm uninstall recharts` ran cleanly; the orphaned chunk-split rule was also removed from `vite.config.ts`. Build output no longer emits a `vendor-charts` chunk.
+
+### Changed
+
+**Comment drift on hourmeter-exemption policy fixed at 6 sites — comment-only edits, no behavioral change.** Per the 2026-04-21 hourmeter policy change, `isHourmeterExemptJob()` returns true only for Field Technical Services — Repair was removed from the exempt list because repaired units have meaningful readings. Six call sites still carried stale "FTS + Repair skip hourmeter" comments. Updated comments now read "FTS skips ..." with a "(Repair removed 2026-04-21)" marker.
+
+Sites:
+
+- `pages/JobDetail/hooks/useJobActions.ts` — three comment sites at lines 199 (`handleStartJob`), 350 (`handleStatusChange` hourmeter gate), and 437 (checklist exemption). The line-437 comment additionally claimed checklist and hourmeter exemptions "happen to overlap" with HOURMETER_EXEMPT_JOB_TYPES; that overlap is now partial only (FTS in both, Repair only in checklist), so the comment was reworded to state the policies are independent.
+- `pages/JobDetail/components/MobileTechnicianWorkflowCard.tsx` — blocker-chip exemption comment.
+- `pages/JobDetail/components/JobHeader.tsx` — sticky Complete button hourmeter gate comment.
+- `pages/JobDetail/JobDetailPage.tsx` — desktop in-progress banner gate comment.
+
+### Scope notes (Phase 1)
+
+The following candidate-dead items were verified to have callers and were excluded from this phase. They surface again in a future Phase 1.5 / Phase 2 as candidates for surgical export trimming or service consolidation, not whole-file removal:
+
+- `services/escalationService.ts` — `runEscalationChecks` is called by `pages/PrototypeDashboards.tsx`, the landing-page route at `/`. (Note: the actual escalation work runs in PostgreSQL via `run_escalation_checks()` + `pg_cron`; the TS service appears to be a dev/admin trigger surface but is genuinely live.)
+- `services/serviceTrackingService.ts` — three callers including the live JobDetail service-upgrade flow (`useJobActions.ts`).
+- `services/pushNotificationService.ts` — four functions (`isPushSupported`, `getPushPermissionState`, `initializePushNotifications`, `enablePushNotifications`) consumed by `contexts/NotificationContext.tsx`.
+- `services/servicePredictionService.ts` — `getForkliftsDueForService` consumed by `components/AssetDashboard/hooks/useAssetDashboard.ts`. The other 8 exports flagged by ts-prune duplicate `services/hourmeterService.ts` and remain candidates for trimming in Phase 2.
+- `services/hrService.ts` and `services/hrAlertService.ts` — 14 callers across EmployeeProfile, MyLeaveRequests, People.
+
+Phase 0 did include one false-negative in the agent-supplied list — `pages/StoreQueue/` was incorrectly slated for deletion because the relative-path import (`from './StoreQueue'`) didn't match the absolute-path grep pattern. Typecheck caught this immediately; the directory was restored before any further work.
+
+### Verification
+
+- `npm run typecheck`: clean.
+- `npm run build`: clean. The `vendor-charts` chunk no longer emits.
+- No bundle-baseline comparison yet; that's queued for a future bundle-splitting phase (route-level lazy splitting + leaflet-import audit).
+
+---
+
 ## [2026-04-24] — tech20 Rename Completion + Initial Van Stock for 6 Technicians
 
 ### Fixes

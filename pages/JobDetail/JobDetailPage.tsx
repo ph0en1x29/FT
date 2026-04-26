@@ -115,9 +115,10 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   );
   const partsDeclared = activeParts.length > 0 || state.noPartsUsed;
   const partsDeclarationRequired = roleFlags.isTechnician && !roleFlags.isHelperOnly && !partsDeclared;
-  // HOURMETER_EXEMPT_JOB_TYPES — FTS + Repair skip the hourmeter gate so the
+  // HOURMETER_EXEMPT_JOB_TYPES — FTS skips the hourmeter gate so the
   // desktop in-progress banner + Complete button don't perma-disable when
   // hourmeter_reading is 0 (FTS without forklift) or absent.
+  // (Repair was removed 2026-04-21 — repaired units have meaningful readings.)
   const hourmeterRequired = !isHourmeterExemptJob(job?.job_type) && !statusFlags.hasHourmeter;
   const completionBlocked = !statusFlags.hasBothSignatures || hourmeterRequired || !statusFlags.hasAfterPhoto || partsDeclarationRequired;
 

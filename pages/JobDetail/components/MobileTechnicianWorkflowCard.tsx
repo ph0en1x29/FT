@@ -37,8 +37,9 @@ export const MobileTechnicianWorkflowCard: React.FC<MobileTechnicianWorkflowCard
   onScrollToSignatures,
   onScrollToParts,
 }) => {
-  // HOURMETER_EXEMPT_JOB_TYPES — FTS + Repair drop the "Hourmeter" blocker chip
+  // HOURMETER_EXEMPT_JOB_TYPES — FTS drops the "Hourmeter" blocker chip
   // so the Complete button isn't perma-disabled for jobs without a meaningful reading.
+  // (Repair was removed 2026-04-21.)
   const isHourmeterExempt = isHourmeterExemptJob(job.job_type);
   const blockers = [
     !statusFlags.hasAfterPhoto ? 'After photo' : null,
