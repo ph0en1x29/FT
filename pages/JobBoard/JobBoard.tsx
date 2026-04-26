@@ -63,6 +63,11 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     patchJob,
   } = useJobData({ currentUser, displayRole: activeRole });
 
+  // Server `totalJobs` only counts primary assigned jobs; for technicians,
+  // `jobs.length` also includes helper rows. Show the "/ N total" qualifier
+  // only when it accurately bounds the loaded set above.
+  const showTotalQualifier = totalJobs > jobs.length;
+
   const handleToggleStar = useCallback(async (e: React.MouseEvent, jobId: string) => {
     e.stopPropagation();
     const job = jobs.find(j => j.job_id === jobId);
@@ -213,6 +218,11 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     />
   );
 
+  const loadMoreLabel = loadingMore
+    ? 'Loading older jobs'
+    : showTotalQualifier
+      ? `Load older jobs (${jobs.length} of ${totalJobs})`
+      : 'Load older jobs';
   const loadMoreButton = hasMoreJobs ? (
     <div className="flex justify-center pt-2">
       <button
@@ -221,7 +231,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
         className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-theme shadow-sm transition hover:bg-[var(--bg-subtle)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
-        {loadingMore ? 'Loading older jobs' : `Load older jobs (${jobs.length} of ${totalJobs})`}
+        {loadMoreLabel}
       </button>
     </div>
   ) : null;
@@ -248,7 +258,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-subtle)]/70 px-4 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-muted">Showing</div>
               <div className="mt-1 text-lg font-semibold text-theme">
-                {filteredJobs.length} of {jobs.length}{totalJobs > jobs.length ? ` / ${totalJobs}` : ''} jobs
+                {filteredJobs.length} of {jobs.length}{showTotalQualifier ? ` / ${totalJobs}` : ''} jobs{hasMoreJobs ? <span className="ml-1 text-xs font-normal text-theme-muted">(more available)</span> : null}
               </div>
             </div>
 

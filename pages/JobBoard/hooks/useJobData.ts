@@ -13,7 +13,18 @@ interface UseJobDataReturn {
   jobs: JobWithHelperFlag[];
   loading: boolean;
   loadingMore: boolean;
+  /**
+   * Server-reported count of primary assigned jobs (excludes helper rows).
+   * Use for status-count math, not for the load-more guard — for technicians,
+   * `jobs.length` includes helpers and may exceed `totalJobs`.
+   */
   totalJobs: number;
+  /**
+   * Whether more pages of primary jobs exist on the server. Driven by
+   * `JobsPageResult.hasMore`, which is computed as `to + 1 < total` against
+   * the primary-jobs query — so it stays correct even after helper rows are
+   * appended client-side.
+   */
   hasMoreJobs: boolean;
   deletedJobs: DeletedJob[];
   isRealtimeConnected: boolean;
@@ -41,6 +52,7 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [totalJobs, setTotalJobs] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [deletedJobs, setDeletedJobs] = useState<DeletedJob[]>([]);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
 
@@ -60,6 +72,7 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
       setJobs(data.jobs as JobWithHelperFlag[]);
       setPage(1);
       setTotalJobs(data.total);
+      setHasMore(data.hasMore);
 
       // Fetch recently deleted jobs for admin/supervisor
       if (canViewDeleted) {
@@ -78,7 +91,10 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
   }, [currentUser, canViewDeleted]);
 
   const loadMoreJobs = useCallback(async () => {
-    if (loadingMore || jobs.length >= totalJobs) return;
+    // Guard on server-reported `hasMore` rather than `jobs.length >= totalJobs`.
+    // For technicians, `jobs` includes helper rows that aren't counted in
+    // `totalJobs`, so the count comparison hides the action prematurely.
+    if (loadingMore || !hasMore) return;
 
     setLoadingMore(true);
     try {
@@ -95,12 +111,13 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
       });
       setPage(nextPage);
       setTotalJobs(data.total);
+      setHasMore(data.hasMore);
     } catch {
       showToast.error('Failed to load older jobs');
     } finally {
       setLoadingMore(false);
     }
-  }, [currentUser, jobs.length, loadingMore, page, totalJobs]);
+  }, [currentUser, hasMore, loadingMore, page]);
 
   // Keep ref in sync
   fetchJobsRef.current = fetchJobs;
@@ -218,7 +235,7 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
     loading,
     loadingMore,
     totalJobs,
-    hasMoreJobs: jobs.length < totalJobs,
+    hasMoreJobs: hasMore,
     deletedJobs,
     isRealtimeConnected,
     canViewDeleted,

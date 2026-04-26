@@ -1,5 +1,30 @@
 # Changelog
 
+## [2026-04-26] — Fix: JobBoard load-more guard + count display + nested-button HTML in PipelineCard
+
+### Fixes
+
+- **JobBoard "Load older jobs" no longer hides early for technicians.** `getJobsPage` returns `data.total` from the primary `assigned_technician_id` query, then appends helper-assigned jobs to `data.jobs` client-side without adjusting the count. The previous load-more guard `jobs.length >= totalJobs` therefore short-circuited as soon as the loaded set (primary + helpers) reached the primary-only total — even when older primary jobs still existed. The hook now tracks server-reported `JobsPageResult.hasMore` (computed from the paginated primary query) and uses that for the guard, so the action stays available until the server reports there are no more pages.
+- **JobBoard "Showing X of Y / Z jobs" count is no longer misleading.** The "/ Z total" qualifier now only renders when `totalJobs > jobs.length` — i.e., when it's actually informative. When helper rows have inflated `jobs.length` past the primary-only total, an unobtrusive "(more available)" chip is shown instead, anchored to the same server-reported `hasMore` flag. The "Load older jobs" button label drops the count entirely in that case so technicians don't see "(200 of 200)" while still being able to load older work.
+- **Dashboard PipelineCard no longer emits nested `<button>` markup.** The pipeline card's outer wrapper was a `<button>` containing an inner `<button>` for the "+ Assign" affordance — invalid HTML that produced unreliable click handling and broke keyboard / screen-reader semantics despite `e.stopPropagation()`. The outer wrapper is now a `<div role="button" tabIndex={0}>` with explicit Enter/Space `onKeyDown` handling and a focus-visible outline; the inner "+ Assign" stays a real `<button type="button">` and adds `onKeyDown={e => e.stopPropagation()}` so keyboard activation on the assign control doesn't also fire the card's keyboard handler. No visual change.
+
+### Verification
+
+- `npm ci` clean (TS 6.0.3, Vite 7.3.2).
+- `npm run typecheck` passes.
+- `npm run lint` passes with 0 errors / 88 warnings (unchanged from the prior main baseline — no new warnings introduced by the fix).
+- `npm run build` passes.
+- `npm run test:smoke` 1/1 passing in 13.9s.
+- `npm audit --audit-level=moderate` reports 0 vulnerabilities.
+
+### Scope notes
+
+- This change does not alter `getJobsPage`'s server-side count semantics. The helper-jobs append exists deliberately so the technician board widens to include rows where they're an assistant, without unbounded-loading the admin board — that contract is preserved.
+- This change does not touch `useJobRealtime` or the realtime echo dedupe in `useJobDetailState`.
+- This change does not redesign `PipelineCard`'s visual appearance; the `role="button"` div preserves the exact rendered tree, while the reviewer's alternate suggestion (split into sibling buttons) would have meant a layout reflow.
+
+---
+
 ## [2026-04-26] — Post-Merge Cleanup: any-cast tightening, jobService split, Vite 8 watch agent
 
 ### Changed

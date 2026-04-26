@@ -159,18 +159,34 @@ export const PipelineCard: React.FC<{
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showAssign]);
 
+  // Outer card is a div with `role="button"` instead of a `<button>` so the
+  // inner `+ Assign` action can stay a real `<button>` without producing
+  // invalid (nested) interactive markup. Keyboard activation (Enter/Space) is
+  // wired explicitly to match native button semantics.
+  const handleCardKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onClick}
-        className="w-full text-left p-2 rounded-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+        onKeyDown={handleCardKeyDown}
+        className="w-full text-left p-2 rounded-lg cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
         style={{ background: 'var(--surface-2)', borderLeft: `3px solid ${accent}` }}
       >
         <p className="text-xs font-medium truncate" style={{ color: 'var(--text)' }}>{job.job_number || job.title}</p>
         <div className="flex items-center gap-1">
           {isUnassigned && onAssign ? (
             <button
+              type="button"
               onClick={(e) => { e.stopPropagation(); setShowAssign(!showAssign); }}
+              onKeyDown={(e) => e.stopPropagation()}
               className="text-[10px] font-medium px-1.5 py-0.5 rounded hover:opacity-80 transition-colors"
               style={{ color: colors.orange.text, background: colors.orange.bg }}
             >
@@ -181,7 +197,7 @@ export const PipelineCard: React.FC<{
           )}
           <span className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>• {job.customer?.name || ''}</span>
         </div>
-      </button>
+      </div>
       {showAssign && technicians && onAssign && (
         <div className="absolute top-full left-0 right-0 z-30 mt-1 rounded-lg shadow-xl py-1 max-h-[150px] overflow-y-auto" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
           {technicians.map(t => (
