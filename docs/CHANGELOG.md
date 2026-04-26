@@ -1,3 +1,5 @@
+# Changelog
+
 ## [2026-04-26] — Phase 3 Oversized File Splits Completed
 
 ### Changed
