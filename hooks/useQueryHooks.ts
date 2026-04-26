@@ -106,25 +106,27 @@ export const useTechnicians = () => {
 
 /**
  * Cached parts list for dropdowns
- * Stale time: 5 minutes (parts rarely change)
+ * Stale time: 2 minutes — inventory changes during a field shift (techs deduct
+ * stock as they use parts), so 5min was masking real-time stock for the next
+ * tech opening the dropdown.
  */
 export const usePartsForList = () => {
   return useQuery({
     queryKey: queryKeys.partsForList,
     queryFn: () => SupabaseDb.getPartsForList(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
   });
 };
 
 /**
  * Full parts list (when full details needed)
- * Stale time: 5 minutes
+ * Stale time: 2 minutes — same rationale as usePartsForList.
  */
 export const useParts = () => {
   return useQuery({
     queryKey: queryKeys.parts,
     queryFn: () => SupabaseDb.getParts(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
   });
 };
 

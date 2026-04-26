@@ -5,10 +5,12 @@ import { useDevModeContext } from '../contexts/DevModeContext';
 import { usePendingReturnsCount } from '../hooks/usePendingReturns';
 import usePullToRefresh from '../hooks/usePullToRefresh';
 import { User,UserRole } from '../types';
-import JobBoard from './JobBoard';
-import ServiceRecords from './ServiceRecords';
-import StoreQueue from './StoreQueue';
 
+// Each tab's content is lazy-loaded so the JobsTabs chunk itself stays small —
+// only the active tab's code is fetched on first render.
+const JobBoard = lazy(() => import('./JobBoard'));
+const ServiceRecords = lazy(() => import('./ServiceRecords'));
+const StoreQueue = lazy(() => import('./StoreQueue'));
 const ServiceRequestsQueue = lazy(() => import('./ServiceRequests'));
 
 type TabType = 'active' | 'history' | 'approvals';
@@ -121,21 +123,21 @@ const JobsTabs: React.FC<JobsTabsProps> = ({ currentUser }) => {
         </div>
       </div>
 
-      {effectiveTab === 'active' && <React.Fragment key={`active-${refreshKey}`}><JobBoard currentUser={currentUser} hideHeader /></React.Fragment>}
-      {effectiveTab === 'history' && canViewHistory && <React.Fragment key={`history-${refreshKey}`}><ServiceRecords currentUser={currentUser} hideHeader /></React.Fragment>}
-      {effectiveTab === 'approvals' && isAdminOrSupervisor && (
-        <React.Fragment key={`approvals-${refreshKey}`}>
-          {/* Service requests (skillful tech + assistance) — visible to admin, admin_service, supervisor (not admin_store) */}
-          {[UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.SUPERVISOR].includes(
-            (displayRole || currentUser.role) as UserRole
-          ) && (
-            <React.Suspense fallback={null}>
+      <React.Suspense fallback={null}>
+        {effectiveTab === 'active' && <React.Fragment key={`active-${refreshKey}`}><JobBoard currentUser={currentUser} hideHeader /></React.Fragment>}
+        {effectiveTab === 'history' && canViewHistory && <React.Fragment key={`history-${refreshKey}`}><ServiceRecords currentUser={currentUser} hideHeader /></React.Fragment>}
+        {effectiveTab === 'approvals' && isAdminOrSupervisor && (
+          <React.Fragment key={`approvals-${refreshKey}`}>
+            {/* Service requests (skillful tech + assistance) — visible to admin, admin_service, supervisor (not admin_store) */}
+            {[UserRole.ADMIN, UserRole.ADMIN_SERVICE, UserRole.SUPERVISOR].includes(
+              (displayRole || currentUser.role) as UserRole
+            ) && (
               <ServiceRequestsQueue currentUser={currentUser} />
-            </React.Suspense>
-          )}
-          <StoreQueue currentUser={currentUser} hideHeader />
-        </React.Fragment>
-      )}
+            )}
+            <StoreQueue currentUser={currentUser} hideHeader />
+          </React.Fragment>
+        )}
+      </React.Suspense>
     </div>
   );
 };

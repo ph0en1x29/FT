@@ -21,7 +21,7 @@ interface JobPhotosSectionProps {
   onJobUpdate: (job: Job) => void;
 }
 
-export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
+const JobPhotosSectionInner: React.FC<JobPhotosSectionProps> = ({
   job,
   currentUserId,
   currentUserName,
@@ -717,3 +717,8 @@ export const JobPhotosSection: React.FC<JobPhotosSectionProps> = ({
     </div>
   );
 };
+
+// Memoized — JobPhotosSection re-renders only when its props actually change.
+// Parent JobDetailPage re-renders on every `state.show*Modal` toggle; without
+// memo, every modal toggle would re-run this 700-line component's render.
+export const JobPhotosSection = React.memo(JobPhotosSectionInner);

@@ -52,11 +52,38 @@ Fixing requires ~7 service signature changes (return `Job` instead of `boolean`/
 
 **Migration ordering** — `20260423_completion_gate_skip_returns.sql` and `20260423_completion_gate_acknowledge_returned.sql` share a date prefix, so a fresh-DB apply order is alphabetic-suffix-driven. Both use `CREATE OR REPLACE` so the end state is idempotent regardless of order, but the convention going forward should be `_01_` / `_02_` suffixes for same-date migrations. Renaming the existing files would require Supabase migration-tracking surgery; left as a documentation update for the next migration that lands.
 
+### Performance — Phase 4 (React)
+
+**JobDetail hot path: re-render storm dampened.** Before this fix, every `state.show*Modal` toggle (≈11 modal flags + various transient state) caused JobDetailPage to re-build derived data on every render — including a 3000+ row `parts.map(...)` for the parts dropdown, a `technicians.map(...)` for the assignment dropdown, and a `parts_used.filter(...)` to compute `activeParts`. Memoized:
+
+- `pages/JobDetail/JobDetailPage.tsx` — `partOptions`, `techOptions`, `activeParts` now wrapped in `useMemo` with the correct dep arrays (`parts + roleFlags.canViewPricing`, `technicians`, `job?.parts_used` respectively).
+- `pages/JobDetail/components/JobPhotosSection.tsx` (719 LOC) wrapped in `React.memo`. The parent JobDetailPage re-renders on every modal toggle; without memo, this 700-line component re-rendered with it. Renamed the inner component to `JobPhotosSectionInner`, exported the memoized version as `JobPhotosSection`.
+
+Net effect: the modal-toggle re-render storm no longer cascades into Photos / partOptions / techOptions. Concrete user-visible impact: smoother modal interactions, reduced GC pressure during heavy JobDetail sessions.
+
+### Performance — Phase 5 partial (staleTime tune)
+
+**Parts cache freshened from 5min → 2min.** `hooks/useQueryHooks.ts:usePartsForList` and `useParts` were caching for 5 minutes — too long for a field app where techs deduct stock from parts as they use them during a shift. The next admin or tech opening the dropdown could see stale stock. Dropped to 2 minutes, which still keeps the cache warm for typical screen-to-screen navigation but refreshes often enough to reflect mid-shift inventory drift.
+
+JobBoard pagination and `JOB_SELECT.DETAIL_MINIMAL` (lazy media loading) deferred — both are user-visible behavior changes that need test coverage before shipping.
+
+### Performance — Phase 6 (bundle split)
+
+**JobsTabs chunk: 30.4 KB → 5.73 KB (gzip 2.37 KB) — >80% reduction.** `pages/JobsTabs.tsx` previously eager-imported `JobBoard`, `ServiceRecords`, and `StoreQueue` — only `ServiceRequestsQueue` was already lazy. Each tab content is now `React.lazy()`-ed; the existing single-Suspense wrapper extends to cover all four. The tab content now loads on-demand: when the user lands on `/jobs`, only the active tab's chunk fetches.
+
+Leaflet audit: confirmed already in its own lazy chunk (`marker-shadow-*` ≈42 KB brotli, only fetched when AdminMap or CustomerProfile site-modal mounts) — no further work needed there.
+
 ### Verification
 
 - `npm run typecheck`: clean after each sub-phase.
-- `npm run build`: clean. Bundle composition stable; the `vendor-charts` chunk that Phase 1 retired stays gone.
-- Manual smoke not run this session — changes are mostly removals + transparent service indirection + comment text + new error metadata, none altering user-visible behavior on the golden path. Recommended pre-deploy smoke: load `/`, navigate to a job with an approved spare-part request, complete the mutation flow (start → photo → save → complete), confirm no new toasts/regressions; trigger a deliberate save error (e.g. stale row) and verify the resulting Sentry event has `user_id`, role, `action_target='job'`, `target_id=<job_id>` populated.
+- `npm run build`: clean. Bundle composition shifted: `vendor-charts` chunk gone (recharts retired in Phase 1); JobsTabs chunk dropped from 30.4 KB → 5.73 KB.
+- Manual smoke not run this session — changes are mostly removals + transparent service indirection + comment text + new error metadata + memoization + lazy-loading, none altering user-visible behavior on the golden path. Recommended pre-deploy smoke: load `/`, navigate to a job with an approved spare-part request, complete the mutation flow (start → photo → save → complete), confirm no new toasts/regressions; trigger a deliberate save error (e.g. stale row) and verify the resulting Sentry event has `user_id`, role, `action_target='job'`, `target_id=<job_id>` populated; navigate `/jobs` and confirm tab switches still feel responsive (lazy chunks cached after first load).
+
+### Deferred for follow-up sessions
+
+- **Phase 2.5** — 7 surviving `loadJob()` mutation landmines that need service signature changes (return Job instead of boolean/void) plus handler refactors. Bug is dormant today; fix is preventive. Higher risk — needs a focused PR.
+- **Phase 3** — five oversized files (useJobActions.ts 1110, AdminDashboardV7_1.tsx 1060, StoreQueuePage.tsx 900, inventoryService.ts 881, JobDetailModals.tsx 803) split into smaller cohesive units. Pure refactor, no runtime impact, but review burden of moving 5×800-line files into 20+ smaller files is substantial.
+- **Phase 5 remainder** — JobBoard pagination + `JOB_SELECT.DETAIL_MINIMAL` (lazy media on JobDetail). Both are user-visible behavior changes; need test coverage before shipping.
 
 ---
 

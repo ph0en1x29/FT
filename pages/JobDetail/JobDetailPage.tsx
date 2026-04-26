@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle,ArrowLeft,Camera,ClipboardList,Clock,FileText,ImageIcon,Package,ShieldCheck } from 'lucide-react';
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useNavigate,useParams } from 'react-router-dom';
 import { ComboboxOption } from '../../components/Combobox';
 import ServiceUpgradeModal from '../../components/ServiceUpgradeModal';
@@ -110,8 +110,11 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   // so the "Parts declaration" blocker chip clears once the tech has flagged
   // every wrong-model part for return and either added a real part or ticked
   // "No parts used".
-  const activeParts = (job?.parts_used ?? []).filter(
-    p => p.return_status !== 'pending_return' && p.return_status !== 'returned'
+  const activeParts = useMemo(
+    () => (job?.parts_used ?? []).filter(
+      p => p.return_status !== 'pending_return' && p.return_status !== 'returned'
+    ),
+    [job?.parts_used],
   );
   const partsDeclared = activeParts.length > 0 || state.noPartsUsed;
   const partsDeclarationRequired = roleFlags.isTechnician && !roleFlags.isHelperOnly && !partsDeclared;
@@ -131,18 +134,24 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
     state.showBulkApproveModal || state.showAssignHelperModal || state.showDeferredModal ||
     state.showReconciliationModal || state.showReportOptionsModal || (state.serviceUpgradePrompt?.show ?? false);
 
-  // Options for comboboxes
-  const partOptions: ComboboxOption[] = parts.map(p => {
-    const stock = p.stock_quantity ?? 0;
-    const stockLabel = stock === 0 ? '⛔ OOS' : stock <= 5 ? `⚠️ ${stock}` : `${stock}`;
-    return {
-      id: p.part_id, label: p.part_name,
-      subLabel: roleFlags.canViewPricing
-        ? `${p.part_code} · RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} · Stock: ${stockLabel}`
-        : `${p.part_code} · Stock: ${stockLabel}`
-    };
-  });
-  const techOptions: ComboboxOption[] = technicians.map(t => ({ id: t.user_id, label: t.name, subLabel: t.email }));
+  // Options for comboboxes — memoized so memoized children don't re-render on every parent state tick.
+  const partOptions: ComboboxOption[] = useMemo(
+    () => parts.map(p => {
+      const stock = p.stock_quantity ?? 0;
+      const stockLabel = stock === 0 ? '⛔ OOS' : stock <= 5 ? `⚠️ ${stock}` : `${stock}`;
+      return {
+        id: p.part_id, label: p.part_name,
+        subLabel: roleFlags.canViewPricing
+          ? `${p.part_code} · RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} · Stock: ${stockLabel}`
+          : `${p.part_code} · Stock: ${stockLabel}`
+      };
+    }),
+    [parts, roleFlags.canViewPricing],
+  );
+  const techOptions: ComboboxOption[] = useMemo(
+    () => technicians.map(t => ({ id: t.user_id, label: t.name, subLabel: t.email })),
+    [technicians],
+  );
   const selectedPartIsLiquid = parts.find(p => p.part_id === state.selectedPartId)?.is_liquid ?? false;
 
   if (loading) return (
