@@ -89,7 +89,7 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   onPartReturnUpdated,
   currentUserId,
 }) => {
-  const { isTechnician, _isAdmin, _isSupervisor, _isAccountant, canViewPricing, canEditPrices, canAddParts, isHelperOnly } = roleFlags;
+  const { isTechnician, canViewPricing, canEditPrices, canAddParts, isHelperOnly } = roleFlags;
   const { isNew, isAssigned, isInProgress, isAwaitingFinalization } = statusFlags;
 
   const [returningPart, setReturningPart] = useState<JobPartUsed | null>(null);

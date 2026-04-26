@@ -8,7 +8,7 @@ import { SkeletonJobDetail } from '../../components/Skeleton';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { usePartsForList,useTechnicians } from '../../hooks/useQueryHooks';
 import { getCustomerContacts,getCustomerSites } from '../../services/customerService';
-import { JobRequest,JobStatus,JobType,MANDATORY_CHECKLIST_ITEMS,normalizeChecklistState,Part,User } from '../../types';
+import { HourmeterFlagReason,Job,JobRequest,JobStatus,JobType,MANDATORY_CHECKLIST_ITEMS,normalizeChecklistState,Part,User } from '../../types';
 import { CustomerContact,CustomerSite } from '../../types/customer.types';
 
 // Extracted components
@@ -336,7 +336,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             title="Confirmation Status"
             icon={<ShieldCheck className="w-5 h-5 text-[var(--text-muted)]" />}
             defaultOpen={isDesktopDefault}
-            summary={job.parts_confirmed ? 'Confirmed' : 'Pending'}
+            summary={job.parts_confirmed_at ? 'Confirmed' : 'Pending'}
           >
             <ConfirmationStatusCard job={job} roleFlags={roleFlags} statusFlags={statusFlags}
               onConfirmParts={actions.handleConfirmParts}
@@ -346,7 +346,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             title="Timeline"
             icon={<Clock className="w-5 h-5 text-[var(--text-muted)]" />}
             defaultOpen={isDesktopDefault}
-            summary={`${job.status_history?.length || 0} events`}
+            summary={`${(job as Job & { status_history?: unknown[] }).status_history?.length || 0} events`}
           >
             <JobTimeline job={job} />
           </CollapsibleCard>
@@ -407,7 +407,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       />
       {state.showHourmeterAmendmentModal && job.forklift && (
         <HourmeterAmendmentModal job={job} previousReading={job.forklift.hourmeter || 0}
-          flagReasons={job.hourmeter_flag_reasons || state.hourmeterFlagReasons}
+          flagReasons={(job.hourmeter_flag_reasons || state.hourmeterFlagReasons) as HourmeterFlagReason[]}
           onClose={() => state.setShowHourmeterAmendmentModal(false)} onSubmit={actions.handleSubmitHourmeterAmendment} />
       )}
       <ChecklistWarningModal

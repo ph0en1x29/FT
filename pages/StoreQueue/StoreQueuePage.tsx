@@ -700,7 +700,7 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                       const Icon = getTypeIcon(item.type);
                       const isProc = processing.has(item.id);
                       const state = item.requestId ? inlineState[item.requestId] : undefined;
-                      const matchedPart = state ? parts.find(p => p.part_id === state.partId) : undefined;
+                      const matchedPart = state && state[0] ? parts.find(p => p.part_id === state[0].partId) : undefined;
                       return (
                         <div key={item.id}>
                         <SwipeableRow
@@ -725,13 +725,13 @@ export default function StoreQueuePage({ currentUser, hideHeader = false }: Stor
                                   <span className="text-xs text-[var(--text-muted)]">{formatTimeAgo(item.createdAt)}</span>
                                 </div>
                                 <p className="font-medium text-sm text-[var(--text)] mt-1">
-                                  {item.type === 'part_request' || item.type === 'ready_to_issue'
+                                  {item.type === 'part_request'
                                     ? item.requestDescription
                                     : item.jobTitle
                                   }
                                 </p>
                                 <div className="flex items-center gap-2 mt-0.5 text-xs text-[var(--text-muted)] flex-wrap">
-                                  {(item.type === 'part_request' || item.type === 'ready_to_issue') && (
+                                  {(item.type === 'part_request') && (
                                     <>
                                       <span>{item.requestedByName}</span>
                                       <span>·</span>

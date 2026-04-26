@@ -6,7 +6,7 @@ import { CHECKLIST_CATEGORIES } from '../constants';
 import { uploadRejectionPhoto } from '../../../services/rejectionPhotoUpload';
 import { SupabaseDb as MockDb, supabase } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { ForkliftConditionChecklist,Job,JobStatus,JobType,User } from '../../../types';
+import { ForkliftConditionChecklist,HourmeterFlagReason,Job,JobStatus,JobType,User } from '../../../types';
 import { compressPhoto } from '../../../utils/compressPhoto';
 import { getMissingMandatoryItems, isChecklistExemptJob, isHourmeterExemptJob } from '../utils';
 import { JobDetailState } from './useJobDetailState';
@@ -665,7 +665,7 @@ export const useJobActions = ({
       originalReading,
       amendedReading,
       reason,
-      flagReasons,
+      flagReasons as HourmeterFlagReason[],
       currentUserId,
       currentUserName
     );

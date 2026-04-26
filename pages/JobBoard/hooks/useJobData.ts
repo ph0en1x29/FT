@@ -38,7 +38,7 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
   const canViewDeleted = displayRole === UserRole.ADMIN || displayRole === UserRole.SUPERVISOR;
 
   // Stable ref for fetchJobs to avoid recreating the realtime channel
-  const fetchJobsRef = useRef<() => Promise<void>>();
+  const fetchJobsRef = useRef<(() => Promise<void>) | null>(null);
 
   // Fetch jobs function (extracted for reuse)
   const fetchJobs = useCallback(async () => {

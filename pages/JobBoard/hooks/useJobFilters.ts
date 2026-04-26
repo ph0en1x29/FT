@@ -314,7 +314,7 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
     return result;
   }, [jobs, debouncedSearch, dateFilter, statusFilter, specialFilter, customDateFrom, customDateTo, searchParams]);
 
-  const hasActiveFilters = searchQuery || dateFilter !== 'unfinished' || statusFilter !== 'all' || specialFilter !== null;
+  const hasActiveFilters = !!(searchQuery || dateFilter !== 'unfinished' || statusFilter !== 'all' || specialFilter !== null);
 
   const clearFilters = () => {
     setSearchQuery('');

@@ -1,11 +1,10 @@
 // =============================================
-import { ForkliftConditionChecklist } from './forklift.types';
 // JOB CORE TYPES - Enums, Job interface, and core types
 // =============================================
 
 import type { AssignmentType, MediaCategory, SignatureEntry } from './common.types';
 import type { Customer } from './customer.types';
-import type { Forklift } from './forklift.types';
+import type { Forklift, ForkliftConditionChecklist } from './forklift.types';
 import type { JobPartUsed } from './inventory.types';
 import type { User } from './user.types';
 

@@ -89,7 +89,7 @@ const ServiceRecords: React.FC<ServiceRecordsProps> = ({ currentUser, hideHeader
   }, [jobs, searchQuery, filterCustomer, filterTechnician, filterDateFrom, filterDateTo]);
 
   // Check if any filters are active (for empty state message)
-  const hasActiveFilters = searchQuery || filterCustomer !== 'all' || filterTechnician !== 'all' || filterDateFrom || filterDateTo;
+  const hasActiveFilters = !!(searchQuery || filterCustomer !== 'all' || filterTechnician !== 'all' || filterDateFrom || filterDateTo);
 
   // Handle viewing/printing service report
   const handleViewServiceReport = (job: Job) => {

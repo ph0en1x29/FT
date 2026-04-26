@@ -72,7 +72,7 @@ const BatchReceiveStockModal: React.FC<BatchReceiveStockModalProps> = ({
           .limit(10);
 
         if (error) throw error;
-        setSearchResults(data || []);
+        setSearchResults((data || []) as unknown as Part[]);
         setShowDropdown(true);
       } catch (e) {
         console.error('Search failed:', e);
