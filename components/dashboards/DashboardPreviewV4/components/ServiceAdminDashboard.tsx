@@ -59,7 +59,7 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
   );
 
   const jobsByStatus = useMemo(() => {
-    const openJobs = jobs.filter(job => !['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(job.status));
+    const openJobs = jobs.filter(job => !['Completed', 'Cancelled', 'Completed Awaiting Acknowledgement'].includes(job.status));
     const unassigned = openJobs.filter(job => !job.assigned_technician_id);
     const overdue = openJobs.filter(job => {
       const scheduled = job.scheduled_date ? new Date(job.scheduled_date) : null;
@@ -105,7 +105,7 @@ const ServiceAdminDashboard: React.FC<ServiceAdminDashboardProps> = ({
       .map(tech => {
         const activeJobs = jobs.filter(job =>
           job.assigned_technician_id === tech.user_id &&
-          !['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(job.status)
+          !['Completed', 'Cancelled', 'Completed Awaiting Acknowledgement'].includes(job.status)
         ).length;
         const status = activeJobs === 0 ? 'available' : activeJobs >= 3 ? 'overloaded' : 'busy';
         return { tech, activeJobs, status: status as 'available' | 'busy' | 'overloaded' };

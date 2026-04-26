@@ -23,7 +23,7 @@ export const getStatusTone = (status: string): ToneStyle => {
       return toneStyles.info;
     case JobStatus.AWAITING_FINALIZATION:
       return toneStyles.warning;
-    case 'Completed Awaiting Ack':
+    case JobStatus.COMPLETED_AWAITING_ACK:
       return toneStyles.accent;
     case 'Cancelled':
       return toneStyles.error;

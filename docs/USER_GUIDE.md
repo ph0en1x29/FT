@@ -509,6 +509,7 @@ You can view **all jobs** but can only edit jobs in "Awaiting Finalization" or "
 - **List view** — Better for office operations. Rows show denser job data across customer, site, equipment, assignee, scheduled date, status, and urgency.
 - **View toggle** — Use the Card/List control at the top of the Jobs page. The selected mode is saved in the page URL, so refresh keeps the same layout.
 - **Expanded search** — Search now matches job number, customer, account number, contact person, forklift number, customer forklift number, and site text.
+- **Load older jobs** — The board loads recent work first for faster startup. Use **Load older jobs** at the bottom of the board when you need more history.
 
 ### Finalizing an Invoice
 

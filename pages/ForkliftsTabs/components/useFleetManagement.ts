@@ -11,7 +11,25 @@ import { ResultModalState } from '../types';
 
 const PAGE_SIZE = 50;
 
-const initialFormData = {
+interface FleetFormData {
+  serial_number: string;
+  forklift_no: string;
+  customer_forklift_no: string;
+  make: string;
+  model: string;
+  type: ForkliftType;
+  hourmeter: number;
+  last_hourmeter_update: string;
+  last_service_hourmeter: number;
+  last_service_date: string;
+  year: number | null;
+  capacity_kg: number;
+  site: string;
+  status: ForkliftStatus;
+  notes: string;
+}
+
+const initialFormData: FleetFormData = {
   serial_number: '',
   forklift_no: '',
   customer_forklift_no: '',
@@ -153,7 +171,7 @@ export function useFleetManagement(currentUser: User, displayRole: UserRole) {
     [selectedForklifts]
   );
 
-  const hasFilters = debouncedSearch || filterType !== 'all' || filterStatus !== 'all' || filterMake !== 'all' || filterAssigned !== 'all';
+  const hasFilters = !!debouncedSearch || filterType !== 'all' || filterStatus !== 'all' || filterMake !== 'all' || filterAssigned !== 'all';
 
   // ── Form helpers ──────────────────────────────────────────────────────────
   const resetForm = useCallback(() => setFormData(initialFormData), []);

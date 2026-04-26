@@ -1,6 +1,6 @@
 # FieldPro Project Structure
 
-> **Last Updated:** 2026-03-09  
+> **Last Updated:** 2026-04-26
 > **Author:** Phoenix (Clawdbot)
 
 This document describes the codebase architecture and folder patterns used in FieldPro.
@@ -177,6 +177,27 @@ pages/
 | ForkliftsTabs | Folder module + re-export | Multi-tab fleet management |
 | CustomerProfile | Folder module + re-export | Customer with rentals/history |
 | VanStockPage | Folder module + re-export | Inventory with modal-driven workflows |
+| StoreQueue | Folder module + controller hook | Store queue approvals split into focused queue components |
+
+### Large Component Split Pattern
+
+Oversized components now use a facade/container plus focused submodules:
+
+```
+pages/StoreQueue/
+├── StoreQueuePage.tsx        # Route/container
+├── queueModel.ts             # Pure queue grouping/counting helpers
+├── types.ts                  # Queue types
+├── utils.ts                  # Queue helper functions
+├── hooks/
+│   └── useStoreQueueController.ts
+└── components/
+    ├── StoreQueueGroupCard.tsx
+    ├── QueueItemCard.tsx
+    └── ...
+```
+
+The dashboard and Job Detail action hooks follow the same pattern: small public entry file, focused controller/hooks/components behind it.
 
 ### How It Works
 
@@ -236,7 +257,12 @@ services/
 ├── permitService.ts          # Special permits CRUD
 ├── hrAlertService.ts         # HR alerts and expiry notifications
 │
-├── inventoryService.ts       # Parts, van stock
+├── inventoryService.ts       # Inventory facade/re-exports
+├── vanStockService.ts        # Van stock facade/re-exports
+├── vanStockQueriesService.ts # Van stock reads and stock summaries
+├── vanStockMutationsService.ts # Van stock writes and transfers
+├── vanStockUsageService.ts   # Van stock usage, approvals, audits
+├── vanFleetService.ts        # Van fleet status, access, audit log
 ├── notificationService.ts    # Notifications
 ├── storageService.ts         # File uploads
 └── supabaseService.ts        # ⚠️ Legacy barrel (re-exports all)
@@ -265,12 +291,13 @@ types/
 ├── index.ts              # Re-exports everything
 ├── common.types.ts       # Shared utilities (ChecklistItemState, etc.)
 ├── user.types.ts         # User, UserRole, RolePermissions
+├── hr-core.types.ts      # Dependency-free HR shapes shared by User and HR domains
 ├── customer.types.ts     # Customer, CustomerAcknowledgement
 ├── forklift.types.ts     # Forklift, ForkliftRental, ServiceInterval
 ├── inventory.types.ts    # Part, VanStock, VanStockItem
 ├── job.types.ts          # Job, JobStatus, JobMedia, KPI
 ├── notification.types.ts # NotificationType, Notification
-├── hr.types.ts           # Leave, License, Permit
+├── hr.types.ts           # HR alerts/dashboard types and HR core re-exports
 └── integration.types.ts  # AutoCount types
 ```
 

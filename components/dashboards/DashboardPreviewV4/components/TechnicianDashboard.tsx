@@ -23,7 +23,7 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser, 
   const today = new Date();
   const todayStr = today.toDateString();
 
-  const myJobs = jobs.filter(j => j.assigned_technician_id === currentUser.user_id && !['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(j.status));
+  const myJobs = jobs.filter(j => j.assigned_technician_id === currentUser.user_id && !['Completed', 'Cancelled', 'Completed Awaiting Acknowledgement'].includes(j.status));
   const todayJobs = myJobs.filter(j => {
     const jobDate = new Date(j.scheduled_date || j.created_at);
     return jobDate.toDateString() === todayStr;
@@ -31,7 +31,7 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser, 
   const inProgressJob = myJobs.find(j => j.status === 'In Progress');
   const assignedJobs = myJobs.filter(j => j.status === 'Assigned');
   const completedToday = jobs.filter(j => {
-    const isCompleted = ['Completed', 'Completed Awaiting Ack'].includes(j.status);
+    const isCompleted = ['Completed', 'Completed Awaiting Acknowledgement'].includes(j.status);
     const completedDate = j.completed_at ? new Date(j.completed_at) : null;
     return isCompleted && completedDate?.toDateString() === todayStr && j.assigned_technician_id === currentUser.user_id;
   }).length;
@@ -39,7 +39,7 @@ const TechnicianDashboard: React.FC<TechnicianDashboardProps> = ({ currentUser, 
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
   const completedJobsThisWeek = jobs.filter(j =>
-    ['Completed', 'Completed Awaiting Ack'].includes(j.status) && j.completed_at && new Date(j.completed_at) >= weekAgo && j.assigned_technician_id === currentUser.user_id
+    ['Completed', 'Completed Awaiting Acknowledgement'].includes(j.status) && j.completed_at && new Date(j.completed_at) >= weekAgo && j.assigned_technician_id === currentUser.user_id
   );
   const completedThisWeek = completedJobsThisWeek.length;
   const totalHoursThisWeek = completedJobsThisWeek.reduce((sum, j) => sum + (j.actual_duration_hours || 0), 0);

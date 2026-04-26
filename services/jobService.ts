@@ -143,6 +143,89 @@ export const getJobsLightweight = async (user: User, options?: {
   };
 };
 
+export interface JobsPageResult {
+  jobs: Job[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+export const getJobsPage = async (user: User, options?: {
+  status?: JobStatus;
+  page?: number;
+  pageSize?: number;
+}): Promise<JobsPageResult> => {
+  const page = Math.max(1, options?.page || 1);
+  const pageSize = Math.min(Math.max(options?.pageSize || 100, 1), 200);
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const buildQuery = () => {
+    let query = supabase
+      .from('jobs')
+      .select(JOB_SELECT.BOARD, { count: 'exact' })
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (options?.status) {
+      query = query.eq('status', options.status);
+    }
+
+    if (user.role === UserRole.TECHNICIAN) {
+      query = query.eq('assigned_technician_id', user.user_id);
+    }
+
+    return query;
+  };
+
+  const { data, count, error } = await buildQuery();
+  if (error) throw new Error(error.message);
+
+  let allJobs = (data || []) as unknown as Job[];
+
+  // Preserve helper jobs for technician boards without making the admin board unbounded.
+  if (user.role === UserRole.TECHNICIAN) {
+    const existingJobIds = new Set(allJobs.map(j => j.job_id));
+    const helperSelect = `${JOB_SELECT.BOARD}, job_assignments!inner(technician_id, assignment_type, is_active)`;
+    const { data: helperJobs, error: helperError } = await supabase
+      .from('jobs')
+      .select(helperSelect)
+      .eq('job_assignments.technician_id', user.user_id)
+      .eq('job_assignments.assignment_type', 'assistant')
+      .eq('job_assignments.is_active', true)
+      .is('deleted_at', null);
+
+    if (!helperError && helperJobs) {
+      const rawJobs = helperJobs as unknown as Array<Record<string, unknown>>;
+      const newHelperJobs = rawJobs
+        .filter(j => !existingJobIds.has(j.job_id as string))
+        .map(j => {
+          const { job_assignments: _assignments, ...jobData } = j;
+          return { ...jobData, _isHelperAssignment: true };
+        }) as unknown as Job[];
+      allJobs = [...allJobs, ...newHelperJobs];
+      allJobs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  }
+
+  allJobs.forEach(job => {
+    job.parts_used = job.parts_used || [];
+    job.extra_charges = job.extra_charges || [];
+    job.labor_cost = job.labor_cost || 0;
+  });
+
+  const total = count || 0;
+  return {
+    jobs: allJobs,
+    total,
+    page,
+    pageSize,
+    hasMore: to + 1 < total,
+  };
+};
+
 export const getJobs = async (user: User, options?: { status?: JobStatus }): Promise<Job[]> => {
   logDebug('[getJobs] Fetching jobs for user:', user.user_id, user.role, user.name, options?.status ? `status=${options.status}` : '');
 

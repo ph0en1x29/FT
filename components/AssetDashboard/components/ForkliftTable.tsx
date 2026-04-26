@@ -17,7 +17,7 @@ interface ForkliftTableProps {
 export const ForkliftTable: React.FC<ForkliftTableProps> = ({
   forklifts,
   filteredCount,
-  _displayLimit,
+  displayLimit: _displayLimit,
   hasMore,
   onShowMore,
   onShowAll,

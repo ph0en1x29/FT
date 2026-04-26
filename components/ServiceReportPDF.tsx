@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import React from 'react';
 import { sanitizeHtml } from '../services/sanitizeService';
-import { ForkliftConditionChecklist,Job,JobType } from '../types';
+import { ChecklistItemState,ForkliftConditionChecklist,Job,JobType } from '../types';
 
 interface ServiceReportProps {
   job: Job;
@@ -44,9 +44,9 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
   const extra = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
   const total = totalParts + labor + extra;
 
-  const renderCheckbox = (checked?: boolean) => (
+  const renderCheckbox = (checked?: ChecklistItemState) => (
     <span className={`inline-block w-4 h-4 border border-slate-400 mr-1 text-center leading-4 ${checked ? 'bg-green-100' : ''}`}>
-      {checked === true ? '✓' : checked === false ? '✗' : ''}
+      {checked === true || checked === 'ok' ? '✓' : checked === false || checked === 'not_ok' ? '✗' : ''}
     </span>
   );
 

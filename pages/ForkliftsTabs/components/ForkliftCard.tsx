@@ -52,7 +52,7 @@ const ForkliftCard: React.FC<ForkliftCardProps> = ({
   };
 
   const getStatusBadge = (status: ForkliftStatus) => {
-    const styles = {
+    const styles: Partial<Record<ForkliftStatus, string>> = {
       [ForkliftStatus.ACTIVE]: 'bg-green-100 text-green-700',
       [ForkliftStatus.MAINTENANCE]: 'bg-amber-100 text-amber-700',
       [ForkliftStatus.INACTIVE]: 'bg-red-100 text-red-700',

@@ -20,8 +20,9 @@ XCircle
 import React,{ useEffect,useRef,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../contexts/NotificationContext';
-import type { Notification,User } from '../types';
+import type { User } from '../types';
 import { NotificationType,ROLE_PERMISSIONS } from '../types';
+import type { AppNotification } from '../utils/notificationHandlers';
 
 interface NotificationBellProps {
   currentUser: User;
@@ -59,7 +60,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ currentUser }) => {
     await markAllAsRead();
   };
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = (notification: AppNotification) => {
     if (!notification.is_read) {
       markAsRead(notification.notification_id);
     }

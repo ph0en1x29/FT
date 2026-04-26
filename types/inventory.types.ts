@@ -22,12 +22,12 @@ export interface Part {
   location?: string;
   unit?: string; // Display unit: "pcs", "L", "kg", "m", etc.
   // Dual-unit tracking (liquid stock)
-  base_unit?: string;
-  container_unit?: string;
-  container_size?: number;
+  base_unit?: string | null;
+  container_unit?: string | null;
+  container_size?: number | null;
   container_quantity?: number;
   bulk_quantity?: number;
-  price_per_base_unit?: number;
+  price_per_base_unit?: number | null;
   is_liquid?: boolean;
   avg_cost_per_liter?: number;
   last_purchase_cost_per_liter?: number;

@@ -81,7 +81,7 @@ const TeamStatusTab: React.FC<TeamStatusTabProps> = ({ currentUser }) => {
         const techJobs = (jobsData || []).filter(
           (j) =>
             j.assigned_technician_id === tech.user_id &&
-            !['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(j.status)
+            !['Completed', 'Cancelled', 'Completed Awaiting Acknowledgement'].includes(j.status)
         );
         const activeCount = techJobs.length;
 
