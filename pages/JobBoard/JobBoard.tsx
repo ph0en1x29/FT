@@ -56,6 +56,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     loadingMore,
     totalJobs,
     hasMoreJobs,
+    serverStatusCounts,
     deletedJobs,
     canViewDeleted,
     fetchJobs,
@@ -102,6 +103,14 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     hasActiveFilters,
     clearFilters,
   } = useJobFilters({ jobs });
+
+  // QuickStats KPI tiles read from server-side counts when available — the
+  // client-side `statusCounts` from `useJobFilters` only reflects the
+  // currently loaded page (default 100 jobs), which undercounts on large
+  // boards. `serverStatusCounts` is `null` for the brief window before the
+  // first fetch resolves; fall back to the client-side count so the tiles
+  // are never blank.
+  const displayStatusCounts = serverStatusCounts ?? statusCounts;
   const {
     processingJobId,
     showRejectModal,
@@ -276,7 +285,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
 
       {!isTechnician && (
         <QuickStats
-          statusCounts={statusCounts}
+          statusCounts={displayStatusCounts}
           statusFilter={statusFilter}
           dateFilter={dateFilter}
           onStatusFilterChange={setStatusFilter}
@@ -284,7 +293,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
         />
       )}
 
-      <SlotInAlertBanner count={statusCounts.slotInPendingAck} onViewAll={handleViewAllSlotIn} />
+      <SlotInAlertBanner count={displayStatusCounts.slotInPendingAck} onViewAll={handleViewAllSlotIn} />
 
       <div className="space-y-4 rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

@@ -40,7 +40,10 @@ if [ "$AUTHOR" = "Phoenix" ]; then
             # Extract timestamp: [2026-02-23 10:41]
             TIMESTAMP=$(echo "$line" | grep -oE '\[20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}\]' | tr -d '[]' | head -1)
             if [ -n "$TIMESTAMP" ]; then
-              ENTRY_EPOCH=$(date -d "$TIMESTAMP" +%s 2>/dev/null || echo "0")
+              # WORK_LOG timestamps are written in Malaysia Time (Asia/Kuala_Lumpur,
+              # UTC+8) — the project's operational timezone. Parse them in MYT so
+              # the 15-minute window check works regardless of the committer's TZ.
+              ENTRY_EPOCH=$(TZ='Asia/Kuala_Lumpur' date -d "$TIMESTAMP" +%s 2>/dev/null || echo "0")
               DIFF=$((NOW - ENTRY_EPOCH))
               # 900 seconds = 15 minutes
               if [ "$DIFF" -ge 0 ] && [ "$DIFF" -le 900 ]; then

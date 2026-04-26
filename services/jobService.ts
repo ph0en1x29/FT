@@ -94,7 +94,9 @@ export {
   getJobsForKPI,
   getJobsLightweight,
   getJobsPage,
+  getJobStatusCounts,
   type JobsPageResult,
+  type JobStatusSummary,
 } from './jobReadService';
 
 // =====================

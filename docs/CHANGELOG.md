@@ -1,5 +1,26 @@
 # Changelog
 
+## [2026-04-26] — Fix: JobBoard QuickStats KPI tiles use server-side counts (not paginated client counts)
+
+### Fixes
+
+- **QuickStats KPI tiles on JobBoard now reflect the entire database, not just the first 100 jobs in the paginated visible set.** The previous derivation walked `jobs.filter(j => j.status === ...)` over the loaded page. With pagination capped at 100 rows, a board with hundreds of "In Progress" jobs would show only the fraction that happened to be in the first page — and the count would visibly change as the user clicked "Load older jobs", which is misleading for tracking real workload. A new `services/jobReadService.ts → getJobStatusCounts(user)` issues 11 parallel `count: 'exact', head: true` queries (counts only, no row payload, unaffected by Supabase `max_rows`) and `pages/JobBoard/hooks/useJobData.ts` runs that in parallel with the page query on every fetch. The hook also re-runs the count query in response to realtime UPDATE / INSERT / soft-delete events so the tiles stay accurate while the user is on the page. `JobBoard.tsx` falls back to the client-side count for the brief window before the first server fetch resolves, then locks onto the server number.
+- **`SlotInAlertBanner` count is server-driven for the same reason.** A combined `count: 'exact'` query with `eq('job_type', 'Slot-In')` + `is('acknowledged_at', null)` + open-status filter feeds the same `serverStatusCounts.slotInPendingAck` field, so the slot-in pending-ack banner reflects every slot-in row in the DB — not just whatever is loaded.
+
+### Verification
+
+- `npm run typecheck` passes (TS 6.0.3).
+- `npm run lint` passes with 0 errors.
+- `npm run build` passes (Vite 7.3.2).
+- `npm run test:smoke` 1/1 passing.
+
+### Scope notes
+
+- AdminDashboardV7_1 was deliberately left out of this fix. It uses the unbounded `getJobs`, so its KPIs are only undercounted when a Supabase `max_rows` limit truncates the result — a pre-existing concern that needs server-side derived-count queries (`overdue`, `unassigned`, `dueToday`, `completedToday`) to fix correctly. Tracked as a follow-up.
+- `useJobFilters` still computes its own `statusCounts` from the loaded set; the JobBoard page now prefers `serverStatusCounts` and only falls back to the hook's value during the initial fetch window. The hook is otherwise unchanged.
+
+---
+
 ## [2026-04-26] — Fix: JobBoard load-more guard + count display + nested-button HTML in PipelineCard
 
 ### Fixes

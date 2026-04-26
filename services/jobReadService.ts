@@ -16,15 +16,118 @@ import type {
   JobAssignment,
   JobMedia,
   JobPartUsed,
-  JobStatus,
   User,
 } from '../types';
-import { UserRole } from '../types';
+import { JobStatus, JobType, UserRole } from '../types';
 import { CircuitBreakerTrippedError, createCircuitBreaker } from '../utils/circuit-breaker';
 import { isNetworkError, JOB_SELECT, logDebug, logError, supabase, wait } from './supabaseClient';
 
 const getJobsCB = createCircuitBreaker({ maxFailures: 3, resetAfterMs: 60_000, label: 'getJobs' });
 const getJobsForKPICB = createCircuitBreaker({ maxFailures: 3, resetAfterMs: 60_000, label: 'getJobsForKPI' });
+
+/**
+ * Status-by-status job count summary, computed server-side.
+ *
+ * Driven by parallel `count: 'exact', head: true` queries — the server
+ * returns counts only, no row data, so this is unaffected by the
+ * paginated visible set in `getJobsPage` (which caps at 100/page and
+ * therefore can't be trusted for KPI math when the database holds more
+ * jobs than fit on one page).
+ *
+ * For technicians this counts ONLY their primary `assigned_technician_id`
+ * rows — same scope contract as `JobsPageResult.total`. Helper rows are
+ * not summed in here; if they ever need to be, route a second pass
+ * through the `job_assignments` join.
+ */
+export interface JobStatusSummary {
+  total: number;
+  new: number;
+  assigned: number;
+  inProgress: number;
+  awaiting: number;
+  completed: number;
+  awaitingAck: number;
+  disputed: number;
+  incompleteContinuing: number;
+  incompleteReassigned: number;
+  slotInPendingAck: number;
+}
+
+const EMPTY_STATUS_SUMMARY: JobStatusSummary = {
+  total: 0,
+  new: 0,
+  assigned: 0,
+  inProgress: 0,
+  awaiting: 0,
+  completed: 0,
+  awaitingAck: 0,
+  disputed: 0,
+  incompleteContinuing: 0,
+  incompleteReassigned: 0,
+  slotInPendingAck: 0,
+};
+
+export const getJobStatusCounts = async (user: User): Promise<JobStatusSummary> => {
+  const buildBaseCount = () => {
+    let q = supabase
+      .from('jobs')
+      .select('*', { count: 'exact', head: true })
+      .is('deleted_at', null);
+    if (user.role === UserRole.TECHNICIAN) {
+      q = q.eq('assigned_technician_id', user.user_id);
+    }
+    return q;
+  };
+
+  try {
+    const [
+      total,
+      newCount,
+      assigned,
+      inProgress,
+      awaiting,
+      completed,
+      awaitingAck,
+      disputed,
+      incompleteContinuing,
+      incompleteReassigned,
+      slotInPending,
+    ] = await Promise.all([
+      buildBaseCount(),
+      buildBaseCount().eq('status', JobStatus.NEW),
+      buildBaseCount().eq('status', JobStatus.ASSIGNED),
+      buildBaseCount().eq('status', JobStatus.IN_PROGRESS),
+      buildBaseCount().eq('status', JobStatus.AWAITING_FINALIZATION),
+      buildBaseCount().eq('status', JobStatus.COMPLETED),
+      buildBaseCount().eq('status', JobStatus.COMPLETED_AWAITING_ACK),
+      buildBaseCount().eq('status', JobStatus.DISPUTED),
+      buildBaseCount().eq('status', JobStatus.INCOMPLETE_CONTINUING),
+      buildBaseCount().eq('status', JobStatus.INCOMPLETE_REASSIGNED),
+      buildBaseCount()
+        .eq('job_type', JobType.SLOT_IN)
+        .is('acknowledged_at', null)
+        .neq('status', JobStatus.COMPLETED)
+        .neq('status', JobStatus.CANCELLED),
+    ]);
+
+    return {
+      total: total.count ?? 0,
+      new: newCount.count ?? 0,
+      assigned: assigned.count ?? 0,
+      inProgress: inProgress.count ?? 0,
+      awaiting: awaiting.count ?? 0,
+      completed: completed.count ?? 0,
+      awaitingAck: awaitingAck.count ?? 0,
+      disputed: disputed.count ?? 0,
+      incompleteContinuing: incompleteContinuing.count ?? 0,
+      incompleteReassigned: incompleteReassigned.count ?? 0,
+      slotInPendingAck: slotInPending.count ?? 0,
+    };
+  } catch (e) {
+    logError('[getJobStatusCounts] Failed to fetch status counts:', e);
+    return EMPTY_STATUS_SUMMARY;
+  }
+};
 
 export const getJobsLightweight = async (user: User, options?: {
   status?: JobStatus;
