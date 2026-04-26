@@ -1,3 +1,76 @@
+## [2026-04-24] — tech20 Rename Completion + Initial Van Stock for 6 Technicians
+
+### Fixes
+
+**`supabase/migrations/20260424_tech20_rename_complete.sql` — finish the Yazid → Syukri rename that the earlier cleanup migration only partially applied.**
+
+- **Client report (Shin, WhatsApp 2026-04-24 02:38):** "system is still showing the same list of names oh". The earlier `20260424_tech_account_cleanup` migration set `users.full_name = 'SYUKRI'` on `tech20@example.com` but the roster in the People tab, the technician dropdown on job creation, the Van Stock assign modal, and the KPI page all still read `MOHAMAD YAZID BIN YAACOB`.
+- **Root cause:** the `users` table has both `name` and `full_name` and the UI renders `users.name` (also the sort key in `services/userService.ts`). Only `full_name` was updated originally — `name` was left as the old value, so every list/dropdown that ordered by or displayed `users.name` continued to show `MOHAMAD YAZID BIN YAACOB`. Additionally ~560 denormalized name snapshots on operational tables (jobs, job_media, job_status_history, hourmeter_history, hourmeter_readings) carried the old name on historical rows for tech20, so past-job cards and "uploaded by" footers still read Yazid.
+- **Fix:** single migration wrapped in `BEGIN ... COMMIT` with a post-apply assertion that 0 rows on the affected tables still carry the exact old name. Updates:
+  - `users.name` → `'SYUKRI'` (1 row) — immediate fix for Shin's complaint.
+  - `jobs.assigned_technician_name` (29 rows), `jobs.completed_by_name` (24), `jobs.started_by_name` (25), `jobs.first_hourmeter_recorded_by_name` (7) — each UPDATE doubly filtered on the corresponding `*_id` column being `tech20`'s UUID AND the `*_name` column equal to the old string, so no collision with another tech who happened to share a denorm value.
+  - `job_media.uploaded_by_name` (118), `job_status_history.changed_by_name` (51), `hourmeter_history.recorded_by_name` (66), `hourmeter_readings.recorded_by_name` (10) — same doubly-filtered pattern.
+  - **jobs UPDATEs wrapped in `SET LOCAL session_replication_role = replica`** for the duration of the jobs block only. `jobs` has 20+ UPDATE triggers (audit log writers, forklift status sync, notification dispatchers, completion validation). Firing that cascade for a pure denormalized-name rewrite would have written ~85 spurious audit-log rows, re-run `trigger_update_forklift_status` against 29 completed jobs, and potentially retripped `validate_job_completion_requirements`. The `replica` role bypasses user triggers; it's reset to `origin` before the rest of the transaction touches other tables (which have no UPDATE triggers — verified via `information_schema.triggers` sweep).
+  - **`flagged_hourmeter_readings` and `flagged_photos` are VIEWS over `jobs.assigned_technician_name`** (confirmed via `pg_views.definition`). An initial migration attempt tried to UPDATE them directly and failed with "cannot update view"; corrected by dropping those UPDATEs — the underlying `jobs` update already flows through.
+- **Deliberately out of scope:**
+  - `job_audit_log.performed_by_name` (202 rows) is guarded by a DB-level `trg_prevent_audit_update` immutability trigger, which rejected our first UPDATE attempt. That trigger is correct — audit logs should preserve who-acted-at-the-time. `users.notes` already records the historical mapping ("[2026-04-24] Account repurposed: previously MOHAMAD YAZID BIN YAACOB..."), so any audit entry referring to the old name can be reconciled against that record. Respecting the immutability trigger was the right call; we did not consider bypassing it.
+  - `notifications.message` (295 rows) containing the substring "YAZID" are historical push-notification bodies. These aren't read by any live roster surface and rewriting them risks changing the meaning of old alerts ("Assigned to Yazid" becoming "Assigned to Syukri" could mislead if someone references an old notification).
+  - `user_action_errors.error_message` (15 rows) — internal diagnostic text, not user-facing.
+  - `_backup_*` tables — pre-migration snapshots, never mutate.
+  - `yazid@example.com` (is_active=false) row — separate historical account Shin explicitly said to leave.
+- **Verification:** migration applied live via the pooler. Post-apply probe confirms 0 rows with the old exact name across all 10 affected columns; SYUKRI count matches the expected per-column counts above (29/24/25/7/118/51/66/10/12/31 — flagged views reflect the latest via their `jobs` dependency).
+
+### Added
+
+**`supabase/migrations/20260424_van_stock_6_vans_initial.sql` — initial Van Stock load for 6 technicians from Shin's xlsx checklists handed over 2026-04-23.**
+
+- **Context:** after the 2026-04-23 nuclear Van Stock wipe, Shin provided 6 Excel checklists (Acwer Service Van Checklist format) — one per active technician/van — with item codes, quantities, and plate numbers gathered in-person across 2026-04-13 to 2026-04-22. Files staged in `/home/jay/Downloads/Ft/`. Shin's 2026-04-24 WhatsApp: "Let me know once you've uploaded the stock van details for 6 vans that provided yesterday."
+- **Parse + reconciliation pipeline:** `/tmp/ft_parse_van_xlsx.py` (openpyxl) extracted 481 line items across 6 vans into `/tmp/ft_van_stock_parsed.json`. Each sheet has a header block (TECHNICIAN'S NAME + VEHICLE PLATE NUMBER + DATE CHECKED) and a body starting at the "Item code" header row. Blank Sheet2 templates skipped. `/tmp/ft_vanstock_match.cjs` matched distinct item codes against `parts.part_code` — 185/188 matched directly; 3 transcription variants resolved manually:
+  - `23303-64010 B` (trailing space + stray "B") → disambiguated by row description: `1182B @ NISSIN` maps to `23303-64010B`, plain `1182 @ NISSIN` maps to `23303-64010`.
+  - `1191-76001` → `11191-76001` (xlsx dropped the leading `1`).
+  - `LW-C-85X70/75X25` → `LW-C-85x70/75x25` (uppercase X vs lowercase in master).
+- **Per-van totals (post-dedup, items that appeared twice in a sheet aggregated into a single `van_stock_items` row with summed quantity):**
+
+| Tech | Plate | Items | Date Checked |
+|---|---|---|---|
+| BASRI (tech17) | VEW 9631 | 102 | 2026-04-14 |
+| BON (tech5) | VEW8236 | 58 | 2026-04-13 |
+| FIRDAUS (tech18) | FA 9238 | 80 | 2026-04-17 |
+| HAFIZ (tech15) | VFG 7238 | 72 | 2026-04-20 |
+| HAN (tech10) | MDT 6631 | 89 | 2026-04-21 |
+| HASRUL (tech14) | BNX8936 | 74 | 2026-04-22 |
+
+Grand total: **475** `van_stock_items` rows across 6 active van_stocks.
+
+- **Insert structure:** six per-van `WITH new_van AS (INSERT INTO van_stocks ... RETURNING van_stock_id) INSERT INTO van_stock_items SELECT new_van.van_stock_id, v.part_id, v.quantity, 1, 5, true FROM new_van CROSS JOIN (VALUES ...)` blocks. `van_stocks` has a `UNIQUE(technician_id)` constraint — pre-insert probe confirmed all 6 target techs had 0 existing van_stocks (nuclear wipe residue cleared), so no ON CONFLICT needed. `max_items` set to the actual item count per van (e.g. 102 for BASRI) instead of the default 50, which would have been blown through the moment the UI tried to display the van. `created_by_id` set to `admin1@example.com` via a subquery so the migration doesn't hard-code an admin UUID that may drift. `notes` on each van_stocks row records source file + date checked.
+- **Container / bulk handling for liquids:** 21 line items across the 6 vans are liquid parts (engine oil, hydraulic fluid, coolant, etc). The xlsx only provides a single "Qty" column with no container-size context. Following the snapshot's non-liquid convention, `container_quantity` and `bulk_quantity` default to 0 and `quantity` holds the raw xlsx value. Historical liquid rows in the pre-wipe snapshot had mixed patterns (some with container_quantity populated, some not) — this is an admin-adjustable field, so leaving it at 0 is consistent with the simplest historical pattern and admins can refine via the UI.
+- **Triggers:** `van_stocks` and `van_stock_items` have no triggers (verified via `information_schema.triggers`). Plain inserts are safe.
+- **Post-apply assertion block:** verifies exactly 6 van_stocks exist for the target techs and each van has the expected item count; would RAISE and rollback if any insert silently dropped rows.
+- **Verification:** migration applied live via the pooler. `SELECT u.email, vs.van_plate, COUNT(vsi.*)` grouped by tech returns exactly the per-van totals above; grand total = 475 van_stock_items.
+- **Out of scope / follow-ups:**
+  - **tech20 (SYUKRI) van stock not included** — Shin's 2026-04-24 message hinted this was also outstanding, but no xlsx for tech20 was provided in the batch. Pending separate stock sheet from client.
+  - **Acwer Nilai branch technicians** — deliberately skipped per the roster-cleanup scope; their van stock will follow when Shin reopens the branch rollout.
+  - `auth.users` still has ghost rows for the previously-deleted `tech4@example.com` and `service@acwer.com` accounts. These cannot log in (no matching `public.users` row means session bootstrap fails) but they should be cleaned up in a follow-up `auth.admin` pass — kept out of scope because it touches the `supabase_auth_admin` schema which has different access patterns.
+
+---
+
+## [2026-04-24] — Technician Roster Cleanup (Client Request)
+
+### Changed
+
+**Client directive from Shin (2026-04-23 WhatsApp): four decisions on the live user table, applied via `supabase/migrations/20260424_tech_account_cleanup.sql` in a single transaction with post-apply assertions.**
+
+- **Removed two duplicate technician accounts.** `tech4@example.com` (GOH YUEH HAN) and `service@acwer.com` (MOHD BASRI BIN SO'ID) were unused seed-era stubs that shared names with the real techs on `tech10@example.com` / `tech17@example.com`. Before deleting, an automated sweep verified 0 references across all 84 FK columns pointing at `users.user_id` (every job-, van-stock-, inventory-, HR-, and audit-related FK). With zero references, hard-delete was safe — no soft-delete fallback needed. Canonical tech10 / tech17 rows remain untouched.
+- **Repurposed tech20's seat from Yazid to Syukri.** `tech20@example.com` was MOHAMAD YAZID BIN YAACOB with 26 past jobs. Yazid has left Acwer. Per Shin's explicit preference to "just rename" rather than forking history, the same `user_id` was kept and `full_name` updated to `SYUKRI`. The 26 historical jobs remain attached because they reference `user_id`, which didn't change. Email stays as `tech20@example.com` (lowest-risk — a rename there would ripple into auth invitations and notification addressing). A note was appended to `users.notes` recording the previous name + date + rationale so the history isn't silently lost in the DB itself.
+- **Tagged tech2 and tech3 as helpers without changing their role.** `tech2@example.com` / `tech3@example.com` are helpers who may eventually promote to full technicians. Rather than inventing a new `helper` role (which would require RLS policy changes and UI role-check updates across the approvals / assignment code), `role='technician'` was kept and a "Helper" note written to `users.notes`. UI consumers that want to surface helper status can read the note; the underlying access model is unchanged. The UPDATE is idempotent — re-running the migration won't stack duplicate "Helper" lines.
+- **Acwer Nilai branch deliberately out of scope.** Shin wants to hold on the 4 branch techs "once everything is running smoothly, we'll move on to the branches." Noted and skipped.
+
+**Why delete vs. soft-delete the duplicates:** FT's users table is referenced by 84 FK columns and the normal policy when retiring a user who has history is `is_active=false`. Here the FK audit confirmed both duplicates had never been used anywhere — no jobs, no assignments, no van stocks, no audit rows. In that zero-reference case hard-delete is cleaner (doesn't leave ghost rows cluttering admin lookups) and safe. The assertion block would have raised and rolled back the transaction if any FK constraint had complained, so the worst-case outcome was a no-op.
+
+**Verification:** migration applied live via the Supabase pooler with SSL. Post-apply query confirms tech4 and service@acwer are absent, tech20 now reads `full_name='SYUKRI'` with the repurposing note, tech2 / tech3 remain `role='technician'` with Helper notes, and the canonical tech10 / tech17 rows still hold GOH YUEH HAN / MOHD BASRI BIN SO'ID.
+
+---
+
 ## [2026-04-23] — Van Stock Nuclear Wipe (Client Request: Demo Phase Reset)
 
 ### Removed
