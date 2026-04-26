@@ -437,8 +437,7 @@ export default function ImportPartsModal({
               
               let partId: string;
               let stockChanged = false;
-              let oldStock = 0;
-              
+
               if (isExisting) {
                 // Check existing stock
                 const { data: existingPart } = await supabase
@@ -446,10 +445,10 @@ export default function ImportPartsModal({
                   .select('part_id, stock_quantity')
                   .eq('part_code', part.part_code)
                   .single();
-                
+
                 if (existingPart) {
                   partId = existingPart.part_id;
-                  oldStock = existingPart.stock_quantity || 0;
+                  const oldStock = existingPart.stock_quantity || 0;
                   stockChanged = oldStock !== (part.stock_quantity || 0);
                   
                   // Update existing part

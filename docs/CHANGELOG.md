@@ -1,3 +1,66 @@
+## [2026-04-25] — Major Upgrades: ESLint 10 + Vite 8 + plugin-react 6 + @types/node 25
+
+### Upgraded
+
+| Package | From | To | Notes |
+|---|---|---|---|
+| **eslint** | 9.39.4 | 10.2.1 | New rules `preserve-caught-error` (caught errors must be attached as `cause`) and `no-useless-assignment` (no overwriting before read). Surfaced 6 real code-quality issues — fixed below. |
+| **@eslint/js** | 9.39.4 | 10.0.1 | Paired with eslint major. |
+| **vite** | 6.4.2 | 8.0.10 | Two majors. Installed with `--legacy-peer-deps` because `vite-plugin-pwa@1.2.0` still pins Vite ^6 (peer-dep mismatch on Vite 8). The override is temporary — revisit when vite-plugin-pwa releases a Vite 8-compatible major. Dev server boots in 191ms (modest improvement over Vite 6's ~250ms). Bundle composition stable. |
+| **@vitejs/plugin-react** | 5.2.0 | 6.0.1 | Paired with Vite 8 — required peer dep. |
+| **@types/node** | 22.19.17 | 25.6.0 | Typings only; no runtime change. |
+
+### Code-quality fixes (surfaced by ESLint 10)
+
+ESLint 10's `preserve-caught-error` rule is excellent — when a `try/catch` re-throws a synthetic Error, the original caught error should be attached as `cause` so the stack trace + original-error chain isn't lost. This rule found 5 sites that were silently dropping the original error:
+
+| Site | Fix |
+|---|---|
+| `pages/JobDetail/components/CreateRequestModal.tsx:109` (photo upload retry) | `throw new Error(...msg, { cause: e })` |
+| `pages/JobDetail/components/JobPhotosSection.tsx:186` (photo upload after-retry) | `throw new Error(...msg, { cause: retryErr })` |
+| `services/forkliftService.ts:276` (forklift fetch fallback inside catch block) | `throw new Error(resultError.message, { cause: e })` |
+| `services/jobService.ts:193` (getJobs circuit-breaker rethrow) | `throw new Error(..., { cause: error })` |
+| `services/jobService.ts:282` (getJobsForKPI circuit-breaker rethrow) | `throw new Error(..., { cause: error })` |
+
+ESLint 10's `no-useless-assignment` rule flagged `pages/InventoryPage/components/ImportPartsModal.tsx:440` — `let oldStock = 0;` was overwritten before any read in the `isExisting` branch. Refactored to `const oldStock = existingPart.stock_quantity || 0;` at the actual assignment site (no behavior change).
+
+### TypeScript 6 deferred
+
+TypeScript 5.8 → 6.0 was attempted and rolled back. The bump produced 14+ errors across 4 files:
+
+- 3 in `services/jobStatusService.ts:79-81` — assigning `null` to fields typed `string | undefined` (TS 6 distinguishes null vs undefined more strictly).
+- 1 in `services/pushNotificationService.ts:108` — `Uint8Array<ArrayBufferLike>` vs `ArrayBufferView<ArrayBuffer>` (TS 6 `lib.dom` changes around ArrayBuffer typing).
+- 2 in `services/toastService.ts:89-90` — implicit `any` on async-toast callback params (stricter inference for promise callbacks).
+- 8 in `utils/useRealtimeNotifications.ts` — implicit `any` on setState callbacks + a "Could not find a declaration file for module 'react'" (likely a moduleResolution change in `bundler` mode for packages with bundled types like React 19).
+
+Each is addressable but each needs investigation. Doing them piecemeal in a maintenance pass risks shipping a regression. **Recommendation: schedule a dedicated TS 6 PR** with focused codemod runs (the official `ts-migrate` tool may help) plus a clean test pass. Held back from this entry.
+
+### 10-item aggressive verification battery
+
+| # | Check | Result |
+|---|---|---|
+| 1 | `npm run typecheck` | ✓ clean |
+| 2 | `npm run lint` | ✓ 0 errors / 104 pre-existing warnings (max-lines + unused-vars on unrelated files) |
+| 3 | `npm run build` | ✓ clean |
+| 4 | `npm audit` | ✓ 0 vulnerabilities |
+| 5 | `npm ls --depth=0` | ✓ no missing peer deps |
+| 6 | `npm outdated` | ✓ only deliberately-deferred packages remain (TypeScript 6.0.3, lucide-react 1.x) |
+| 7 | `npm run dev` boot test | ✓ Vite 8 ready in 191ms |
+| 8 | Bundle size sanity | ✓ top 6 chunks all <240KB raw — JobDetail 234KB, vendor-supabase 187KB, vendor-react-dom 178KB |
+| 9 | `madge --circular` | ⚠ 4 type-only cycles in `types/` (forklift ↔ job-core, user ↔ hr, forklift ↔ job-quotation, forklift ↔ job-validation) — TypeScript compiles them fine, no runtime impact, but worth a future "extract shared base types" refactor |
+| 10 | Secret-leak grep across .ts/.tsx/.json | ✓ 0 hits |
+
+**Battery: 9.5/10 clean.** The 0.5 is the type-only circular dependencies — non-blocking, pre-existing, candidate for a separate hygiene PR.
+
+### Notes for follow-up
+
+- **TS 6 evaluation PR** — focused on the 4 affected files + a moduleResolution review.
+- **Type-only circular deps** — extract shared types into a `types/base.ts` to break cycles. Pre-existing, not introduced by these upgrades.
+- **vite-plugin-pwa pinning Vite 6** — the `--legacy-peer-deps` flag for Vite 8 is a temporary workaround. Watch for vite-plugin-pwa@2.x or a Vite 8-compatible release.
+- **lucide-react 1.x** — still skipped. Major API change; ROI is low for the 250+ icon-import surface.
+
+---
+
 ## [2026-04-25] — Dependency Refresh + Security Override (system maintenance)
 
 ### Updated (in-range minor/patch only — manifest unchanged)

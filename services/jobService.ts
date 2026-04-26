@@ -190,7 +190,7 @@ export const getJobs = async (user: User, options?: { status?: JobStatus }): Pro
       throw error;
     }
     logError('[getJobs] Error fetching jobs:', error);
-    throw new Error((error as Error)?.message || 'Failed to fetch jobs');
+    throw new Error((error as Error)?.message || 'Failed to fetch jobs', { cause: error });
   }
 
   let allJobs = data as Job[];
@@ -279,7 +279,7 @@ export const getJobsForKPI = async (user: User): Promise<Job[]> => {
       throw error;
     }
     logError('[getJobsForKPI] Error fetching jobs:', error);
-    throw new Error((error as Error)?.message || 'Failed to fetch jobs');
+    throw new Error((error as Error)?.message || 'Failed to fetch jobs', { cause: error });
   }
 
   const allJobs = data as Job[];

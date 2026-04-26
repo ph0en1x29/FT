@@ -273,7 +273,7 @@ export const getForkliftsWithCustomers = async (): Promise<Forklift[]> => {
       resultError = fallback.error;
     }
     
-    if (resultError) throw new Error(resultError.message);
+    if (resultError) throw new Error(resultError.message, { cause: e });
     return resultData || [];
   }
 };

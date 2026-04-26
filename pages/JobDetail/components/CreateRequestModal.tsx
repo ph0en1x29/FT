@@ -106,7 +106,7 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
       
       return publicUrl;
     } catch (e) {
-      throw new Error(`Upload failed: ${(e as Error).message}`);
+      throw new Error(`Upload failed: ${(e as Error).message}`, { cause: e });
     }
   };
 

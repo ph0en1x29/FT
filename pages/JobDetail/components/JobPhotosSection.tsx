@@ -184,7 +184,8 @@ const JobPhotosSectionInner: React.FC<JobPhotosSectionProps> = ({
       } catch (retryErr) {
         // Never silently fall back to base64 — surface the error
         throw new Error(
-          `Photo upload failed after retry. ${retryErr instanceof Error ? retryErr.message : 'Unknown error'}. Please check your connection and try again.`
+          `Photo upload failed after retry. ${retryErr instanceof Error ? retryErr.message : 'Unknown error'}. Please check your connection and try again.`,
+          { cause: retryErr }
         );
       }
     }
