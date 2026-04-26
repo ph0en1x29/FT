@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { approveSparePartRequest, acknowledgeSkillfulTechRequest, approveAssistanceRequest, createJobRequest, deleteJobRequest, rejectRequest, updateJobRequest, issuePartToTechnician, markOutOfStock, markPartReceived, confirmPartCollection } from '../../../services/jobRequestService';
 import { showToast } from '../../../services/toastService';
-import { Job, JobRequestType } from '../../../types';
+import { Job, JobRequest, JobRequestType } from '../../../types';
 import { JobDetailState } from './useJobDetailState';
 
 interface UseJobRequestActionsParams {
@@ -132,8 +132,7 @@ export const useJobRequestActions = ({
     }
   }, [state, currentUserId]);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleEditRequest = useCallback((request: any) => {
+  const handleEditRequest = useCallback((request: JobRequest) => {
     state.setEditingRequest(request);
     state.setShowRequestModal(true);
   }, [state]);
