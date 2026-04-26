@@ -45,7 +45,7 @@ export const useJobPartsHandlers = ({
       state.setSellSealed(false);
       showToast.success('Part added');
     } catch (e) {
-      showToast.error('Could not add part', (e as Error).message);
+      showToast.error('Could not add part', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state, setJob, currentUserId, currentUserName]);
 
@@ -68,7 +68,7 @@ export const useJobPartsHandlers = ({
       state.setEditingPrice('');
       showToast.success('Price updated');
     } catch (e) {
-      showToast.error('Could not update price', (e as Error).message);
+      showToast.error('Could not update price', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state, setJob]);
 
@@ -84,7 +84,7 @@ export const useJobPartsHandlers = ({
       setJob({ ...updated } as Job);
       showToast.success('Part removed');
     } catch (e) {
-      showToast.error('Could not remove part', (e as Error).message);
+      showToast.error('Could not remove part', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, setJob]);
 
@@ -96,7 +96,7 @@ export const useJobPartsHandlers = ({
       state.setNoPartsUsed(newValue);
       showToast.success(newValue ? 'Marked as no parts used' : 'Cleared no parts flag');
     } catch (e) {
-      showToast.error('Could not update', (e as Error).message);
+      showToast.error('Could not update', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state]);
 
@@ -107,7 +107,7 @@ export const useJobPartsHandlers = ({
       setJob({ ...updated } as Job);
       showToast.success('Parts confirmed');
     } catch (e) {
-      showToast.error('Could not confirm parts', (e as Error).message);
+      showToast.error('Could not confirm parts', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, currentUserId, currentUserName, setJob]);
 
@@ -131,7 +131,7 @@ export const useJobPartsHandlers = ({
       setJob({ ...updated } as Job);
       showToast.success('Parts reconciled successfully');
     } catch (e) {
-      showToast.error('Could not reconcile parts', (e as Error).message);
+      showToast.error('Could not reconcile parts', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, currentUserId, currentUserName, currentUserRole, setJob]);
 
@@ -243,7 +243,7 @@ export const useJobPartsHandlers = ({
       // Reload job + van stock
       loadJob();
     } catch (e) {
-      showToast.error('Failed to use van stock part', (e as Error).message);
+      showToast.error('Failed to use van stock part', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state, currentUserId, currentUserName, loadJob]);
 
@@ -262,7 +262,7 @@ export const useJobPartsHandlers = ({
       loadJob();
       showToast.success('Van updated');
     } catch (e) {
-      showToast.error('Could not update van', (e as Error).message);
+      showToast.error('Could not update van', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, setJob, loadJob]);
 

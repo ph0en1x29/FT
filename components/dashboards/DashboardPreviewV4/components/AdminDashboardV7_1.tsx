@@ -39,8 +39,8 @@ import {
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 // Notifications handled by global header NotificationBell
+import { getStockAlertParts } from '../../../../services/partsService';
 import { SupabaseDb } from '../../../../services/supabaseService';
-import { supabase } from '../../../../services/supabaseClient';
 import { Job, User, UserRole, JobStatus } from '../../../../types';
 import { showToast } from '../../../../services/toastService';
 import { colors, EscalationBanner } from './DashboardWidgets';
@@ -299,34 +299,32 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = ({ currentUser, jo
 
   useEffect(() => {
     // Fetch low-stock + out-of-stock items from global parts inventory
-    Promise.resolve(supabase.from('parts').select('part_name, stock_quantity, min_stock_level'))
-      .then(({ data }) => {
-        const parts = data || [];
-
+    getStockAlertParts()
+      .then((parts) => {
         const low = parts
-          .filter((i: Record<string, unknown>) => {
-            const qty = (i.stock_quantity as number) || 0;
-            const min = (i.min_stock_level as number) || 10;
+          .filter((i) => {
+            const qty = i.stock_quantity || 0;
+            const min = i.min_stock_level || 10;
             return qty > 0 && qty <= min;
           })
-          .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (((a.stock_quantity as number) || 0) - ((b.stock_quantity as number) || 0)))
-          .map((i: Record<string, unknown>) => ({
-            name: (i.part_name as string) || 'Unknown',
-            quantity: (i.stock_quantity as number) || 0,
-            min: (i.min_stock_level as number) || 10,
+          .sort((a, b) => (a.stock_quantity || 0) - (b.stock_quantity || 0))
+          .map((i) => ({
+            name: i.part_name || 'Unknown',
+            quantity: i.stock_quantity || 0,
+            min: i.min_stock_level || 10,
           }));
 
         const oos = parts
-          .filter((i: Record<string, unknown>) => {
-            const qty = (i.stock_quantity as number) || 0;
-            const min = (i.min_stock_level as number) || 10;
+          .filter((i) => {
+            const qty = i.stock_quantity || 0;
+            const min = i.min_stock_level || 10;
             return qty === 0 && min > 0;
           })
-          .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (((a.part_name as string) || '').localeCompare((b.part_name as string) || '')))
-          .map((i: Record<string, unknown>) => ({
-            name: (i.part_name as string) || 'Unknown',
-            quantity: (i.stock_quantity as number) || 0,
-            min: (i.min_stock_level as number) || 10,
+          .sort((a, b) => (a.part_name || '').localeCompare(b.part_name || ''))
+          .map((i) => ({
+            name: i.part_name || 'Unknown',
+            quantity: i.stock_quantity || 0,
+            min: i.min_stock_level || 10,
           }));
 
         setLowStockItems(low);

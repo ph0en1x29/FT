@@ -364,6 +364,21 @@ export const getInventoryCatalogStats = async (): Promise<InventoryCatalogStats>
   };
 };
 
+/**
+ * Lightweight read for dashboards: returns the minimal columns needed to
+ * render low-stock / out-of-stock alerts without paying the full Part shape.
+ * The caller does its own filtering (low vs OOS) — this keeps the contract
+ * small and reusable across dashboards.
+ */
+export const getStockAlertParts = async (): Promise<Array<Pick<Part, 'part_name' | 'stock_quantity' | 'min_stock_level'>>> => {
+  const { data, error } = await supabase
+    .from('parts')
+    .select('part_name, stock_quantity, min_stock_level');
+
+  if (error) throw new Error(error.message);
+  return (data as Array<Pick<Part, 'part_name' | 'stock_quantity' | 'min_stock_level'>>) || [];
+};
+
 export const createPart = async (partData: Partial<Part>): Promise<Part> => {
   const { data, error } = await supabase
     .from('parts')

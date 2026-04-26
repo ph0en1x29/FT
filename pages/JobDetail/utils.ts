@@ -35,6 +35,28 @@ export function isHourmeterExemptJob(jobType: JobType | string | null | undefine
 }
 
 /**
+ * CHECKLIST_EXEMPT_JOB_TYPES — single source of truth for which job types
+ * skip the condition checklist gate at completion.
+ *
+ * Repair and Field Technical Services are both exempt: a Repair job is
+ * targeted to a specific reported fault (the checklist's general "is the
+ * forklift in good shape" frame doesn't apply), and FTS visits don't
+ * necessarily involve a forklift at all (parts collection, charger install,
+ * on-site consult).
+ *
+ * Layering contract (mirrors the hourmeter exemption pattern):
+ *   UI (this file + useJobActions.handleStatusChange) = friendly early-reject
+ *   Service (services/jobStatusService.ts)            = generic CRUD, no gate
+ *   DB trigger (validate_job_completion_requirements) = authoritative
+ *
+ * If you add a new exempt type, also update the DB trigger so the layers
+ * stay aligned (see CLAUDE.md "Job-type validation layering").
+ */
+export function isChecklistExemptJob(jobType: JobType | string | null | undefined): boolean {
+  return jobType === JobType.REPAIR || jobType === JobType.FIELD_TECHNICAL_SERVICES;
+}
+
+/**
  * Calculate repair duration from job start/end times
  */
 export function getRepairDuration(job: Job | null): { hours: number; minutes: number; total: number } | null {
@@ -67,7 +89,7 @@ export function getResponseTimeRemaining(job: Job | null): string | null {
  */
 export function getMissingMandatoryItems(job: Job | null): string[] {
   if (!job) return [];
-  if (job.job_type === JobType.REPAIR || job.job_type === JobType.FIELD_TECHNICAL_SERVICES) return [];
+  if (isChecklistExemptJob(job.job_type)) return [];
   if (!job.condition_checklist) return MANDATORY_CHECKLIST_ITEMS as string[];
   const checklist = job.condition_checklist;
   return MANDATORY_CHECKLIST_ITEMS.filter(key => {

@@ -1,5 +1,6 @@
 import { Loader2, Package, Search, Upload, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { recordInventoryMovement } from '../../../services/inventoryMovementsService';
 import { receiveLiquidStock } from '../../../services/liquidInventoryService';
 import { supabase } from '../../../services/supabaseClient';
 import { showToast } from '../../../services/toastService';
@@ -212,7 +213,7 @@ const BatchReceiveStockModal: React.FC<BatchReceiveStockModalProps> = ({
             performedByName: currentUser.name,
           });
         } else {
-          const { error: movErr } = await supabase.from('inventory_movements').insert({
+          await recordInventoryMovement({
             part_id: part.part_id,
             movement_type: 'purchase',
             container_qty_change: 0,
@@ -224,7 +225,6 @@ const BatchReceiveStockModal: React.FC<BatchReceiveStockModalProps> = ({
             total_cost: totalLineCost || null,
             notes: `Batch receive on ${receiveDate}`,
           });
-          if (movErr) throw movErr;
 
           const newQty = (part.stock_quantity ?? 0) + qty;
           const updatePayload: Record<string, unknown> = { stock_quantity: newQty };

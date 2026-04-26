@@ -28,12 +28,28 @@ export const showToast = {
     toast.success(message, { description });
   },
   
-  error: (message: string, description?: string) => {
+  /**
+   * Show an error toast and log to user_action_errors + Sentry.
+   *
+   * @param message      Headline shown in the toast (also the slugified action_type)
+   * @param description  Sub-text shown in the toast + recorded as error_message
+   * @param error        Original Error/value — passes stack + code through to tracking
+   * @param context      Extra structured payload (job_id, target, etc.) for triage
+   */
+  error: (
+    message: string,
+    description?: string,
+    error?: unknown,
+    context?: { action_target?: string; target_id?: string; payload?: Record<string, unknown> },
+  ) => {
     toast.error(message, { description });
-    // Track error for Desire Paths analysis
     trackActionError({
       action_type: message.toLowerCase().replace(/\s+/g, '_'),
+      action_target: context?.action_target,
+      target_id: context?.target_id,
       error_message: description || message,
+      request_payload: context?.payload,
+      error,
     }).catch(() => {}); // Don't let tracking errors break the app
   },
   

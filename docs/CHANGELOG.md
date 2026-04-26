@@ -1,3 +1,65 @@
+## [2026-04-25] — Phase 1.5 + Phase 2: Error Tracking + Architectural Consistency
+
+### Added
+
+**`services/inventoryMovementsService.ts` — typed wrapper for `inventory_movements` audit-row inserts.** Exposes `recordInventoryMovement(input)` so non-service callers don't need to import `supabase` directly (per the services-layer rule in CLAUDE.md). Migrated four page-level direct insert violations:
+
+- `pages/InventoryPage/components/BatchReceiveStockModal.tsx:215` (`purchase` movements)
+- `pages/InventoryPage/components/StocktakeTab.tsx:190` (`adjustment` movements)
+- `pages/InventoryPage/components/ImportPartsModal.tsx:479` (CSV-import audit rows)
+- `pages/InventoryPage/hooks/useInventoryData.ts:249` (manual stock adjustments — preserved the existing "warn on failure, don't break the save" semantics by wrapping the call in try/catch)
+
+The three service-internal `inventory_movements` callers (`inventoryService.ts:448`, `liquidInventoryService.ts:607`, `jobInvoiceService.ts:104`) were intentionally left alone — they're already inside the services layer.
+
+**`isChecklistExemptJob()` helper in `pages/JobDetail/utils.ts`.** Mirrors the `isHourmeterExemptJob` pattern; returns true for Repair OR Field Technical Services. Replaces four inline `job_type === REPAIR || job_type === FTS` checks at `utils.ts:70` (`getMissingMandatoryItems`), `useJobActions.ts:441` (completion gate), and two sites in `JobDetailPage.tsx`. Single source of truth = single point of change next time the policy moves.
+
+**`getStockAlertParts()` in `services/partsService.ts`.** Lightweight read returning `Pick<Part, 'part_name' | 'stock_quantity' | 'min_stock_level'>[]`. Replaces the direct `supabase.from('parts').select(...)` at `AdminDashboardV7_1.tsx:302` and lets that file drop its `supabase` import entirely.
+
+### Changed
+
+**Error tracking now spans both Sentry AND `user_action_errors` with full scope.** Two error-tracking services existed before this session — `services/errorTracking.ts` for Sentry init/capture, and `services/errorTrackingService.ts` for the Supabase `user_action_errors` audit table — but the toast service only fanned out to the Supabase side. Errors caught and toasted never reached Sentry, and `trackActionError` payloads only carried a slugified message + raw text.
+
+What changed:
+
+- **`services/errorTrackingService.ts:trackActionError`** now accepts an optional `error?: unknown` field. When provided, the function (a) extracts the stack trace into `request_payload._stack`, (b) extracts a Postgres error code into `error_code`, and (c) fans out to Sentry via `captureException` so the same event lands in both stores.
+- **`setTrackedUser(user)`** added for cached identity. App.tsx now calls it after every auth state transition so individual `trackActionError` calls don't pay a round trip to `auth.getUser()` + `users` per error.
+- **`services/toastService.ts:showToast.error`** signature extended:
+  ```ts
+  showToast.error(message, description?, error?, context?)
+  ```
+  where `error` is the original caught value and `context = { action_target?, target_id?, payload? }` is structured scope. Old call signature still works (description-only path).
+- **`App.tsx:syncUser`** now calls `setTrackedUser(...)` and Sentry's `setUser(...)` on login (with `user_id`, role, email, name) and clears both on logout / missing-user paths.
+- **41 mutation catch sites in JobDetail migrated** to pass `error` + `{ action_target: 'job', target_id: job?.job_id }` through:
+  - `pages/JobDetail/hooks/useJobActions.ts` — 22 sites (every mutation handler from accept/reject through complete)
+  - `pages/JobDetail/hooks/useJobPartsHandlers.ts` — 8 sites (parts add/remove/update + van stock)
+  - `pages/JobDetail/hooks/useJobRequestActions.ts` — 11 sites (request submit/approve/reject/issue/receive/cancel/delete)
+
+  Net effect: every JobDetail mutation failure now lands in both `user_action_errors` (queryable backend log) and Sentry (live exception monitor) with stack trace + scope + user_id + role + page_url + user_agent.
+
+### Deferred
+
+**Phase 2.5 — `loadJob()` mutation landmines.** Seven sites in JobDetail call `loadJob()` after a mutation instead of applying the returned row via `setJob({...updated})`. Per CLAUDE.md, this is the pattern that triggered the 2026-04-08 "signal is aborted without reason" race; the dedupe at `useJobDetailState.lastSeenUpdatedAtRef` only works when the handler applies the returned row directly. The 7 sites are dormant today only because the underlying services return `boolean` or `void` rather than the updated Job row, so the dedupe pattern can't be applied without service signature changes:
+
+- `useJobActions.ts:309` (`handleServiceUpgrade`)
+- `useJobActions.ts:684` (`handleContinueTomorrow`)
+- `useJobActions.ts:701` (`handleResumeJob`)
+- `useJobActions.ts:758` (`handleSwitchForklift` — also does a direct `supabase.from('jobs').update(...)` that bypasses the services layer)
+- `useJobActions.ts:1004` (`handleDeferredCompletion`)
+- `useJobPartsHandlers.ts:244` (`handleVanStockPartUse`)
+- `useJobPartsHandlers.ts:262` (`handleSelectJobVan`)
+
+Fixing requires ~7 service signature changes (return `Job` instead of `boolean`/`void`) plus the corresponding handler refactors. Larger blast radius — held back from this session to keep the diff reviewable.
+
+**Migration ordering** — `20260423_completion_gate_skip_returns.sql` and `20260423_completion_gate_acknowledge_returned.sql` share a date prefix, so a fresh-DB apply order is alphabetic-suffix-driven. Both use `CREATE OR REPLACE` so the end state is idempotent regardless of order, but the convention going forward should be `_01_` / `_02_` suffixes for same-date migrations. Renaming the existing files would require Supabase migration-tracking surgery; left as a documentation update for the next migration that lands.
+
+### Verification
+
+- `npm run typecheck`: clean after each sub-phase.
+- `npm run build`: clean. Bundle composition stable; the `vendor-charts` chunk that Phase 1 retired stays gone.
+- Manual smoke not run this session — changes are mostly removals + transparent service indirection + comment text + new error metadata, none altering user-visible behavior on the golden path. Recommended pre-deploy smoke: load `/`, navigate to a job with an approved spare-part request, complete the mutation flow (start → photo → save → complete), confirm no new toasts/regressions; trigger a deliberate save error (e.g. stale row) and verify the resulting Sentry event has `user_id`, role, `action_target='job'`, `target_id=<job_id>` populated.
+
+---
+
 ## [2026-04-25] — Phase 1 Cleanup: Dead-Code Removal Sweep
 
 ### Removed

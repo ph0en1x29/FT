@@ -7,6 +7,8 @@
 import type { Session } from '@supabase/supabase-js';
 import { Loader2 } from 'lucide-react';
 import { lazy,Suspense,useEffect,useState } from 'react';
+import { setUser as setSentryUser } from './services/errorTracking';
+import { setTrackedUser } from './services/errorTrackingService';
 import { supabase,SupabaseDb } from './services/supabaseService';
 import { User } from './types';
 
@@ -37,6 +39,8 @@ export default function App() {
     const syncUser = async (session: Session | null) => {
       if (!session?.user) {
         setCurrentUser(null);
+        setTrackedUser(null);
+        setSentryUser(null);
         return;
       }
 
@@ -46,13 +50,19 @@ export default function App() {
 
         if (user) {
           setCurrentUser(user);
+          setTrackedUser({ user_id: user.user_id, role: user.role });
+          setSentryUser({ id: user.user_id, email: user.email, name: user.name || user.full_name });
         } else {
           setCurrentUser(null);
+          setTrackedUser(null);
+          setSentryUser(null);
           await supabase.auth.signOut();
         }
       } catch {
         if (!isMounted) return;
         setCurrentUser(null);
+        setTrackedUser(null);
+        setSentryUser(null);
       }
     };
 
@@ -90,6 +100,8 @@ export default function App() {
   const handleLogout = () => {
     void supabase.auth.signOut();
     setCurrentUser(null);
+    setTrackedUser(null);
+    setSentryUser(null);
   };
 
   if (authLoading) {

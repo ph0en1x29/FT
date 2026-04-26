@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle, ClipboardList, Loader2, Plus, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
+import { recordInventoryMovement } from '../../../services/inventoryMovementsService';
 import { supabase } from '../../../services/supabaseClient';
 import { Part, User } from '../../../types';
 
@@ -187,7 +188,7 @@ const StocktakeTab: React.FC<StocktakeTabProps> = ({ currentUser }) => {
         .eq('part_id', stocktake.part_id);
       if (partUpdateErr) throw partUpdateErr;
 
-      const { error: movErr } = await supabase.from('inventory_movements').insert({
+      await recordInventoryMovement({
         part_id: stocktake.part_id,
         movement_type: 'adjustment',
         bulk_qty_change: stocktake.parts?.is_liquid ? stocktake.variance : 0,
@@ -198,7 +199,6 @@ const StocktakeTab: React.FC<StocktakeTabProps> = ({ currentUser }) => {
         notes: `Stocktake adjustment: ${stocktake.variance >= 0 ? '+' : ''}${stocktake.variance.toFixed(2)} (Reason: ${stocktake.variance_reason})`,
         adjustment_reason: stocktake.variance_reason,
       });
-      if (movErr) throw movErr;
 
       await loadData();
     } catch (e: unknown) {

@@ -2,6 +2,7 @@ import React,{ useCallback,useEffect,useMemo,useState } from 'react';
 import { useQuery,useQueryClient } from '@tanstack/react-query';
 import { showToast } from '../../../services/toastService';
 import { Part,User } from '../../../types';
+import { recordInventoryMovement } from '../../../services/inventoryMovementsService';
 import {
   getInventoryCatalogStats,
   getPartCategories,
@@ -12,7 +13,6 @@ import {
   deletePart,
   updatePart,
 } from '../../../services/partsService';
-import { supabase } from '../../../services/supabaseClient';
 
 export interface InventoryFormData {
   part_name: string;
@@ -246,19 +246,21 @@ export function useInventoryData(currentUser: User, options: UseInventoryDataOpt
         const oldQty = editingPart.stock_quantity || 0;
         const newQty = formData.stock_quantity || 0;
         if (oldQty !== newQty) {
-          await supabase.from('inventory_movements').insert({
-            part_id: editingPart.part_id,
-            movement_type: 'adjustment',
-            container_qty_change: newQty - oldQty,
-            bulk_qty_change: 0,
-            performed_by: currentUser.user_id,
-            performed_by_name: currentUser.name,
-            notes: `Manual stock adjustment: ${oldQty} → ${newQty}`,
-            store_container_qty_after: newQty,
-            store_bulk_qty_after: editingPart.bulk_quantity || 0,
-          }).then(({ error: mvErr }) => {
-            if (mvErr) console.warn('Movement log failed:', mvErr.message);
-          });
+          try {
+            await recordInventoryMovement({
+              part_id: editingPart.part_id,
+              movement_type: 'adjustment',
+              container_qty_change: newQty - oldQty,
+              bulk_qty_change: 0,
+              performed_by: currentUser.user_id,
+              performed_by_name: currentUser.name,
+              notes: `Manual stock adjustment: ${oldQty} → ${newQty}`,
+              store_container_qty_after: newQty,
+              store_bulk_qty_after: editingPart.bulk_quantity || 0,
+            });
+          } catch (mvErr) {
+            console.warn('Movement log failed:', mvErr instanceof Error ? mvErr.message : mvErr);
+          }
         }
         await updatePart(editingPart.part_id, partData);
         showToast.success('Part updated successfully');

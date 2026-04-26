@@ -8,7 +8,7 @@ import { SupabaseDb as MockDb, supabase } from '../../../services/supabaseServic
 import { showToast } from '../../../services/toastService';
 import { ForkliftConditionChecklist,Job,JobStatus,JobType,User } from '../../../types';
 import { compressPhoto } from '../../../utils/compressPhoto';
-import { getMissingMandatoryItems, isHourmeterExemptJob } from '../utils';
+import { getMissingMandatoryItems, isChecklistExemptJob, isHourmeterExemptJob } from '../utils';
 import { JobDetailState } from './useJobDetailState';
 import { useJobExportActions } from './useJobExportActions';
 import { useJobRequestActions } from './useJobRequestActions';
@@ -95,7 +95,7 @@ export const useJobActions = ({
       setJob(updated as Job);
       showToast.success('Job accepted', 'You can now start the job when ready.');
     } catch (e) {
-      showToast.error('Failed to accept job', (e as Error).message);
+      showToast.error('Failed to accept job', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, currentUserId, currentUserName, setJob]);
 
@@ -125,7 +125,7 @@ export const useJobActions = ({
       state.setRejectionPhotoPreviewUrl('');
       navigate('/jobs');
     } catch (e) {
-      showToast.error('Failed to reject job', (e as Error).message);
+      showToast.error('Failed to reject job', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     } finally {
       state.setRejectionUploading(false);
     }
@@ -296,7 +296,7 @@ export const useJobActions = ({
       state.setBrokenMeterNote('');
       showToast.success('Job started', `Status changed to In Progress. ${state.beforePhotos.length} before photo(s) saved.`);
     } catch (error) {
-      showToast.error('Failed to start job', (error as Error).message);
+      showToast.error('Failed to start job', (error as Error).message, error, { action_target: 'job', target_id: job?.job_id });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job, state, currentUserId, currentUserName, setJob]);
@@ -315,7 +315,7 @@ export const useJobActions = ({
       state.setBeforePhotos([]);
       setShowStartJobModal(true);
     } catch (error) {
-      showToast.error('Failed to upgrade job', (error as Error).message);
+      showToast.error('Failed to upgrade job', (error as Error).message, error, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, currentUserId, currentUserName, loadJob, state, setStartJobHourmeter, setConditionChecklist, setShowStartJobModal]);
 
@@ -340,7 +340,7 @@ export const useJobActions = ({
       state.setBeforePhotos([]);
       setShowStartJobModal(true);
     } catch (error) {
-      showToast.error('Failed to log decision', (error as Error).message);
+      showToast.error('Failed to log decision', (error as Error).message, error, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, currentUserId, currentUserName, state, setStartJobHourmeter, setConditionChecklist, setShowStartJobModal]);
 
@@ -438,7 +438,7 @@ export const useJobActions = ({
       // Helpers are also exempt — checklist belongs to the lead technician.
       // (Checklist and hourmeter exemptions are independent since 2026-04-21:
       // FTS skips both; Repair skips checklist only.)
-      if (job.job_type !== JobType.REPAIR && job.job_type !== JobType.FIELD_TECHNICAL_SERVICES && !isHelper) {
+      if (!isChecklistExemptJob(job.job_type) && !isHelper) {
         const missing = getMissingMandatoryItems(job);
         if (missing.length > 0) {
           setMissingChecklistItems(missing);
@@ -457,7 +457,7 @@ export const useJobActions = ({
         navigate('/');
       }
     } catch (error) {
-      showToast.error('Failed to update status', (error as Error).message);
+      showToast.error('Failed to update status', (error as Error).message, error, { action_target: 'job', target_id: job?.job_id });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job, state, currentUserId, currentUserName, setJob]);
@@ -476,7 +476,7 @@ export const useJobActions = ({
       state.setSelectedTechId('');
       showToast.success('Job assigned', `Assigned to ${tech.name}`);
     } catch (error) {
-      showToast.error('Assignment failed', (error as Error).message);
+      showToast.error('Assignment failed', (error as Error).message, error, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state, technicians, currentUserId, currentUserName, setJob]);
 
@@ -493,7 +493,7 @@ export const useJobActions = ({
           showToast.success(`Job reassigned to ${tech.name}`);
         }
       } catch (e) {
-        showToast.error('Failed to reassign job', (e as Error).message);
+        showToast.error('Failed to reassign job', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
       }
     }
   }, [job, state, technicians, currentUserId, currentUserName, setJob]);
@@ -522,7 +522,7 @@ export const useJobActions = ({
         showToast.success('Schedule cleared', 'This job is no longer scheduled');
       }
     } catch (error) {
-      showToast.error('Failed to update schedule', (error as Error).message);
+      showToast.error('Failed to update schedule', (error as Error).message, error, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, setJob]);
 
@@ -538,7 +538,7 @@ export const useJobActions = ({
       setJob({ ...updated } as Job);
       showToast.success('Job acknowledged', 'SLA timer stopped');
     } catch (error) {
-      showToast.error('Failed to acknowledge job', (error as Error).message);
+      showToast.error('Failed to acknowledge job', (error as Error).message, error, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, currentUserId, currentUserName, setJob]);
 
@@ -550,7 +550,7 @@ export const useJobActions = ({
       setJob({ ...updated } as Job);
       state.setNoteInput('');
     } catch (error) {
-      showToast.error('Could not add note', (error as Error).message);
+      showToast.error('Could not add note', (error as Error).message, error, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state, setJob]);
 
@@ -722,7 +722,7 @@ export const useJobActions = ({
       state.setShowFinalizeModal(false);
       showToast.success('Invoice finalized');
     } catch (e) {
-      showToast.error('Could not finalize invoice', (e as Error).message);
+      showToast.error('Could not finalize invoice', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state, currentUserId, currentUserName, setJob]);
 
@@ -739,7 +739,7 @@ export const useJobActions = ({
       showToast.success('Job deleted');
       navigate('/jobs');
     } catch (e) {
-      showToast.error('Could not delete job', (e as Error).message);
+      showToast.error('Could not delete job', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state, currentUserId, currentUserName, navigate]);
 
@@ -757,7 +757,7 @@ export const useJobActions = ({
       showToast.success('Forklift switched successfully');
       await loadJob(); // Refresh job data to get updated forklift info
     } catch (e) {
-      showToast.error('Could not switch forklift', (e as Error).message);
+      showToast.error('Could not switch forklift', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, loadJob]);
 
@@ -806,7 +806,7 @@ export const useJobActions = ({
       state.setEditingChecklist(false);
       showToast.success('Checklist saved');
     } catch (e) {
-      showToast.error('Could not save checklist', (e as Error).message);
+      showToast.error('Could not save checklist', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state, currentUserId, setJob]);
 
@@ -875,7 +875,7 @@ export const useJobActions = ({
       state.setEditingJobCarriedOut(false);
       showToast.success('Job details saved');
     } catch (e) {
-      showToast.error('Could not save', (e as Error).message);
+      showToast.error('Could not save', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state, setJob]);
 
@@ -901,7 +901,7 @@ export const useJobActions = ({
       state.setEditingDescription(false);
       showToast.success('Description updated');
     } catch (e) {
-      showToast.error('Could not update description', (e as Error).message);
+      showToast.error('Could not update description', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state, setJob]);
 
@@ -929,7 +929,7 @@ export const useJobActions = ({
       state.setChargeAmount('');
       showToast.success('Extra charge added');
     } catch (e) {
-      showToast.error('Could not add charge', (e as Error).message);
+      showToast.error('Could not add charge', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state, setJob]);
 
@@ -940,7 +940,7 @@ export const useJobActions = ({
       setJob({ ...updated } as Job);
       showToast.success('Charge removed');
     } catch (e) {
-      showToast.error('Could not remove charge', (e as Error).message);
+      showToast.error('Could not remove charge', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, setJob]);
 
@@ -959,7 +959,7 @@ export const useJobActions = ({
       state.setHelperNotes('');
       showToast.success('Helper assigned', `${helper.name} can now upload photos`);
     } catch (e) {
-      showToast.error('Could not assign helper', (e as Error).message);
+      showToast.error('Could not assign helper', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job, state, technicians, currentUserId, currentUserName, setJob]);
@@ -973,7 +973,7 @@ export const useJobActions = ({
       if (refreshedJob) setJob(refreshedJob);
       showToast.success('Helper removed');
     } catch (e) {
-      showToast.error('Could not remove helper', (e as Error).message);
+      showToast.error('Could not remove helper', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, setJob]);
 
@@ -1006,7 +1006,7 @@ export const useJobActions = ({
         showToast.error('Failed to complete job');
       }
     } catch (e) {
-      showToast.error('Error completing job', (e as Error).message);
+      showToast.error('Error completing job', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     } finally {
       state.setSubmittingDeferred(false);
     }

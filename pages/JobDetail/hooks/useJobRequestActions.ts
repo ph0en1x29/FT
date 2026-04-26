@@ -41,7 +41,7 @@ export const useJobRequestActions = ({
         showToast.error('Failed to submit request');
       }
     } catch (e) {
-      showToast.error('Error submitting request', (e as Error).message);
+      showToast.error('Error submitting request', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     } finally {
       state.setSubmittingRequest(false);
     }
@@ -105,7 +105,7 @@ export const useJobRequestActions = ({
         showToast.error('Failed to approve request', 'Check availability');
       }
     } catch (e) {
-      showToast.error('Error approving request', (e as Error).message);
+      showToast.error('Error approving request', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     } finally {
       state.setSubmittingApproval(false);
     }
@@ -126,7 +126,7 @@ export const useJobRequestActions = ({
         showToast.error('Failed to reject request');
       }
     } catch (e) {
-      showToast.error('Error rejecting request', (e as Error).message);
+      showToast.error('Error rejecting request', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     } finally {
       state.setSubmittingApproval(false);
     }
@@ -160,7 +160,7 @@ export const useJobRequestActions = ({
         showToast.error('Failed to update request', 'You can only edit your own pending requests');
       }
     } catch (e) {
-      showToast.error('Error updating request', (e as Error).message);
+      showToast.error('Error updating request', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     } finally {
       state.setSubmittingRequest(false);
     }
@@ -176,7 +176,7 @@ export const useJobRequestActions = ({
         showToast.error('Failed to issue part', 'Check stock availability');
       }
     } catch (e) {
-      showToast.error('Error issuing part', (e as Error).message);
+      showToast.error('Error issuing part', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [currentUserId, currentUserName, loadJob]);
 
@@ -190,7 +190,7 @@ export const useJobRequestActions = ({
         showToast.error('Failed to mark out of stock');
       }
     } catch (e) {
-      showToast.error('Error', (e as Error).message);
+      showToast.error('Error', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [currentUserId, loadJob]);
 
@@ -204,7 +204,7 @@ export const useJobRequestActions = ({
         showToast.error('Failed to mark as received');
       }
     } catch (e) {
-      showToast.error('Error', (e as Error).message);
+      showToast.error('Error', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [currentUserId, loadJob]);
 
@@ -218,7 +218,7 @@ export const useJobRequestActions = ({
         showToast.error('Failed to confirm collection');
       }
     } catch (e) {
-      showToast.error('Error', (e as Error).message);
+      showToast.error('Error', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [currentUserId, loadJob]);
 
@@ -265,7 +265,7 @@ export const useJobRequestActions = ({
         showToast.error('Failed to delete request', 'You can only delete your own pending requests');
       }
     } catch (e) {
-      showToast.error('Error deleting request', (e as Error).message);
+      showToast.error('Error deleting request', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [currentUserId, loadJob]);
 

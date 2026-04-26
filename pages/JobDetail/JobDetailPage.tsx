@@ -50,7 +50,7 @@ import { PartsReconciliationModal } from './components/PartsReconciliationModal'
 // Extracted hooks
 import { useJobActions,useJobData,useJobDetailState } from './hooks';
 import { JobDetailProps } from './types';
-import { getRoleFlags,getStatusFlags, isHourmeterExemptJob } from './utils';
+import { getRoleFlags,getStatusFlags, isChecklistExemptJob, isHourmeterExemptJob } from './utils';
 
 const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const { displayRole } = useDevModeContext();
@@ -234,7 +234,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
                 onTechSign={actions.handleTechnicianSwipeSign} onCustomerSign={actions.handleCustomerSwipeSign} />
             </div>
           )}
-          {job.job_type !== JobType.REPAIR && job.job_type !== JobType.FIELD_TECHNICAL_SERVICES && <div ref={checklistRef}>
+          {!isChecklistExemptJob(job.job_type) && <div ref={checklistRef}>
           <CollapsibleCard
             title="Condition Checklist"
             icon={<ClipboardList className="w-5 h-5 text-[var(--text-muted)]" />}
@@ -354,7 +354,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       <StartJobModal show={state.showStartJobModal} startJobHourmeter={state.startJobHourmeter}
         lastRecordedHourmeter={job?.forklift?.hourmeter || 0} conditionChecklist={state.conditionChecklist}
         beforePhotos={state.beforePhotos}
-        isRepairJob={job?.job_type === JobType.REPAIR || job?.job_type === JobType.FIELD_TECHNICAL_SERVICES}
+        isRepairJob={isChecklistExemptJob(job?.job_type)}
         skipHourmeter={isHourmeterExemptJob(job?.job_type)}
         brokenMeterNote={state.brokenMeterNote}
         onHourmeterChange={state.setStartJobHourmeter}

@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { recordInventoryMovement } from '../../../services/inventoryMovementsService';
 import { supabase } from '../../../services/supabaseClient';
 import { isLikelyLiquid } from '../../../types/inventory.types';
 import { Upload, X, FileText, CheckCircle, AlertCircle, Info } from 'lucide-react';
@@ -476,7 +477,7 @@ export default function ImportPartsModal({
                 ? (stockChanged ? 'adjustment' : 'purchase')
                 : 'purchase';
               
-              await supabase.from('inventory_movements').insert({
+              await recordInventoryMovement({
                 part_id: partId!,
                 movement_type: movementType,
                 container_qty_change: part.stock_quantity || 0,
