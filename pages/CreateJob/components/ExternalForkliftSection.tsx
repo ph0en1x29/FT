@@ -119,7 +119,7 @@ const ExternalForkliftSection: React.FC<ExternalForkliftSectionProps> = ({
               <select
                 className={inputClassName}
                 value={externalData.type}
-                onChange={(e) => setExternalData({ ...externalData, type: e.target.value })}
+                onChange={(e) => setExternalData({ ...externalData, type: e.target.value as ForkliftType })}
               >
                 {Object.values(ForkliftType).map((type) => (
                   <option key={type} value={type}>

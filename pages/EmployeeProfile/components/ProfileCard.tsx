@@ -72,7 +72,7 @@ export function ProfileCard({ employee }: ProfileCardProps) {
           <InfoItem
             icon={<Calendar className="w-4 h-4" />}
             label="Joined Date"
-            value={new Date(employee.joined_date).toLocaleDateString()}
+            value={employee.joined_date ? new Date(employee.joined_date).toLocaleDateString() : '-'}
           />
           <InfoItem
             icon={<Building2 className="w-4 h-4" />}

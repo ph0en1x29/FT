@@ -111,7 +111,7 @@ const TelegramConnect: React.FC<TelegramConnectProps> = ({ currentUser, compact 
   useEffect(() => {
     fetchTelegramLink();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser.id]);
+  }, [currentUser.user_id]);
 
   const fetchTelegramLink = async () => {
     try {
@@ -119,7 +119,7 @@ const TelegramConnect: React.FC<TelegramConnectProps> = ({ currentUser, compact 
       const { data, error } = await supabase
         .from('user_telegram_links')
         .select('*')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', currentUser.user_id)
         .eq('is_active', true)
         .single();
 
@@ -156,7 +156,7 @@ const TelegramConnect: React.FC<TelegramConnectProps> = ({ currentUser, compact 
       const { error } = await supabase
         .from('user_telegram_links')
         .update({ is_active: false })
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.user_id);
 
       if (error) throw error;
 
@@ -193,7 +193,7 @@ const TelegramConnect: React.FC<TelegramConnectProps> = ({ currentUser, compact 
     }
   };
 
-  const connectUrl = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${generateConnectToken(currentUser.id)}`;
+  const connectUrl = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${generateConnectToken(currentUser.user_id)}`;
 
   // Loading state
   if (loading) {

@@ -187,8 +187,8 @@ export interface Job {
    * Cleared automatically when admin changes scheduled_date so the reminder re-arms.
    */
   scheduled_reminder_sent_at?: string | null;
-  arrival_time?: string;
-  completion_time?: string;
+  arrival_time?: string | null;
+  completion_time?: string | null;
   notes: string[];
 
   // Audit Trail - Job Creation
@@ -196,17 +196,17 @@ export interface Job {
   created_by_name?: string;
 
   // Audit Trail - Job Started
-  started_at?: string;
+  started_at?: string | null;
   started_by_id?: string;
   started_by_name?: string;
 
   // Audit Trail - Job Completed
-  completed_at?: string;
-  completed_by_id?: string;
-  completed_by_name?: string;
+  completed_at?: string | null;
+  completed_by_id?: string | null;
+  completed_by_name?: string | null;
 
   // Audit Trail - Job Deletion (soft delete)
-  deleted_at?: string;
+  deleted_at?: string | null;
   deleted_by?: string;
   deleted_by_name?: string;
   deletion_reason?: string;
@@ -242,8 +242,8 @@ export interface Job {
   recommendation?: string; // Technician recommendations
 
   // Repairing hours
-  repair_start_time?: string;
-  repair_end_time?: string;
+  repair_start_time?: string | null;
+  repair_end_time?: string | null;
 
   // Signatures
   technician_signature?: SignatureEntry;
@@ -283,7 +283,10 @@ export interface Job {
   // Multi-Day Escalation (#7)
   cutoff_time?: string; // When tech marked job to continue next day
   is_overtime?: boolean; // Saturday OT jobs don't escalate
-  escalation_triggered_at?: string; // When escalation notification was sent
+  is_escalated?: boolean; // Legacy escalation flag used by older migrations
+  escalation_triggered_at?: string | null; // When escalation notification was sent
+  escalation_acknowledged_at?: string | null;
+  actual_duration_hours?: number | null;
 
   // Deferred Acknowledgement (#8)
   verification_type?: 'signed_onsite' | 'deferred' | 'auto_completed' | 'disputed';
@@ -364,6 +367,11 @@ export interface Job {
   is_starred?: boolean;
 }
 
+// Forklift service history entry (includes cancelled jobs)
+export interface ForkliftServiceEntry extends Job {
+  is_cancelled: boolean; // True if the job was deleted/cancelled
+}
+
 // Courier item for POD tracking
 export interface CourierItem {
   item_type: 'spare_part' | 'document' | 'pallet_truck' | 'other';
@@ -372,4 +380,3 @@ export interface CourierItem {
   part_id?: string; // Reference to part if spare_part
   notes?: string;
 }
-

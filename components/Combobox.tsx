@@ -39,7 +39,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputWrapperRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Find selected item label for display
   const selectedItem = options.find(o => o.id === value);

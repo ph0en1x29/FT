@@ -290,7 +290,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
     }
     setSubmitting(true);
     try {
-      const updates: { van_plate?: string; van_code?: string; notes?: string; max_items?: number; technician_id?: string } = {
+      const updates: { van_plate?: string; van_code?: string | null; notes?: string; max_items?: number; technician_id?: string } = {
         van_plate: editVanPlate.trim() || undefined,
         van_code: editVanCode.trim() || null,
         notes: editVanNotes.trim() || '',

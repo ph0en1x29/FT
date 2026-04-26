@@ -4,7 +4,6 @@
 
 import type { ChecklistItemState } from './common.types';
 import type { Customer } from './customer.types';
-import type { Job,JobPriority } from './job.types';
 
 // Forklift/Asset types
 export enum ForkliftType {
@@ -130,15 +129,16 @@ export interface Forklift {
   model: string;
   type: ForkliftType;
   hourmeter: number;
-  year?: number;
-  capacity_kg?: number;
+  year?: number | null;
+  capacity_kg?: number | null;
   location?: string; // @deprecated use site
   site?: string;
   current_site_id?: string;
   status: ForkliftStatus;
-  last_service_date?: string;
-  next_service_due?: string;
-  delivery_date?: string;
+  last_service_date?: string | null;
+  next_service_due?: string | null;
+  next_service_type?: string | null;
+  delivery_date?: string | null;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -195,11 +195,6 @@ export interface ForkliftRental {
   customer?: Customer;
 }
 
-// Forklift service history entry (includes cancelled jobs)
-export interface ForkliftServiceEntry extends Job {
-  is_cancelled: boolean; // True if the job was deleted/cancelled
-}
-
 // Predictive Maintenance types
 export interface ServiceInterval {
   interval_id: string;
@@ -207,7 +202,7 @@ export interface ServiceInterval {
   service_type: string; // e.g., "PM Service", "Oil Change", "Full Inspection"
   hourmeter_interval: number; // Every X hours
   calendar_interval_days?: number; // Or every X days
-  priority: JobPriority;
+  priority: string;
   checklist_items?: string[];
   estimated_duration_hours?: number;
   is_active: boolean;

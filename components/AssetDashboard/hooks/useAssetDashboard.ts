@@ -40,7 +40,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
         .from('jobs')
         .select('job_id, forklift_id, status')
         .is('deleted_at', null)
-        .not('status', 'in', '("Completed","Cancelled","Completed Awaiting Ack")');
+        .not('status', 'in', '("Completed","Cancelled","Completed Awaiting Acknowledgement")');
 
       // Respect technician role: only show assigned jobs
       if (currentUser.role === UserRole.TECHNICIAN) {

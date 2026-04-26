@@ -12,10 +12,14 @@ interface UseJobDataProps {
 interface UseJobDataReturn {
   jobs: JobWithHelperFlag[];
   loading: boolean;
+  loadingMore: boolean;
+  totalJobs: number;
+  hasMoreJobs: boolean;
   deletedJobs: DeletedJob[];
   isRealtimeConnected: boolean;
   canViewDeleted: boolean;
   fetchJobs: () => Promise<void>;
+  loadMoreJobs: () => Promise<void>;
   /**
    * Patch a single job row in local state without triggering a full refetch.
    * Used by mutation handlers (accept, reject, etc.) that already have the
@@ -26,12 +30,17 @@ interface UseJobDataReturn {
   patchJob: (updated: Job) => void;
 }
 
+const JOB_BOARD_PAGE_SIZE = 100;
+
 /**
  * Hook for fetching and managing job data with real-time updates
  */
 export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJobDataReturn {
   const [jobs, setJobs] = useState<JobWithHelperFlag[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalJobs, setTotalJobs] = useState(0);
   const [deletedJobs, setDeletedJobs] = useState<DeletedJob[]>([]);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
 
@@ -44,8 +53,13 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await MockDb.getJobs(currentUser);
-      setJobs(data);
+      const data = await MockDb.getJobsPage(currentUser, {
+        page: 1,
+        pageSize: JOB_BOARD_PAGE_SIZE,
+      });
+      setJobs(data.jobs as JobWithHelperFlag[]);
+      setPage(1);
+      setTotalJobs(data.total);
 
       // Fetch recently deleted jobs for admin/supervisor
       if (canViewDeleted) {
@@ -62,6 +76,31 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
       setLoading(false);
     }
   }, [currentUser, canViewDeleted]);
+
+  const loadMoreJobs = useCallback(async () => {
+    if (loadingMore || jobs.length >= totalJobs) return;
+
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const data = await MockDb.getJobsPage(currentUser, {
+        page: nextPage,
+        pageSize: JOB_BOARD_PAGE_SIZE,
+      });
+
+      setJobs(prev => {
+        const seen = new Set(prev.map(job => job.job_id));
+        const nextJobs = (data.jobs as JobWithHelperFlag[]).filter(job => !seen.has(job.job_id));
+        return [...prev, ...nextJobs];
+      });
+      setPage(nextPage);
+      setTotalJobs(data.total);
+    } catch {
+      showToast.error('Failed to load older jobs');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [currentUser, jobs.length, loadingMore, page, totalJobs]);
 
   // Keep ref in sync
   fetchJobsRef.current = fetchJobs;
@@ -92,6 +131,9 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
               const wasInList = prevJobs.some(j => j.job_id === updatedJob.job_id);
               if (wasInList) {
                 showToast.info('Job removed', 'A job has been cancelled or deleted');
+              }
+              if (wasInList) {
+                setTotalJobs(prev => Math.max(0, prev - 1));
               }
               return prevJobs.filter(j => j.job_id !== updatedJob.job_id);
             });
@@ -143,6 +185,7 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
             // Prepend new job instead of full refetch
             setJobs(prevJobs => {
               if (prevJobs.some(j => j.job_id === newJob.job_id)) return prevJobs;
+              setTotalJobs(prev => prev + 1);
               return [newJob as JobWithHelperFlag, ...prevJobs];
             });
           }
@@ -173,10 +216,14 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
   return {
     jobs,
     loading,
+    loadingMore,
+    totalJobs,
+    hasMoreJobs: jobs.length < totalJobs,
     deletedJobs,
     isRealtimeConnected,
     canViewDeleted,
     fetchJobs,
+    loadMoreJobs,
     patchJob,
   };
 }

@@ -169,7 +169,7 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
       switch (specialFilter) {
         case 'overdue':
           result = result.filter(job => {
-            if (['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(job.status)) return false;
+            if (['Completed', 'Cancelled', 'Completed Awaiting Acknowledgement'].includes(job.status)) return false;
             const scheduled = job.scheduled_date ? new Date(job.scheduled_date) : null;
             return scheduled && scheduled < today && job.status !== 'New';
           });
@@ -177,7 +177,7 @@ export function useJobFilters({ jobs }: UseJobFiltersProps): UseJobFiltersReturn
         case 'unassigned':
           result = result.filter(job =>
             !job.assigned_technician_id &&
-            !['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(job.status)
+            !['Completed', 'Cancelled', 'Completed Awaiting Acknowledgement'].includes(job.status)
           );
           break;
         case 'escalated':

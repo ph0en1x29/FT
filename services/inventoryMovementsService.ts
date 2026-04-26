@@ -29,7 +29,7 @@ export interface InventoryMovementInput {
   job_id?: string;
   van_stock_id?: string;
   van_stock_item_id?: string;
-  reference_number?: string;
+  reference_number?: string | null;
   unit_cost_at_time?: number | null;
   total_cost?: number | null;
   notes?: string;
@@ -37,7 +37,7 @@ export interface InventoryMovementInput {
   store_bulk_qty_after?: number | null;
   van_container_qty_after?: number;
   van_bulk_qty_after?: number;
-  adjustment_reason?: string;
+  adjustment_reason?: string | null;
   performed_at?: string;
   created_at?: string;
 }

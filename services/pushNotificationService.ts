@@ -105,7 +105,7 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
     };
 
     if (VAPID_PUBLIC_KEY) {
-      subscribeOptions.applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+      subscribeOptions.applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer;
     }
 
     subscription = await swRegistration.pushManager.subscribe(subscribeOptions);

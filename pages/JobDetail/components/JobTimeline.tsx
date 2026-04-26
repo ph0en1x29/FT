@@ -34,7 +34,7 @@ function formatDuration(startIso: string, endIso: string): string {
 }
 
 /** True if two ISO timestamps are more than 2 minutes apart */
-function isDistinct(a?: string, b?: string): boolean {
+function isDistinct(a?: string | null, b?: string | null): boolean {
   if (!a || !b) return false;
   return Math.abs(new Date(a).getTime() - new Date(b).getTime()) > 2 * 60 * 1000;
 }

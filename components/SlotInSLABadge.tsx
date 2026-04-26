@@ -1,4 +1,4 @@
-import { AlertTriangle,CheckCircle,Clock,XCircle } from 'lucide-react';
+import { AlertTriangle,CheckCircle,Clock,type LucideIcon,XCircle } from 'lucide-react';
 import React,{ useEffect,useState } from 'react';
 
 export type SLAStatus = 'on_track' | 'warning' | 'critical' | 'breached' | 'met';
@@ -104,7 +104,7 @@ function calculateSLAState(
 
 const statusConfig: Record<
   SLAStatus,
-  { bgClass: string; textClass: string; icon: React.ComponentType<{ className?: string }> }
+  { bgClass: string; textClass: string; icon: LucideIcon }
 > = {
   on_track: {
     bgClass: 'bg-[var(--success-bg)]',

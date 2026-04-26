@@ -1,3 +1,47 @@
+## [2026-04-26] — Phase 3 Oversized File Splits Completed
+
+### Changed
+
+- **Completed the 4 deferred Phase 3 splits:** `inventoryService.ts` 881→43 LOC, `StoreQueuePage.tsx` 900→90 LOC, `useJobActions.ts` 1113→113 LOC, and `AdminDashboardV7_1.tsx` 1058→61 LOC.
+- **Inventory service facade:** Kept `services/inventoryService.ts` as the backward-compatible export surface while moving van stock queries, mutations, usage, fleet, and shared row types into focused service modules.
+- **Store Queue modularization:** Moved queue types/helpers, controller logic, filters/search/empty state, reject modal, group cards, item cards, part-request editor, and confirm-job actions into dedicated files.
+- **Job Detail action modularization:** Split `useJobActions` into focused hooks for admin/assignment actions, start/service-upgrade flow, completion status gate, meter/labor edits, completion/finalization, and general edit/signature actions.
+- **Admin Dashboard modularization:** Split the V7.1 command center into a data/controller hook, primitive widgets, and focused render sections for header/summary, approvals, pipeline, schedule, team/financials, and stock/activity.
+
+### Verification
+
+- `npm run typecheck` passes.
+- `npm run lint` passes with 0 errors / 92 warnings, down from the prior 107-warning baseline.
+- `npm run build` passes on Vite 7.3.2.
+- `npm audit --audit-level=moderate` reports 0 vulnerabilities.
+- `npm run test:smoke` passes.
+- `npx madge --circular types --extensions ts --ts-config ./tsconfig.json` reports no circular dependencies.
+- `git diff --check` passes.
+
+---
+
+## [2026-04-26] — System Upgrade + JobBoard Performance Pass
+
+### Changed
+
+- **TypeScript 6 upgrade path completed:** Added `@types/react` and `@types/react-dom`, fixed the latent type drift they exposed, then upgraded TypeScript to `6.0.3`.
+- **Vite upgraded safely:** Moved Vite from `6.4.2` to `7.3.2` while keeping `@vitejs/plugin-react@5.2.0`. Vite 8 remains blocked because `vite-plugin-pwa@1.2.0` still caps its peer dependency at Vite 7.
+- **JobBoard pagination:** The Jobs board now loads the first 100 jobs and exposes a "Load older jobs" control instead of fetching the full historical board on first paint.
+- **Type-only cycle cleanup:** Extracted dependency-free HR core types and moved `ForkliftServiceEntry` to job core types. `madge --circular types` now reports no type cycles.
+- **Strict type drift fixes:** Corrected stale `currentUser.id` usage, nullable DB date fields, acknowledgement status string mismatches, checklist state handling, and several enum/nullable form payload mismatches revealed by the stricter toolchain.
+
+### Verification
+
+- `npm ci` passes without peer-dependency overrides.
+- `npm run typecheck` passes on TypeScript 6.
+- `npm run lint` passes with 0 errors / 107 existing warnings.
+- `npm run build` passes on Vite 7.3.2.
+- `npm audit --audit-level=moderate` reports 0 vulnerabilities.
+- `npx madge --circular types --extensions ts --ts-config ./tsconfig.json` reports no circular dependencies.
+- `npm run test:smoke` passes after installing the matching Playwright Chromium artifact.
+
+---
+
 ## [2026-04-25] — Session Finalization: Auto-Commit + Verification
 
 ### Changed
@@ -45,7 +89,7 @@ This is a **demonstration split** that establishes the pattern (extract → re-e
 ### Documented for separate follow-up PRs
 
 - **TypeScript 6 + @types/react adoption** — sequence: install @types/react → fix ~38 latent drift items → bump TS 6. Doing it as one focused PR avoids the cascade we hit when probing.
-- **Phase 3 file splits (4 remaining):** useJobActions.ts (1110), AdminDashboardV7_1.tsx (1060), StoreQueuePage.tsx (900), inventoryService.ts (881). Pattern set by JobDetailModals split.
+- **Phase 3 file splits:** Originally tracked here as 4 remaining; completed in the 2026-04-26 Phase 3 split entry above.
 - **Type-only circular dependencies (4):** extract shared base types into a separate file to break cycles — purely structural, zero runtime impact.
 - **JobBoard pagination** — feature design + UI work for "load older" affordance.
 

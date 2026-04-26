@@ -30,7 +30,7 @@ export function useJobFilters(jobs: Job[]) {
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
     const currentJobs = jobs.filter(
-      (j) => !['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(j.status)
+      (j) => !['Completed', 'Cancelled', 'Completed Awaiting Acknowledgement'].includes(j.status)
     );
     const completedTotal = jobs.filter((j) => j.status === 'Completed').length;
     const completedThisMonth = jobs.filter(
@@ -45,7 +45,7 @@ export function useJobFilters(jobs: Job[]) {
     return jobs
       .filter((job) => {
         // Filter mode
-        const isCompleted = ['Completed', 'Cancelled', 'Completed Awaiting Ack'].includes(job.status);
+        const isCompleted = ['Completed', 'Cancelled', 'Completed Awaiting Acknowledgement'].includes(job.status);
         if (filterMode === 'current' && isCompleted) return false;
         if (filterMode === 'history' && !isCompleted) return false;
 
@@ -84,7 +84,7 @@ export function useJobFilters(jobs: Job[]) {
     setDateTo('');
   };
 
-  const hasActiveFilters = statusFilter !== 'all' || typeFilter !== 'all' || dateFrom || dateTo;
+  const hasActiveFilters = statusFilter !== 'all' || typeFilter !== 'all' || !!dateFrom || !!dateTo;
 
   return {
     // Filter state

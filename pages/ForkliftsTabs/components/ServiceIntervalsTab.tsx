@@ -22,7 +22,7 @@ const PRIORITIES = ['Low', 'Medium', 'High', 'Emergency'];
 
 const inputClassName = "w-full px-3 py-2.5 bg-[#f5f5f5] text-[#111827] border border-[#d1d5db] rounded-lg focus:outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/25 placeholder-slate-400";
 
-const ServiceIntervalsTab: React.FC<TabProps> = ({ _currentUser }) => {
+const ServiceIntervalsTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
   const [intervals, setIntervals] = useState<ServiceInterval[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -102,10 +102,10 @@ const ServiceIntervalsTab: React.FC<TabProps> = ({ _currentUser }) => {
         forklift_type: formData.forklift_type,
         service_type: formData.service_type,
         hourmeter_interval: formData.hourmeter_interval,
-        calendar_interval_days: formData.calendar_interval_days,
+        calendar_interval_days: formData.calendar_interval_days ?? undefined,
         priority: formData.priority,
-        estimated_duration_hours: formData.estimated_duration_hours,
-        name: formData.name || null,
+        estimated_duration_hours: formData.estimated_duration_hours ?? undefined,
+        name: formData.name || undefined,
         checklist_items: [],
       });
       showToast.success('Service interval created');
@@ -128,7 +128,7 @@ const ServiceIntervalsTab: React.FC<TabProps> = ({ _currentUser }) => {
         calendar_interval_days: formData.calendar_interval_days,
         priority: formData.priority,
         estimated_duration_hours: formData.estimated_duration_hours,
-        name: formData.name || null,
+        name: formData.name || undefined,
       });
       showToast.success('Service interval updated');
       setEditingInterval(null);

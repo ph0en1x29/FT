@@ -19,6 +19,7 @@ export type {
   JobAssignment,
   JobMedia,
   Job,
+  ForkliftServiceEntry,
   CourierItem,
 } from './job-core.types';
 

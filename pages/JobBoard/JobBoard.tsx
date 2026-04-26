@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { CheckSquare, LayoutGrid, List, Square } from 'lucide-react';
+import { CheckSquare, LayoutGrid, List, Loader2, Square } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { deleteJob } from '../../services/jobCrudService';
@@ -50,7 +50,18 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
   const defaultViewMode: ViewMode = isTechnician ? 'card' : 'list';
   const [viewMode, setViewMode] = useState<ViewMode>(defaultViewMode);
 
-  const { jobs, loading, deletedJobs, canViewDeleted, fetchJobs, patchJob } = useJobData({ currentUser, displayRole: activeRole });
+  const {
+    jobs,
+    loading,
+    loadingMore,
+    totalJobs,
+    hasMoreJobs,
+    deletedJobs,
+    canViewDeleted,
+    fetchJobs,
+    loadMoreJobs,
+    patchJob,
+  } = useJobData({ currentUser, displayRole: activeRole });
 
   const handleToggleStar = useCallback(async (e: React.MouseEvent, jobId: string) => {
     e.stopPropagation();
@@ -202,6 +213,19 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
     />
   );
 
+  const loadMoreButton = hasMoreJobs ? (
+    <div className="flex justify-center pt-2">
+      <button
+        onClick={loadMoreJobs}
+        disabled={loadingMore}
+        className="inline-flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-theme shadow-sm transition hover:bg-[var(--bg-subtle)] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
+        {loadingMore ? 'Loading older jobs' : `Load older jobs (${jobs.length} of ${totalJobs})`}
+      </button>
+    </div>
+  ) : null;
+
   return (
     <div className="space-y-6">
       {!hideHeader && (
@@ -223,7 +247,9 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           <div className="flex flex-wrap items-center gap-3">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-subtle)]/70 px-4 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-theme-muted">Showing</div>
-              <div className="mt-1 text-lg font-semibold text-theme">{filteredJobs.length} jobs</div>
+              <div className="mt-1 text-lg font-semibold text-theme">
+                {filteredJobs.length} of {jobs.length}{totalJobs > jobs.length ? ` / ${totalJobs}` : ''} jobs
+              </div>
             </div>
 
             {hasPermission('canCreateJobs') && (
@@ -327,7 +353,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           onCustomDateToChange={setCustomDateTo}
           hasActiveFilters={hasActiveFilters}
           onClearFilters={clearFilters}
-          totalJobs={jobs.length}
+          totalJobs={totalJobs || jobs.length}
           filteredCount={filteredJobs.length}
         />
 
@@ -366,6 +392,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           {filteredJobs.length === 0 && (
             <EmptyJobsState hasActiveFilters={hasActiveFilters} onClearFilters={clearFilters} />
           )}
+          {loadMoreButton}
         </div>
       ) : (
         <section className="space-y-4">
@@ -377,6 +404,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ currentUser, hideHeader = false }) 
           {filteredJobs.length === 0 && (
             <EmptyJobsState hasActiveFilters={hasActiveFilters} onClearFilters={clearFilters} />
           )}
+          {loadMoreButton}
         </section>
       )}
 

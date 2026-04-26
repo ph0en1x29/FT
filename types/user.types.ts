@@ -3,7 +3,7 @@
 // =============================================
 
 import type { EmploymentStatus,EmploymentType } from './common.types';
-import type { EmployeeLeave,EmployeeLicense,EmployeePermit } from './hr.types';
+import type { EmployeeLeave,EmployeeLicense,EmployeePermit } from './hr-core.types';
 
 export enum UserRole {
   ADMIN = 'admin',

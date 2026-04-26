@@ -88,10 +88,11 @@ const LeaveTab: React.FC<LeaveTabProps> = ({ currentUser, initialFilter, onFilte
   };
 
   const getStatusBadge = (status: LeaveStatus) => {
-    const styles = {
+    const styles: Record<LeaveStatus, string> = {
       [LeaveStatus.PENDING]: 'bg-amber-100 text-amber-700',
       [LeaveStatus.APPROVED]: 'bg-green-100 text-green-700',
       [LeaveStatus.REJECTED]: 'bg-red-100 text-red-700',
+      [LeaveStatus.CANCELLED]: 'bg-slate-100 text-slate-600',
     };
     return styles[status] || 'bg-slate-100 text-slate-600';
   };

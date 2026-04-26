@@ -24,7 +24,7 @@ import { ForkliftDue, TabProps } from '../types';
 const VALID_FILTERS = ['all', 'overdue', 'due_soon', 'job_created', 'stale'] as const;
 type FilterType = typeof VALID_FILTERS[number];
 
-const ServiceDueTab: React.FC<TabProps> = ({ _currentUser }) => {
+const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlFilter = searchParams.get('filter');
