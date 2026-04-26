@@ -66,7 +66,8 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
   const toggleJobSelection = (jobId: string) => {
     setSelectedJobIds((prev) => {
       const next = new Set(prev);
-      next.has(jobId) ? next.delete(jobId) : next.add(jobId);
+      if (next.has(jobId)) next.delete(jobId);
+      else next.add(jobId);
       return next;
     });
   };

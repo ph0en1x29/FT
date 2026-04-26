@@ -7,7 +7,7 @@
 import type { Job,JobStatus } from '../types';
 import { ForkliftStatus,JobStatus as JobStatusEnum } from '../types';
 import { notifyPendingFinalization } from './notificationService';
-import { logDebug,logError,supabase } from './supabaseClient';
+import { JOB_SELECT,logDebug,logError,supabase } from './supabaseClient';
 
 // =====================
 // STATUS TRANSITIONS
@@ -161,14 +161,16 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
 // =====================
 
 /**
- * Mark job to continue tomorrow (multi-day job support)
+ * Mark job to continue tomorrow (multi-day job support). Returns the updated
+ * Job row so callers can apply via setJob({...updated}) and feed the
+ * realtime-echo dedupe (2026-04-08).
  */
 export const markJobContinueTomorrow = async (
   jobId: string,
   reason: string,
   userId: string,
   userName: string
-): Promise<boolean> => {
+): Promise<Job | null> => {
   logDebug('[JobService] markJobContinueTomorrow called for job:', jobId);
 
   // Fetch current notes so we can append without overwriting
@@ -182,42 +184,47 @@ export const markJobContinueTomorrow = async (
   const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const noteEntry = `[Continue Tomorrow — ${dateStr} — ${userName}]: ${reason.trim()}`;
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('jobs')
     .update({
       status: JobStatusEnum.INCOMPLETE_CONTINUING,
       notes: [...currentNotes, noteEntry],
     })
-    .eq('job_id', jobId);
+    .eq('job_id', jobId)
+    .select(JOB_SELECT.DETAIL)
+    .single();
 
   if (error) {
     logError('[JobService] markJobContinueTomorrow failed:', error.message);
-    return false;
+    return null;
   }
 
-  return true;
+  return data as unknown as Job;
 };
 
 /**
- * Resume a multi-day job
+ * Resume a multi-day job. Returns the updated Job row so callers can apply
+ * via setJob({...updated}) and feed the realtime-echo dedupe (2026-04-08).
  */
 export const resumeMultiDayJob = async (
   jobId: string,
   _userId: string,
   _userName: string
-): Promise<boolean> => {
+): Promise<Job | null> => {
   logDebug('[JobService] resumeMultiDayJob called for job:', jobId);
-  
-  const { error } = await supabase
+
+  const { data, error } = await supabase
     .from('jobs')
     .update({
       status: 'In Progress',
     })
-    .eq('job_id', jobId);
-  
+    .eq('job_id', jobId)
+    .select(JOB_SELECT.DETAIL)
+    .single();
+
   if (error) {
     logError('[JobService] resumeMultiDayJob failed:', error.message);
-    return false;
+    return null;
   }
-  return true;
+  return data as unknown as Job;
 };

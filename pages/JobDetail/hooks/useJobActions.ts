@@ -21,6 +21,7 @@ interface UseJobActionsParams {
   currentUserRole: string;
   technicians: User[];
   loadJob: (opts?: { silent?: boolean }) => Promise<void>;
+  loadVanStock: (jobVanStockId?: string) => Promise<void>;
 }
 
 /**
@@ -34,6 +35,7 @@ export const useJobActions = ({
   currentUserRole,
   technicians,
   loadJob,
+  loadVanStock,
 }: UseJobActionsParams) => {
   const navigate = useNavigate();
   
@@ -84,6 +86,7 @@ export const useJobActions = ({
     currentUserName,
     currentUserRole,
     loadJob,
+    loadVanStock,
     setJob,
   });
 
@@ -305,19 +308,19 @@ export const useJobActions = ({
   const handleServiceUpgrade = useCallback(async () => {
     if (!job) return;
     try {
-      await upgradeToFullService(job.job_id, currentUserId, currentUserName);
-      await loadJob(); // Reload to get updated job type
+      const updated = await upgradeToFullService(job.job_id, currentUserId, currentUserName);
+      setJob({ ...updated }); // Apply returned row instead of loadJob() — feeds the realtime-echo dedupe.
       state.setServiceUpgradePrompt(prev => ({ ...prev, show: false }));
       showToast.success('Job upgraded to Full Service', 'The service checklist has been updated.');
       // Now open the start job modal
-      setStartJobHourmeter((job.forklift?.hourmeter || 0).toString());
+      setStartJobHourmeter((updated.forklift?.hourmeter || 0).toString());
       setConditionChecklist({});
       state.setBeforePhotos([]);
       setShowStartJobModal(true);
     } catch (error) {
       showToast.error('Failed to upgrade job', (error as Error).message, error, { action_target: 'job', target_id: job?.job_id });
     }
-  }, [job, currentUserId, currentUserName, loadJob, state, setStartJobHourmeter, setConditionChecklist, setShowStartJobModal]);
+  }, [job, currentUserId, currentUserName, setJob, state, setStartJobHourmeter, setConditionChecklist, setShowStartJobModal]);
 
   const handleDeclineServiceUpgrade = useCallback(async () => {
     if (!job) return;
@@ -676,12 +679,12 @@ export const useJobActions = ({
     if (!job || !state.continueTomorrowReason.trim()) return;
     state.setSubmittingContinue(true);
     try {
-      const success = await MockDb.markJobContinueTomorrow(job.job_id, state.continueTomorrowReason, currentUserId, currentUserName);
-      if (success) {
+      const updated = await MockDb.markJobContinueTomorrow(job.job_id, state.continueTomorrowReason, currentUserId, currentUserName);
+      if (updated) {
+        setJob({ ...updated });
         showToast.success('Job marked to continue tomorrow');
         state.setShowContinueTomorrowModal(false);
         state.setContinueTomorrowReason('');
-        loadJob({ silent: true });
       } else {
         showToast.error('Failed to update job');
       }
@@ -695,17 +698,17 @@ export const useJobActions = ({
   const handleResumeJob = useCallback(async () => {
     if (!job) return;
     try {
-      const success = await MockDb.resumeMultiDayJob(job.job_id, currentUserId, currentUserName);
-      if (success) {
+      const updated = await MockDb.resumeMultiDayJob(job.job_id, currentUserId, currentUserName);
+      if (updated) {
+        setJob({ ...updated });
         showToast.success('Job resumed');
-        loadJob();
       } else {
         showToast.error('Failed to resume job');
       }
     } catch (_e) {
       showToast.error('Error resuming job');
     }
-  }, [job, currentUserId, currentUserName, loadJob]);
+  }, [job, currentUserId, currentUserName, setJob]);
 
   // Finalize invoice handler
   const handleFinalizeInvoice = useCallback(async () => {
@@ -743,23 +746,21 @@ export const useJobActions = ({
     }
   }, [job, state, currentUserId, currentUserName, navigate]);
 
-  // Switch forklift handler
+  // Switch forklift handler — goes through MockDb.updateJob (services layer)
+  // and applies the returned row directly so the realtime-echo dedupe stays
+  // coherent. Previously did a direct supabase.from('jobs').update(...) +
+  // loadJob(), which was both a services-layer violation and a 2026-04-08
+  // race reproducer.
   const handleSwitchForklift = useCallback(async (forkliftId: string) => {
     if (!job) return;
     try {
-      const { error } = await supabase
-        .from('jobs')
-        .update({ forklift_id: forkliftId })
-        .eq('job_id', job.job_id);
-
-      if (error) throw error;
-
+      const updated = await MockDb.updateJob(job.job_id, { forklift_id: forkliftId });
+      setJob({ ...updated });
       showToast.success('Forklift switched successfully');
-      await loadJob(); // Refresh job data to get updated forklift info
     } catch (e) {
       showToast.error('Could not switch forklift', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
-  }, [job, loadJob]);
+  }, [job, setJob]);
 
   // Signature handlers (legacy - kept for backward compatibility if needed)
   const handleTechnicianSignature = useCallback(async (dataUrl: string) => {
@@ -995,13 +996,13 @@ export const useJobActions = ({
         currentUserId,
         currentUserName
       );
-      if (result.success) {
+      if (result.success && result.job) {
+        setJob({ ...result.job });
         showToast.success('Job marked as completed', 'Pending customer acknowledgement');
         state.setShowDeferredModal(false);
         state.setDeferredReason('');
         state.setDeferredHourmeter('');
         state.setSelectedEvidenceIds([]);
-        loadJob();
       } else {
         showToast.error('Failed to complete job');
       }
@@ -1010,7 +1011,7 @@ export const useJobActions = ({
     } finally {
       state.setSubmittingDeferred(false);
     }
-  }, [job, state, currentUserId, currentUserName, loadJob]);
+  }, [job, state, currentUserId, currentUserName, setJob]);
 
   return {
     // Accept/Reject

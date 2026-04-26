@@ -8,10 +8,11 @@
 import {
 DailyUsageResult,
 FleetServiceOverview,
+Job,
 ServiceUpgradeLog,
 ServiceUpgradePrompt
 } from '../types';
-import { supabase } from './supabaseClient';
+import { JOB_SELECT,supabase } from './supabaseClient';
 
 // =============================================
 // FLEET SERVICE OVERVIEW
@@ -120,13 +121,15 @@ export const logServiceUpgradeDecision = async (
 };
 
 /**
- * Upgrade job from Minor Service to Full Service
+ * Upgrade job from Minor Service to Full Service. Returns the updated Job row
+ * so callers can apply via setJob({...updated}) and feed the realtime-echo
+ * dedupe (2026-04-08) instead of calling loadJob().
  */
 export const upgradeToFullService = async (
   jobId: string,
   technicianId: string,
   technicianName: string
-): Promise<void> => {
+): Promise<Job> => {
   // Get current job details
   const { data: job, error: jobError } = await supabase
     .from('jobs')
@@ -143,8 +146,8 @@ export const upgradeToFullService = async (
   const currentHourmeter = forkliftData?.hourmeter || 0;
   const targetHourmeter = forkliftData?.next_target_service_hour || 0;
 
-  // Update job type to Full Service
-  const { error: updateError } = await supabase
+  // Update job type to Full Service and return the full row.
+  const { data: updated, error: updateError } = await supabase
     .from('jobs')
     .update({
       job_type: 'Full Service',
@@ -152,7 +155,9 @@ export const upgradeToFullService = async (
       updated_at: new Date().toISOString()
     })
     .is('deleted_at', null)
-    .eq('job_id', jobId);
+    .eq('job_id', jobId)
+    .select(JOB_SELECT.DETAIL)
+    .single();
 
   if (updateError) throw new Error(`Failed to upgrade job: ${updateError.message}`);
 
@@ -168,6 +173,8 @@ export const upgradeToFullService = async (
     hours_overdue: currentHourmeter - targetHourmeter,
     original_job_type: job.job_type
   });
+
+  return updated as unknown as Job;
 };
 
 /**

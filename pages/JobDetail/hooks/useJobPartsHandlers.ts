@@ -16,6 +16,7 @@ interface UseJobPartsHandlersParams {
   currentUserName: string;
   currentUserRole: string;
   loadJob: () => Promise<void>;
+  loadVanStock: (jobVanStockId?: string) => Promise<void>;
   setJob: (j: Job | null | ((prev: Job | null) => Job | null)) => void;
 }
 
@@ -26,6 +27,7 @@ export const useJobPartsHandlers = ({
   currentUserName,
   currentUserRole,
   loadJob,
+  loadVanStock,
   setJob,
 }: UseJobPartsHandlersParams) => {
   const handleAddPart = useCallback(async () => {
@@ -196,15 +198,25 @@ export const useJobPartsHandlers = ({
       }
 
       // Auto-confirm parts — van stock usage is tracked and auditable,
-      // no separate verification needed
+      // no separate verification needed. Capture the returned row so we can
+      // apply via setJob({...updated}) instead of loadJob() — feeds the
+      // realtime-echo dedupe (2026-04-08).
+      let updatedJob: Job | null = null;
       try {
         const now = new Date().toISOString();
-        await MockDb.updateJob(job.job_id, {
+        updatedJob = await MockDb.updateJob(job.job_id, {
           parts_confirmed_at: now,
           parts_confirmed_by_id: currentUserId,
           parts_confirmed_by_name: `${currentUserName} (auto: van stock)`,
         });
       } catch { /* non-critical */ }
+
+      // Fallback: if the auto-confirm write failed (non-critical above), still
+      // refresh the job row so the newly-added job_part shows up in the UI.
+      if (!updatedJob) {
+        try { updatedJob = await MockDb.getJobById(job.job_id); } catch { /* ignore */ }
+      }
+      if (updatedJob) setJob({ ...updatedJob });
 
       // Check if low stock — auto-create replenishment alert
       const newQty = item.quantity - qtyToUse;
@@ -240,12 +252,12 @@ export const useJobPartsHandlers = ({
       const unit = item.part?.unit || 'pcs';
       const qtyDisplay = Number.isInteger(qtyToUse) ? qtyToUse.toString() : qtyToUse.toFixed(2);
       showToast.success('Part used from van stock', `${qtyDisplay} ${unit} of ${item.part?.part_name} added to job`);
-      // Reload job + van stock
-      loadJob();
+      // Refresh van stock items only — job row already applied via setJob.
+      loadVanStock(job.job_van_stock_id || undefined);
     } catch (e) {
       showToast.error('Failed to use van stock part', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
-  }, [job, state, currentUserId, currentUserName, loadJob]);
+  }, [job, state, currentUserId, currentUserName, setJob, loadVanStock]);
 
   const handleSelectJobVan = useCallback(async (vanStockId: string) => {
     if (!job) return;
@@ -258,13 +270,14 @@ export const useJobPartsHandlers = ({
     try {
       const updated = await MockDb.updateJob(job.job_id, { job_van_stock_id: vanStockId || undefined });
       setJob({ ...updated } as Job);
-      // Reload van stock for the newly selected van
-      loadJob();
+      // Refresh van stock items for the newly selected van — job row already applied via setJob,
+      // so loadJob() would be redundant and risks racing the realtime echo (2026-04-08).
+      loadVanStock(vanStockId || undefined);
       showToast.success('Van updated');
     } catch (e) {
       showToast.error('Could not update van', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
-  }, [job, setJob, loadJob]);
+  }, [job, setJob, loadVanStock]);
 
   return {
     handleAddPart,

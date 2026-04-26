@@ -84,10 +84,10 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const jobSite = customerSites.find((s: CustomerSite) => s.site_id === job?.site_id);
 
   // Data loading with real-time
-  const { loadJob } = useJobData({ jobId: id, currentUserId, currentUserRole, state });
+  const { loadJob, loadVanStock } = useJobData({ jobId: id, currentUserId, currentUserRole, state });
 
   // All actions
-  const actions = useJobActions({ state, currentUserId, currentUserName, currentUserRole, technicians, loadJob });
+  const actions = useJobActions({ state, currentUserId, currentUserName, currentUserRole, technicians, loadJob, loadVanStock });
 
   // On mobile (< md = 768px), secondary sections collapse by default
   const isDesktopDefault = typeof window !== 'undefined' ? window.innerWidth >= 768 : true;

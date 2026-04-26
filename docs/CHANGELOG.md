@@ -1,3 +1,67 @@
+## [2026-04-25] — Phase 2.5: Plumb Mutation Return Rows (loadJob landmine closure)
+
+**System maintenance + stability upgrade.** Closes a dormant 2026-04-08 race condition class: 7 mutation handlers in JobDetail were calling `loadJob()` after a service write instead of applying the returned row via `setJob({...updated})`. The dedupe pattern at `lastSeenUpdatedAtRef` (which prevents the realtime echo from racing the in-flight mutation's PostgREST response) only works when the handler applies the returned row directly. The bug was dormant — services returned `boolean`/`void`, so the dedupe pattern was impossible without the service refactor that this entry delivers.
+
+### Changed
+
+**Three service signatures: `boolean`/`void` → `Job`/`Job | null`.** Each appends `.select(JOB_SELECT.DETAIL).single()` to an existing UPDATE so the row is returned with all joined relations the UI needs.
+
+- **`services/serviceTrackingService.ts:upgradeToFullService`** — was `Promise<void>`. Now `Promise<Job>`. Single caller (`useJobActions.ts:handleServiceUpgrade`).
+- **`services/jobStatusService.ts:markJobContinueTomorrow`** — was `Promise<boolean>` (`true` on success, `false` on failure). Now `Promise<Job | null>` (Job on success, null on failure — handler treats null as "failed" toast just like the old false). Single caller (`useJobActions.ts:handleContinueTomorrow`).
+- **`services/jobStatusService.ts:resumeMultiDayJob`** — same shape change as markJobContinueTomorrow. Single caller (`useJobActions.ts:handleResumeJob`).
+
+Verified before refactoring: each service has only the JobDetail handler as a caller, so the signature change has no cross-call-site ripple.
+
+**Seven handler refactors — each applies the returned row via `setJob({...updated})` and drops the `loadJob()` call.**
+
+| Site | File | Before | After |
+|---|---|---|---|
+| A | `useJobActions.ts:308 handleServiceUpgrade` | `await upgradeToFullService(...); await loadJob();` | `const updated = await upgradeToFullService(...); setJob({...updated});` |
+| B | `useJobActions.ts:679 handleContinueTomorrow` | `if (success) { ... loadJob({silent:true}); }` | `if (updated) { setJob({...updated}); ... }` |
+| C | `useJobActions.ts:698 handleResumeJob` | `if (success) { ... loadJob(); }` | `if (updated) { setJob({...updated}); ... }` |
+| D | `useJobActions.ts:752 handleSwitchForklift` | inline `supabase.from('jobs').update({forklift_id})` + `loadJob()` | `MockDb.updateJob(jobId, {forklift_id})` + `setJob({...updated})` |
+| E | `useJobActions.ts:993 handleDeferredCompletion` | `if (result.success) { loadJob(); }` (and `result.job` was discarded) | `if (result.success && result.job) { setJob({...result.job}); }` |
+| F | `useJobPartsHandlers.ts:204 handleVanStockPartUse` | chain ending in `loadJob()` to refresh both job and van stock | capture `updateJob({parts_confirmed_at})` result + fallback `getJobById`; apply via setJob; replace `loadJob()` with `loadVanStock(job.job_van_stock_id)` |
+| G | `useJobPartsHandlers.ts:262 handleSelectJobVan` | already did `setJob({...updated})` but ALSO called `loadJob()` for van-stock refresh | replace `loadJob()` with `loadVanStock(vanStockId)` |
+
+Site D additionally retired a services-layer violation: `handleSwitchForklift` was doing `supabase.from('jobs').update(...)` inline. Now routed through `MockDb.updateJob`, which already returns the full Job row.
+
+Site F kept its existing graceful-failure semantics: the `parts_confirmed_at` auto-confirm write is wrapped in try/ignore (was `try { ... } catch { /* non-critical */ }`). The new code captures the returned row when the write succeeds and falls back to a single `getJobById` if it fails — UI stays consistent without breaking flow.
+
+### Hook plumbing
+
+**`useJobPartsHandlers` and `useJobActions` interfaces gained a `loadVanStock` prop.** `useJobData` already exposes `loadVanStock(jobVanStockId?)` — it's the targeted refresh that loads ONLY the van-stock side without touching the job row. `JobDetailPage.tsx` now destructures it and passes through to `useJobActions`, which forwards to `useJobPartsHandlers`. Sites F and G use it instead of the broader `loadJob()`.
+
+### Lint hygiene fix
+
+`pages/JobBoard/components/BulkSignOffModal.tsx:69` had a pre-existing ESLint error — `next.has(jobId) ? next.delete(jobId) : next.add(jobId);` is a no-statement ternary expression flagged as `no-unused-expressions`. Refactored to `if/else` form. Was not introduced by Phase 2.5 (existed in commit 74e6bdc) but blocked `npm run lint` so cleaned up here as part of the verification battery — the lint guardrail now passes 0 errors.
+
+### Verification battery
+
+- `npm run typecheck`: clean.
+- `npm run lint`: 0 errors. 104 pre-existing warnings remain (mostly `max-lines` on inventoryService.ts, liquidInventoryService.ts, partsService.ts, jobRequestApprovalService.ts — Phase 3 candidates, untouched here).
+- `npm run build`: clean. Bundle composition unchanged from the prior phase (Phase 6's JobsTabs split stays in effect at 5.73 KB).
+
+### Recommended manual smoke (before next deploy)
+
+For each of the 7 mutation flows below, confirm the action succeeds with no "Could not save" / "signal is aborted without reason" toast and the UI reflects the new state without a manual refresh:
+
+1. Upgrade Minor Service → Full Service via the in-progress prompt.
+2. Mark a multi-day job to continue tomorrow.
+3. Resume a multi-day job from "Incomplete - Continuing".
+4. Switch the forklift on an active job (admin only).
+5. Use the Deferred Completion flow (with reason + evidence photos).
+6. Use a part from van stock (both liquid via deductVanBulk and non-liquid via deductVanStockPart paths).
+7. Change the selected van for a job before any van-stock parts are used.
+
+### Scope notes
+
+- Did NOT add a dedicated `jobService.switchForklift()` wrapper — `MockDb.updateJob(jobId, {forklift_id})` already abstracts supabase and returns the full row, so the wrapper would be cosmetic indirection. The fix is identical in effect.
+- Did NOT extend the dedupe pattern to non-JobDetail mutation flows (job creation, customer edits, inventory adjustments). Those are different code paths and were out of scope; the 2026-04-08 race only manifested on JobDetail because that's where the realtime + mutation interleave is densest.
+- Did NOT touch the originally-scheduled remote routine `trig_01RPjgQchHNj2sch7C3nCBFx` beyond disabling it (since the work is now done in-session). Routine can be cleaned up via https://claude.ai/code/routines.
+
+---
+
 ## [2026-04-25] — Phase 1.5 + Phase 2: Error Tracking + Architectural Consistency
 
 ### Added
