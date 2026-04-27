@@ -1,5 +1,30 @@
 # Changelog
 
+## [2026-04-27] — Phase 4 Refactor: Split JobPhotosSection.tsx into hook + gallery
+
+### Changed
+
+- **`pages/JobDetail/components/JobPhotosSection.tsx` (725 → 364 LOC):** The upload logic that had accumulated inline in this component — GPS coordinate capture, canvas-based image compression, Supabase Storage upload with automatic retry, video raw-read path, video thumbnail extraction, auto-start/stop job timer on first/after photo, and the full `handlePhotoUpload` orchestrator — has been extracted into a dedicated hook. The component now holds only what belongs to it: gallery layout, category filter tabs, the photo/video grid, drag-and-drop state, delete handler, ZIP download handler, and lightbox integration. Props interface and export path are unchanged; `JobDetailPage.tsx` required no modifications.
+
+- **`pages/JobDetail/hooks/usePhotoUpload.ts` (NEW, 391 LOC):** Encapsulates the entire upload concern. Accepts `{ job, currentUserId, currentUserName, isCurrentUserHelper, uploadPhotoCategory, onJobUpdate }` and returns `{ isUploading, uploadProgress, handlePhotoUpload, uploadFiles }`. The `uploadFiles(files: File[])` primitive is used by both the input `onChange` handler (via `handlePhotoUpload`) and the component's drag-drop handler directly. All error handling, toast messages, GPS tagging, timestamp mismatch detection, and photo-based timer auto-start/auto-stop logic are preserved verbatim — this is a move, not a rewrite.
+
+### Scope notes
+
+- PhotoLightbox extraction was not required: `components/ui/PhotoLightbox.tsx` already existed as a separate file and was already imported by `JobPhotosSection`. The three-way split described in the scheduled task brief reduces to two files in practice.
+- `extractVideoThumbnail` is defined in the hook exactly as it was in the original component — present but not called in the current upload flow. It was not removed to keep the diff a pure move.
+- The `isCompleted` destructure from `statusFlags` in the component is a pre-existing unused variable (not touched by this change).
+- No DB migrations, no service-layer changes, no prop-surface changes.
+
+### Verification
+
+- `npm run typecheck` passes clean.
+- `npm run lint` passes with 0 errors / 91 warnings (2 pre-existing warnings moved with the code from component to hook; 1 new `max-lines` on the hook file at 391 LOC; 1 `max-lines` on the component at 364 LOC now that the original `eslint-disable max-lines` was dropped post-split).
+- `npm run build` passes clean.
+- `npm audit --audit-level=moderate` reports 0 vulnerabilities.
+- Smoke test not run: Playwright browser binaries absent in this agent environment (pre-existing infra constraint; unrelated to this change).
+
+---
+
 ## [2026-04-26] — Fix: JobBoard QuickStats KPI tiles use server-side counts (not paginated client counts)
 
 ### Fixes
