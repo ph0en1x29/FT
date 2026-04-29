@@ -1,5 +1,32 @@
 # Changelog
 
+## [2026-04-29] — Fix: Hourmeter unstick on JOB-260421-043, warning threshold raised, liquid van-stock display corrected
+
+### Fixes
+
+- **JOB-260421-043 (GOH YUEH HAN, forklift A142 / 8FD30-42051) is unblocked from "In Progress → Completed".** The job had been stuck for 7 days because the hourmeter validation trigger `validate_hourmeter_reading` set `hourmeter_flagged=TRUE` with reason `pattern_mismatch`: reading 19,413 was +399 h above the previous recorded value of 19,014, which exceeds the active `hourmeter_validation_configs.warning_threshold_hours = 100`. The previous reading was from 2026-03-13 (~6 weeks earlier), so 399 h of intervening usage was actually plausible — Admin Two later confirmed the unit was at 19,415 by manually updating the forklift on 2026-04-23. No amendment was ever filed against the flag, so the job sat untouched. The migration clears `hourmeter_flagged`, sets the flag-reason array to empty, and stamps `hourmeter_validated_at / by` to Admin One so the audit trail records who released the gate. The job's `status='In Progress'` is preserved — Shin/admin can now drive it to Completed via the normal UI flow.
+- **Hourmeter warning threshold raised from 100 h to 200 h.** Forklifts that haven't been serviced for over a month routinely accumulate >100 h of usage between recordings. Treating that as `pattern_mismatch` means every long-gap service comes in flagged and stuck — exactly what happened to JOB-260421-043. Bumping the warning to 200 h keeps the alert-threshold guard at 500 h (genuinely excessive jumps still flag) while stopping legitimate stale-prior-reading services from getting auto-blocked. Update is config-only; no trigger function or code change.
+- **Liquid van-stock items now display their actual liter quantity instead of "0.0 L / Out".** The 6-van mass import on 2026-04-24 wrote the xlsx "Qty" column into `van_stock_items.quantity` for every row, but the UI renders liquid parts as `(container_quantity × container_size) + bulk_quantity` (`pages/VanStockPage/components/modals/VanStockDetailModal.tsx:262`) and ignores `quantity` for `is_liquid=true`. So 19 liquid rows across all 6 vans (engine oil, hydraulic oil, gear oil, transmission oil) showed `0×209 + 0 = 0.0 liter` with an "Out" status badge — Shin reported them as "missing from the list". Verified the xlsx unit is litres (Total = Qty × per-litre price; e.g. SHELL TELLUS S2 MX 68 [209L] in BASRI's xlsx: `25 × 9.33 = 233.25 RM`), so the right interpretation is "loose bulk on the van" (`bulk_quantity = quantity, container_quantity = 0`), not sealed drums. After the backfill, e.g. VEW 9631 / SHELL TELLUS S2 MX 68 now displays **25 liter / OK** instead of **0.0 liter / Out**.
+
+### Verification
+
+- Migration `20260428_hourmeter_unflag_and_van_liquid_backfill.sql` applied live via the Supabase pooler (SSL) inside a single `BEGIN ... COMMIT` block.
+- Post-apply spot checks confirm:
+  - `JOB-260421-043` shows `hourmeter_flagged=false`, `hourmeter_flag_reasons={}`, `status='In Progress'`, `hourmeter_validated_by_name='Admin One'`.
+  - Both active rows in `hourmeter_validation_configs` read `warning_threshold_hours=200, alert_threshold_hours=500`.
+  - All 19 affected liquid rows now have `bulk_quantity = quantity, container_quantity = 0`. E.g. `VEW 9631 | S-01918 SHELL TELLUS S2 MX 68 → quantity=25, bulk_quantity=25, container_quantity=0` → UI display `0×209 + 25 = 25 liter`.
+- The migration body has its own embedded `DO $$ ... RAISE EXCEPTION` guards: it errors out hard if the JOB-260421-043 row count ≠ 1 post-update or if any liquid rows still match the backfill predicate after the update — so partial application would have rolled back the transaction.
+- No application code was changed — `npm run typecheck` is clean by construction.
+
+### Scope notes
+
+- **Filter 1637 (Shin's second message) is NOT addressed in this migration.** OIL FILTER 1637 (`15601-76009`, qty=5) is present in Basri's van and not filtered out anywhere in the UI; the item is at alphabetical position 71 of 102. Likely Shin scrolled past it or was looking at a different surface than the Van Stock detail modal (e.g. an audit checklist or exported list). Following up directly rather than guessing at a fix.
+- **The duplicate `hourmeter_validation_configs` rows are out of scope.** The live DB has two `is_active=TRUE` rows (both with the same threshold values, both got the 100→200 bump), so behaviour is consistent — but a single source of truth would be cleaner. Flagged as a separate cleanup.
+- **The `van_stock_items.quantity` legacy column is intentionally NOT dropped.** Several read paths (the `getStockStatusColor` sum-of-three fallback, the `getLowStockItems` minimum-quantity check) still consult `quantity` directly. Migrating every reader to `container_quantity`/`bulk_quantity` and then dropping `quantity` is a multi-file refactor across services and the UI — out of scope for a hotfix.
+- **The hourmeter completion-gate trigger (`validate_job_completion_requirements`) was not touched.** Only the per-job flag for JOB-260421-043 and the global `warning_threshold_hours` were modified. The contract that "hourmeter_flagged=TRUE blocks completion" is unchanged.
+
+---
+
 ## [2026-04-26] — Fix: JobBoard QuickStats KPI tiles use server-side counts (not paginated client counts)
 
 ### Fixes
