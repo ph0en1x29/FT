@@ -385,7 +385,7 @@ export const printServiceReport = (job: Job, reportNumber?: string, showPrices: 
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.drive_front_axle)}</span> Front axle</div>
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.drive_rear_axle)}</span> Rear axle</div>
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.drive_motor_engine)}</span> Drive motor/Engine</div>
-        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.drive_controller_transmission)}</span> Controller/Transmission</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.drive_controller_transmission)}</span> Drive Controller/Transmission</div>
       </div>
       <div class="checklist-section">
         <div class="section-title">Steering System</div>
@@ -406,7 +406,7 @@ export const printServiceReport = (job: Job, reportNumber?: string, showPrices: 
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.electrical_ignition)}</span> Ignition system</div>
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.electrical_battery)}</span> Battery</div>
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.electrical_wiring)}</span> Electrical/wiring</div>
-        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.electrical_instruments)}</span> Instruments</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.electrical_instruments)}</span> Instruments/Error code</div>
       </div>
       <div class="checklist-section">
         <div class="section-title">Hydraulic System</div>
@@ -416,7 +416,7 @@ export const printServiceReport = (job: Job, reportNumber?: string, showPrices: 
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.hydraulic_oil_level)}</span> Oil Level</div>
       </div>
       <div class="checklist-section">
-        <div class="section-title">Load Handling</div>
+        <div class="section-title">Load Handling System</div>
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.load_fork)}</span> Fork</div>
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.load_mast_roller)}</span> Mast & Roller</div>
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.load_chain_wheel)}</span> Chain & Chain Wheel</div>
@@ -430,11 +430,39 @@ export const printServiceReport = (job: Job, reportNumber?: string, showPrices: 
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.fuel_exhaust_piping)}</span> Exhaust piping</div>
       </div>
       <div class="checklist-section">
-        <div class="section-title">Tyres & Wheels</div>
+        <div class="section-title">Transmission</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.transmission_fluid_level)}</span> Transmission fluid level</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.transmission_inching_valve)}</span> Inching valve / Cable</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.transmission_air_cleaner)}</span> Air Cleaner element</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.transmission_lpg_regulator)}</span> LPG Regulator</div>
+      </div>
+      <div class="checklist-section">
+        <div class="section-title">Safety Devices</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.safety_overhead_guard)}</span> Overhead guard</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.safety_cabin_body)}</span> Cabin / Body</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.safety_backrest)}</span> Back-rest</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.safety_seat_belt)}</span> Seat / Belt</div>
+      </div>
+      <div class="checklist-section">
+        <div class="section-title">Lighting</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.lighting_beacon_light)}</span> Lighting / Beacon light</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.lighting_horn)}</span> Horn</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.lighting_buzzer)}</span> Buzzer</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.lighting_rear_view_mirror)}</span> Rear view mirror</div>
+      </div>
+      <div class="checklist-section">
+        <div class="section-title">Tyres</div>
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.tyres_front)}</span> Front tyre</div>
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.tyres_rear)}</span> Rear tyre</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.tyres_rim)}</span> Rim</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.tyres_screw_nut)}</span> Screw & Nut</div>
+      </div>
+      <div class="checklist-section">
+        <div class="section-title">Wheels</div>
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.wheels_drive)}</span> Drive wheel</div>
         <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.wheels_load)}</span> Load Wheel</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.wheels_support)}</span> Support wheel</div>
+        <div class="check-item"><span class="checkbox">${renderCheckMark(checklist.wheels_hub_nut)}</span> Hub & Nut</div>
       </div>
     </div>
   `;

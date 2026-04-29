@@ -1,5 +1,28 @@
 # Changelog
 
+## [2026-04-30] — Fix: Printable service report now includes the full condition checklist
+
+### Fixes
+
+- **The printable / PDF "Service Report" now renders all 52 condition-checklist items across 13 categories, instead of dropping 20 items.** A customer flagged that the checklist "did not appear in full in the printable report". The on-screen Service Report React component (`components/ServiceReportPDF.tsx`) renders all 13 categories correctly, but the sibling `printServiceReport` function in the same file — which builds a separate HTML string for the new-window print/PDF flow triggered from JobDetail's "Print service report" action — had drifted: its hardcoded checklist HTML emitted only 8 sections / 32 items. Three full categories were missing from print output:
+    - **Safety Devices** (overhead guard, cabin/body, back-rest, seat/belt)
+    - **Lighting** (beacon light, horn, buzzer, rear view mirror)
+    - **Transmission** (fluid level, inching valve, air cleaner, LPG regulator)
+  And one merged "Tyres & Wheels" tile collapsed two distinct categories into 4 lines, dropping `tyres_rim`, `tyres_screw_nut`, `wheels_support`, and `wheels_hub_nut`. Net result: 20 of 52 checklist items (~38%) were silently absent from the document the customer signs and files, even when the technician had filled them all in correctly in the app. The data was always captured in the database and visible on screen — only the print surface was lossy.
+- **Print labels now match the on-screen component exactly.** While reconstructing the missing sections, label drift between the two surfaces was also corrected: "Controller/Transmission" → "Drive Controller/Transmission", "Instruments" → "Instruments/Error code", "Load Handling" → "Load Handling System". This avoids customers / techs comparing the two surfaces and seeing inconsistent wording.
+
+### Verification
+
+- `npm run typecheck` clean.
+- Cross-checked the new `checklistHTML` template against `ForkliftConditionChecklist` in `types/forklift.types.ts:51-123`: every one of the 52 declared fields is rendered exactly once in the print output, with labels matching the on-screen `ServiceReportPDF` React component verbatim.
+
+### Scope notes
+
+- Print-output-only fix. The on-screen React component, the `condition_checklist` data model, the service/persistence layer, and the completion-gate validators were not touched. The pre-existing CSS (`.checklist-grid` is a 4-column grid) was kept; the additional sections simply flow into more rows.
+- The other Service Report path at `pages/ServiceRecords/ServiceReportPDF.ts` (used from the Service Records listing page, not from JobDetail) similarly hardcodes a partial set of checklist items, but is not the surface the customer reported on. Touching it would broaden scope beyond the reported bug; flagged as a separate cleanup if/when that surface is exercised.
+
+---
+
 ## [2026-04-29] — Fix: Hourmeter unstick on JOB-260421-043, warning threshold raised, liquid van-stock display corrected
 
 ### Fixes
