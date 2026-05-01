@@ -32,6 +32,20 @@ export const useJobExportActions = ({
     printServiceReport(job, undefined, showPrices);
   }, [job, state]);
 
+  /**
+   * ACWER Phase 9b — variant that takes the explicit `view` param. Used by
+   * the new 3-way ReportOptionsModal so admin can pick Customer / Admin /
+   * Internal Cost. Falls back to the legacy showPrices param for
+   * non-internal views to keep wire shape consistent.
+   */
+  const handleConfirmPrintServiceReportView = useCallback(async (view: 'customer' | 'admin' | 'internal_cost') => {
+    if (!job) return;
+    state.setShowReportOptionsModal(false);
+    const { printServiceReport } = await import('../../../components/ServiceReportPDF');
+    const showPrices = view !== 'customer';
+    printServiceReport(job, undefined, showPrices, view);
+  }, [job, state]);
+
   const handleExportPDF = useCallback(async () => {
     if (!job) return;
     const { printInvoice } = await import('../../../components/InvoicePDF');
@@ -53,6 +67,7 @@ export const useJobExportActions = ({
   return {
     handlePrintServiceReport,
     handleConfirmPrintServiceReport,
+    handleConfirmPrintServiceReportView,
     handleExportPDF,
     handleExportToAutoCount,
   };

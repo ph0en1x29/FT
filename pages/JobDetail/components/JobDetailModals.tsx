@@ -347,11 +347,24 @@ export const RejectJobModal: React.FC<RejectJobModalProps> = ({
 
 interface ReportOptionsModalProps {
   show: boolean;
+  /**
+   * Legacy 2-state callback. Existing callers that only know about
+   * showPrices receive `true|false`. New callers can use `onSelectView`
+   * for the 3-way choice (customer / admin / internal_cost).
+   */
   onSelect: (showPrices: boolean) => void;
+  /**
+   * Optional 3-way variant. When supplied, replaces the 2 buttons with 3
+   * (Customer / Admin / Internal Cost). The internal-cost view shows
+   * cost prices and gross margin and is admin-only.
+   */
+  onSelectView?: (view: 'customer' | 'admin' | 'internal_cost') => void;
+  /** When false, hide the Internal Cost button — gate to admin/admin_service/supervisor. */
+  canViewInternalCost?: boolean;
   onClose: () => void;
 }
 
-export const ReportOptionsModal: React.FC<ReportOptionsModalProps> = ({ show, onSelect, onClose }) => {
+export const ReportOptionsModal: React.FC<ReportOptionsModalProps> = ({ show, onSelect, onSelectView, canViewInternalCost = false, onClose }) => {
   if (!show) return null;
 
   return (
@@ -364,21 +377,30 @@ export const ReportOptionsModal: React.FC<ReportOptionsModalProps> = ({ show, on
           </button>
         </div>
         <p className="text-sm text-[var(--text-muted)] mb-5">
-          Should this report include prices? Hide prices for customer-facing copies.
+          Pick the audience: customers shouldn&apos;t see prices, admin sees the bill, internal management sees cost + margin.
         </p>
         <div className="flex flex-col gap-2">
           <button
-            onClick={() => onSelect(false)}
+            onClick={() => onSelectView ? onSelectView('customer') : onSelect(false)}
             className="btn-premium btn-premium-primary w-full"
           >
-            Hide Prices (Customer Copy)
+            Customer Copy (Hide Prices)
           </button>
           <button
-            onClick={() => onSelect(true)}
+            onClick={() => onSelectView ? onSelectView('admin') : onSelect(true)}
             className="btn-premium btn-premium-secondary w-full"
           >
-            Show Prices (Internal Copy)
+            Admin Copy (Show Sell Prices)
           </button>
+          {canViewInternalCost && onSelectView && (
+            <button
+              onClick={() => onSelectView('internal_cost')}
+              className="w-full px-4 py-2 rounded border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 font-semibold"
+              title="Includes cost prices and gross margin — for management review only"
+            >
+              Internal Management (Cost + Margin)
+            </button>
+          )}
         </div>
       </div>
     </div>

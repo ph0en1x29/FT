@@ -69,6 +69,11 @@ export const addPartToJob = async (
       part_name: part.part_name,
       quantity,
       sell_price_at_time: customPrice !== undefined ? customPrice : (part.sell_price ?? part.cost_price ?? 0),
+      // ACWER Phase 9b — snapshot the part's cost at insertion so the
+      // internal-cost report variant (ServiceReportPDF view='internal_cost')
+      // can compute margin without a parts JOIN at read time. Falls back to
+      // 0 if cost_price isn't set on the master row.
+      cost_price_at_time: part.cost_price ?? 0,
     });
 
   if (insertError) throw new Error(insertError.message);

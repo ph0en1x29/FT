@@ -6,10 +6,12 @@
  * shipped in Phase 10.
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, FileQuestion, Pencil, Plus, Send, XCircle } from 'lucide-react';
+import { CheckCircle, FileQuestion, Mail, Pencil, Plus, Printer, Send, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { printQuotation } from '../../../components/QuotationPDF';
+import { getCustomerContacts } from '../../../services/customerService';
 import {
   listQuotations,
   markQuotationAccepted,
@@ -78,6 +80,66 @@ const QuotationsSection: React.FC<Props> = ({ customer, currentUser }) => {
     navigate(`/jobs/new?customer_id=${customer.customer_id}&quotation_id=${q.quotation_id}`);
   };
 
+  /** Print/save-as-PDF — opens a styled HTML doc + triggers browser print. */
+  const handlePrint = (q: Quotation) => {
+    // The customer is already on the parent page; spread it onto the
+    // quotation snapshot so the PDF can render the To/Attn block. The
+    // service may have hydrated `q.customer` via the JOIN; if it didn't,
+    // fall back to the parent's customer.
+    printQuotation({ ...q, customer: q.customer ?? customer });
+  };
+
+  /**
+   * Send via email — opens the user's default mail client with a
+   * pre-filled draft. We don't send through a backend (FT has no edge
+   * email function); the actual delivery is the admin's job. After the
+   * mailto: opens, we mark the quotation as 'sent' so the queue advances.
+   * If the customer has a primary contact email on the contacts list, we
+   * use that; otherwise we use customer.email; otherwise we leave the To:
+   * field blank for the admin to fill.
+   */
+  const handleSendEmail = async (q: Quotation) => {
+    let recipient = customer.email ?? '';
+    try {
+      const contacts = await getCustomerContacts(customer.customer_id);
+      const primary = contacts.find(c => c.is_primary && c.email) ?? contacts.find(c => c.email);
+      if (primary?.email) recipient = primary.email;
+    } catch { /* fall back to customer.email */ }
+
+    const subject = `Quotation ${q.quotation_number} — ${q.reference}`;
+    const body = [
+      `Dear ${q.attention},`,
+      '',
+      `Please find attached our quotation ${q.quotation_number} dated ${new Date(q.date).toLocaleDateString('en-GB')}.`,
+      '',
+      `RE: ${q.reference}`,
+      `Total (RM): ${Number(q.total).toFixed(2)}`,
+      `Validity: ${q.validity}`,
+      '',
+      'Kindly review and confirm at your earliest convenience.',
+      '',
+      'Best regards,',
+      q.created_by_name ?? '',
+    ].join('\n');
+
+    const mailto = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailto, '_blank');
+
+    // Open the print dialog too so admin can save/attach the PDF
+    handlePrint(q);
+
+    // Mark as sent in the background — admin can still reverse via "Override path"-style actions
+    if (q.status === 'draft') {
+      try {
+        await markQuotationSent(q.quotation_id);
+        queryClient.invalidateQueries({ queryKey: ['quotations', customer.customer_id] });
+        showToast.success('Quotation marked as sent — print dialog opened, attach and send via your mail client');
+      } catch (e) {
+        showToast.error('Could not mark as sent', (e as Error).message);
+      }
+    }
+  };
+
   return (
     <>
       <div className="bg-[var(--surface)] rounded-xl shadow-sm border border-slate-200 p-4">
@@ -126,12 +188,18 @@ const QuotationsSection: React.FC<Props> = ({ customer, currentUser }) => {
                   </div>
                   {canManage && (
                     <div className="flex items-center gap-1 flex-shrink-0">
+                      <button onClick={() => handlePrint(q)} className="p-1.5 rounded hover:bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-[var(--text)]" title="Print / save as PDF">
+                        <Printer className="w-3.5 h-3.5" />
+                      </button>
                       {q.status === 'draft' && (
                         <>
                           <button onClick={() => { setEditing(q); setShowModal(true); }} className="p-1.5 rounded hover:bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-[var(--text)]" title="Edit">
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => handleSent(q)} className="p-1.5 rounded hover:bg-blue-50 text-[var(--text-muted)] hover:text-blue-600" title="Mark as sent">
+                          <button onClick={() => handleSendEmail(q)} className="p-1.5 rounded hover:bg-blue-50 text-[var(--text-muted)] hover:text-blue-600" title="Email customer + mark as sent">
+                            <Mail className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleSent(q)} className="p-1.5 rounded hover:bg-blue-50 text-[var(--text-muted)] hover:text-blue-600" title="Mark as sent (no email)">
                             <Send className="w-3.5 h-3.5" />
                           </button>
                         </>

@@ -3,10 +3,27 @@ import React from 'react';
 import { sanitizeHtml } from '../services/sanitizeService';
 import { ChecklistItemState,ForkliftConditionChecklist,Job,JobType } from '../types';
 
+/**
+ * Three rendering modes:
+ *   - 'customer' — `showPrices=false` legacy semantic. Used when admin selects
+ *     "Hide prices" on the print options modal. Customer-facing report
+ *     without unit/total prices.
+ *   - 'admin' (default) — `showPrices=true` legacy. Customer-facing report
+ *     WITH unit/total prices, matching the bill the customer pays.
+ *   - 'internal_cost' — admin-only management view. Adds Cost (RM) and
+ *     Margin (RM) columns next to the existing Amount(RM), plus a
+ *     gross-margin total in the footer. Uses `cost_price_at_time` from
+ *     each `job_parts` row (snapshot taken at part-add time, see
+ *     20260502_acwer_followup_cost_at_time.sql).
+ */
+type ReportView = 'customer' | 'admin' | 'internal_cost';
+
 interface ServiceReportProps {
   job: Job;
   reportNumber?: string;
+  /** Legacy boolean prop. If `view` is set, that takes precedence. */
   showPrices?: boolean;
+  view?: ReportView;
   companyInfo?: {
     name: string;
     address: string;
@@ -34,15 +51,26 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
   job,
   reportNumber,
   showPrices = true,
+  view,
   companyInfo = defaultCompanyInfo
 }) => {
   const checklist = job.condition_checklist || {};
-  
+
+  // Resolve the rendering mode. `view` wins over the legacy `showPrices`.
+  const resolvedView: ReportView = view ?? (showPrices ? 'admin' : 'customer');
+  const renderPriceColumns = resolvedView !== 'customer';
+  const renderInternalCost = resolvedView === 'internal_cost';
+
   // Calculate totals
   const totalParts = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
   const labor = job.labor_cost || 0;
   const extra = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
   const total = totalParts + labor + extra;
+  const totalCost = job.parts_used.reduce(
+    (acc, p) => acc + ((p.cost_price_at_time ?? 0) * p.quantity),
+    0,
+  );
+  const grossMargin = total - totalCost;
 
   const renderCheckbox = (checked?: ChecklistItemState) => (
     <span className={`inline-block w-4 h-4 border border-slate-400 mr-1 text-center leading-4 ${checked ? 'bg-green-100' : ''}`}>
@@ -255,6 +283,11 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
       </div>
 
       {/* Parts Table */}
+      {renderInternalCost && (
+        <div className="mb-2 px-2 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded font-semibold">
+          ⚠️ INTERNAL MANAGEMENT VIEW — Contains cost prices and margin. Do not share with customer.
+        </div>
+      )}
       <table className="w-full border-collapse mb-4 text-xs">
         <thead>
           <tr className="bg-slate-100">
@@ -262,21 +295,30 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
             <th className="border border-slate-300 p-2 text-left w-24">Item Code</th>
             <th className="border border-slate-300 p-2 text-left">Item Description</th>
             <th className="border border-slate-300 p-2 text-center w-16">Qty</th>
-            {showPrices && <th className="border border-slate-300 p-2 text-right w-24">Unit Price</th>}
-            {showPrices && <th className="border border-slate-300 p-2 text-right w-28">Amount(RM)</th>}
+            {renderPriceColumns && <th className="border border-slate-300 p-2 text-right w-24">Unit Price</th>}
+            {renderPriceColumns && <th className="border border-slate-300 p-2 text-right w-28">Amount(RM)</th>}
+            {renderInternalCost && <th className="border border-slate-300 p-2 text-right w-24 bg-amber-100">Cost(RM)</th>}
+            {renderInternalCost && <th className="border border-slate-300 p-2 text-right w-24 bg-amber-100">Margin(RM)</th>}
           </tr>
         </thead>
         <tbody>
-          {job.parts_used.map((part, idx) => (
-            <tr key={part.job_part_id}>
-              <td className="border border-slate-300 p-2">{idx + 1}</td>
-              <td className="border border-slate-300 p-2 font-mono">{part.part_id.slice(0, 6)}</td>
-              <td className="border border-slate-300 p-2">{part.part_name}</td>
-              <td className="border border-slate-300 p-2 text-center">{part.quantity} unit</td>
-              {showPrices && <td className="border border-slate-300 p-2 text-right">{part.sell_price_at_time.toFixed(2)}</td>}
-              {showPrices && <td className="border border-slate-300 p-2 text-right">{(part.quantity * part.sell_price_at_time).toFixed(2)}</td>}
-            </tr>
-          ))}
+          {job.parts_used.map((part, idx) => {
+            const partCost = (part.cost_price_at_time ?? 0) * part.quantity;
+            const partRevenue = part.sell_price_at_time * part.quantity;
+            const partMargin = partRevenue - partCost;
+            return (
+              <tr key={part.job_part_id}>
+                <td className="border border-slate-300 p-2">{idx + 1}</td>
+                <td className="border border-slate-300 p-2 font-mono">{part.part_id.slice(0, 6)}</td>
+                <td className="border border-slate-300 p-2">{part.part_name}</td>
+                <td className="border border-slate-300 p-2 text-center">{part.quantity} unit</td>
+                {renderPriceColumns && <td className="border border-slate-300 p-2 text-right">{part.sell_price_at_time.toFixed(2)}</td>}
+                {renderPriceColumns && <td className="border border-slate-300 p-2 text-right">{partRevenue.toFixed(2)}</td>}
+                {renderInternalCost && <td className="border border-slate-300 p-2 text-right bg-amber-50">{partCost.toFixed(2)}</td>}
+                {renderInternalCost && <td className={`border border-slate-300 p-2 text-right bg-amber-50 ${partMargin < 0 ? 'text-red-600 font-semibold' : ''}`}>{partMargin.toFixed(2)}</td>}
+              </tr>
+            );
+          })}
           {/* Empty rows for writing */}
           {[...Array(Math.max(0, 5 - job.parts_used.length))].map((_, idx) => (
             <tr key={`empty-${idx}`}>
@@ -284,23 +326,39 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
               <td className="border border-slate-300 p-2">&nbsp;</td>
               <td className="border border-slate-300 p-2">&nbsp;</td>
               <td className="border border-slate-300 p-2">&nbsp;</td>
-              {showPrices && <td className="border border-slate-300 p-2">&nbsp;</td>}
-              {showPrices && <td className="border border-slate-300 p-2">&nbsp;</td>}
+              {renderPriceColumns && <td className="border border-slate-300 p-2">&nbsp;</td>}
+              {renderPriceColumns && <td className="border border-slate-300 p-2">&nbsp;</td>}
+              {renderInternalCost && <td className="border border-slate-300 p-2 bg-amber-50">&nbsp;</td>}
+              {renderInternalCost && <td className="border border-slate-300 p-2 bg-amber-50">&nbsp;</td>}
             </tr>
           ))}
         </tbody>
-        {showPrices && (
+        {renderPriceColumns && (
           <tfoot>
             <tr>
               <td colSpan={4}></td>
               <td className="border border-slate-300 p-2 text-right font-semibold">Labor:</td>
               <td className="border border-slate-300 p-2 text-right">{labor.toFixed(2)}</td>
+              {renderInternalCost && <td className="border border-slate-300 p-2 bg-amber-50"></td>}
+              {renderInternalCost && <td className="border border-slate-300 p-2 text-right bg-amber-50">{labor.toFixed(2)}</td>}
             </tr>
             <tr>
               <td colSpan={4}></td>
               <td className="border border-slate-300 p-2 text-right font-bold">TOTAL AMOUNT (RM)</td>
               <td className="border border-slate-300 p-2 text-right font-bold">{total.toFixed(2)}</td>
+              {renderInternalCost && <td className="border border-slate-300 p-2 text-right font-bold bg-amber-100">{totalCost.toFixed(2)}</td>}
+              {renderInternalCost && <td className={`border border-slate-300 p-2 text-right font-bold bg-amber-100 ${grossMargin < 0 ? 'text-red-700' : 'text-emerald-700'}`}>{grossMargin.toFixed(2)}</td>}
             </tr>
+            {renderInternalCost && (
+              <tr>
+                <td colSpan={6} className="border border-slate-300 p-2 text-right font-semibold bg-amber-100 text-amber-900">
+                  Gross margin %
+                </td>
+                <td colSpan={2} className={`border border-slate-300 p-2 text-right font-bold bg-amber-100 ${grossMargin < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
+                  {total > 0 ? ((grossMargin / total) * 100).toFixed(1) : '0.0'}%
+                </td>
+              </tr>
+            )}
           </tfoot>
         )}
       </table>
@@ -358,19 +416,36 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
   );
 };
 
-// Function to open print dialog for service report
-export const printServiceReport = (job: Job, reportNumber?: string, showPrices: boolean = true) => {
+// Function to open print dialog for service report.
+// Backward-compatible signature: legacy callers pass `showPrices: boolean`,
+// new callers can pass `view: ReportView`. When both are passed, `view`
+// wins. Defaults to admin view (showPrices=true).
+export const printServiceReport = (
+  job: Job,
+  reportNumber?: string,
+  showPrices: boolean = true,
+  view?: ReportView,
+) => {
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     alert('Please allow pop-ups to print the service report');
     return;
   }
 
+  const resolvedView: ReportView = view ?? (showPrices ? 'admin' : 'customer');
+  const renderPriceColumns = resolvedView !== 'customer';
+  const renderInternalCost = resolvedView === 'internal_cost';
+
   const checklist = job.condition_checklist || {};
   const totalParts = job.parts_used.reduce((acc, p) => acc + (p.sell_price_at_time * p.quantity), 0);
   const labor = job.labor_cost || 0;
   const extra = (job.extra_charges || []).reduce((acc, c) => acc + c.amount, 0);
   const total = totalParts + labor + extra;
+  const totalCost = job.parts_used.reduce(
+    (acc, p) => acc + ((p.cost_price_at_time ?? 0) * p.quantity),
+    0,
+  );
+  const grossMargin = total - totalCost;
 
   const renderCheckMark = (checked?: 'ok' | 'not_ok' | boolean | undefined) => {
     if (checked === 'ok' || checked === true) return '✓';
@@ -571,40 +646,60 @@ export const printServiceReport = (job: Job, reportNumber?: string, showPrices: 
             <th style="width: 80px;">Item Code</th>
             <th>Item Description</th>
             <th style="width: 50px;" class="text-center">Qty</th>
-            ${showPrices ? '<th style="width: 80px;" class="text-right">Unit Price</th>' : ''}
-            ${showPrices ? '<th style="width: 90px;" class="text-right">Amount(RM)</th>' : ''}
+            ${renderPriceColumns ? '<th style="width: 80px;" class="text-right">Unit Price</th>' : ''}
+            ${renderPriceColumns ? '<th style="width: 90px;" class="text-right">Amount(RM)</th>' : ''}
+            ${renderInternalCost ? '<th style="width: 80px; background:#fef3c7;" class="text-right">Cost(RM)</th>' : ''}
+            ${renderInternalCost ? '<th style="width: 80px; background:#fef3c7;" class="text-right">Margin(RM)</th>' : ''}
           </tr>
         </thead>
         <tbody>
-          ${job.parts_used.map((part, idx) => `
+          ${job.parts_used.map((part, idx) => {
+            const partCost = (part.cost_price_at_time ?? 0) * part.quantity;
+            const partRevenue = part.sell_price_at_time * part.quantity;
+            const partMargin = partRevenue - partCost;
+            const marginColor = partMargin < 0 ? 'color:#dc2626;font-weight:600;' : '';
+            return `
             <tr>
               <td>${idx + 1}</td>
               <td style="font-family: monospace;">${sanitizeHtml(part.part_id.slice(0, 6))}</td>
               <td>${sanitizeHtml(part.part_name)}</td>
               <td class="text-center">${part.quantity}</td>
-              ${showPrices ? `<td class="text-right">${part.sell_price_at_time.toFixed(2)}</td>` : ''}
-              ${showPrices ? `<td class="text-right">${(part.quantity * part.sell_price_at_time).toFixed(2)}</td>` : ''}
+              ${renderPriceColumns ? `<td class="text-right">${part.sell_price_at_time.toFixed(2)}</td>` : ''}
+              ${renderPriceColumns ? `<td class="text-right">${partRevenue.toFixed(2)}</td>` : ''}
+              ${renderInternalCost ? `<td class="text-right" style="background:#fef9c3;">${partCost.toFixed(2)}</td>` : ''}
+              ${renderInternalCost ? `<td class="text-right" style="background:#fef9c3;${marginColor}">${partMargin.toFixed(2)}</td>` : ''}
             </tr>
-          `).join('')}
+          `;}).join('')}
           ${[...Array(Math.max(0, 5 - job.parts_used.length))].map(() => `
-            <tr><td>&nbsp;</td><td></td><td></td><td></td>${showPrices ? '<td></td><td></td>' : ''}</tr>
+            <tr><td>&nbsp;</td><td></td><td></td><td></td>${renderPriceColumns ? '<td></td><td></td>' : ''}${renderInternalCost ? '<td style="background:#fef9c3;"></td><td style="background:#fef9c3;"></td>' : ''}</tr>
           `).join('')}
         </tbody>
-        ${showPrices ? `
+        ${renderPriceColumns ? `
         <tfoot>
           <tr>
             <td colspan="4"></td>
             <td class="text-right"><strong>Labor:</strong></td>
             <td class="text-right">${labor.toFixed(2)}</td>
+            ${renderInternalCost ? '<td style="background:#fef9c3;"></td>' : ''}
+            ${renderInternalCost ? `<td class="text-right" style="background:#fef9c3;">${labor.toFixed(2)}</td>` : ''}
           </tr>
           <tr>
             <td colspan="4"></td>
             <td class="text-right"><strong>TOTAL (RM)</strong></td>
             <td class="text-right"><strong>${total.toFixed(2)}</strong></td>
+            ${renderInternalCost ? `<td class="text-right" style="background:#fef3c7;"><strong>${totalCost.toFixed(2)}</strong></td>` : ''}
+            ${renderInternalCost ? `<td class="text-right" style="background:#fef3c7;${grossMargin < 0 ? 'color:#b91c1c;' : 'color:#047857;'}"><strong>${grossMargin.toFixed(2)}</strong></td>` : ''}
           </tr>
+          ${renderInternalCost ? `
+          <tr>
+            <td colspan="6" class="text-right" style="background:#fef3c7; font-weight:600;">Gross margin %</td>
+            <td colspan="2" class="text-right" style="background:#fef3c7; font-weight:700; ${grossMargin < 0 ? 'color:#b91c1c;' : 'color:#047857;'}">${total > 0 ? ((grossMargin / total) * 100).toFixed(1) : '0.0'}%</td>
+          </tr>
+          ` : ''}
         </tfoot>
         ` : ''}
       </table>
+      ${renderInternalCost ? `<div style="margin-top:8px; padding:6px 10px; background:#fef3c7; border:1px solid #fcd34d; color:#92400e; font-size:11px; font-weight:600; border-radius:4px;">⚠️ INTERNAL MANAGEMENT VIEW — Contains cost prices and margin. Do not share with customer.</div>` : ''}
 
       <div class="footer-grid">
         <div>

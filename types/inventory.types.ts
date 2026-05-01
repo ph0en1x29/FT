@@ -47,6 +47,13 @@ export interface JobPartUsed {
   part_name: string;
   quantity: number;
   sell_price_at_time: number;
+  /**
+   * ACWER Phase 9b — snapshot of `parts.cost_price` at the moment this row
+   * was added to the job. Used by `ServiceReportPDF view='internal_cost'`
+   * to render the internal margin column. NULL on legacy rows backfilled
+   * with the current `parts.cost_price` value (approximate).
+   */
+  cost_price_at_time?: number | null;
   // Reconciliation (filled by Admin 2 / Store during parts verification)
   quantity_used?: number | null;
   quantity_returned?: number | null;

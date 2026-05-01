@@ -408,6 +408,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       <ReportOptionsModal
         show={state.showReportOptionsModal}
         onSelect={actions.handleConfirmPrintServiceReport}
+        onSelectView={actions.handleConfirmPrintServiceReportView}
+        canViewInternalCost={roleFlags.isAdmin || roleFlags.isAdminService || roleFlags.isSupervisor}
         onClose={() => state.setShowReportOptionsModal(false)}
       />
       {/* ACWER Phase 6 + Phase 1+ — accident flag + manual path override */}

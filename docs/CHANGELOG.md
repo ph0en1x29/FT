@@ -41,6 +41,32 @@
 
 # Changelog
 
+## [2026-05-02] — ACWER follow-ups round 2 (Quotation PDF + email send, cost-margin report, RLS hardening)
+
+### Added
+
+- **Quotation PDF + email send.** New `components/QuotationPDF.tsx` (`printQuotation(quotation)` opens a styled HTML doc + triggers browser print/save-as-PDF) wired into `QuotationsSection` via a Print icon. New "Email customer" flow (Mail icon) opens the user's default mail client with a pre-filled subject and body (using the customer's primary contact email if available), triggers print so admin can attach the PDF, and marks the quotation as 'sent' in the background. Same "user attaches manually" pattern as the existing invoice send.
+- **Internal Management report variant** (Tier 4.2 — was deferred; built now). New 3-way `view` prop on `ServiceReportPDF` (`'customer' | 'admin' | 'internal_cost'`). The internal_cost mode adds Cost(RM) + Margin(RM) columns per part, a gross-margin total, gross margin %, and a clear "INTERNAL MANAGEMENT VIEW — Do not share with customer" warning banner. Backed by a new `job_parts.cost_price_at_time` column (snapshot of the part's cost at the moment it was added to the job; backfilled to all 311 existing rows from current `parts.cost_price`). The 3-way ReportOptionsModal now exposes "Customer Copy / Admin Copy / Internal Management" choices, with the Internal option gated to admin/admin_service/supervisor. Legacy 2-way `showPrices` callers continue to work unchanged.
+
+### Fixed (audit findings)
+
+- **`quotations` RLS was over-permissive.** The legacy `quotations_auth_all` policy was `auth.uid() IS NOT NULL` — any authenticated user (including technicians) could read AND write any quotation. Replaced with `quotations_admin` (admin/admin_service/supervisor write only) + `quotations_read` (all authenticated roles read), matching the pattern used on every other ACWER table (`service_contracts`, `parts_usage_quotas`, `recurring_schedules`, `acwer_settings`). Migration: `20260502_acwer_followup_quotations_rls.sql`. The new QuotationsSection UI already gated the write paths at the React layer; this enforces the same intent at the DB layer.
+
+### Verification
+
+- 4 cross-cutting rounds, 16/16 sub-checks passing: typecheck (×2), build (2651 modules, all chunks within budget), lint (0 errors / 65 warnings), live-DB integrity sweep (cost_price_at_time backfill complete 311/311; quotations RLS exactly 2 policies; all 5 ACWER tables, 6 jobs columns, 4 job_parts columns, 4 RPCs, 1 active cron job intact; both feature flags still FALSE; no orphan classified-but-no-reason jobs).
+- Audit clean: no `loadJob()` in new mutation flows (uses `setJob({...updated})` per the realtime self-echo dedupe contract from CLAUDE.md); React Query invalidation correctly placed after every new mutation; field names verified against schema; async effects have proper `cancelled` flag; role values consistent between UI lower-casing and DB-side string match.
+
+### Scope notes
+
+- **Net production-behavior change: NONE.** Both feature flags (`feature_deduct_on_finalize`, `autocount_settings.auto_export_on_finalize`) remain FALSE. Quotation Print/Email buttons + Internal Management report variant are all admin-gated via the existing role checks. No previously-working flow regressed.
+- The email send is `mailto:`-based (opens the user's mail client) — there's still no FT backend email function, so the actual delivery is the admin's job. The "marked as sent" status update happens regardless.
+- Cost data integrity for `cost_price_at_time` on legacy rows is approximate (uses current `parts.cost_price` at backfill time). New rows capture the value at insertion and are accurate.
+
+---
+
+
+
 ## [2026-05-02] — Fix: technician customer name now visible on JobDetail
 
 ### Fixes
