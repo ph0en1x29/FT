@@ -1,6 +1,7 @@
 import { Loader2, MapPin } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { supabase } from '../../services/supabaseService';
@@ -44,7 +45,8 @@ const AdminMapPage: React.FC = () => {
   useEffect(() => {
     const fetchSites = async () => {
       try {
-        // Get sites with coordinates
+        // Step 1: get sites with coordinates. Need this first for the
+        // siteIds and customerIds the dependent queries rely on.
         const { data: siteData } = await supabase
           .from('customer_sites')
           .select('site_id, site_name, address, latitude, longitude, customer_id')
@@ -57,29 +59,31 @@ const AdminMapPage: React.FC = () => {
           return;
         }
 
-        // Get active job counts per site
         const siteIds = siteData.map(s => s.site_id);
-        const { data: jobCounts } = await supabase
-          .from('jobs')
-          .select('site_id')
-          .in('site_id', siteIds)
-          .is('deleted_at', null)
-          .in('status', ['new', 'assigned', 'in_progress', 'pending_review']);
+        const customerIds = [...new Set(siteData.map(s => s.customer_id))];
+
+        // Step 2: fan out the two dependent queries (active job counts +
+        // customer names) in parallel. Was a 3-query waterfall.
+        const [jobCountsRes, customersRes] = await Promise.all([
+          supabase
+            .from('jobs')
+            .select('site_id')
+            .in('site_id', siteIds)
+            .is('deleted_at', null)
+            .in('status', ['new', 'assigned', 'in_progress', 'pending_review']),
+          supabase
+            .from('customers')
+            .select('customer_id, name')
+            .in('customer_id', customerIds),
+        ]);
 
         const countMap: Record<string, number> = {};
-        jobCounts?.forEach(j => {
+        jobCountsRes.data?.forEach(j => {
           countMap[j.site_id] = (countMap[j.site_id] || 0) + 1;
         });
 
-        // Get customer names
-        const customerIds = [...new Set(siteData.map(s => s.customer_id))];
-        const { data: customers } = await supabase
-          .from('customers')
-          .select('customer_id, name')
-          .in('customer_id', customerIds);
-
         const customerMap: Record<string, string> = {};
-        customers?.forEach(c => { customerMap[c.customer_id] = c.name; });
+        customersRes.data?.forEach(c => { customerMap[c.customer_id] = c.name; });
 
         setSites(siteData.map(s => ({
           site_id: s.site_id,
@@ -139,24 +143,26 @@ const AdminMapPage: React.FC = () => {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <MapResizer />
-            {sites.map(site => (
-              <Marker key={site.site_id} position={[site.latitude, site.longitude]}>
-                <Popup>
-                  <div className="text-sm min-w-[180px]">
-                    <p className="font-bold text-slate-800">{site.site_name}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{site.customer_name}</p>
-                    {site.address && (
-                      <p className="text-xs text-slate-600 mt-1">{site.address}</p>
-                    )}
-                    <div className="mt-2 pt-1.5 border-t border-slate-200">
-                      <span className={`text-xs font-medium ${site.active_job_count > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
-                        {site.active_job_count} active job{site.active_job_count !== 1 ? 's' : ''}
-                      </span>
+            <MarkerClusterGroup chunkedLoading maxClusterRadius={60}>
+              {sites.map(site => (
+                <Marker key={site.site_id} position={[site.latitude, site.longitude]}>
+                  <Popup>
+                    <div className="text-sm min-w-[180px]">
+                      <p className="font-bold text-slate-800">{site.site_name}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{site.customer_name}</p>
+                      {site.address && (
+                        <p className="text-xs text-slate-600 mt-1">{site.address}</p>
+                      )}
+                      <div className="mt-2 pt-1.5 border-t border-slate-200">
+                        <span className={`text-xs font-medium ${site.active_job_count > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                          {site.active_job_count} active job{site.active_job_count !== 1 ? 's' : ''}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+                  </Popup>
+                </Marker>
+              ))}
+            </MarkerClusterGroup>
           </MapContainer>
         )}
       </div>

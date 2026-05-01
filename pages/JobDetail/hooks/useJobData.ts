@@ -2,6 +2,7 @@ import { useCallback,useEffect,useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
+import type { Job, VanStock } from '../../../types';
 import { UserRole } from '../../../types';
 import { JobDetailState } from './useJobDetailState';
 import { useJobRealtime } from './useJobRealtime';
@@ -37,36 +38,47 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
     if (!jobId) return;
     if (!opts?.silent) setLoading(true);
     try {
+      // Step 1: fetch the job row (need data.forklift_id and data.job_van_stock_id
+      // before we can fan out the dependent queries).
       const data = await MockDb.getJobById(jobId);
       setJob(data ? { ...data } : null);
-      if (data) {
-        const serviceRecord = await MockDb.getJobServiceRecord(jobId);
-        if (serviceRecord) setNoPartsUsed(serviceRecord.no_parts_used || false);
-        if (data.forklift_id) {
-          const rental = await MockDb.getActiveRentalForForklift(data.forklift_id);
-          setActiveRental(rental);
-        }
-        if (data.helper_assignment) {
-          const isHelper = data.helper_assignment.technician_id === currentUserId;
-          setIsCurrentUserHelper(isHelper);
-          if (isHelper) setHelperAssignmentId(data.helper_assignment.assignment_id);
-        } else {
-          setIsCurrentUserHelper(false);
-          setHelperAssignmentId(null);
-        }
-        // Load van stock for the selected van (or tech's default) + available vans list
-        if (currentUserRole === UserRole.TECHNICIAN) {
-          try {
-            const [vanData, activeVans] = await Promise.all([
+      if (!data) return;
+
+      // Step 2: fan out the dependent fetches in parallel. Each branch swallows
+      // its own non-critical failures so a missing service record / rental /
+      // van stock doesn't kill the whole detail load.
+      const isTech = currentUserRole === UserRole.TECHNICIAN;
+      const [serviceRecord, rental, vanResult] = await Promise.all([
+        MockDb.getJobServiceRecord(jobId).catch(() => null),
+        data.forklift_id
+          ? MockDb.getActiveRentalForForklift(data.forklift_id).catch(() => null)
+          : Promise.resolve(null),
+        isTech
+          ? Promise.all([
               data.job_van_stock_id
                 ? MockDb.getVanStockById(data.job_van_stock_id)
                 : MockDb.getVanStockByTechnician(currentUserId),
-              MockDb.getActiveVansList(), // Lightweight: no items loaded, just van info for dropdown
-            ]);
-            setVanStock(vanData);
-            setAvailableVans(activeVans);
-          } catch { /* ignore */ }
-        }
+              MockDb.getActiveVansList(),
+            ]).catch(() => [null, [] as VanStock[]] as [VanStock | null, VanStock[]])
+          : Promise.resolve([null, [] as VanStock[]] as [VanStock | null, VanStock[]]),
+      ]);
+
+      if (serviceRecord) setNoPartsUsed(serviceRecord.no_parts_used || false);
+      setActiveRental(rental);
+
+      if (data.helper_assignment) {
+        const isHelper = data.helper_assignment.technician_id === currentUserId;
+        setIsCurrentUserHelper(isHelper);
+        if (isHelper) setHelperAssignmentId(data.helper_assignment.assignment_id);
+      } else {
+        setIsCurrentUserHelper(false);
+        setHelperAssignmentId(null);
+      }
+
+      if (isTech) {
+        const [vanData, activeVans] = vanResult;
+        setVanStock(vanData);
+        setAvailableVans(activeVans);
       }
     } catch {
       showToast.error('Failed to load job');
@@ -74,7 +86,7 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
     } finally {
       setLoading(false);
     }
-  }, [jobId, currentUserId, setJob, setLoading, setNoPartsUsed, setActiveRental, setIsCurrentUserHelper, setHelperAssignmentId]);
+  }, [jobId, currentUserId, currentUserRole, setJob, setLoading, setNoPartsUsed, setActiveRental, setIsCurrentUserHelper, setHelperAssignmentId, setVanStock, setAvailableVans]);
 
   const loadRequests = useCallback(async () => {
     if (!jobId) return;
@@ -103,13 +115,26 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
   loadJobRef.current = loadJob;
   loadRequestsRef.current = loadRequests;
 
+  // Apply a flat row patch from a realtime event without re-fetching the
+  // full DETAIL shape (with media + parts + extra_charges joins). Used when
+  // the changed columns don't imply a joined table changed.
+  const applyJobPatch = useCallback((patch: Partial<Job>) => {
+    setJob(prev => (prev ? ({ ...prev, ...patch } as Job) : prev));
+  }, [setJob]);
+
   // Real-time subscription - use stable callbacks via refs
   useJobRealtime({
     jobId,
     currentUserId,
     lastSeenUpdatedAtRef,
     onJobDeleted: () => navigate('/jobs'),
-    onJobUpdated: useCallback(() => loadJobRef.current(), []),
+    onJobUpdated: useCallback((patch, requiresFullReload) => {
+      if (requiresFullReload) {
+        loadJobRef.current({ silent: true });
+      } else {
+        applyJobPatch(patch as Partial<Job>);
+      }
+    }, [applyJobPatch]),
     onRequestsUpdated: useCallback(() => loadRequestsRef.current(), []),
   });
 

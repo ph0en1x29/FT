@@ -70,7 +70,7 @@ export const JobListTable: React.FC<JobListTableProps> = ({
           <span className="flex-[2] min-w-0">Title</span>
           {canViewCustomerName && <span className="flex-[2] min-w-0">Customer</span>}
           <span className="flex-1 min-w-0">Equipment</span>
-          <span className="flex-[1.5] min-w-0">Assignee</span>
+          {!isTechnician && <span className="flex-[1.5] min-w-0">Assignee</span>}
           <span className="shrink-0 w-[85px]">Scheduled</span>
           <span className="shrink-0 w-10"></span>
         </div>

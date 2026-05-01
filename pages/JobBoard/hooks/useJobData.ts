@@ -71,6 +71,10 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
   // `[]` deps and reads the latest functions through these refs.
   const fetchJobsRef = useRef<(() => Promise<void>) | null>(null);
   const fetchCountsRef = useRef<(() => Promise<void>) | null>(null);
+  // Trailing-debounce timer for the count refetch. The realtime stream can
+  // emit 5-20 UPDATE/INSERT events per second on a busy day; without this,
+  // each one fires 11 parallel HEAD count queries.
+  const fetchCountsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Re-fetch only the server-side status counts (without re-fetching the
   // paginated job list). Used by the realtime handlers below so that
@@ -86,6 +90,20 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
       // wipe the previous values. Counts will recover on the next event.
     }
   }, [currentUser]);
+
+  // Debounced wrapper used by realtime handlers. Collapses bursts of UPDATE/
+  // INSERT events into one count fetch — KPI tiles lag at most ~750ms behind
+  // a status change, which is well within the perception threshold for a
+  // multi-user board, in exchange for ~10× fewer count queries.
+  const scheduleFetchCounts = useCallback(() => {
+    if (fetchCountsDebounceRef.current) {
+      clearTimeout(fetchCountsDebounceRef.current);
+    }
+    fetchCountsDebounceRef.current = setTimeout(() => {
+      fetchCountsRef.current?.();
+      fetchCountsDebounceRef.current = null;
+    }, 750);
+  }, []);
 
   // Fetch jobs function (extracted for reuse).
   // Issues the page query and the server-side status-count query in parallel so
@@ -190,7 +208,7 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
             });
             // Re-fetch counts so QuickStats reflects the deletion even when
             // the row wasn't in the loaded page.
-            fetchCountsRef.current?.();
+            scheduleFetchCounts();
             return;
           }
 
@@ -225,8 +243,9 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
           });
           // Re-fetch counts on every UPDATE — status changes, slot-in
           // acknowledgements, escalation flips, etc. can all shift counts.
-          // 11 parallel HEAD queries; cheap and keeps QuickStats honest.
-          fetchCountsRef.current?.();
+          // Debounced (~750ms trailing) so a burst of edits collapses into
+          // one fetch instead of 11 HEAD queries × N events.
+          scheduleFetchCounts();
         }
       )
       .on(
@@ -247,8 +266,8 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
               return [newJob as JobWithHelperFlag, ...prevJobs];
             });
             // Re-fetch counts so the new row's status and (if applicable) its
-            // slot-in pending-ack contribution land in QuickStats.
-            fetchCountsRef.current?.();
+            // slot-in pending-ack contribution land in QuickStats. Debounced.
+            scheduleFetchCounts();
           }
         }
       )
@@ -257,6 +276,10 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
       });
 
     return () => {
+      if (fetchCountsDebounceRef.current) {
+        clearTimeout(fetchCountsDebounceRef.current);
+        fetchCountsDebounceRef.current = null;
+      }
       supabase.removeChannel(channel);
     };
   // Stable subscription — no dependency on fetchJobs

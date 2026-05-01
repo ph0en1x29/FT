@@ -153,8 +153,13 @@ export const getCustomersPage = async (filters: CustomersPageFilters = {}): Prom
 
   if (searchQuery) {
     const escaped = searchQuery.replace(/[%_,]/g, '');
+    // Limited to columns backed by a pg_trgm GIN index (see migration
+    // 20260501_search_perf_trigram_and_low_stock.sql). Searching un-indexed
+    // text columns via ILIKE forces a sequential scan that wipes out the
+    // index benefit on the others. Add more columns to the search clause
+    // only after adding a matching trigram index for them.
     query = query.or(
-      `name.ilike.%${escaped}%,address.ilike.%${escaped}%,email.ilike.%${escaped}%,account_number.ilike.%${escaped}%,agent.ilike.%${escaped}%,phone.ilike.%${escaped}%,phone_secondary.ilike.%${escaped}%,registration_no.ilike.%${escaped}%,tax_entity_id.ilike.%${escaped}%,credit_term.ilike.%${escaped}%,contact_person.ilike.%${escaped}%,notes.ilike.%${escaped}%`
+      `name.ilike.%${escaped}%,phone.ilike.%${escaped}%,account_number.ilike.%${escaped}%,email.ilike.%${escaped}%,address.ilike.%${escaped}%`
     );
   }
 

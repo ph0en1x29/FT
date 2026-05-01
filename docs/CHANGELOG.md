@@ -1,5 +1,47 @@
 # Changelog
 
+## [2026-05-01] — Performance & duplicate-data overhaul + technician view tweaks
+
+### Fixes
+
+- **JobBoard count refetches no longer hammer the API on every realtime event.** Status-count math on the kanban board ran 11 parallel `count: 'exact', head: true` queries to the `jobs` table on every UPDATE/INSERT — on a busy day with multiple admins/supervisors editing jobs, this added up to thousands of count round-trips per session. A 750 ms trailing debounce in `pages/JobBoard/hooks/useJobData.ts` now collapses bursts of realtime events into one fetch, and `services/jobReadService.ts:getJobStatusCounts` calls the new `get_job_status_counts(p_user_id, p_is_technician)` RPC which returns all 11 counts as a single jsonb in one round-trip. Net: ~10× fewer pooler connections per board load + per refresh.
+- **JobDetail mount cut from 3 sequential round-trips to 1 + a parallel fan-out.** `pages/JobDetail/hooks/useJobData.ts:loadJob` previously awaited `getJobById`, then `getJobServiceRecord`, then `getActiveRentalForForklift` in series — ~150-300 ms wasted on every detail open. The dependent fetches now run via `Promise.all`, with each branch swallowing non-critical failures so a missing service record / rental / van stock doesn't kill the whole load.
+- **Notifications page no longer double-loads on mount.** The page used to fire its own paginated SELECT *and* re-fetch the same rows via the realtime context, then merge them with an O(n²) `.find()` inside `.map()` on every realtime update — visible as flicker and apparent duplicates. `pages/NotificationsPage.tsx` now reads directly from `NotificationContext`'s realtime cache and only goes to the database for pages beyond the cached 50 rows. One fewer SELECT on mount, no quadratic merge.
+- **Admin Site Map smooth at 200+ sites with marker clustering.** `pages/AdminMap/AdminMapPage.tsx` previously fired three sequential queries (sites → jobs → customers) and rendered each site as a raw Leaflet marker. The dependent jobs + customers fetches now run via `Promise.all`, and `react-leaflet-cluster@4.1.3` (peer-compatible with React 19 + react-leaflet 5) collapses overlapping markers into clusters that split as the user zooms in.
+- **Realtime notification handler no longer fires a per-row SELECT to filter deleted-job notifications.** `utils/useRealtimeNotifications.ts:handleNewNotification` used to do an extra single-row `select('deleted_at')` on every incoming notification — and the live audit found 0 matching rows, meaning the filter was pure overhead. The filter is now enforced at the database layer via a BEFORE INSERT trigger (`trg_notifications_skip_deleted`) that drops INSERTs referencing soft-deleted jobs before they hit the `notifications` table. Client filter and its callsites in `loadNotifications` / `refresh` are removed.
+- **Customer search and parts search no longer do full table scans on every keystroke.** Both used `ilike '%term%'` across multiple columns (12 / 4 respectively) with no trigram index — a sequential scan after the debounce. Five `pg_trgm` GIN indexes added on the highest-value customer columns (`name`, `phone`, `account_number`, `email`, `address`) and two on parts (`part_name`, `part_code`); the service `or(...)` clauses are tightened to match indexed columns only (otherwise un-indexed ILIKEs would defeat the new indexes). Category and supplier are usually selected via dropdown, not free-text — they go through `.eq()` filters now.
+- **Inventory low-stock filter no longer loops the entire 3306-row catalog.** `services/partsService.ts:getLowStockPartIds` previously fetched the catalog 1000 rows at a time and applied `isPartLowStock` in JS. A new `STORED` generated column `parts.effective_stock` (mirrors the JS predicate exactly — `container_quantity + bulk_quantity` for liquids, else `stock_quantity`) plus partial indexes on the low/OOS predicates back the new RPC `get_low_stock_part_ids(p_search_query, p_category)` which expresses the column-vs-column predicate PostgREST can't. `getInventoryCatalogStats` likewise replaced with `get_inventory_catalog_stats()` — a single SQL aggregate returning all 5 dashboard counts in one round-trip instead of looping the catalog. Three dead helpers (`isPartLowStock`, `isPartOutOfStock`, `PartStockSnapshot`, `PARTS_STATS_SELECT`) and the `checkStockMismatch` import are removed.
+- **Store admin dashboard no longer loads the entire parts catalog into memory just to compute counts.** `components/dashboards/DashboardPreviewV4/components/StoreAdminDashboard.tsx` previously called `getParts()` (which paginated all 3306 rows) and reduced the result client-side to compute Low Stock and Out Of Stock tiles. It now calls `getInventoryCatalogStats()` for the counts and a 4-row `.order('effective_stock', { ascending: true }).limit(4)` query for the "lowest-stock preview" panel. The full catalog never lands in the browser.
+- **JobDetail no longer re-fetches the full DETAIL shape (with media + parts + extra_charges joins) on every other-user UPDATE.** `pages/JobDetail/hooks/useJobRealtime.ts` previously called `loadJob()` for every realtime event from another user — refetching the entire job row with all relations even when only a status flag flipped. The handler now passes a `requiresFullReload` flag derived from which columns actually changed; flat changes (status, assignment, time markers) apply via a new `applyJobPatch` helper and only relation-implying columns (`parts_confirmed_at`, `parts_confirmation_skipped`) trigger the full reload. Self-echo dedupe via `lastSeenUpdatedAtRef` continues to protect against your own writes.
+
+### Changed
+
+- **Technicians can now see customer name on JobBoard.** `types/user.types.ts:ROLE_PERMISSIONS[TECHNICIAN].canViewCustomerName` flipped from FALSE to TRUE per 2026-05-01 client request — they need to know which site they're heading to. The earlier comment ("HIDDEN from Technicians per client request") is replaced with the new rationale.
+- **Technicians no longer see the assigned-technician name on their own JobBoard.** Technicians only see jobs assigned to themselves — the name is redundant noise. `pages/JobBoard/components/JobCard.tsx`, `JobListRow.tsx`, and `JobListTable.tsx` gate the technician-name display on `!isTechnician`. The "Assignee" column header is hidden too. Admin/supervisor views are unchanged.
+
+### Database
+
+- New migrations applied to live DB:
+    - **`20260501_search_perf_trigram_and_low_stock.sql`** — `pg_trgm` extension; 7 GIN trigram indexes on customer + parts search columns; `parts.effective_stock` STORED generated column + 2 partial indexes; `get_low_stock_part_ids(text, text)` and `get_inventory_catalog_stats()` RPCs.
+    - **`20260501_skip_notifications_for_deleted_jobs.sql`** — BEFORE INSERT trigger on `notifications` that drops rows referencing soft-deleted jobs.
+    - **`20260501_job_status_counts_rpc.sql`** — `get_job_status_counts(uuid, boolean)` RPC returning all 11 jobs counts as jsonb in one query.
+- New dependency: **`react-leaflet-cluster@4.1.3`** (peer deps verified compatible with React 19 + react-leaflet 5).
+
+### Scope notes
+
+- A live audit confirmed 0 active duplicate `job_assignments` rows and 0 notifications-for-deleted-jobs. One historical duplicate `van_stock_usage` row from 2026-04-27 (likely a double-click — both rows quantity=1, ~1 second apart) was found and left in place; not worth a one-off cleanup migration. Adding an idempotency unique constraint to `van_stock_usage` is tracked separately for a future PR.
+- Did not refactor `JobBoard.tsx`'s `renderCards` / `renderList` function expressions — `JobCard` is already memoized and the prop-closure analysis showed limited gain. Did not virtualize lists (Customers / Service Records) — pagination already caps row count. Did not add `loading="lazy"` to job_media images — separate sweep.
+
+### Verification
+
+- `npm run lint` (typecheck + ESLint): 0 errors, 87 pre-existing warnings unchanged from prior session.
+- `npm run build`: green.
+- `get_job_status_counts(NULL, FALSE)` returns `{ total: 834, new: 31, assigned: 48, ... }`.
+- `get_inventory_catalog_stats()` returns `{ total: 3306, low_stock: 2472, out_of_stock: 358, liquid_mismatch: 3, total_value: 1504143.87 }`.
+- All 9 trigram + low-stock indexes confirmed in `pg_indexes`. Notifications trigger confirmed in `pg_trigger`.
+
+---
+
 ## [2026-05-01] — ACWER Service Operations Flow — Phases 9 + 10 (cost-visibility toggle confirmed; Path B quotation service scaffold)
 
 ### Verified (already-shipped feature, no code change)

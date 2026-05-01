@@ -7,11 +7,9 @@
 import type { Part } from '../types';
 import { supabase } from './supabaseClient';
 import { isLikelyLiquid } from '../types/inventory.types';
-import { checkStockMismatch } from './liquidInventoryService';
 
 const PARTS_SELECT = 'part_id, part_name, part_code, category, cost_price, sell_price, warranty_months, stock_quantity, last_updated_by, last_updated_by_name, updated_at, min_stock_level, supplier, location, unit, base_unit, container_unit, container_size, container_quantity, bulk_quantity, price_per_base_unit, is_liquid, avg_cost_per_liter, last_purchase_cost_per_liter, is_warranty_excluded';
 const PARTS_LIST_SELECT = 'part_id, part_name, part_code, category, cost_price, sell_price, stock_quantity, is_liquid, base_unit, container_unit, container_size, container_quantity, bulk_quantity, is_warranty_excluded';
-const PARTS_STATS_SELECT = 'part_id, category, part_code, cost_price, stock_quantity, min_stock_level, is_liquid, container_size, container_quantity, bulk_quantity';
 
 export interface PartsCatalogFilters {
   searchQuery?: string;
@@ -36,19 +34,6 @@ export interface InventoryCatalogStats {
   totalValue: number;
 }
 
-interface PartStockSnapshot {
-  part_id: string;
-  category: string;
-  part_code: string;
-  cost_price: number;
-  stock_quantity: number;
-  min_stock_level?: number;
-  is_liquid?: boolean;
-  container_size?: number;
-  container_quantity?: number;
-  bulk_quantity?: number;
-}
-
 const CATALOG_PAGE_SIZE = 50;
 const BULK_PAGE_SIZE = 1000;
 
@@ -58,24 +43,11 @@ const buildSearchClause = (searchQuery?: string) => {
   if (!normalized) return null;
 
   const escaped = normalized.replace(/[%_,]/g, '');
-  return `part_name.ilike.%${escaped}%,part_code.ilike.%${escaped}%,category.ilike.%${escaped}%,supplier.ilike.%${escaped}%`;
-};
-
-const isPartLowStock = (part: Pick<Part, 'is_liquid' | 'container_quantity' | 'bulk_quantity' | 'stock_quantity' | 'min_stock_level'>) => {
-  if (part.is_liquid) {
-    const total = (part.container_quantity || 0) + (part.bulk_quantity || 0);
-    return total > 0 && total <= (part.min_stock_level || 10);
-  }
-
-  return part.stock_quantity > 0 && part.stock_quantity <= (part.min_stock_level || 10);
-};
-
-const isPartOutOfStock = (part: Pick<Part, 'is_liquid' | 'container_quantity' | 'bulk_quantity' | 'stock_quantity'>) => {
-  if (part.is_liquid) {
-    return ((part.container_quantity || 0) + (part.bulk_quantity || 0)) === 0;
-  }
-
-  return part.stock_quantity === 0;
+  // Limited to columns backed by a pg_trgm GIN index (see migration
+  // 20260501_search_perf_trigram_and_low_stock.sql). Category and supplier
+  // are usually selected via dropdown, not free-text — search them via
+  // .eq() filters in the page query, not ILIKE.
+  return `part_name.ilike.%${escaped}%,part_code.ilike.%${escaped}%`;
 };
 
 const sortParts = (parts: Part[]) => [...parts].sort((left, right) => {
@@ -85,37 +57,22 @@ const sortParts = (parts: Part[]) => [...parts].sort((left, right) => {
 });
 
 const getLowStockPartIds = async (filters: Pick<PartsCatalogFilters, 'searchQuery' | 'category'>) => {
-  const lowStockIds: string[] = [];
-  let from = 0;
-  const searchClause = buildSearchClause(filters.searchQuery);
+  // SQL-side low-stock filter via get_low_stock_part_ids() RPC + the
+  // `effective_stock` generated column / partial index added in
+  // 20260501_search_perf_trigram_and_low_stock.sql.
+  //
+  // Replaces the previous client-side loop that fetched the entire catalog
+  // (BULK_PAGE_SIZE pages) and applied isPartLowStock in JS.
+  // PostgREST can't express the `effective_stock <= min_stock_level`
+  // column-vs-column predicate, hence the RPC.
+  const normalizedSearch = normalizeSearchQuery(filters.searchQuery);
+  const { data, error } = await supabase.rpc('get_low_stock_part_ids', {
+    p_search_query: normalizedSearch || null,
+    p_category: filters.category && filters.category !== 'all' ? filters.category : null,
+  });
 
-  while (true) {
-    let query = supabase
-      .from('parts')
-      .select(PARTS_STATS_SELECT)
-      .order('category')
-      .order('part_name')
-      .range(from, from + BULK_PAGE_SIZE - 1);
-
-    if (searchClause) {
-      query = query.or(searchClause);
-    }
-
-    if (filters.category && filters.category !== 'all') {
-      query = query.eq('category', filters.category);
-    }
-
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
-    if (!data || data.length === 0) break;
-
-    lowStockIds.push(...(data as PartStockSnapshot[]).filter(isPartLowStock).map(part => part.part_id));
-
-    if (data.length < BULK_PAGE_SIZE) break;
-    from += BULK_PAGE_SIZE;
-  }
-
-  return lowStockIds;
+  if (error) throw new Error(error.message);
+  return (data as { part_id: string }[] | null)?.map(p => p.part_id) ?? [];
 };
 
 const getPartsByIds = async (partIds: string[]): Promise<Part[]> => {
@@ -331,36 +288,27 @@ export const getPartCodes = async (): Promise<string[]> => {
 };
 
 export const getInventoryCatalogStats = async (): Promise<InventoryCatalogStats> => {
-  const snapshots: PartStockSnapshot[] = [];
-  let from = 0;
+  // Single RPC replacing the previous client-side loop over the entire
+  // catalog (3000+ rows on each mount). The aggregates run in one query
+  // against the parts table; see migration
+  // 20260501_search_perf_trigram_and_low_stock.sql.
+  const { data, error } = await supabase.rpc('get_inventory_catalog_stats');
+  if (error) throw new Error(error.message);
 
-  while (true) {
-    const { data, error } = await supabase
-      .from('parts')
-      .select(PARTS_STATS_SELECT)
-      .range(from, from + BULK_PAGE_SIZE - 1);
-
-    if (error) throw new Error(error.message);
-    if (!data || data.length === 0) break;
-
-    snapshots.push(...(data as PartStockSnapshot[]));
-
-    if (data.length < BULK_PAGE_SIZE) break;
-    from += BULK_PAGE_SIZE;
-  }
+  const row = (data as Array<{
+    total: number | string;
+    low_stock: number | string;
+    out_of_stock: number | string;
+    liquid_mismatch: number | string;
+    total_value: number | string;
+  }> | null)?.[0];
 
   return {
-    total: snapshots.length,
-    lowStock: snapshots.filter(isPartLowStock).length,
-    outOfStock: snapshots.filter(isPartOutOfStock).length,
-    liquidMismatch: snapshots.filter(part => part.is_liquid && checkStockMismatch(part).hasMismatch).length,
-    totalValue: snapshots.reduce((sum, part) => {
-      if (part.is_liquid) {
-        return sum + ((part.cost_price || 0) * (part.container_quantity || 0));
-      }
-
-      return sum + ((part.cost_price || 0) * (part.stock_quantity || 0));
-    }, 0),
+    total: Number(row?.total ?? 0),
+    lowStock: Number(row?.low_stock ?? 0),
+    outOfStock: Number(row?.out_of_stock ?? 0),
+    liquidMismatch: Number(row?.liquid_mismatch ?? 0),
+    totalValue: Number(row?.total_value ?? 0),
   };
 };
 

@@ -18,7 +18,8 @@ import type {
   JobPartUsed,
   User,
 } from '../types';
-import { JobStatus, JobType, UserRole } from '../types';
+import type { JobStatus } from '../types';
+import { UserRole } from '../types';
 import { CircuitBreakerTrippedError, createCircuitBreaker } from '../utils/circuit-breaker';
 import { isNetworkError, JOB_SELECT, logDebug, logError, supabase, wait } from './supabaseClient';
 
@@ -68,60 +69,31 @@ const EMPTY_STATUS_SUMMARY: JobStatusSummary = {
 };
 
 export const getJobStatusCounts = async (user: User): Promise<JobStatusSummary> => {
-  const buildBaseCount = () => {
-    let q = supabase
-      .from('jobs')
-      .select('*', { count: 'exact', head: true })
-      .is('deleted_at', null);
-    if (user.role === UserRole.TECHNICIAN) {
-      q = q.eq('assigned_technician_id', user.user_id);
-    }
-    return q;
-  };
-
+  // Single RPC replacing the previous 11 parallel HEAD count queries. The
+  // function aggregates all status filters in one index scan against
+  // `jobs(deleted_at, assigned_technician_id, status)`.
+  // See migration 20260501_job_status_counts_rpc.sql.
   try {
-    const [
-      total,
-      newCount,
-      assigned,
-      inProgress,
-      awaiting,
-      completed,
-      awaitingAck,
-      disputed,
-      incompleteContinuing,
-      incompleteReassigned,
-      slotInPending,
-    ] = await Promise.all([
-      buildBaseCount(),
-      buildBaseCount().eq('status', JobStatus.NEW),
-      buildBaseCount().eq('status', JobStatus.ASSIGNED),
-      buildBaseCount().eq('status', JobStatus.IN_PROGRESS),
-      buildBaseCount().eq('status', JobStatus.AWAITING_FINALIZATION),
-      buildBaseCount().eq('status', JobStatus.COMPLETED),
-      buildBaseCount().eq('status', JobStatus.COMPLETED_AWAITING_ACK),
-      buildBaseCount().eq('status', JobStatus.DISPUTED),
-      buildBaseCount().eq('status', JobStatus.INCOMPLETE_CONTINUING),
-      buildBaseCount().eq('status', JobStatus.INCOMPLETE_REASSIGNED),
-      buildBaseCount()
-        .eq('job_type', JobType.SLOT_IN)
-        .is('acknowledged_at', null)
-        .neq('status', JobStatus.COMPLETED)
-        .neq('status', JobStatus.CANCELLED),
-    ]);
+    const { data, error } = await supabase.rpc('get_job_status_counts', {
+      p_user_id: user.user_id,
+      p_is_technician: user.role === UserRole.TECHNICIAN,
+    });
 
+    if (error) throw error;
+
+    const counts = (data ?? {}) as Partial<JobStatusSummary>;
     return {
-      total: total.count ?? 0,
-      new: newCount.count ?? 0,
-      assigned: assigned.count ?? 0,
-      inProgress: inProgress.count ?? 0,
-      awaiting: awaiting.count ?? 0,
-      completed: completed.count ?? 0,
-      awaitingAck: awaitingAck.count ?? 0,
-      disputed: disputed.count ?? 0,
-      incompleteContinuing: incompleteContinuing.count ?? 0,
-      incompleteReassigned: incompleteReassigned.count ?? 0,
-      slotInPendingAck: slotInPending.count ?? 0,
+      total: counts.total ?? 0,
+      new: counts.new ?? 0,
+      assigned: counts.assigned ?? 0,
+      inProgress: counts.inProgress ?? 0,
+      awaiting: counts.awaiting ?? 0,
+      completed: counts.completed ?? 0,
+      awaitingAck: counts.awaitingAck ?? 0,
+      disputed: counts.disputed ?? 0,
+      incompleteContinuing: counts.incompleteContinuing ?? 0,
+      incompleteReassigned: counts.incompleteReassigned ?? 0,
+      slotInPendingAck: counts.slotInPendingAck ?? 0,
     };
   } catch (e) {
     logError('[getJobStatusCounts] Failed to fetch status counts:', e);

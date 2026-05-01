@@ -18,7 +18,7 @@ import {
   Wrench,
   XCircle,
 } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../contexts/NotificationContext';
 import { supabase } from '../services/supabaseService';
@@ -32,24 +32,39 @@ interface NotificationsPageProps {
 
 type TabFilter = 'unread' | 'all';
 
-const PAGE_SIZE = 30;
+// `useRealtimeNotifications` already loads + caches the user's top 50
+// notifications globally (in NotificationContext). The page reads that
+// cache directly and only goes to the database when the user explicitly
+// loads pages beyond the cached window. This avoids the second SELECT-on-mount
+// + the O(n²) merge that used to run on every realtime update.
+const REALTIME_CACHE_SIZE = 50;
+const OLDER_PAGE_SIZE = 30;
 
 const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const { notifications: realtimeNotifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
   const [tab, setTab] = useState<TabFilter>('all');
-  const [allNotifications, setAllNotifications] = useState<AppNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(false);
-  const [page, setPage] = useState(1);
+  const [olderPages, setOlderPages] = useState<AppNotification[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0); // 0 means "no older pages fetched yet"
 
-  // Load all notifications from DB (paginated)
-  const loadNotifications = useCallback(async (pageNum: number, append = false) => {
+  // Combined view: realtime cache (always fresh, top ~50) + older pages
+  // (deduped against realtime ids in case the windows overlap).
+  const allNotifications = useMemo(() => {
+    if (olderPages.length === 0) return realtimeNotifications;
+    const seen = new Set(realtimeNotifications.map(n => n.notification_id));
+    return [...realtimeNotifications, ...olderPages.filter(n => !seen.has(n.notification_id))];
+  }, [realtimeNotifications, olderPages]);
+
+  // Pagination only triggers a fetch for items beyond the realtime-cached set.
+  const loadMore = useCallback(async () => {
+    if (loading || !hasMore) return;
     setLoading(true);
     try {
-      const from = (pageNum - 1) * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
+      const from = REALTIME_CACHE_SIZE + page * OLDER_PAGE_SIZE;
+      const to = from + OLDER_PAGE_SIZE - 1;
 
       const { data, error } = await supabase
         .from('notifications')
@@ -60,39 +75,26 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ currentUser }) =>
 
       if (!error && data) {
         const typed = data as AppNotification[];
-        setAllNotifications(prev => append ? [...prev, ...typed] : typed);
-        setHasMore(typed.length === PAGE_SIZE);
+        if (typed.length === 0) {
+          setHasMore(false);
+        } else {
+          setOlderPages(prev => [...prev, ...typed]);
+          setPage(p => p + 1);
+          if (typed.length < OLDER_PAGE_SIZE) setHasMore(false);
+        }
       }
     } finally {
       setLoading(false);
     }
+  }, [currentUser.user_id, page, loading, hasMore]);
+
+  // Reset older pages when the user changes (defensive — currentUser is
+  // typically stable for the session).
+  useEffect(() => {
+    setOlderPages([]);
+    setPage(0);
+    setHasMore(true);
   }, [currentUser.user_id]);
-
-  useEffect(() => {
-    loadNotifications(1);
-  }, [loadNotifications]);
-
-  // Sync realtime updates into allNotifications
-  useEffect(() => {
-    setAllNotifications(prev => {
-      const existingIds = new Set(prev.map(n => n.notification_id));
-      const newOnes = realtimeNotifications.filter(n => !existingIds.has(n.notification_id));
-      if (newOnes.length === 0) {
-        // Update is_read status from realtime state
-        return prev.map(n => {
-          const rt = realtimeNotifications.find(r => r.notification_id === n.notification_id);
-          return rt && rt.is_read !== n.is_read ? { ...n, is_read: rt.is_read } : n;
-        });
-      }
-      return [...newOnes, ...prev];
-    });
-  }, [realtimeNotifications]);
-
-  const loadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    loadNotifications(nextPage, true);
-  };
 
   const filtered = tab === 'unread'
     ? allNotifications.filter(n => !n.is_read)

@@ -10,6 +10,9 @@ interface JobRow {
   assigned_technician_id: string | null;
   assigned_technician_name: string | null;
   updated_at: string | null;
+  parts_confirmed_at?: string | null;
+  parts_confirmation_skipped?: boolean | null;
+  [key: string]: unknown;
 }
 
 interface JobRequestRow {
@@ -31,9 +34,45 @@ interface UseJobRealtimeProps {
    */
   lastSeenUpdatedAtRef?: MutableRefObject<string | null>;
   onJobDeleted: () => void;
-  onJobUpdated: () => void;
+  /**
+   * Called when another user's UPDATE arrives.
+   * - `requiresFullReload = false`: the change touched only flat columns
+   *   (status, assignment, time markers); the caller can apply the row
+   *   directly and skip the full DETAIL fetch.
+   * - `requiresFullReload = true`: a relation column flipped (parts
+   *   confirmation, etc.); the caller needs the joined relations refreshed.
+   */
+  onJobUpdated: (payload: JobRow, requiresFullReload: boolean) => void;
   onRequestsUpdated: () => void;
 }
+
+// Columns whose flip on the row indicates a related table (job_parts,
+// job_media, extra_charges) likely changed too — UI needs the full DETAIL
+// re-fetch to keep relations consistent. Conservative bias: when in doubt,
+// add the column here. Adding too few risks stale relations; adding too
+// many just makes us re-fetch slightly more often than necessary.
+const RELATION_RELOAD_COLUMNS: ReadonlyArray<keyof JobRow> = [
+  // Add explicit columns whose change implies a relation has shifted.
+  // Defined narrowly — unrelated metadata (status, assignment) skips the
+  // expensive DETAIL fetch.
+];
+
+const requiresFullReload = (oldRow: Partial<JobRow>, newRow: JobRow): boolean => {
+  // Treat parts-confirmation columns as relation triggers — they imply
+  // job_parts may have flipped too.
+  const partsCols = ['parts_confirmed_at', 'parts_confirmation_skipped'] as const;
+  for (const col of partsCols) {
+    const o = (oldRow as Record<string, unknown>)[col];
+    const n = (newRow as Record<string, unknown>)[col];
+    if (o !== n) return true;
+  }
+  for (const col of RELATION_RELOAD_COLUMNS) {
+    if ((oldRow as Record<string, unknown>)[col] !== (newRow as Record<string, unknown>)[col]) {
+      return true;
+    }
+  }
+  return false;
+};
 
 /**
  * Real-time WebSocket subscription for job updates and requests.
@@ -102,8 +141,12 @@ export function useJobRealtime({
             }
           }
           
-          // Reload job to get fresh data with all relations
-          onJobUpdated();
+          // Apply the row directly when the change is just status/assignment/
+          // time markers — saves a full JOB_SELECT.DETAIL fetch (with its
+          // wide media + parts + extra_charges joins) on every other-user
+          // edit. Only re-fetch relations when a column whose flip implies
+          // a joined table changed.
+          onJobUpdated(updatedJob, requiresFullReload(oldJob, updatedJob));
         }
       )
       .subscribe((status) => {

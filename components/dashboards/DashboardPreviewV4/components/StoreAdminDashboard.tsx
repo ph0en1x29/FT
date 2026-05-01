@@ -11,9 +11,9 @@ import {
   Truck,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { getInventoryCatalogStats } from '../../../../services/partsService';
 import { getReplenishmentRequests } from '../../../../services/replenishmentService';
 import { supabase } from '../../../../services/supabaseClient';
-import { SupabaseDb } from '../../../../services/supabaseService';
 import { Part, Job, User, VanStockReplenishment } from '../../../../types';
 import { colors, DashboardSection, KPICard, QuickChip } from './DashboardWidgets';
 
@@ -58,7 +58,12 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
   onRefresh,
   navigate,
 }) => {
-  const [parts, setParts] = useState<Part[]>([]);
+  // Aggregate counts only — derived in SQL via get_inventory_catalog_stats().
+  // The previous code loaded the entire parts catalog (3000+ rows) into the
+  // browser on every dashboard mount and reduced over them in JS.
+  const [partsStats, setPartsStats] = useState<{ total: number; lowStock: number; outOfStock: number }>({ total: 0, lowStock: 0, outOfStock: 0 });
+  // Only the 4 low-stock parts the panel actually displays.
+  const [lowStockPreview, setLowStockPreview] = useState<Part[]>([]);
   const [requests, setRequests] = useState<StoreRequestSnapshot[]>([]);
   const [replenishments, setReplenishments] = useState<VanStockReplenishment[]>([]);
   const [expiryBatches, setExpiryBatches] = useState<ExpirySnapshot[]>([]);
@@ -72,8 +77,17 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
       const today = new Date().toISOString().split('T')[0];
       const nextThirty = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-      const [partsData, replenishmentData, requestsResult, expiryResult] = await Promise.all([
-        SupabaseDb.getParts(),
+      const [statsResult, lowStockPreviewResult, replenishmentData, requestsResult, expiryResult] = await Promise.all([
+        getInventoryCatalogStats(),
+        // Show the 4 lowest-stock items by ratio in the preview panel. The
+        // service maps `effective_stock <= COALESCE(min_stock_level, 10)`
+        // which mirrors isPartLowStock semantics in the inventory page.
+        supabase
+          .from('parts')
+          .select('part_id, part_name, part_code, stock_quantity, min_stock_level, container_quantity, bulk_quantity, is_liquid')
+          .gt('effective_stock', 0)
+          .order('effective_stock', { ascending: true })
+          .limit(4),
         getReplenishmentRequests(),
         supabase
           .from('job_requests')
@@ -108,7 +122,12 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
           .limit(8),
       ]);
 
-      setParts(partsData);
+      setPartsStats({
+        total: statsResult.total,
+        lowStock: statsResult.lowStock,
+        outOfStock: statsResult.outOfStock,
+      });
+      setLowStockPreview((lowStockPreviewResult.data || []) as unknown as Part[]);
       setReplenishments(replenishmentData);
       setRequests((requestsResult.data || []) as unknown as StoreRequestSnapshot[]);
       setExpiryBatches((expiryResult.data || []) as unknown as ExpirySnapshot[]);
@@ -127,14 +146,10 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
   const today = new Date();
   const displayName = currentUser.name?.split(' ')[0] || 'Store';
 
-  const lowStock = useMemo(
-    () => parts.filter(part => (part.min_stock_level || 0) > 0 && part.stock_quantity <= (part.min_stock_level || 0)),
-    [parts]
-  );
-  const outOfStock = useMemo(
-    () => parts.filter(part => (part.min_stock_level || 0) > 0 && part.stock_quantity === 0),
-    [parts]
-  );
+  // lowStock / outOfStock are now SQL-derived counts. lowStockPreview is the
+  // top 4 lowest-stock rows used by the preview panel below.
+  const lowStockCount = partsStats.lowStock;
+  const outOfStockCount = partsStats.outOfStock;
   const pendingRequests = useMemo(
     () => requests.filter(request => request.status === 'pending'),
     [requests]
@@ -230,7 +245,7 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
             </h1>
             <div className="mt-5 flex flex-wrap gap-2">
               <QuickChip icon={<ClipboardCheck className="w-4 h-4" />} label="Store Queue" count={pendingRequests.length + readyToIssue.length} accent={colors.orange.text} onClick={() => navigate(storeRoutes.queue)} />
-              <QuickChip icon={<Package className="w-4 h-4" />} label="Inventory" count={lowStock.length} accent={colors.red.text} onClick={() => navigate(storeRoutes.lowStock)} />
+              <QuickChip icon={<Package className="w-4 h-4" />} label="Inventory" count={lowStockCount} accent={colors.red.text} onClick={() => navigate(storeRoutes.lowStock)} />
               <QuickChip icon={<Truck className="w-4 h-4" />} label="Replenishments" count={pendingReplenishments.length} accent={colors.blue.text} onClick={() => navigate(storeRoutes.replenishments)} />
             </div>
           </div>
@@ -262,7 +277,7 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
         <KPICard label="Pending Requests" value={pendingRequests.length} sublabel="Need approval" icon={<Package className="w-4 h-4" />} accent="orange" alert={pendingRequests.length > 0} onClick={() => navigate(storeRoutes.queue)} />
         <KPICard label="Ready to Issue" value={readyToIssue.length} sublabel="Approved for technicians" icon={<CheckCircle2 className="w-4 h-4" />} accent="blue" alert={readyToIssue.length > 0} onClick={() => navigate(storeRoutes.queue)} />
         <KPICard label="Jobs Waiting Parts" value={jobsWaitingParts.length} sublabel="Blocked from closure" icon={<ShieldAlert className="w-4 h-4" />} accent="purple" alert={jobsWaitingParts.length > 0} onClick={() => navigate(storeRoutes.waitingParts)} />
-        <KPICard label="Low Stock" value={lowStock.length} sublabel="Below reorder level" icon={<AlertTriangle className="w-4 h-4" />} accent="red" alert={lowStock.length > 0} onClick={() => navigate(storeRoutes.lowStock)} />
+        <KPICard label="Low Stock" value={lowStockCount} sublabel="Below reorder level" icon={<AlertTriangle className="w-4 h-4" />} accent="red" alert={lowStockCount > 0} onClick={() => navigate(storeRoutes.lowStock)} />
         <KPICard label="Replenishments" value={pendingReplenishments.length} sublabel="Pending or approved" icon={<Truck className="w-4 h-4" />} accent="green" onClick={() => navigate(storeRoutes.replenishments)} />
       </div>
 
@@ -322,11 +337,11 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
           <div className="grid grid-cols-3 gap-3">
             <button onClick={() => navigate(storeRoutes.lowStock)} className="rounded-2xl p-3 text-left transition-all hover:scale-[1.02] active:scale-[0.98]" style={{ background: colors.red.bg }}>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: colors.red.text }}>Low</p>
-              <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text)' }}>{lowStock.length}</p>
+              <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text)' }}>{lowStockCount}</p>
             </button>
             <button onClick={() => navigate(storeRoutes.outOfStock)} className="rounded-2xl p-3 text-left transition-all hover:scale-[1.02] active:scale-[0.98]" style={{ background: colors.orange.bg }}>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: colors.orange.text }}>OOS</p>
-              <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text)' }}>{outOfStock.length}</p>
+              <p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--text)' }}>{outOfStockCount}</p>
             </button>
             <button onClick={() => navigate(storeRoutes.ledger)} className="rounded-2xl p-3 text-left transition-all hover:scale-[1.02] active:scale-[0.98]" style={{ background: colors.blue.bg }}>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: colors.blue.text }}>Expiry</p>
@@ -335,7 +350,7 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
           </div>
 
           <div className="mt-4 space-y-2">
-            {lowStock.slice(0, 4).map(part => (
+            {lowStockPreview.map(part => (
               <div key={part.part_id} className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)' }}>
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{part.part_name}</p>
@@ -348,7 +363,7 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
                 </span>
               </div>
             ))}
-            {lowStock.length === 0 && (
+            {lowStockPreview.length === 0 && (
               <div className="rounded-2xl px-4 py-6 text-center" style={{ background: 'var(--surface-2)' }}>
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8" style={{ color: colors.green.text, opacity: 0.65 }} />
                 <p className="text-sm font-medium" style={{ color: 'var(--text)' }}>Inventory risk is stable</p>

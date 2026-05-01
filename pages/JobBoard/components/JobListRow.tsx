@@ -183,10 +183,12 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
                 <Wrench className="mt-0.5 h-4 w-4 shrink-0" />
                 <span className="break-words">{equipmentLabel}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <UserIcon className="h-4 w-4 shrink-0" />
-                <span className="break-words">{job.assigned_technician_name || '—'}</span>
-              </div>
+              {!isTechnician && (
+                <div className="flex items-center gap-2">
+                  <UserIcon className="h-4 w-4 shrink-0" />
+                  <span className="break-words">{job.assigned_technician_name || '—'}</span>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 shrink-0" />
                 <span>{scheduledLabel}</span>
@@ -326,10 +328,12 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
         {job.forklift?.forklift_no || job.forklift?.serial_number || '—'}
       </span>
 
-      {/* Technician */}
-      <span className="flex-[1.5] min-w-0 truncate text-sm text-theme-muted">
-        {job.assigned_technician_name || '—'}
-      </span>
+      {/* Technician — hidden in technician's own view (always themselves) */}
+      {!isTechnician && (
+        <span className="flex-[1.5] min-w-0 truncate text-sm text-theme-muted">
+          {job.assigned_technician_name || '—'}
+        </span>
+      )}
 
       {/* Date */}
       <span className="shrink-0 w-[85px] text-sm text-theme-muted">

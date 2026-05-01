@@ -187,10 +187,11 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
         </div>
       </div>
 
-      {/* Row 2: Title + Tech */}
+      {/* Row 2: Title + Tech (technicians only see their own jobs, so the
+          assigned name is redundant noise — admins/supervisors keep it). */}
       <div className="mt-2 min-w-0">
         <h3 className="truncate text-base font-semibold text-theme">{job.title}</h3>
-        {job.assigned_technician_name && (
+        {!isTechnician && job.assigned_technician_name && (
           <p className="mt-0.5 text-xs text-theme-muted">{job.assigned_technician_name}</p>
         )}
         {job.description && (

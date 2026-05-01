@@ -261,8 +261,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     // Pricing Visibility - HIDDEN from Technicians per questionnaire
     canViewPricing: false,
     canViewJobCosts: false,
-    // Customer Name Visibility - HIDDEN from Technicians per client request
-    canViewCustomerName: false,
+    // Customer name is now visible to technicians per 2026-05-01 client
+    // request — they need to know which site they're going to.
+    canViewCustomerName: true,
   },
   [UserRole.ACCOUNTANT]: {
     canViewDashboard: true,
