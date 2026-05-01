@@ -1,5 +1,45 @@
 # Changelog
 
+## [2026-05-02] — Round 2 cron-path N+1 sweep + observability + frontend hygiene + tests scaffold
+
+### Fixes — Round 2 (server-side)
+
+- **Escalation cron path went from O(N×M) to O(1) round-trips per check.** `services/escalationService.ts` previously, for every overdue job, fetched all admins and then dedupe-then-inserted one notification per (job × admin) pair. With 50 overdue jobs × 8 admins that was 800+ round-trips per cron tick. Rewrote both `checkAndEscalateOverdueJobs` and `checkAndEscalateSlotInSLA` to fetch admins once per check, batch-update `escalation_triggered_at` via a single `.in()` UPDATE, and bulk-insert all notifications in one round-trip via the new `createNotificationsBulk()` helper. Now ~4 round-trips per check regardless of N or M.
+- **Replenishment fulfillment + receipt no longer loop per-item.** `fulfillReplenishment` previously updated each line-item's `quantity_issued` / `serial_numbers` with one UPDATE per row; `confirmReplenishmentReceipt` did a read-modify-write loop against `van_stock_items` (one SELECT + one UPDATE per line). Two new SQL functions — `fulfill_replenishment(uuid, jsonb, uuid, text)` and `confirm_replenishment_receipt(uuid, text)` — collapse both into single statements (`supabase/migrations/20260501_replenishment_batch_rpcs.sql`). A 10-item replenishment goes from ~21 round-trips to 2.
+- **Job request approval no longer fires a SELECT per part to validate stock.** `services/jobRequestApprovalService.ts:51-60` was running `select('part_name, sell_price, cost_price, stock_quantity').single()` in a loop. Replaced with one `.in('part_id', items.map(i => i.partId))` query.
+- **AutoCount export queue payload trimmed by ~99%.** `getJobsPendingExport()` previously returned the full DETAIL shape (`*, customer:customers(*), forklift:forklifts(*), parts_used:job_parts(*), media:job_media(*), extra_charges:extra_charges(*)`) just to render a queue list of `{ job_id, title, customer_name, total }`. With 20 pending jobs that was tens of MB. New `get_jobs_pending_export()` RPC computes the total in SQL (labor + non-returned parts + extra charges) and returns 7 fields per row. Threaded through a new `PendingExportJob` type, `useAutoCountExport` hook, the page-level types, and `PendingJobsSection.tsx`. (`supabase/migrations/20260501_autocount_pending_export_rpc.sql`.)
+- **StoreQueue no longer downloads every job to filter client-side.** `useStoreQueueController.ts` was calling `MockDb.getJobs(currentUser)` (no filter) and then keeping only `AWAITING_FINALIZATION` rows in JS. Pushed the filter to the server via `getJobs(user, { status: JobStatus.AWAITING_FINALIZATION })`. Payload bounded as the jobs table grows.
+- **Hourmeter amendments are now paginated.** `getHourmeterAmendments` had no `.limit()` and would silently degrade as the table grew; added a default ceiling of 200 with optional `{ limit, page }`. Existing `HourmeterReview` page works unchanged with the default.
+
+### Added — Round 3 (observability)
+
+- **Sentry transactions + web-vitals.** Added `browserTracingIntegration()` and `replayIntegration()` to the Sentry init in `services/errorTracking.ts`, with `tracePropagationTargets` for same-origin + supabase URLs. New `reportWebVitals()` function lazy-imports the `web-vitals` package and pipes CLS/INP/LCP/FCP/TTFB to Sentry — every metric becomes a breadcrumb, and "poor"-rated metrics surface as warning-level captureMessages with the metric name as a tag for dashboard filtering. Production-only — dev mode bails before any Sentry call. The Performance dashboard now shows per-route p50/p95 the perf work was previously shipped blind to.
+- **Bundle-size budget gate (`scripts/check-bundle-size.mjs`).** Runs after `vite build`, reads each chunk's brotli-compressed size, fails the build if any chunk exceeds its per-chunk budget or the total exceeds 800kb. `npm run build` now chains it; `npm run build:nocheck` is the escape hatch for incremental dev. Current state: 60 chunks, 512.95kb total brotli — ~36% headroom against the budget. Per-chunk budgets are sized at observed + ~25%, so a 20-30% regression trips the gate.
+
+### Changed — Round 4 (frontend hygiene)
+
+- **SlotInSLABadge instances now share a single timer.** Previously each badge created its own `setInterval` — with 50 visible badges on a busy JobBoard that's 50 timers + 50 `setState` calls per second. New `utils/useSharedTicker.ts:useSharedNow(intervalMs | null)` hook ensures one timer per cadence regardless of subscriber count. Acknowledged or stale-overdue (>1h past SLA) badges pass `null` — no timer, no re-renders.
+- **`tsconfig.json` strict-mode tightened.** Enabled `noUnusedLocals` + `noUnusedParameters`. Cleaned up 45 resulting violations across 25 files (mostly unused imports — `Customer`, `JobType`, `Notification`, dead `_isTokenValid` / `_undoClicked` / `_vibrate` locals, an unused `extractVideoThumbnail` function in JobPhotosSection, several unused destructured locals like `parts`, `customers`, `now`). Tests directory excluded from the main typecheck (Playwright has its own runtime context).
+- **JobDetail images now lazy-load.** Added `loading="lazy" decoding="async"` to every `<img>` rendering job_media URLs across CreateRequestModal, JobTimeline (after-photo + rejection-proof), StartJobModal, ApproveRequestModal, and the rejection-proof preview in JobDetailModals. Big network win on JobDetail pages with many photos. Fixed an unrelated `key={index}` smell in StartJobModal while passing.
+
+### Added — tests scaffold
+
+- **vitest setup + first unit specs.** New dev dep `vitest@^3.2.4`, separate `vitest.config.ts` (Playwright stays in `playwright.config.ts` for e2e). New `tests/unit/billingPathService.spec.ts` with 10 specs locking the ACWER 3-path classifier contract: Path C (fleet wins regardless of contract), Path A (active blanket vs per-fleet contract coverage), Path B (no contract / expired / not-started / inactive), and UNSET (missing forklift / unknown ownership). All pass in 3ms. New scripts `npm run test:unit` and `npm run test:unit:watch`.
+
+### Scope notes
+
+- **Round 5 deliberately deferred.** R5.1 (trigger no-op guards on hot tables) and R5.2 (`van_stock_usage` idempotency unique constraint) were skipped this round. Reason: changing trigger semantics on production tables — `jobs`, `forklifts`, `van_stock` — without measured impact is the wrong risk/reward. The 2026-05-01 audit found only 1 historical duplicate `van_stock_usage` row (low frequency). Better to revisit after Round 3.1's Sentry telemetry gives measured trigger overhead; speculative bulk changes here would burn risk for unclear gain. Tracked in the project memory baseline.
+- The new `get_low_stock_part_ids` and `get_jobs_pending_export` RPCs use `SECURITY DEFINER` plus narrow predicates that mirror the previous client-side filters — no RLS bypass concerns.
+
+### Verification
+
+- `npm run lint` (typecheck + ESLint) — 0 errors, 64 pre-existing warnings unchanged.
+- `npm run build` — green, 2640 modules, 512.95kb brotli total within 800kb budget.
+- `npm run test:unit` — 10/10 specs pass in 3ms.
+- New SQL functions verified in `pg_proc`: `fulfill_replenishment`, `confirm_replenishment_receipt`, `get_jobs_pending_export`. Live test: `SELECT COUNT(*) FROM get_jobs_pending_export()` returned 20 pending jobs.
+
+---
+
 ## [2026-05-01] — Performance & duplicate-data overhaul + technician view tweaks
 
 ### Fixes

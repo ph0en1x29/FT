@@ -6,7 +6,6 @@ import { SkeletonGrid } from '../../components/Skeleton';
 import { getCustomersPage } from '../../services/customerService';
 import { createCustomer } from '../../services/customerService';
 import { showToast } from '../../services/toastService';
-import { Customer } from '../../types';
 import { CreateCustomerModal, CustomerCard } from './components';
 
 const PAGE_SIZE = 50;

@@ -8,7 +8,7 @@
  * - Full audit trail via inventory_movements
  */
 
-import type { Part, InventoryMovement, InventoryMovementType } from '../types/inventory.types';
+import type { Part, InventoryMovementType } from '../types/inventory.types';
 import { supabase } from './supabaseClient';
 
 // =============================================

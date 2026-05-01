@@ -73,22 +73,6 @@ const generateConnectToken = (userId: string): string => {
   return btoa(JSON.stringify(payload));
 };
 
-/**
- * Validate a connect token (client-side pre-check).
- * Server MUST also validate independently.
- */
-const _isTokenValid = (token: string): boolean => {
-  try {
-    const payload = JSON.parse(atob(token));
-    if (!payload.expires_at || !payload.user_id || !payload.nonce) {
-      return false;
-    }
-    return Date.now() < payload.expires_at;
-  } catch {
-    return false;
-  }
-};
-
 const TelegramConnect: React.FC<TelegramConnectProps> = ({ currentUser, compact = false }) => {
   const [telegramLink, setTelegramLink] = useState<TelegramLink | null>(null);
   const [loading, setLoading] = useState(true);

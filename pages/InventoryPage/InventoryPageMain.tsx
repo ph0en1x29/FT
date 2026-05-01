@@ -59,7 +59,6 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
 
   // Inventory data hook
   const {
-    parts,
     loading,
     isFetching,
     searchQuery,

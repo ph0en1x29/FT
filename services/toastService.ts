@@ -103,15 +103,12 @@ interface UndoToastOptions {
 }
 
 export function showUndoToast({ message, description, undoLabel = 'Undo', duration = 5000, onUndo }: UndoToastOptions) {
-  let _undoClicked = false;
-  
   return toast(message, {
     description,
     duration,
     action: {
       label: undoLabel,
       onClick: async () => {
-        _undoClicked = true;
         try {
           await onUndo();
           showToast.success('Action undone');
@@ -119,9 +116,6 @@ export function showUndoToast({ message, description, undoLabel = 'Undo', durati
           showToast.error('Failed to undo', (error as Error).message);
         }
       },
-    },
-    onDismiss: () => {
-      // Optional: Could track if action was not undone
     },
   });
 }

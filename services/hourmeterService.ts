@@ -39,8 +39,22 @@ export const getForkliftHourmeterHistory = async (forkliftId: string): Promise<a
 // HOURMETER AMENDMENTS (existing)
 // =============================================
 
-export const getHourmeterAmendments = async (statusFilter?: HourmeterAmendmentStatus): Promise<HourmeterAmendment[]> => {
+// Default ceiling for the amendments list — `hourmeter_amendments` has no
+// natural archival cadence and grows monotonically. The review page only
+// shows the most recent rows; older history is reachable via a dedicated
+// page query when needed.
+const HOURMETER_AMENDMENTS_DEFAULT_LIMIT = 200;
+
+export const getHourmeterAmendments = async (
+  statusFilter?: HourmeterAmendmentStatus,
+  options?: { limit?: number; page?: number }
+): Promise<HourmeterAmendment[]> => {
   try {
+    const limit = Math.max(1, options?.limit ?? HOURMETER_AMENDMENTS_DEFAULT_LIMIT);
+    const page = Math.max(1, options?.page ?? 1);
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
     let query = supabase
       .from('hourmeter_amendments')
       .select(`
@@ -48,7 +62,8 @@ export const getHourmeterAmendments = async (statusFilter?: HourmeterAmendmentSt
         job:jobs(job_id, title, job_type, scheduled_date),
         forklift:forklifts(forklift_id, serial_number, model, make)
       `)
-      .order('requested_at', { ascending: false });
+      .order('requested_at', { ascending: false })
+      .range(from, to);
 
     if (statusFilter) {
       query = query.eq('status', statusFilter);

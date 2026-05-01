@@ -4,7 +4,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../services/supabaseClient';
-import type { Part, InventoryMovement, InventoryMovementType } from '../../../types/inventory.types';
+import type { Part, InventoryMovement } from '../../../types/inventory.types';
 
 const ACTION_LABELS: Record<string, string> = {
   purchase: 'Purchase',

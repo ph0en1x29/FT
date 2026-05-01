@@ -122,7 +122,6 @@ export const rejectJobAssignment = async (
 
 export const checkExpiredJobResponses = async (): Promise<{ alertedJobs: string[] }> => {
   const alertedJobs: string[] = [];
-  const now = new Date();
 
   try {
     const { data: expiredJobs, error } = await supabase

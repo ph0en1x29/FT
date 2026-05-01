@@ -214,6 +214,8 @@ export const JobTimeline: React.FC<JobTimelineProps> = ({ job }) => {
                         <img
                           src={event.afterPhoto.url}
                           alt="After photo"
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -249,6 +251,8 @@ export const JobTimeline: React.FC<JobTimelineProps> = ({ job }) => {
                       <img
                         src={event.rejectionProof.url}
                         alt="Rejection proof"
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                       />
                     </button>

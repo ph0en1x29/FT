@@ -62,6 +62,10 @@ export function useStoreQueueController(currentUser: User) {
   const loadQueue = useCallback(async () => {
     setLoading(true);
     try {
+      // Only awaiting-finalization jobs feed the "confirm job" cards in
+      // queueModel.buildStoreQueue. Pushing the status filter to the server
+      // (was MockDb.getJobs(currentUser) loading every job and filtering
+      // client-side) keeps payload bounded as the jobs table grows.
       const [requestsResult, jobsResult] = await Promise.all([
         supabase
           .from('job_requests')
@@ -75,7 +79,7 @@ export function useStoreQueueController(currentUser: User) {
           .eq('request_type', 'spare_part')
           .eq('status', 'pending')
           .order('created_at', { ascending: true }),
-        MockDb.getJobs(currentUser),
+        MockDb.getJobs(currentUser, { status: JobStatus.AWAITING_FINALIZATION }),
       ]);
 
       const { items, autoMatched } = buildStoreQueue(

@@ -76,7 +76,7 @@ export function useAssetDashboard({ currentUser }: UseAssetDashboardParams) {
       const [
         forkliftData,
         fleetCounts,
-        { data: rentalsData, error: rentalsError },
+        { data: rentalsData },
         { data: openJobsData, error: openJobsError },
         { data: completedJobsData }
       ] = await Promise.all([

@@ -45,18 +45,24 @@ export const approveSparePartRequest = async (
       .eq('request_id', requestId)
       .eq('status', 'pending');
 
-    // Validate stock for all items upfront
-    type PartInfo = { part_name: string; sell_price: number; cost_price: number; stock_quantity: number };
+    // Validate stock for all items upfront — single .in() query replaces
+    // the previous per-part select().single() loop.
+    type PartInfo = { part_id: string; part_name: string; sell_price: number; cost_price: number; stock_quantity: number };
+    const partIds = items.map(i => i.partId);
+    const { data: partsData, error: partsError } = await supabase
+      .from('parts')
+      .select('part_id, part_name, sell_price, cost_price, stock_quantity')
+      .in('part_id', partIds);
+    if (partsError || !partsData) return false;
+
     const partInfoMap: Record<string, PartInfo> = {};
+    for (const part of partsData as PartInfo[]) {
+      partInfoMap[part.part_id] = part;
+    }
     for (const item of items) {
-      const { data: part, error: partError } = await supabase
-        .from('parts')
-        .select('part_name, sell_price, cost_price, stock_quantity')
-        .eq('part_id', item.partId)
-        .single();
-      if (partError || !part) return false;
-      if (part.stock_quantity < item.quantity) return false;
-      partInfoMap[item.partId] = part;
+      const part = partInfoMap[item.partId];
+      if (!part) return false; // part doesn't exist
+      if (part.stock_quantity < item.quantity) return false; // insufficient stock
     }
 
     // ATOMIC stock reservation — reserve all, rollback on any failure
@@ -226,7 +232,7 @@ export const markOutOfStock = async (
  */
 export const markPartReceived = async (
   requestId: string,
-  adminUserId: string,
+  _adminUserId: string,
   notes?: string
 ): Promise<boolean> => {
   try {

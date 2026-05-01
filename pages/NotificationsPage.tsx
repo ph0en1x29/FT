@@ -22,7 +22,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../contexts/NotificationContext';
 import { supabase } from '../services/supabaseService';
-import type { Notification, User } from '../types';
+import type { User } from '../types';
 import { NotificationType, ROLE_PERMISSIONS } from '../types';
 import type { AppNotification } from '../utils/useRealtimeNotifications';
 

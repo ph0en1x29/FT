@@ -26,10 +26,21 @@ export const initErrorTracking = () => {
   Sentry.init({
     dsn,
     environment: import.meta.env.MODE,
-    
-    // Performance monitoring
+
+    // Performance monitoring — browserTracingIntegration captures route
+    // navigations and resource timings so the Sentry Performance dashboard
+    // shows p50/p95 per page. The 10% sample rate matches sessionReplay's;
+    // bump per-route via tracesSampler if specific pages need finer data.
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration({
+        maskAllText: false,
+        blockAllMedia: false,
+      }),
+    ],
     tracesSampleRate: 0.1, // 10% of transactions
-    
+    tracePropagationTargets: [/^\//, /supabase\.co/],
+
     // Session replay for debugging
     replaysSessionSampleRate: 0.1, // 10% of sessions
     replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
@@ -64,6 +75,43 @@ export const initErrorTracking = () => {
     },
   });
 
+};
+
+/**
+ * Wire web-vitals (CLS, INP, LCP, FCP, TTFB) to Sentry as breadcrumbs and
+ * messages. This gives us per-route p50/p95 user-experience metrics that
+ * Sentry's standard browserTracingIntegration doesn't capture by default.
+ * Idempotent — safe to call multiple times.
+ */
+export const reportWebVitals = async () => {
+  if (isDev || !import.meta.env.VITE_SENTRY_DSN) return;
+  try {
+    const { onCLS, onINP, onLCP, onFCP, onTTFB } = await import('web-vitals');
+    const send = (metric: { name: string; value: number; rating?: string; id: string }) => {
+      Sentry.addBreadcrumb({
+        category: 'web-vitals',
+        message: metric.name,
+        level: metric.rating === 'poor' ? 'warning' : 'info',
+        data: { value: metric.value, rating: metric.rating, id: metric.id },
+      });
+      // Surface poor-rated vitals as a sampled message so they show up in
+      // Issues without flooding the project on healthy pages.
+      if (metric.rating === 'poor') {
+        Sentry.captureMessage(`web-vitals:${metric.name}=poor`, {
+          level: 'warning',
+          tags: { web_vital: metric.name, rating: metric.rating },
+          extra: { value: metric.value, id: metric.id },
+        });
+      }
+    };
+    onCLS(send);
+    onINP(send);
+    onLCP(send);
+    onFCP(send);
+    onTTFB(send);
+  } catch (_e) {
+    /* web-vitals optional — never throw from telemetry path */
+  }
 };
 
 /**
@@ -126,6 +174,7 @@ export const addBreadcrumb = (breadcrumb: {
 
 export default {
   initErrorTracking,
+  reportWebVitals,
   captureError,
   captureMessage,
   setUser,

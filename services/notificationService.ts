@@ -105,6 +105,38 @@ export const createNotification = async (notification: Partial<Notification>): P
   }
 };
 
+/**
+ * Bulk-insert notifications in one round-trip. Used by the escalation cron
+ * which previously fired one INSERT per (job × admin) pair with a per-call
+ * dedupe SELECT — fanning a single tick into hundreds of round-trips.
+ *
+ * Caller is responsible for dedupe (typically via a unique gate on the
+ * source row, e.g. `escalation_triggered_at IS NULL`). Skips the 5-minute
+ * dedupe window in `createNotification` since escalation already gates
+ * re-firing through that source-side flag.
+ */
+export const createNotificationsBulk = async (
+  notifications: Array<Pick<Notification, 'user_id' | 'type' | 'title' | 'message' | 'reference_type' | 'reference_id'> & { priority?: string }>
+): Promise<number> => {
+  if (notifications.length === 0) return 0;
+  try {
+    const rows = notifications.map(n => ({
+      user_id: n.user_id,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      reference_type: n.reference_type,
+      reference_id: n.reference_id,
+      priority: n.priority || 'normal',
+    }));
+    const { error } = await supabase.from('notifications').insert(rows);
+    if (error) return 0;
+    return rows.length;
+  } catch (_e) {
+    return 0;
+  }
+};
+
 export const markNotificationRead = async (notificationId: string): Promise<void> => {
   try {
     await supabase

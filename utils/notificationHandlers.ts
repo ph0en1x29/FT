@@ -81,7 +81,6 @@ export const showBrowserNotification = async (
 
   const notificationTag = options?.tag || `fieldpro-${Date.now()}`;
   const requireInteraction = options?.priority === 'urgent' || options?.priority === 'high';
-  const _vibrate = options?.priority === 'urgent' ? [200, 100, 200, 100, 200] : [200, 100, 200];
 
   // Try service worker notification first (works better on mobile and when page is in background)
   if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {

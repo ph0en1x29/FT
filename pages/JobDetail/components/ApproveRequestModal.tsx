@@ -145,6 +145,8 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
             <img
               src={request.photo_url}
               alt="Request attachment"
+              loading="lazy"
+              decoding="async"
               className="rounded-lg max-h-40 object-cover"
             />
           </div>

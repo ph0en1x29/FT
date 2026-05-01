@@ -13,7 +13,7 @@
  *   - 'failed'    → most recent attempt failed; export_error has the reason
  *   - 'cancelled' → admin chose not to send this row
  */
-import type { AutoCountExport, Job } from '../types';
+import type { AutoCountExport } from '../types';
 import { logDebug, supabase } from './supabaseClient';
 
 // ----------------------------------------------------------------------
@@ -69,31 +69,40 @@ export const getAutoCountExports = async (
 };
 
 /**
+ * Lightweight queue projection — only the fields the export UI actually
+ * renders (job number, title, customer name, computed total). The previous
+ * shape returned the full JOB_SELECT.DETAIL with media + parts + extra
+ * charges joined, ~50–100MB for a 100-job queue.
+ */
+export interface PendingExportJob {
+  job_id: string;
+  job_number: string | null;
+  title: string | null;
+  customer_id: string | null;
+  customer_name: string | null;
+  job_confirmed_at: string | null;
+  total_amount: number;
+}
+
+/**
  * Jobs that are finalized (Admin 1 + Admin 2 confirmed) but don't have an
  * AutoCount export yet. Used to populate the "ready to export" queue.
+ *
+ * Implementation: get_jobs_pending_export() RPC computes the total in SQL
+ * (labor + parts excluding returned + extra_charges) and returns only the
+ * fields the queue UI needs.
+ * See migration 20260501_autocount_pending_export_rpc.sql.
  */
-export const getJobsPendingExport = async (): Promise<Job[]> => {
-  const { data, error } = await supabase
-    .from('jobs')
-    .select(`
-      *,
-      customer:customers(*),
-      forklift:forklifts!forklift_id(*),
-      parts_used:job_parts(*),
-      media:job_media!job_media_job_id_fkey(*),
-      extra_charges:extra_charges(*)
-    `)
-    .not('parts_confirmed_at', 'is', null)
-    .not('job_confirmed_at', 'is', null)
-    .is('autocount_export_id', null)
-    .is('deleted_at', null)
-    .neq('billing_path', 'fleet')               // Path C non-chargeable: no invoice
-    .order('job_confirmed_at', { ascending: false });
+export const getJobsPendingExport = async (): Promise<PendingExportJob[]> => {
+  const { data, error } = await supabase.rpc('get_jobs_pending_export');
   if (error) {
     logDebug('[JobAutoCountService] getJobsPendingExport error:', error);
     return [];
   }
-  return (data ?? []) as Job[];
+  return ((data ?? []) as Array<{ total_amount: number | string } & Omit<PendingExportJob, 'total_amount'>>).map(row => ({
+    ...row,
+    total_amount: Number(row.total_amount),
+  }));
 };
 
 // ----------------------------------------------------------------------

@@ -1,12 +1,13 @@
 import { useEffect,useMemo,useState } from 'react';
+import type { PendingExportJob } from '../../../services/jobAutoCountService';
 import { SupabaseDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { AutoCountExport,Job,User,UserRole } from '../../../types';
+import { AutoCountExport,User,UserRole } from '../../../types';
 import { ExportStats,TabType,UseAutoCountExportReturn } from '../types';
 
 export function useAutoCountExport(currentUser: User): UseAutoCountExportReturn {
   const [exports, setExports] = useState<AutoCountExport[]>([]);
-  const [pendingJobs, setPendingJobs] = useState<Job[]>([]);
+  const [pendingJobs, setPendingJobs] = useState<PendingExportJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [searchQuery, setSearchQuery] = useState('');

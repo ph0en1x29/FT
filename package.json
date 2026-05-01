@@ -12,12 +12,16 @@
   "author": "Athenix Technologies",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/check-bundle-size.mjs",
+    "build:nocheck": "vite build",
+    "bundle:check": "node scripts/check-bundle-size.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit && eslint .",
     "import:prep:dry-run": "node scripts/rental-hourmeter-import-prep.mjs",
     "test": "playwright test",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "test:import-prep": "node --test scripts/rental-hourmeter-import-prep.test.mjs",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
@@ -37,7 +41,8 @@
     "react-leaflet": "^5.0.0",
     "react-leaflet-cluster": "^4.1.3",
     "react-router-dom": "^7.10.1",
-    "sonner": "^2.0.7"
+    "sonner": "^2.0.7",
+    "web-vitals": "^4.2.4"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
@@ -57,7 +62,8 @@
     "typescript-eslint": "^8.54.0",
     "vite": "^7.3.2",
     "vite-plugin-compression": "^0.5.1",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^3.2.4"
   },
   "overrides": {
     "serialize-javascript": "^7.0.5"

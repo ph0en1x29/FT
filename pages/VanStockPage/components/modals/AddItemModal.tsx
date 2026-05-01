@@ -3,7 +3,6 @@
  * Uses a searchable Combobox (part name + item code) instead of a plain select.
  */
 import { X } from 'lucide-react';
-import React from 'react';
 import { Combobox } from '../../../../components/Combobox';
 import { useSearchParts } from '../../../../hooks/useQueryHooks';
 

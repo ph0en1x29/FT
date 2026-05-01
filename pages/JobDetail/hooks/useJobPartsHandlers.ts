@@ -26,7 +26,7 @@ export const useJobPartsHandlers = ({
   currentUserId,
   currentUserName,
   currentUserRole,
-  loadJob,
+  loadJob: _loadJob,
   loadVanStock,
   setJob,
 }: UseJobPartsHandlersParams) => {

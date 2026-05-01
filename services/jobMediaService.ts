@@ -5,7 +5,7 @@
  */
 
 import type { Job,JobMedia,SignatureEntry } from '../types';
-import { getPublicStorageUrl,getSignedStorageUrl,supabase,uploadToStorage } from './supabaseClient';
+import { getPublicStorageUrl,supabase,uploadToStorage } from './supabaseClient';
 
 // Forward declaration to avoid circular dependency
 const getJobById = async (jobId: string): Promise<Job | null> => {

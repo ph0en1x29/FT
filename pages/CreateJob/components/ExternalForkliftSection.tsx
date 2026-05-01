@@ -17,7 +17,7 @@ interface ExternalForkliftSectionProps {
 
 const ExternalForkliftSection: React.FC<ExternalForkliftSectionProps> = ({
   customerId,
-  customerForklifts,
+  customerForklifts: _customerForklifts,
   onCreateExternal,
   inputClassName,
 }) => {

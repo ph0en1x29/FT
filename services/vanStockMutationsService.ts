@@ -73,7 +73,7 @@ export const deleteVanStock = async (vanStockId: string, hardDelete: boolean = f
 };
 
 export const transferVanStockItems = async (
-  fromVanStockId: string,
+  _fromVanStockId: string,
   toVanStockId: string,
   itemIds: string[]
 ): Promise<void> => {

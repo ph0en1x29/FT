@@ -229,10 +229,12 @@ export const StartJobModal: React.FC<StartJobModalProps> = ({
                     });
 
                     return (
-                      <div key={index} className="relative aspect-square group">
+                      <div key={photoUrls[index] || index} className="relative aspect-square group">
                         <img
                           src={photoUrls[index]}
                           alt={`Before ${index + 1}`}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover rounded-lg border border-[var(--border)]"
                         />
                         {/* Timestamp Overlay */}

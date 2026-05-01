@@ -31,7 +31,7 @@ export const JobRequestsSection: React.FC<JobRequestsSectionProps> = ({
   onEditRequest,
   onDeleteRequest,
   onIssuePartToTechnician,
-  onMarkOutOfStock,
+  onMarkOutOfStock: _onMarkOutOfStock,
   onMarkPartReceived,
   onConfirmPartCollection,
 }) => {

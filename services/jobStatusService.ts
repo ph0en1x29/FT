@@ -168,7 +168,7 @@ export const updateJobStatus = async (jobId: string, status: JobStatus, complete
 export const markJobContinueTomorrow = async (
   jobId: string,
   reason: string,
-  userId: string,
+  _userId: string,
   userName: string
 ): Promise<Job | null> => {
   logDebug('[JobService] markJobContinueTomorrow called for job:', jobId);

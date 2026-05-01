@@ -5,7 +5,6 @@ import { supabase } from '../../../services/supabaseClient';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { getForkliftsPage, getForkliftUniqueMakes } from '../../../services/forkliftService';
 import { getCustomersForList } from '../../../services/customerService';
-import { showToast } from '../../../services/toastService';
 import { Customer, Forklift, ForkliftStatus, ForkliftType, User, UserRole } from '../../../types';
 import { ResultModalState } from '../types';
 

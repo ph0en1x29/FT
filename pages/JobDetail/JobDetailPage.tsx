@@ -8,7 +8,7 @@ import { SkeletonJobDetail } from '../../components/Skeleton';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { usePartsForList,useTechnicians } from '../../hooks/useQueryHooks';
 import { getCustomerContacts,getCustomerSites } from '../../services/customerService';
-import { HourmeterFlagReason,Job,JobRequest,JobStatus,JobType,MANDATORY_CHECKLIST_ITEMS,normalizeChecklistState,Part,User } from '../../types';
+import { HourmeterFlagReason,Job,JobRequest,JobStatus,MANDATORY_CHECKLIST_ITEMS,normalizeChecklistState,Part,User } from '../../types';
 import { CustomerContact,CustomerSite } from '../../types/customer.types';
 
 // Extracted components

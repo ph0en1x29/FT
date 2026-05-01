@@ -56,7 +56,6 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
   const {
     forklift,
     rentals,
-    customers,
     technicians,
     hourmeterHistory,
     loading,

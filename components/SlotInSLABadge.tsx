@@ -1,5 +1,6 @@
 import { AlertTriangle,CheckCircle,Clock,type LucideIcon,XCircle } from 'lucide-react';
-import React,{ useEffect,useState } from 'react';
+import { useMemo } from 'react';
+import { useSharedNow } from '../utils/useSharedTicker';
 
 export type SLAStatus = 'on_track' | 'warning' | 'critical' | 'breached' | 'met';
 
@@ -159,33 +160,23 @@ export default function SlotInSLABadge({
   size = 'md',
   className = '',
 }: SlotInSLABadgeProps) {
-  const [slaState, setSlaState] = useState<SLAState>(() =>
-    calculateSLAState(createdAt, acknowledgedAt, slaTargetMinutes)
+  // Pick the cadence based on the current state, then subscribe to a shared
+  // ticker so 50 visible badges share one timer instead of 50. acknowledged
+  // jobs and stale-overdue (>1h past SLA) get null — no ticker, no re-renders.
+  const initialState = useMemo(
+    () => calculateSLAState(createdAt, acknowledgedAt, slaTargetMinutes),
+    [createdAt, acknowledgedAt, slaTargetMinutes]
   );
+  const tickInterval = (() => {
+    if (acknowledgedAt) return null;
+    if (initialState.status === 'breached' && Math.abs(initialState.remainingMs) > 60 * 60 * 1000) return null;
+    return initialState.status === 'breached' ? 60_000 : 1_000;
+  })();
 
-  // Update countdown every second if not acknowledged
-  useEffect(() => {
-    if (acknowledgedAt) {
-      // Already acknowledged, no need to update
-      setSlaState(calculateSLAState(createdAt, acknowledgedAt, slaTargetMinutes));
-      return;
-    }
-
-    // Update immediately
-    setSlaState(calculateSLAState(createdAt, acknowledgedAt, slaTargetMinutes));
-
-    // Live countdown: every second if within SLA window, every minute if breached <1h, stop if >1h overdue
-    const currentState = calculateSLAState(createdAt, acknowledgedAt, slaTargetMinutes);
-    const isStaleOverdue = currentState.status === 'breached' && Math.abs(currentState.remainingMs) > 60 * 60 * 1000;
-    if (isStaleOverdue) return; // No need to tick for stale overdue jobs
-
-    const tickMs = currentState.status === 'breached' ? 60000 : 1000;
-    const interval = setInterval(() => {
-      setSlaState(calculateSLAState(createdAt, acknowledgedAt, slaTargetMinutes));
-    }, tickMs);
-
-    return () => clearInterval(interval);
-  }, [createdAt, acknowledgedAt, slaTargetMinutes]);
+  // Subscribing to a shared ticker re-renders this component every tick;
+  // we recompute the state from createdAt/acknowledgedAt against `now`.
+  useSharedNow(tickInterval);
+  const slaState = calculateSLAState(createdAt, acknowledgedAt, slaTargetMinutes);
 
   const config = statusConfig[slaState.status];
   const sizeStyles = sizeConfig[size];

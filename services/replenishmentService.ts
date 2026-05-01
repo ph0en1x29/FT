@@ -106,27 +106,27 @@ export const fulfillReplenishment = async (
   fulfilledById: string,
   fulfilledByName: string
 ): Promise<VanStockReplenishment> => {
-  for (const item of itemsIssued) {
-    await supabase
-      .from('van_stock_replenishment_items')
-      .update({
-        quantity_issued: item.quantityIssued,
-        serial_numbers: item.serialNumbers || [],
-      })
-      .eq('item_id', item.itemId);
-  }
+  // Batched via fulfill_replenishment(uuid, jsonb, uuid, text) RPC.
+  // See migration 20260501_replenishment_batch_rpcs.sql. Replaces a per-item
+  // UPDATE loop that issued one round-trip per replenishment line.
+  const itemsPayload = itemsIssued.map(item => ({
+    item_id: item.itemId,
+    quantity_issued: item.quantityIssued,
+    serial_numbers: item.serialNumbers || [],
+  }));
+
+  const { error: rpcError } = await supabase.rpc('fulfill_replenishment', {
+    p_replenishment_id: replenishmentId,
+    p_items: itemsPayload,
+    p_fulfilled_by_id: fulfilledById,
+    p_fulfilled_by_name: fulfilledByName,
+  });
+  if (rpcError) throw new Error(rpcError.message);
 
   const { data, error } = await supabase
     .from('van_stock_replenishments')
-    .update({
-      status: 'in_progress',
-      fulfilled_at: new Date().toISOString(),
-      fulfilled_by_id: fulfilledById,
-      fulfilled_by_name: fulfilledByName,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('replenishment_id', replenishmentId)
     .select()
+    .eq('replenishment_id', replenishmentId)
     .single();
 
   if (error) throw new Error(error.message);
@@ -137,46 +137,19 @@ export const confirmReplenishmentReceipt = async (
   replenishmentId: string,
   confirmationPhotoUrl?: string
 ): Promise<VanStockReplenishment> => {
-  const { data: replenishment, error: repError } = await supabase
-    .from('van_stock_replenishments')
-    .select(`*, items:van_stock_replenishment_items(*)`)
-    .eq('replenishment_id', replenishmentId)
-    .single();
-
-  if (repError) throw new Error(repError.message);
-
-  for (const item of replenishment.items) {
-    if (item.quantity_issued > 0 && !item.is_rejected) {
-      const { data: vsItem } = await supabase
-        .from('van_stock_items')
-        .select('quantity')
-        .eq('item_id', item.van_stock_item_id)
-        .single();
-
-      if (vsItem) {
-        await supabase
-          .from('van_stock_items')
-          .update({
-            quantity: vsItem.quantity + item.quantity_issued,
-            last_replenished_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('item_id', item.van_stock_item_id);
-      }
-    }
-  }
+  // Batched via confirm_replenishment_receipt(uuid, text) RPC. Replaces a
+  // read-modify-write loop (one SELECT + one UPDATE per replenishment line)
+  // with a single SQL statement that increments quantities in place.
+  const { error: rpcError } = await supabase.rpc('confirm_replenishment_receipt', {
+    p_replenishment_id: replenishmentId,
+    p_confirmation_photo_url: confirmationPhotoUrl ?? null,
+  });
+  if (rpcError) throw new Error(rpcError.message);
 
   const { data, error } = await supabase
     .from('van_stock_replenishments')
-    .update({
-      status: 'completed',
-      confirmed_by_technician: true,
-      confirmed_at: new Date().toISOString(),
-      confirmation_photo_url: confirmationPhotoUrl,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('replenishment_id', replenishmentId)
     .select()
+    .eq('replenishment_id', replenishmentId)
     .single();
 
   if (error) throw new Error(error.message);

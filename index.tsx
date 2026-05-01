@@ -6,8 +6,9 @@ import './index.css';
 
 // Lazy load error tracking (Sentry) - not needed on initial render
 if (!import.meta.env.DEV) {
-  import('./services/errorTracking').then(({ initErrorTracking }) => {
+  import('./services/errorTracking').then(({ initErrorTracking, reportWebVitals }) => {
     initErrorTracking();
+    reportWebVitals();
   });
 }
 

@@ -40,7 +40,7 @@ const JobPhotosSectionInner: React.FC<JobPhotosSectionProps> = ({
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
 
   const { isTechnician, isAdmin, isSupervisor } = roleFlags;
-  const { isNew, isAssigned, isInProgress, isAwaitingFinalization, isIncompleteContinuing, isIncompleteReassigned, isCompleted } = statusFlags;
+  const { isNew, isAssigned, isInProgress, isAwaitingFinalization, isIncompleteContinuing, isIncompleteReassigned } = statusFlags;
   
   const canUploadPhotos = isNew || isAssigned || isInProgress || isAwaitingFinalization || isIncompleteContinuing || isIncompleteReassigned;
 
@@ -189,35 +189,6 @@ const JobPhotosSectionInner: React.FC<JobPhotosSectionProps> = ({
         );
       }
     }
-  };
-
-  // Extract first frame from video as thumbnail
-  const extractVideoThumbnail = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const video = document.createElement('video');
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      video.onloadeddata = () => {
-        video.currentTime = 0.1; // Seek to 0.1s to get first frame
-      };
-      
-      video.onseeked = () => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx?.drawImage(video, 0, 0);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        URL.revokeObjectURL(video.src);
-        resolve(dataUrl);
-      };
-      
-      video.onerror = () => {
-        reject(new Error('Failed to load video'));
-      };
-      
-      video.src = URL.createObjectURL(file);
-      video.load();
-    });
   };
 
   const uploadPhotoFile = async (file: File, index?: number, total?: number) => {

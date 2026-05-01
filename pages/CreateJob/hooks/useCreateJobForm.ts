@@ -8,7 +8,7 @@ import { getCustomerById,getCustomerContacts,getCustomerSites } from '../../../s
 import { supabase } from '../../../services/supabaseClient';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { Customer,Forklift,JobPriority,JobStatus,JobType,User } from '../../../types';
+import { Forklift,JobPriority,JobStatus,JobType,User } from '../../../types';
 import { CreateJobFormData,DuplicateJobWarning,NewCustomerFormData } from '../types';
 
 /**

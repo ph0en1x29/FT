@@ -14,7 +14,7 @@
  * before the round-trip.
  */
 import { ArrowDownToLine, ArrowUpFromLine, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Combobox } from '../../../../components/Combobox';
 import { useSearchParts } from '../../../../hooks/useQueryHooks';
 import { supabase } from '../../../../services/supabaseClient';

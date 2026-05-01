@@ -1,5 +1,6 @@
 import React from 'react';
-import { AutoCountExport,Job,User } from '../../types';
+import type { PendingExportJob } from '../../services/jobAutoCountService';
+import { AutoCountExport,User } from '../../types';
 
 export interface AutoCountExportProps {
   currentUser: User;
@@ -24,7 +25,7 @@ export interface ExportStats {
 
 export interface UseAutoCountExportReturn {
   exports: AutoCountExport[];
-  pendingJobs: Job[];
+  pendingJobs: PendingExportJob[];
   loading: boolean;
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;

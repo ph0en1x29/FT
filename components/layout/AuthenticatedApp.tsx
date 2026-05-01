@@ -501,7 +501,6 @@ function AppLayout({ currentUser, onLogout, sidebarCollapsed, setSidebarCollapse
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const _canViewDashboard = devMode.hasPermission('canViewDashboard');
   // Defense-in-depth: route guards combine the permission flag AND an explicit
   // role check. Even if a permission override somehow sets canViewForklifts or
   // canViewCustomers to true for a technician, the role check still blocks

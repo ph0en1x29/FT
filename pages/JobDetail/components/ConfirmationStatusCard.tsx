@@ -15,7 +15,7 @@ export const ConfirmationStatusCard: React.FC<ConfirmationStatusCardProps> = ({
   job,
   roleFlags,
   statusFlags,
-  onConfirmParts,
+  onConfirmParts: _onConfirmParts,
   onOpenReconciliation,
 }) => {
   const { isAdmin, isAdminStore, isAccountant } = roleFlags;

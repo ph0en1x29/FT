@@ -1,13 +1,12 @@
 import {
   Camera,
-  CheckCircle,
   Clock,
   RefreshCw,
   Trash2,
   X,
   XCircle,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React from 'react';
 import { Combobox, ComboboxOption } from '../../../components/Combobox';
 import { SignaturePad } from '../../../components/SignaturePad';
 import { Job } from '../../../types';
@@ -304,7 +303,7 @@ export const RejectJobModal: React.FC<RejectJobModalProps> = ({
           <p className="text-xs text-[var(--text-muted)] mb-2">Required so admin can verify you were on-site when rejecting. GPS location is captured automatically.</p>
           {photoPreviewUrl ? (
             <div className="relative mb-2">
-              <img src={photoPreviewUrl} alt="Rejection proof preview" className="w-full max-h-48 object-contain rounded-xl border border-[var(--border)]" />
+              <img src={photoPreviewUrl} alt="Rejection proof preview" loading="lazy" decoding="async" className="w-full max-h-48 object-contain rounded-xl border border-[var(--border)]" />
               <button
                 onClick={() => onPhotoChange(null)}
                 disabled={uploading}

@@ -1,4 +1,4 @@
-import { Filter,Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { Combobox, ComboboxOption } from '../../../components/Combobox';
 import { ForkliftStatus,ForkliftType } from '../../../types';

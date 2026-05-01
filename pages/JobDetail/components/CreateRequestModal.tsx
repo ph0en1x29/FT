@@ -252,6 +252,8 @@ export const CreateRequestModal: React.FC<CreateRequestModalProps> = ({
                     <img
                       src={photoUrl}
                       alt="Part photo"
+                      loading="lazy"
+                      decoding="async"
                       className="w-[120px] h-[120px] object-cover rounded-xl border-2 border-[var(--border)]"
                     />
                     <button
