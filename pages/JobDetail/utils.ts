@@ -161,8 +161,11 @@ export function getRoleFlags(
       (isAccountant && statusFlags.isAwaitingFinalization) // Accountants only at finalization
     );
   
-  // Customer name visibility - Hidden from technicians per client request
-  const canViewCustomerName = !isTechnician;
+  // Customer name is visible to all roles per 2026-05-01 client request —
+  // technicians need to know which site they're going to. Previously this
+  // hardcoded `!isTechnician` and bypassed the ROLE_PERMISSIONS flag flipped
+  // in the perf overhaul; that override is removed here.
+  const canViewCustomerName = true;
 
   return {
     isAdmin,

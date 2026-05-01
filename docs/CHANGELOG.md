@@ -1,5 +1,13 @@
 # Changelog
 
+## [2026-05-02] — Fix: technician customer name now visible on JobDetail
+
+### Fixes
+
+- **Technicians can now see the customer name on `/jobs/:id`.** The 2026-05-01 sweep flipped `ROLE_PERMISSIONS[TECHNICIAN].canViewCustomerName` to TRUE and updated the JobBoard components, but missed a hardcoded override in `pages/JobDetail/utils.ts:getRoleFlags()` (`const canViewCustomerName = !isTechnician`) that bypassed the flag. `CustomerAssignmentCard` reads its `canViewCustomerName` from this helper, so the JobDetail Customer card kept showing "Customer" instead of the actual name. Fix: removed the hardcoded override — customer name is now universally visible per the 2026-05-01 client request, consistent with the JobBoard behavior.
+
+---
+
 ## [2026-05-02] — Round 2 cron-path N+1 sweep + observability + frontend hygiene + tests scaffold
 
 ### Fixes — Round 2 (server-side)
