@@ -292,6 +292,10 @@ Core work orders.
 | `technician_response_deadline` | TIMESTAMPTZ | YES | | **(NEW 2026-04-07)** Auto-populated by `trg_set_response_deadline` to `assigned_at + 15 minutes`. The frontend countdown timer reads this value |
 | `last_response_alert_at` | TIMESTAMPTZ | YES | | **(NEW 2026-04-07)** Throttle for the 15-min no-reply re-alert system — at most one alert per 15-min window |
 | `response_alert_count` | INTEGER | NO | `0` | **(NEW 2026-04-07)** Count of no-response re-alerts already sent. Capped at 4 (1-hour total nagging window) by `escalate_assignment_response()` |
+| `billing_path` | `billing_path_enum` | NO | `'unset'` | **(NEW 2026-05-01)** ACWER 3-path classification — `'amc'` (Path A), `'chargeable'` (Path B), `'fleet'` (Path C), `'unset'` (legacy/unclassified). Phase 0: defaults to `'unset'` for all jobs; Phase 1 will populate from `classifyBillingPath()` at create time |
+| `billing_path_reason` | TEXT | YES | | **(NEW 2026-05-01)** Human-readable reason for the path classification (e.g. "Forklift is Acwer-owned (Path C — Fleet)") |
+| `billing_path_overridden_by_id` | UUID | YES | | **(NEW 2026-05-01)** FK → `users.user_id`. Admin who manually overrode the auto-classified path. NULL when the path is auto-derived |
+| `billing_path_overridden_at` | TIMESTAMPTZ | YES | | **(NEW 2026-05-01)** When the path was manually overridden |
 
 Constraints:
 - PK: `job_id`
@@ -306,6 +310,7 @@ Foreign keys:
 - `completed_by_id` -> `users.user_id`
 - `invoiced_by_id` -> `users.user_id`
 - `deleted_by` -> `users.user_id`
+- `billing_path_overridden_by_id` -> `users.user_id` **(NEW 2026-05-01)**
 
 Notable indexes:
 - `idx_jobs_starred` on `job_id` WHERE `is_starred = true` **(NEW 2026-04-04)**
@@ -1404,6 +1409,7 @@ Inventory master.
 | `min_stock_level` | INTEGER | YES | `10` |
 | `supplier` | VARCHAR | YES | |
 | `location` | VARCHAR | YES | |
+| `is_warranty_excluded` | BOOLEAN | NO | `false` | **(NEW 2026-05-01)** ACWER Phase 0. TRUE = wear-and-tear part not covered by AMC. Phase 4 enforcement flips Path A jobs to `chargeable` when an excluded part is added. Default-FALSE seed list (tires, LED lights, seats, oils, filters, etc.) lands in Phase 3 once Shin confirms |
 
 Constraints:
 - PK: `part_id`
@@ -1910,6 +1916,169 @@ Constraints:
 
 Foreign keys:
 - `updated_by_id` -> `users.user_id`
+
+---
+
+## ACWER Service Flow **(NEW 2026-05-01)**
+
+Phase 0 substrate for the 3-path billing model (Path A: AMC, Path B: chargeable, Path C: fleet) described in `~/Downloads/acwer_service_operations_flow.md`. Tables are intentionally empty in Phase 0; subsequent phases populate them and wire them into the UI / mutation paths.
+
+### `service_contracts` **(NEW 2026-05-01)**
+Customer-level service contracts (AMC / warranty / maintenance). Drives Path A classification in `services/billingPathService.ts:classifyBillingPath()`.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `contract_id` | UUID | NO | `gen_random_uuid()` |
+| `customer_id` | UUID | NO | |
+| `contract_number` | TEXT | YES | |
+| `contract_type` | TEXT | NO | `'amc'` |
+| `start_date` | DATE | NO | |
+| `end_date` | DATE | NO | |
+| `covered_forklift_ids` | UUID[] | YES | | NULL or empty array = all customer's forklifts |
+| `includes_parts` | BOOLEAN | NO | `true` |
+| `includes_labor` | BOOLEAN | NO | `true` |
+| `wear_tear_part_ids` | UUID[] | YES | | Per-contract wear-and-tear override; supersedes global `parts.is_warranty_excluded` |
+| `notes` | TEXT | YES | |
+| `is_active` | BOOLEAN | NO | `true` |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `created_by_id` | UUID | YES | |
+| `created_by_name` | TEXT | YES | |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_by_id` | UUID | YES | |
+| `updated_by_name` | TEXT | YES | |
+
+Constraints:
+- PK: `contract_id`
+- CHECK: `contract_type IN ('amc','warranty','maintenance')`
+- CHECK: `end_date >= start_date`
+
+Foreign keys:
+- `customer_id` -> `customers.customer_id` (CASCADE)
+- `created_by_id` -> `users.user_id`
+- `updated_by_id` -> `users.user_id`
+
+Indexes:
+- `idx_service_contracts_customer` on `customer_id` WHERE `is_active = true`
+- `idx_service_contracts_dates` on `(start_date, end_date)` WHERE `is_active = true`
+
+RLS:
+- `admin / admin_service / supervisor`: ALL
+- All authenticated roles (incl. technicians): SELECT
+
+---
+
+### `parts_usage_quotas` **(NEW 2026-05-01)**
+Consumable usage limits (e.g. "1 set tires/year per fleet forklift"). Phase 6 enforcement flips Path C jobs to chargeable when the quota is exceeded.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `quota_id` | UUID | NO | `gen_random_uuid()` |
+| `scope_type` | TEXT | NO | | `'global' | 'per_forklift' | 'per_customer'` |
+| `scope_id` | UUID | YES | | forklift_id or customer_id; NULL when scope_type='global' |
+| `part_id` | UUID | YES | |
+| `part_category` | TEXT | YES | | Alternative to `part_id` — limit by category instead |
+| `period_unit` | TEXT | NO | `'year'` | `'year' | 'quarter' | 'month'` |
+| `max_quantity` | NUMERIC | NO | | |
+| `is_active` | BOOLEAN | NO | `true` |
+| `notes` | TEXT | YES | |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `quota_id`
+- CHECK: `scope_type IN ('global','per_forklift','per_customer')`
+- CHECK: `period_unit IN ('year','quarter','month')`
+- CHECK: `max_quantity > 0`
+- CHECK: `part_id IS NOT NULL OR part_category IS NOT NULL`
+
+Foreign keys:
+- `part_id` -> `parts.part_id` (CASCADE)
+
+Indexes:
+- `idx_parts_usage_quotas_scope` on `(scope_type, scope_id)` WHERE `is_active = true`
+
+RLS:
+- `admin / admin_service / admin_store / supervisor`: ALL
+- All authenticated roles: SELECT
+
+---
+
+### `recurring_schedules` **(NEW 2026-05-01)**
+Recurrence rules for fleet (Acwer-owned) forklift maintenance. Phase 5 cron generates `scheduled_services` records ahead of `next_due_date` minus `lead_time_days`.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `schedule_id` | UUID | NO | `gen_random_uuid()` |
+| `forklift_id` | UUID | NO | |
+| `service_interval_id` | UUID | YES | |
+| `contract_id` | UUID | YES | |
+| `frequency` | TEXT | NO | | `'monthly' | 'quarterly' | 'yearly' | 'hourmeter'` |
+| `hourmeter_interval` | INTEGER | YES | | Required when `frequency = 'hourmeter'` |
+| `next_due_date` | DATE | YES | |
+| `next_due_hourmeter` | INTEGER | YES | |
+| `lead_time_days` | INTEGER | NO | `7` |
+| `is_active` | BOOLEAN | NO | `true` |
+| `last_generated_at` | TIMESTAMPTZ | YES | |
+| `notes` | TEXT | YES | |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `schedule_id`
+- CHECK: `frequency IN ('monthly','quarterly','yearly','hourmeter')`
+
+Foreign keys:
+- `forklift_id` -> `forklifts.forklift_id` (CASCADE)
+- `service_interval_id` -> `service_intervals.interval_id`
+- `contract_id` -> `service_contracts.contract_id` (SET NULL)
+
+Indexes:
+- `idx_recurring_schedules_due` on `next_due_date` WHERE `is_active = true`
+- `idx_recurring_schedules_forklift` on `forklift_id` WHERE `is_active = true`
+
+RLS:
+- `admin / admin_service / supervisor`: ALL
+- All authenticated roles: SELECT
+
+---
+
+### `acwer_settings` **(NEW 2026-05-01)**
+Single-row global ACWER settings. `id = 1` is the only allowed row (CHECK constraint). Houses defaults for labor rate, transport, AMC warranty length, fleet recurrence cadence, and Phase 7+ feature flags.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `id` | INTEGER | NO | `1` |
+| `default_labor_rate_myr` | NUMERIC | NO | `150` |
+| `default_transport_flat_myr` | NUMERIC | NO | `50` |
+| `default_transport_per_km_myr` | NUMERIC | NO | `1.50` |
+| `default_transport_flat_threshold_km` | NUMERIC | NO | `50` |
+| `amc_warranty_default_months` | INTEGER | NO | `6` |
+| `fleet_default_frequency` | TEXT | NO | `'quarterly'` |
+| `fleet_default_hourmeter_interval` | INTEGER | NO | `500` |
+| `feature_deduct_on_finalize` | BOOLEAN | NO | `false` | Phase 7 feature flag — when TRUE, parts deduct only on Admin 2 finalize. Default FALSE preserves the current immediate-deduct rule |
+| `updated_at` | TIMESTAMPTZ | NO | `now()` |
+| `updated_by_id` | UUID | YES | |
+| `updated_by_name` | TEXT | YES | |
+
+Constraints:
+- PK: `id`
+- CHECK: `id = 1` (single-row table)
+- CHECK: `fleet_default_frequency IN ('monthly','quarterly','yearly','hourmeter')`
+
+Foreign keys:
+- `updated_by_id` -> `users.user_id`
+
+RLS:
+- `admin / supervisor`: ALL
+- Everyone (including unauthenticated public): SELECT
+
+---
+
+### Enum: `billing_path_enum` **(NEW 2026-05-01)**
+
+Defined for `jobs.billing_path`. Values:
+- `'amc'` — Path A (AMC, customer-owned forklift covered by an active service contract)
+- `'chargeable'` — Path B (non-contract chargeable, customer-owned forklift, no covering contract)
+- `'fleet'` — Path C (Acwer-owned fleet forklift)
+- `'unset'` — legacy / pre-Phase-0 / not-yet-classified
 
 ---
 

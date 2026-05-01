@@ -1,5 +1,43 @@
 # Changelog
 
+## [2026-05-01] — ACWER Service Operations Flow — Phase 0 foundation
+
+### Added
+
+- **3-path billing model schema substrate.** The Acwer service operations flowchart describes three intake routes for every service job — Path A (AMC under contract), Path B (non-contract chargeable), Path C (Acwer-owned fleet) — that each have different billing destinations (AutoCount invoice vs. internal ROI tracking) and different chargeable-exception rules (warranty expiry, wear-and-tear parts, accidents, consumable overage). FT today has only a binary `billing_type` field (`rental-inclusive | chargeable`) that lives only in TypeScript and is not persisted. Phase 0 lays the foundation for the 3-way model without changing any user-visible behavior. Concretely it adds:
+    - **`jobs.billing_path`** (new `billing_path_enum`: `amc | chargeable | fleet | unset`, default `'unset'`) plus `billing_path_reason`, `billing_path_overridden_by_id`, `billing_path_overridden_at` for audit. All existing jobs default to `'unset'` and continue to drive billing through the legacy `billing_type` until Phase 1 wires the classifier into the create-job flow.
+    - **`service_contracts`** table — customer-level AMC / warranty / maintenance contracts with `start_date`, `end_date`, optional `covered_forklift_ids` (NULL = all customer's forklifts), `wear_tear_part_ids` for per-contract overrides, plus `includes_parts` / `includes_labor` flags. Empty in Phase 0; populated through admin UI in Phase 2.
+    - **`parts.is_warranty_excluded`** (boolean, default FALSE) — the Path A wear-and-tear gate flag. All existing parts default to FALSE; the seed list (tires, LED lights, seats, oils, filters, etc., per the Acwer flowchart) lands in Phase 3 once Shin confirms the closed list.
+    - **`parts_usage_quotas`** table — Path C consumable overage scaffold ("1 set tires/year per fleet forklift", etc.). Empty in Phase 0; quota enforcement is Phase 6.
+    - **`recurring_schedules`** table — Path C recurring PM scaffold (monthly / quarterly / yearly / hourmeter). Empty in Phase 0; the cron generator is Phase 5.
+    - **`acwer_settings`** single-row globals — labor rate (RM 150/hr), transport (RM 50 flat / RM 1.50/km after 50km), AMC default warranty (6 months), fleet default cadence (quarterly or 500h), plus a `feature_deduct_on_finalize` flag set to FALSE so the deferred-parts-deduction semantic flip (Phase 7, the highest-risk change in the multi-phase roadmap) is gated behind an explicit toggle.
+- **TypeScript types mirroring the schema** (`types/service-flow.types.ts`): `BillingPath` enum, `BillingPathClassification`, `ServiceContract`, `PartsUsageQuota`, `RecurringSchedule`, `AcwerSettings`. Re-exported from `types/index.ts`. Four optional `billing_path*` fields added to the `Job` interface in `types/job-core.types.ts` so reads like `JOB_SELECT.DETAIL` (which uses `select '*'`) flow the new columns through transparently. Legacy `billing_type` is preserved on the interface — both fields will coexist during the transition.
+- **Pure classifier** (`services/billingPathService.ts`): `classifyBillingPath({ forklift, customer_id, active_contracts, current_date })` returns `{ path, reason, contract_id? }`. Path C wins regardless of contract (Acwer-owned forklifts are always Path C). Path A requires a customer-owned forklift covered by an active contract (`is_active`, `[start_date, end_date]` brackets `current_date`, and `covered_forklift_ids` is null/empty/contains the forklift). Path B = customer-owned + no covering contract. UNSET = missing forklift or unknown ownership. Plus thin Supabase fetchers `getActiveContractsForCustomer()` and `getAcwerSettings()` that Phase 1 will consume from the create-job form. The function has zero callers in Phase 0; it's the substrate Phase 1 plugs into.
+- **Row-level security on the new tables.** `service_contracts`, `parts_usage_quotas`, `recurring_schedules`, `acwer_settings` are all RLS-enabled with admin / admin_service / admin_store / supervisor write policies and authenticated-read policies, mirroring the existing FT RLS conventions.
+
+### Verification
+
+- **10 rounds of automated checks, all passing** (~60 individual assertions across schema, code, and live-DB roundtrip):
+    1. **Live-DB schema query** (25/25): enum has all 4 values; `jobs` has 4 new columns with correct types/defaults/nullability; `parts.is_warranty_excluded` exists with default FALSE NOT NULL; all 4 new tables exist with RLS enabled and ≥2 policies each; `acwer_settings` has exactly 1 row with the expected defaults including `feature_deduct_on_finalize = FALSE`; all 5 expected indexes present; no existing jobs migrated to a non-`'unset'` billing_path; no parts marked warranty-excluded yet.
+    2. **`npm run typecheck`** — exit 0.
+    3. **`npm run build`** — 2631 modules, 4.26s, exit 0.
+    4. **Typecheck rerun** (stability) — exit 0.
+    5. **`npm run lint`** — 0 errors, 89 pre-existing warnings (no new warnings introduced by the new files).
+    6. **Codebase consistency grep**: `billing_path` references appear only in the two new/edited type files; `billingPathService` is not yet imported anywhere (correct — Phase 1 will be its first consumer); the legacy `billing_type` flow in `pages/CreateJob/*` is untouched (all 8 references unchanged).
+    7. **Pure classifier behaviour** (11/11): UNSET when no forklift is selected; FLEET when forklift is `ownership='company'` (with and without contract present, both correctly returning FLEET); AMC when customer-owned + active contract covers this forklift (with explicit `covered_forklift_ids` list AND with `null` covered list = covers all); CHARGEABLE when customer-owned + contract excludes this forklift / contract is expired / contract is future-dated / contract is `is_active=FALSE` / no contracts at all; UNSET when forklift's `ownership` is undefined.
+    8. **Live-DB roundtrip** (12/12): can insert and read back a service_contract; the `end_date >= start_date` CHECK constraint rejects bad rows; `billing_path_enum` rejects unknown values like `'banana'` and accepts each of the 4 valid values; `acwer_settings` rejects `id=2` (single-row constraint enforced); `parts_usage_quotas` rejects rows missing both `part_id` and `part_category` and accepts a valid global tire-category quota; `recurring_schedules` accepts a quarterly forklift schedule.
+    9. **Typecheck (3rd run) + build (2nd run)** — both exit 0, confirming stability across repeat invocations.
+    10. **Read-path compatibility**: `JOB_SELECT.DETAIL` uses `select '*'`, so new `billing_path*` columns flow through transparently to UI consumers; `JOB_SELECT.LIST` and `JOB_SELECT.KPI` enumerate fields explicitly and don't include the new columns, but no Phase 0 consumer reads `billing_path` so this is correct.
+- Migration is fully reversible — the SQL file ends with a `ROLLBACK` block that drops every policy / table / column / type added by this migration.
+
+### Scope notes
+
+- This is foundation only. **No user-visible behavior changed.** The Create Job form still sets `billing_type` from `forklift.ownership_type` exactly as before. Parts still deduct immediately on add (Phase 7 will flip this to deduct-on-Admin-2-finalize behind the `feature_deduct_on_finalize` flag, with a feature-flagged staged rollout). The dual-admin (Admin 1 / Admin 2) confirm columns on `jobs` are untouched. AutoCount integration is untouched. The realtime self-echo dedupe (`lastSeenUpdatedAtRef`) is unaffected since no new mutation paths exist.
+- The 5 questions to Shin (closed wear-and-tear list, rate sheet, recurring schedule cadence, overage rules, Admin 2 = `admin_store` confirmation) remain open. Defaults chosen until he answers are encoded in `acwer_settings` and in the migration's COMMENT directives — every default is overridable through admin UI in subsequent phases without re-migrating.
+- Subsequent phases (sketched, not implemented): Phase 1 — classifier wired into intake form with advisory badge; Phase 2 — service_contracts CRUD UI; Phase 3 — wear-and-tear seed list + part-add warnings on AMC jobs; Phase 4 — Path A enforcement (auto-flip to chargeable on excluded part / expired warranty); Phase 5 — pg_cron recurring scheduler for fleet PM; Phase 6 — accident/overage validator; Phase 7 — deduct-on-finalize flip with feature flag; Phase 8 — wire up `createAutoCountExport`; Phase 9 — reports with cost-visibility toggle; Phase 10 — quotation creation/sending UI for Path B.
+
+---
+
 ## [2026-04-30] — Fix: Printable service report now includes the full condition checklist
 
 ### Fixes

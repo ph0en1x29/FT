@@ -236,6 +236,14 @@ export interface Job {
   first_hourmeter_recorded_at?: string;     // When the hourmeter was first recorded
   billing_type?: 'rental-inclusive' | 'chargeable';
 
+  // ACWER service flow (Phase 0+) — three-path classification.
+  // billing_path supersedes billing_type long-term; both are kept during transition.
+  // Values: 'amc' | 'chargeable' | 'fleet' | 'unset'. See types/service-flow.types.ts.
+  billing_path?: 'amc' | 'chargeable' | 'fleet' | 'unset';
+  billing_path_reason?: string | null;
+  billing_path_overridden_by_id?: string | null;
+  billing_path_overridden_at?: string | null;
+
   // Condition checklist (checked when starting job)
   condition_checklist?: ForkliftConditionChecklist;
   job_carried_out?: string; // Description of work done
