@@ -38,6 +38,9 @@ export const useJobPartsHandlers = ({
       return;
     }
     const price = parseFloat(state.selectedPartPrice) || 0;
+    // ACWER Phase 4 — capture pre-add billing_path so we can detect a Path A
+    // → Path B auto-flip when the added part is wear-and-tear.
+    const prevBillingPath = job.billing_path;
     try {
       const updated = await MockDb.addPartToJob(job.job_id, state.selectedPartId, qty, price, UserRole.ADMIN, currentUserId, currentUserName, state.sellSealed);
       setJob({ ...updated } as Job);
@@ -45,7 +48,16 @@ export const useJobPartsHandlers = ({
       state.setSelectedPartPrice('');
       state.setAddPartQuantity('1');
       state.setSellSealed(false);
-      showToast.success('Part added');
+      // Detect the Path A → Path B auto-flip (Phase 4 enforcement) and surface
+      // it to the admin so they know the job's billing class changed.
+      if (prevBillingPath === 'amc' && updated.billing_path === 'chargeable') {
+        showToast.warning(
+          'Job auto-flipped to Chargeable',
+          updated.billing_path_reason ?? 'Wear-and-tear part added; AMC coverage no longer applies to this job.',
+        );
+      } else {
+        showToast.success('Part added');
+      }
     } catch (e) {
       showToast.error('Could not add part', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }

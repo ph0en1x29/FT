@@ -292,10 +292,12 @@ Core work orders.
 | `technician_response_deadline` | TIMESTAMPTZ | YES | | **(NEW 2026-04-07)** Auto-populated by `trg_set_response_deadline` to `assigned_at + 15 minutes`. The frontend countdown timer reads this value |
 | `last_response_alert_at` | TIMESTAMPTZ | YES | | **(NEW 2026-04-07)** Throttle for the 15-min no-reply re-alert system — at most one alert per 15-min window |
 | `response_alert_count` | INTEGER | NO | `0` | **(NEW 2026-04-07)** Count of no-response re-alerts already sent. Capped at 4 (1-hour total nagging window) by `escalate_assignment_response()` |
-| `billing_path` | `billing_path_enum` | NO | `'unset'` | **(NEW 2026-05-01)** ACWER 3-path classification — `'amc'` (Path A), `'chargeable'` (Path B), `'fleet'` (Path C), `'unset'` (legacy/unclassified). Phase 0: defaults to `'unset'` for all jobs; Phase 1 will populate from `classifyBillingPath()` at create time |
-| `billing_path_reason` | TEXT | YES | | **(NEW 2026-05-01)** Human-readable reason for the path classification (e.g. "Forklift is Acwer-owned (Path C — Fleet)") |
-| `billing_path_overridden_by_id` | UUID | YES | | **(NEW 2026-05-01)** FK → `users.user_id`. Admin who manually overrode the auto-classified path. NULL when the path is auto-derived |
-| `billing_path_overridden_at` | TIMESTAMPTZ | YES | | **(NEW 2026-05-01)** When the path was manually overridden |
+| `billing_path` | `billing_path_enum` | NO | `'unset'` | **(NEW 2026-05-01)** ACWER 3-path classification — `'amc'` (Path A), `'chargeable'` (Path B), `'fleet'` (Path C), `'unset'` (legacy/unclassified). Phase 1 backfilled from `forklift.ownership` + active contracts (674 fleet, 75 chargeable, 161 unset for jobs without forklift). Phase 4 auto-flips Path A → Chargeable when wear-and-tear part added; Phase 6 auto-flips Path C → Chargeable on accident or consumable overage |
+| `billing_path_reason` | TEXT | YES | | **(NEW 2026-05-01)** Human-readable reason for the path classification (e.g. "Forklift is Acwer-owned (Path C — Fleet)" or "Auto-flipped from AMC to Chargeable: contains wear-and-tear part 'AIR FILTER'") |
+| `billing_path_overridden_by_id` | UUID | YES | | **(NEW 2026-05-01)** FK → `users.user_id`. Admin (or system) who flipped the auto-classified path. NULL when the path is auto-derived from intake |
+| `billing_path_overridden_at` | TIMESTAMPTZ | YES | | **(NEW 2026-05-01)** When the path was overridden (manual admin action OR Phase 4/6 auto-flip) |
+| `is_accident` | BOOLEAN | NO | `false` | **(NEW 2026-05-01)** ACWER Phase 6 — TRUE = accident / customer negligence / external-party damage. Flips Path C jobs to chargeable. Set at intake or via JobDetail |
+| `accident_notes` | TEXT | YES | | **(NEW 2026-05-01)** Phase 6 — free-form context for the accident flag |
 
 Constraints:
 - PK: `job_id`
@@ -1409,7 +1411,7 @@ Inventory master.
 | `min_stock_level` | INTEGER | YES | `10` |
 | `supplier` | VARCHAR | YES | |
 | `location` | VARCHAR | YES | |
-| `is_warranty_excluded` | BOOLEAN | NO | `false` | **(NEW 2026-05-01)** ACWER Phase 0. TRUE = wear-and-tear part not covered by AMC. Phase 4 enforcement flips Path A jobs to `chargeable` when an excluded part is added. Default-FALSE seed list (tires, LED lights, seats, oils, filters, etc.) lands in Phase 3 once Shin confirms |
+| `is_warranty_excluded` | BOOLEAN | NO | `false` | **(NEW 2026-05-01)** ACWER Phase 0+3. TRUE = wear-and-tear part not covered by AMC. Phase 3 seeded ~128 parts via keyword match (tires/tyres, bulbs/beacons/LED, seats, branded oils, grease, named filters; explicitly excludes structural-keyword names). Phase 4 enforcement flips Path A jobs to `chargeable` when an excluded part is added |
 
 Constraints:
 - PK: `part_id`

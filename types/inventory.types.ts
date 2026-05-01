@@ -31,6 +31,13 @@ export interface Part {
   is_liquid?: boolean;
   avg_cost_per_liter?: number;
   last_purchase_cost_per_liter?: number;
+  /**
+   * ACWER Phase 0+ — wear-and-tear flag. TRUE = part is excluded from AMC
+   * coverage. Phase 4 enforcement flips Path A jobs to chargeable when an
+   * excluded part is added. Default FALSE; seed list applied in
+   * `20260501_acwer_flow_phase3_wear_tear_seed.sql`.
+   */
+  is_warranty_excluded?: boolean;
 }
 
 export interface JobPartUsed {

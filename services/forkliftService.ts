@@ -100,6 +100,22 @@ export const getForkliftsForList = async (): Promise<Pick<Forklift, 'forklift_id
   return data as Pick<Forklift, 'forklift_id' | 'serial_number' | 'forklift_no' | 'make' | 'model' | 'type' | 'status' | 'hourmeter' | 'location' | 'current_customer_id' | 'current_site_id' | 'ownership_type'>[];
 };
 
+/**
+ * Forklifts currently linked to a customer (by `current_customer_id`).
+ * Used by Phase 2 service-contract creation modal to populate the
+ * "covered forklifts" multi-select. Returns [] on error.
+ */
+export const getForkliftsByCustomerId = async (customerId: string): Promise<Forklift[]> => {
+  if (!customerId) return [];
+  const { data, error } = await supabase
+    .from('forklifts')
+    .select(FORKLIFT_SELECT)
+    .eq('current_customer_id', customerId)
+    .order('forklift_no', { ascending: true, nullsFirst: false });
+  if (error || !data) return [];
+  return data as Forklift[];
+};
+
 export const getForkliftById = async (forkliftId: string): Promise<Forklift | null> => {
   const initial = await supabase
     .from('forklifts')

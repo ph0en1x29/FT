@@ -1,8 +1,10 @@
 // CustomerProfile components barrel export
 export { default as AddEditContactModal } from './AddEditContactModal';
+export { default as AddEditContractModal } from './AddEditContractModal';
 export { default as AddEditSiteModal } from './AddEditSiteModal';
 export { default as BulkEndRentalModal } from './BulkEndRentalModal';
 export { default as ContactsSection } from './ContactsSection';
+export { default as ContractsSection } from './ContractsSection';
 export { default as CustomerHeader } from './CustomerHeader';
 export { default as CustomerKPIStrip } from './CustomerKPIStrip';
 export { default as EditCustomerModal } from './EditCustomerModal';

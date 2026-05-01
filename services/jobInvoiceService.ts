@@ -50,7 +50,7 @@ export const addPartToJob = async (
 ): Promise<Job> => {
   const { data: part, error: partError } = await supabase
     .from('parts')
-    .select('part_id, part_name, part_code, category, cost_price, sell_price, warranty_months, stock_quantity, last_updated_by, last_updated_by_name, updated_at, min_stock_level, supplier, location, unit, base_unit, container_unit, container_size, container_quantity, bulk_quantity, price_per_base_unit, is_liquid, avg_cost_per_liter, last_purchase_cost_per_liter')
+    .select('part_id, part_name, part_code, category, cost_price, sell_price, warranty_months, stock_quantity, last_updated_by, last_updated_by_name, updated_at, min_stock_level, supplier, location, unit, base_unit, container_unit, container_size, container_quantity, bulk_quantity, price_per_base_unit, is_liquid, avg_cost_per_liter, last_purchase_cost_per_liter, is_warranty_excluded')
     .eq('part_id', partId)
     .single();
 
@@ -73,7 +73,47 @@ export const addPartToJob = async (
 
   if (insertError) throw new Error(insertError.message);
 
-  if (actorRole === UserRole.ADMIN || actorRole === UserRole.TECHNICIAN) {
+  // ACWER Phase 7 — read the deferred-deduction feature flag. When TRUE,
+  // skip the immediate stock decrement; deduction will run in
+  // acwer_finalize_job_part_deduction() once Admin 2 confirms parts.
+  // Defaults FALSE — preserves the legacy immediate-deduct behaviour.
+  let deferDeduction = false;
+  try {
+    const { data: settings } = await supabase
+      .from('acwer_settings')
+      .select('feature_deduct_on_finalize')
+      .eq('id', 1)
+      .single();
+    deferDeduction = settings?.feature_deduct_on_finalize === true;
+  } catch (_e) { /* fail-open: keep legacy behaviour */ }
+
+  // ACWER Phase 7 — stamp deducted_at on the newly-inserted job_parts row
+  // when deduction actually happens at add time. That's: never deferred for
+  // liquids (Phase 7 finalize doesn't handle them) AND not deferred for
+  // non-liquids when feature_deduct_on_finalize=FALSE. When deduction is
+  // deferred, deducted_at stays NULL until acwer_finalize_job_part_deduction
+  // stamps it at Admin 2 confirm time.
+  const stampDeductedAtNow = part.is_liquid === true || !deferDeduction;
+  if (stampDeductedAtNow) {
+    await supabase
+      .from('job_parts')
+      .update({
+        deducted_at: new Date().toISOString(),
+        deducted_by_id: actorId ?? null,
+        deducted_by_name: actorName ?? null,
+      })
+      .eq('job_id', jobId)
+      .eq('part_id', partId)
+      .is('deducted_at', null);
+  }
+
+  // Liquid parts always deduct immediately (the Phase 7 deferred-deduction
+  // function intentionally doesn't handle liquids — sealed/internal split
+  // semantics make deferral too lossy). Non-liquid parts honour the flag.
+  const shouldRunImmediateDeduction =
+    (actorRole === UserRole.ADMIN || actorRole === UserRole.TECHNICIAN) &&
+    (part.is_liquid === true || !deferDeduction);
+  if (shouldRunImmediateDeduction) {
     if (part.is_liquid && part.container_size) {
       // Liquid item — branch on sell mode
       try {
@@ -115,6 +155,78 @@ export const addPartToJob = async (
         }).then(({ error: mvErr }) => {
           if (mvErr) console.warn('Movement log failed:', mvErr.message);
         });
+      }
+    }
+  }
+
+  // ACWER Phase 4 — Path A enforcement: if this is an AMC-classified job and
+  // the part is wear-and-tear (`is_warranty_excluded`), auto-flip the job's
+  // billing_path to 'chargeable' with a system override stamp. Idempotent —
+  // if the job is already non-AMC, this is a no-op.
+  if (part.is_warranty_excluded === true) {
+    const { data: jobRow } = await supabase
+      .from('jobs')
+      .select('billing_path')
+      .eq('job_id', jobId)
+      .single();
+    if (jobRow?.billing_path === 'amc') {
+      const reason = `Auto-flipped from AMC to Chargeable: contains wear-and-tear part "${part.part_name}"`;
+      const { error: flipError } = await supabase
+        .from('jobs')
+        .update({
+          billing_path: 'chargeable',
+          billing_path_reason: reason,
+          billing_path_overridden_at: new Date().toISOString(),
+          billing_path_overridden_by_id: actorId ?? null,
+        })
+        .eq('job_id', jobId);
+      if (flipError) {
+        console.warn('Path A auto-flip failed:', flipError.message);
+      }
+    }
+  }
+
+  // ACWER Phase 6 — Path C overage enforcement: if this is a fleet-classified
+  // job and the part's category is on the parts_usage_quotas list, check the
+  // running yearly total via the helper. If we'd exceed the quota with this
+  // add, flip the job to chargeable. Idempotent — only flips if currently 'fleet'.
+  if (part.category) {
+    const { data: jobRow } = await supabase
+      .from('jobs')
+      .select('billing_path, forklift_id')
+      .eq('job_id', jobId)
+      .single();
+    if (jobRow?.billing_path === 'fleet' && jobRow.forklift_id) {
+      const { data: quotaRow } = await supabase
+        .from('parts_usage_quotas')
+        .select('max_quantity')
+        .eq('scope_type', 'global')
+        .eq('part_category', part.category)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (quotaRow?.max_quantity) {
+        const { data: usedSoFar } = await supabase.rpc('acwer_part_category_usage_for_forklift', {
+          p_forklift_id: jobRow.forklift_id,
+          p_category: part.category,
+          p_days_back: 365,
+        });
+        const used = Number(usedSoFar ?? 0);
+        const max = Number(quotaRow.max_quantity);
+        if (used + quantity > max) {
+          const reason = `Auto-flipped from Fleet to Chargeable: consumable overage on category "${part.category}" — ${used + quantity}/${max} used in last 365 days`;
+          const { error: flipError } = await supabase
+            .from('jobs')
+            .update({
+              billing_path: 'chargeable',
+              billing_path_reason: reason,
+              billing_path_overridden_at: new Date().toISOString(),
+              billing_path_overridden_by_id: actorId ?? null,
+            })
+            .eq('job_id', jobId);
+          if (flipError) {
+            console.warn('Path C overage auto-flip failed:', flipError.message);
+          }
+        }
       }
     }
   }

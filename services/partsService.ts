@@ -9,8 +9,8 @@ import { supabase } from './supabaseClient';
 import { isLikelyLiquid } from '../types/inventory.types';
 import { checkStockMismatch } from './liquidInventoryService';
 
-const PARTS_SELECT = 'part_id, part_name, part_code, category, cost_price, sell_price, warranty_months, stock_quantity, last_updated_by, last_updated_by_name, updated_at, min_stock_level, supplier, location, unit, base_unit, container_unit, container_size, container_quantity, bulk_quantity, price_per_base_unit, is_liquid, avg_cost_per_liter, last_purchase_cost_per_liter';
-const PARTS_LIST_SELECT = 'part_id, part_name, part_code, category, cost_price, sell_price, stock_quantity, is_liquid, base_unit, container_unit, container_size, container_quantity, bulk_quantity';
+const PARTS_SELECT = 'part_id, part_name, part_code, category, cost_price, sell_price, warranty_months, stock_quantity, last_updated_by, last_updated_by_name, updated_at, min_stock_level, supplier, location, unit, base_unit, container_unit, container_size, container_quantity, bulk_quantity, price_per_base_unit, is_liquid, avg_cost_per_liter, last_purchase_cost_per_liter, is_warranty_excluded';
+const PARTS_LIST_SELECT = 'part_id, part_name, part_code, category, cost_price, sell_price, stock_quantity, is_liquid, base_unit, container_unit, container_size, container_quantity, bulk_quantity, is_warranty_excluded';
 const PARTS_STATS_SELECT = 'part_id, category, part_code, cost_price, stock_quantity, min_stock_level, is_liquid, container_size, container_quantity, bulk_quantity';
 
 export interface PartsCatalogFilters {

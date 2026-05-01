@@ -3,6 +3,7 @@ import React,{ useCallback,useEffect,useRef,useState } from 'react';
 import { useNavigate,useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { useForkliftsForList,useSearchCustomers,useTechnicians } from '../../../hooks/useQueryHooks';
+import { classifyBillingPath,getActiveContractsForCustomer } from '../../../services/billingPathService';
 import { getCustomerById,getCustomerContacts,getCustomerSites } from '../../../services/customerService';
 import { supabase } from '../../../services/supabaseClient';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
@@ -54,6 +55,8 @@ export function useCreateJobForm(currentUser: User) {
     contact_id: prefilledContactId || '',
     site_id: prefilledSiteId || '',
     billing_type: 'rental-inclusive',
+    billing_path: 'unset',
+    billing_path_reason: '',
     scheduled_date: '',
   });
 
@@ -128,6 +131,43 @@ export function useCreateJobForm(currentUser: User) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.forklift_id, forklifts]);
 
+  // ACWER Phase 1 — auto-classify the billing path whenever the forklift or
+  // customer changes. Path C wins on company-owned forklifts regardless of
+  // contract; Path A requires customer-owned + active covering contract; Path
+  // B = customer-owned + no covering contract; UNSET = not enough info.
+  // Advisory only — does not block submission.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const customerId = formData.customer_id;
+      const forklift = selectedForklift;
+      // Skip the fetch if we already know it's UNSET or FLEET
+      if (forklift?.ownership === 'company') {
+        if (cancelled) return;
+        setFormData(prev => ({ ...prev, billing_path: 'fleet', billing_path_reason: 'Forklift is Acwer-owned (Path C — Fleet)' }));
+        return;
+      }
+      if (!forklift || !customerId) {
+        if (cancelled) return;
+        setFormData(prev => ({
+          ...prev,
+          billing_path: 'unset',
+          billing_path_reason: !forklift ? 'No forklift selected' : 'No customer selected',
+        }));
+        return;
+      }
+      const contracts = await getActiveContractsForCustomer(customerId);
+      if (cancelled) return;
+      const result = classifyBillingPath({ forklift, customer_id: customerId, active_contracts: contracts });
+      setFormData(prev => ({
+        ...prev,
+        billing_path: result.path,
+        billing_path_reason: result.reason,
+      }));
+    })();
+    return () => { cancelled = true; };
+  }, [formData.customer_id, selectedForklift]);
+
   // Form submission handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,6 +235,8 @@ export function useCreateJobForm(currentUser: User) {
           contact_id: formData.contact_id || undefined,
           site_id: formData.site_id || undefined,
           billing_type: formData.billing_type,
+          billing_path: formData.billing_path,
+          billing_path_reason: formData.billing_path_reason || null,
           scheduled_date: formData.scheduled_date || undefined,
         },
         currentUser.user_id,  // Created by ID

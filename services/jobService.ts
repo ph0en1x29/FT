@@ -128,21 +128,57 @@ export const createJob = async (jobData: Partial<Job>, createdById?: string, cre
       assigned_at: jobData.assigned_technician_id ? new Date().toISOString() : null,
       assigned_by_id: jobData.assigned_technician_id ? createdById : null,
       assigned_by_name: jobData.assigned_technician_id ? createdByName : null,
+      // ACWER Phase 1 — billing path classification (advisory; defaults to 'unset')
+      billing_path: jobData.billing_path || 'unset',
+      billing_path_reason: jobData.billing_path_reason ?? null,
+      // ACWER Phase 6 — accident / customer negligence flag
+      is_accident: jobData.is_accident ?? false,
+      accident_notes: jobData.accident_notes ?? null,
     })
     .select(`*, customer:customers(*), forklift:forklifts!forklift_id(*)`)
     .single();
 
   if (error) throw new Error(error.message);
-  
+
   const job = data as Job;
   job.parts_used = job.parts_used ?? [];
   job.media = job.media ?? [];
   job.extra_charges = job.extra_charges ?? [];
-  
+
+  // ACWER Phase 6 — if the job is fleet (Path C) AND admin marked it as an
+  // accident/customer-negligence case, flip immediately to chargeable per the
+  // flow doc's "Accident Case?" gate.
+  if (job.billing_path === 'fleet' && job.is_accident === true) {
+    const reason = job.accident_notes
+      ? `Auto-flipped from Fleet to Chargeable: accident case — ${job.accident_notes}`
+      : 'Auto-flipped from Fleet to Chargeable: accident case (Path C → B)';
+    const { data: flipped, error: flipErr } = await supabase
+      .from('jobs')
+      .update({
+        billing_path: 'chargeable',
+        billing_path_reason: reason,
+        billing_path_overridden_at: new Date().toISOString(),
+        billing_path_overridden_by_id: createdById ?? null,
+      })
+      .eq('job_id', job.job_id)
+      .select(`*, customer:customers(*), forklift:forklifts!forklift_id(*)`)
+      .single();
+    if (!flipErr && flipped) {
+      const updated = flipped as Job;
+      updated.parts_used = updated.parts_used ?? [];
+      updated.media = updated.media ?? [];
+      updated.extra_charges = updated.extra_charges ?? [];
+      if (jobData.assigned_technician_id) {
+        await notifyJobAssignment(jobData.assigned_technician_id, updated);
+      }
+      return updated;
+    }
+  }
+
   if (jobData.assigned_technician_id) {
     await notifyJobAssignment(jobData.assigned_technician_id, job);
   }
-  
+
   return job;
 };
 
@@ -280,6 +316,53 @@ export const confirmParts = async (
     .single();
 
   if (error) throw new Error(error.message);
+
+  // ACWER Phase 7 — if the deduct-on-finalize feature is enabled, run the
+  // pending-deduction processor for this job now that Admin 2 has confirmed.
+  // Defaults FALSE in `acwer_settings`, so this is a no-op until admin
+  // explicitly flips the flag.
+  try {
+    const { data: settings } = await supabase
+      .from('acwer_settings')
+      .select('feature_deduct_on_finalize')
+      .eq('id', 1)
+      .single();
+    if (settings?.feature_deduct_on_finalize === true) {
+      await supabase.rpc('acwer_finalize_job_part_deduction', {
+        p_job_id: jobId,
+        p_actor_id: userId,
+        p_actor_name: userName,
+      });
+    }
+  } catch (e) {
+    // Don't fail confirmation if the deferred-deduct RPC has a transient
+    // hiccup — leave the row marked confirmed; admin can run the function
+    // manually via SQL or a future "force deduct" button. The behaviour
+    // change here is FLAG-GATED and FALSE by default.
+    logDebug('[JobService] acwer_finalize_job_part_deduction failed:', (e as Error).message);
+  }
+
+  // ACWER Phase 8 — when the job is now FULLY finalized (both Admin 1 + Admin
+  // 2 stamps present) AND the autocount_settings.auto_export_on_finalize flag
+  // is TRUE AND the job is billable (not Path C fleet), prepare an AutoCount
+  // export. Defaults to OFF; admin enables in autocount_settings when ready.
+  try {
+    const job = data as Job;
+    const fullyFinalized = !!job.parts_confirmed_at && !!job.job_confirmed_at;
+    if (fullyFinalized && job.billing_path !== 'fleet' && !job.autocount_export_id) {
+      const { data: ac } = await supabase
+        .from('autocount_settings')
+        .select('auto_export_on_finalize, is_enabled')
+        .limit(1)
+        .single();
+      if (ac?.auto_export_on_finalize === true && ac?.is_enabled === true) {
+        await supabase.rpc('prepare_autocount_export', { p_job_id: jobId });
+      }
+    }
+  } catch (e) {
+    logDebug('[JobService] AutoCount auto-export skipped:', (e as Error).message);
+  }
+
   return data as Job;
 };
 

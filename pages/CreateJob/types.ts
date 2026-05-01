@@ -14,6 +14,14 @@ export interface CreateJobFormData {
   site_id: string;
   billing_type: 'rental-inclusive' | 'chargeable';
   /**
+   * ACWER service flow Phase 1 — auto-classified path (Path A/B/C).
+   * Read-only from the form's perspective: derived in `useCreateJobForm` from
+   * the selected forklift's ownership + the customer's active service contracts.
+   * 'unset' until enough data is selected to classify.
+   */
+  billing_path: 'amc' | 'chargeable' | 'fleet' | 'unset';
+  billing_path_reason: string;
+  /**
    * ISO-8601 string representing 07:30 Malaysia Time on the scheduled calendar day.
    * Empty string = no schedule (job sits in the "unscheduled" backlog).
    * When set, a reminder notification is sent to the assigned technician at the

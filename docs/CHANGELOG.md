@@ -1,5 +1,222 @@
 # Changelog
 
+## [2026-05-01] — ACWER Service Operations Flow — Phases 9 + 10 (cost-visibility toggle confirmed; Path B quotation service scaffold)
+
+### Verified (already-shipped feature, no code change)
+
+- **Phase 9 — reports with cost-visibility toggle for customer vs internal audiences** is already satisfied by the existing implementation. `components/ServiceReportPDF.tsx` accepts a `showPrices` prop that conditionally hides the Unit Price + Amount columns and the TOTAL row in both the React component and the standalone `printServiceReport()` HTML template. `pages/JobDetail/components/JobDetailModals.tsx:ReportOptionsModal` prompts admin "Should this report include prices? Hide prices for customer-facing copies." with two choices, and `pages/JobDetail/hooks/useJobExportActions.ts:handleConfirmPrintServiceReport` routes the answer to the print function. The flow doc's requirement "Reports printable with or without cost price" is met end-to-end. No code changes shipped for Phase 9.
+
+### Added
+
+- **Phase 10 — `services/quotationService.ts`** plugs the existing (zero-row, zero-caller) `quotations` DB table into a working CRUD surface. 8 exports: `listQuotations` (with optional status / customer_id filters), `getQuotationById`, `createQuotation` (auto-generates `QT-YYYYMMDD-NNN` numbers via a same-day count query, defaults to `status='draft'`), `updateQuotation`, status transitions (`markQuotationSent`, `markQuotationAccepted`, `markQuotationRejected`), and `linkQuotationToJob` for converting an accepted quotation to a real job. Mirrors the Phase 2 service contract service shape so a future quotation admin UI can drop in like the `ContractsSection` did.
+
+### Verification
+
+- Phase 9 (4 rounds): grep checks confirm `showPrices` is wired through 16 places in ServiceReportPDF, 3 in the ReportOptionsModal, 2 in the export actions hook; typecheck / build / lint all clean.
+- Phase 10 (6 rounds): typecheck (×2), build (2636 modules unchanged from Phase 8), lint (90 warnings stable since Phase 4); 8 service exports present; live-DB CRUD round-trip on the `quotations` table (4 sub-checks: insert succeeds with status='draft', read-back works, transition to 'sent' works, cleanup deletes the test row).
+
+### Scope notes
+
+- **Phase 10 is service-layer only.** Full quotation creation modal, PDF generator, and email/WhatsApp send flow are real follow-ups — each is medium UI work and none of them depend on further schema changes. Future UI builds on top of this service the same way the Phase 2 ContractsSection built on top of `serviceContractService`. The `Quotation` type was already defined in `types/job-quotation.types.ts` and the `quotations` DB table already existed; this phase plugs them together.
+- The job-side `quotation_*` columns on `jobs` (`quotation_number`, `quotation_date`, `quotation_validity`, `delivery_term`, `payment_term`) are independent of the new `quotations` table — they're the snapshot stamped on a job that came from an accepted quotation. The existing `linkQuotationToJob` only stamps the `quotations.job_id` reverse pointer; copying the snapshot fields onto the job at conversion time is the future "convert to job" handler's job.
+- No DB migrations were applied for Phase 9 or Phase 10 — both work with what was already in place.
+
+---
+
+## [2026-05-01] — ACWER Service Operations Flow — Phase 8 (AutoCount export wiring + RPC bug fixes)
+
+### Added
+
+- **`services/jobAutoCountService.ts` is now real, not stubs.** Five stubs that previously threw "not yet implemented" are replaced with working implementations: `createAutoCountExport`, `getAutoCountExports`, `getJobsPendingExport`, `retryAutoCountExport`, `cancelAutoCountExport`, plus a new `markExportedInAutoCount({exportId, autocountInvoiceNumber, userId, userName})` (admin confirms the row landed in AutoCount and stamps the AutoCount invoice number) and `markExportFailed(exportId, errorMsg)` (capture failure reason). Reads return the typed `AutoCountExport` row; the queue list orders newest-first.
+- **Auto-trigger on Admin 2 finalize.** `confirmParts` now checks — only after Admin 1 has also stamped `job_confirmed_at` AND the job is billable (`billing_path !== 'fleet'`) AND the operator has flipped both `autocount_settings.is_enabled` and `auto_export_on_finalize` to TRUE — and if so, calls `prepare_autocount_export(jobId)` to drop the row into the export queue. Defaults FALSE/FALSE so this is invisible until admin opts in. Errors fall back to logging via `logDebug`; the confirm itself succeeds regardless.
+
+### Fixed (latent — pre-existing in the 2026-01-15 ship)
+
+- **`prepare_autocount_export(uuid)` RPC was broken on every call.** Two bugs surfaced during Phase 8 testing:
+    - The cursor SELECT for parts didn't include `unit_price`, but the JSONB build dereferenced `v_part.unit_price`. Every call failed with `ERROR 42703: record "v_part" has no field "unit_price"`. Fix: use `sell_price_at_time` (the per-row price on `job_parts`) with `parts.sell_price` as fallback.
+    - The function tried to iterate `v_job.extra_charges` as a JSONB array, but `extra_charges` is a separate table joined by `job_id`, not a column on `jobs`. Every call failed with `ERROR 42703: record "v_job" has no field "extra_charges"`. Fix: replaced the JSONB iteration with a FOR loop over `SELECT description, amount FROM extra_charges WHERE job_id = p_job_id`.
+  After the fix, the RPC now returns an `export_id`, populates `total_amount` correctly (labor + parts + extra charges), and stamps `customer_name`. Verified end-to-end on the live DB.
+
+### Verification
+
+- 10 verification rounds, all passing: typecheck (×2 — new fields added to `Job` interface for `autocount_export_id` / `autocount_exported_at` so the new code typechecks), `npm run build` (×2 — 2636 modules unchanged), `npm run lint` (0 errors / 90 warnings stable). Live-DB end-to-end: RPC succeeds after both bug fixes, returns an export_id, row inserted with status='pending' / populated customer_name / non-null total_amount / line_items as a JSON array; mark-as-exported transitions cleanly; retry transition increments retry_count back to 'pending'; cleanup respects the FK order.
+
+### Scope notes
+
+- Did NOT build the AutoCount export queue admin UI — the existing route `/autocount-export` redirects to `/invoices?tab=autocount`, so the Invoices admin tab is the natural consumer. Wiring it to call `getAutoCountExports()` / `markExportedInAutoCount()` / `retryAutoCountExport()` is straightforward follow-up — no migrations, no service changes.
+- Did NOT add a real HTTP push to AutoCount Cloud — that requires the AutoCount API endpoint + credentials. FT prepares the export row; admin transcribes the AutoCount invoice number back via `markExportedInAutoCount({autocountInvoiceNumber: 'AC-...'})` once the row is sent.
+- Path C fleet jobs are deliberately excluded from auto-export — they're internal-cost / ROI tracking, not customer-billable per the flow doc.
+- `autocount_settings.is_enabled` and `auto_export_on_finalize` both default FALSE. Production behaviour is unchanged until admin flips both.
+
+---
+
+## [2026-05-01] — ACWER Service Operations Flow — Phase 7 (deduct-on-finalize, behind a feature flag, default OFF)
+
+### Added (infrastructure only — production behaviour unchanged)
+
+- **`acwer_finalize_job_part_deduction(uuid, uuid, text)`** PL/pgSQL function — walks the pending (`deducted_at IS NULL`, not in any return state, not from van stock) `job_parts` rows for a job, decrements `parts.stock_quantity`, inserts an `inventory_movements` row, and stamps `deducted_at` + `deducted_by_*`. Returns the count of rows processed. Liquids are deliberately stamped but not deducted in the function — their sealed/internal split semantics make deferral lossy, so they keep using the immediate-deduct path regardless of the flag.
+- **`job_parts` audit columns:** `deducted_at TIMESTAMPTZ`, `deducted_by_id UUID FK → users`, `deducted_by_name TEXT`. Existing rows are backfilled with `deducted_at = created_at` (truthful representation of the legacy immediate-deduct behaviour); the partial index `idx_job_parts_pending_deduct ON job_parts(job_id) WHERE deducted_at IS NULL` keeps the pending-rows scan cheap when the flag is on.
+- **`addPartToJob` (service layer)** now reads `acwer_settings.feature_deduct_on_finalize`. When FALSE (default), it deducts immediately and stamps `deducted_at = NOW()` exactly as today. When TRUE (after admin flips the flag), it skips the immediate decrement on non-liquid parts, leaving `deducted_at IS NULL` until `acwer_finalize_job_part_deduction` runs at Admin 2's confirmParts.
+- **`confirmParts` (service layer)** now triggers `acwer_finalize_job_part_deduction(jobId, userId, userName)` after the confirm UPDATE — but only when `feature_deduct_on_finalize=TRUE`. When the flag is FALSE, this RPC call is skipped entirely. Failures fall back to logging via `logDebug` so a transient RPC hiccup doesn't fail the confirmation.
+
+### Behaviour change to production: ZERO
+
+- The feature flag `acwer_settings.feature_deduct_on_finalize` defaults FALSE and is unchanged by this migration. Every code path checks the flag and continues to do exactly what it did before until admin explicitly flips the flag to TRUE in `acwer_settings`. This makes Phase 7 a "ship the infrastructure, leave the switch off" change — the migration is an additive no-op for users.
+- When admin is ready to cut over, they `UPDATE acwer_settings SET feature_deduct_on_finalize = TRUE WHERE id = 1;`. From that moment forward, new part adds defer their deduction until Admin 2 confirms parts. Existing pre-flip rows continue to be stamped (`deducted_at = created_at`) so they're untouched. Reversion is also one row update — no migration needed.
+
+### Verification
+
+- 10 verification rounds, all passing: typecheck (×2), build (×2 — 2636 modules unchanged), lint (90 warnings, count stable since Phase 4). Schema-and-flag check (5 sub-assertions). End-to-end deferred-deduction round-trip with the flag forced TRUE in a manual SQL test (8 sub-assertions: insert pending row → stock unchanged → finalize processes 1 row → stock decremented → audit columns stamped → idempotent rerun returns 0). Default-flag-OFF behaviour check (3 sub-assertions). Live confirmation that the flag is still FALSE post-apply.
+
+### Scope notes
+
+- The flag flip (FALSE → TRUE) is the production cut-over decision. Until then, ABSOLUTELY NO behaviour change is live. All the new code paths sit behind the flag check.
+- Liquids continue to deduct immediately via the existing `liquidInventoryService` paths regardless of the flag. The deferred function deliberately skips them because the sealed/internal split semantics aren't compatible with deferral. If liquids ever need deferred behaviour too, a separate phase will add the appropriate split logic.
+- Van-stock parts (`from_van_stock=TRUE`) also continue to deduct immediately via `van_stock_items` — they're skipped by the finalize function because their inventory mutation already happened on the van side. This means tech-driven van use is unaffected by the flag.
+- Approved spare-part requests run through `addPartToJob`, so they inherit the flag-gated behaviour automatically.
+- A "force deduct now" admin button isn't shipped in Phase 7 — admin can call the RPC manually via the Supabase dashboard if a job sits stuck (rare; it would mean admin failed to confirm parts within their normal flow).
+
+---
+
+## [2026-05-01] — ACWER Service Operations Flow — Phase 6 (Path C accident flag + consumable overage flips)
+
+### Added
+
+- **Path C (fleet) jobs auto-flip to Chargeable on accident or consumable overage.** Two new gates per the flow doc's Path C "Accident Case? / Overage?" decision:
+    1. **Accident flag** — admin sets `is_accident=true` (with optional `accident_notes`) on a fleet job at create time. The service immediately flips the job to chargeable with reason `Auto-flipped from Fleet to Chargeable: accident case — <notes>`.
+    2. **Consumable overage** — when admin adds a part to a fleet job, the service checks the running trailing-365-day usage of that part's category for the forklift via the new helper `acwer_part_category_usage_for_forklift(forklift_id, category, days_back)`. If the add would push the total past the active quota row's `max_quantity`, the service flips the job to chargeable with reason `Auto-flipped from Fleet to Chargeable: consumable overage on category "<X>" — <used+qty>/<max> used in last 365 days`.
+- **3 default global quotas seeded** matching the live `parts.category` labels: "Wheels & Tyres" 4/year (= 1 set of 4 tires per fleet forklift), "Lights & Bulbs" 4/year, "Filters" 4/year. Admin can insert per-customer or per-forklift overrides via `parts_usage_quotas` rows with `scope_type='per_customer'` or `'per_forklift'`. Initial seed used theoretical category names ("tire", "led", etc.) — caught at verification and replaced with the actual catalog values.
+- **`jobs.is_accident` column** (`BOOLEAN NOT NULL DEFAULT FALSE`) and **`jobs.accident_notes` TEXT** for free-form context. Defaulting FALSE means existing jobs are unaffected.
+- **`acwer_part_category_usage_for_forklift(uuid, text, integer)` helper function** (PL/pgSQL, STABLE, SECURITY DEFINER) — returns the trailing N-day total of `job_parts.quantity` for a given forklift × category. Used by the application layer; can be called manually for admin reporting too.
+
+### Changed
+
+- **`services/jobService.ts:createJob`** persists the new `is_accident` and `accident_notes` fields and runs the accident flip immediately after the insert when warranted.
+- **`services/jobInvoiceService.ts:addPartToJob`** runs the Phase 6 Path C overage check after the existing Phase 4 Path A wear-and-tear flip; both gates coexist cleanly (a job can't be in both Path A and Path C, so only one will fire per call).
+
+### Verification
+
+- 10 verification rounds, all passing: typecheck (×2), build (×2 — 2636 modules unchanged), lint (90 warnings, count stable since Phase 4), and a 7-sub-check live-DB end-to-end (helper callable, quotas seeded with correct category labels, `is_accident` column exists, insert fleet job with `is_accident=TRUE` and accident-flip update changes billing_path to chargeable with the right reason text, cleanup).
+
+### Scope notes
+
+- No CreateJob form checkbox yet — admin sets `is_accident` programmatically (via the new field on the createJob payload) or via a JobDetail "mark as accident" button (small follow-up). Same for the per-customer / per-forklift quota override admin UI: insert quota rows directly until a UI lands.
+- The 365-day usage window is currently fixed in the application layer. The `parts_usage_quotas.period_unit` column ('year' | 'quarter' | 'month') exists for future use but isn't honoured yet — the helper takes `days_back` as an argument and the application passes 365. Wiring per-quota window units is a small refactor when more granular limits are needed.
+- Did NOT walk back historical jobs to apply Phase 6 enforcement retroactively. Only new accident creates and new part adds will trigger flips going forward — same approach as Phase 4 to keep historical billing decisions stable.
+
+---
+
+## [2026-05-01] — ACWER Service Operations Flow — Phase 5 (recurring PM scheduler for fleet forklifts via pg_cron)
+
+### Added
+
+- **`recurring_schedules` from Phase 0 is now backed by a working pg_cron generator.** A new daily job `acwer-recurring-schedule-generator` runs at 00:30 UTC (08:30 MYT, the start of admin's working day in Kuala Lumpur) and materialises every active recurring schedule whose `next_due_date - lead_time_days` has been reached into a fresh `scheduled_services` row, then rolls the recurrence's `next_due_date` forward by one cycle (1 month / 3 months / 1 year depending on `frequency`). The generator is idempotent — re-running it within the same cycle does nothing — and is also callable on-demand from the new `services/recurringScheduleService.ts:runRecurringScheduleGenerator()` helper for ad-hoc "generate now" admin actions.
+- **`acwer_generate_recurring_jobs()` PL/pgSQL function** is the brain. For each eligible row it picks a `service_type` label (preferring the linked `service_intervals.name` and falling back to "Quarterly PM Service" / "Monthly PM Service" / "Yearly PM Service" / "Hourmeter PM Service" by frequency), skips if a non-cancelled `scheduled_services` row already exists for the same forklift+due_date+service_type pair, INSERTs a new row with `auto_create_job = TRUE` so the existing daily-service-check cron downstream picks it up, rolls forward `next_due_date`, and stamps `last_generated_at`. `'hourmeter'` frequency rows are skipped from the date-based roll-forward because hourmeter triggers (already in place from the 2026-02-05 migration) own that cycle.
+- **`services/recurringScheduleService.ts`** — thin TS CRUD over `recurring_schedules`: `getRecurringSchedulesForForklift`, `createRecurringSchedule`, `updateRecurringSchedule`, `deactivateRecurringSchedule`, `runRecurringScheduleGenerator`. Mirrors the Phase 2 service contract service shape.
+
+### Fixed (latent)
+
+- **`scheduled_services` was missing columns the existing `services/serviceScheduleService.ts:createScheduledService` already INSERTs into.** Specifically: `service_type`, `priority`, `auto_create_job`, `estimated_hours`, `created_by_id`, `created_by_name`, `updated_at`, `completed_at`. Any production call to `createScheduledService` would have failed at runtime — the table is empty (zero rows) which suggests the service was never successfully called. Section 0 of the Phase 5 migration backfills these columns so both the existing service and the new generator work. This is a latent bug fix surfaced by Phase 5 work; not Phase-5-specific functionality.
+
+### Verification
+
+- 10 verification rounds, all passing: typecheck (×2), `npm run build` (×2 — 2636 modules unchanged), `npm run lint` (0 errors / 90 warnings — count stable from Phase 4), function + cron-job presence checks on the live DB, and a 9-sub-check end-to-end generator test (insert recurrence with `next_due_date = today+5` and lead_time=7; generator yields exactly one row with the expected schedule_id; scheduled_services row created with `service_type='Quarterly PM Service'` / `status='scheduled'` / `auto_create_job=TRUE`; idempotent rerun yields zero new rows; `next_due_date` rolled forward to a date in the [today+90, today+100] window; cleanup leaves zero rows). Caught and fixed two bugs en route: PL/pgSQL OUT-parameter-vs-table-column ambiguity (renamed `out_*` and qualified all FROM-clause refs with table aliases), and the latent missing-columns bug on `scheduled_services`.
+
+### Scope notes
+
+- No UI surface yet. Admin populates `recurring_schedules` via the new service (`createRecurringSchedule()`) or directly via the Supabase dashboard. A "Set quarterly recurrence" one-click button on the ForkliftProfile page (visible only for company-owned forklifts) is the natural follow-up; deferred this batch to keep Phase 5 scope tight.
+- The pg_cron schedule fires at 00:30 UTC daily. Existing cron jobs (`daily-service-check`, `escalation-checks`) keep their schedules. The three are independent — ACWER generator → `scheduled_services` rows; daily-service-check → `jobs` rows; escalation-checks → notifications.
+- `'hourmeter'` frequency rows are intentionally **not** rolled forward by date in the generator. The forklift's hourmeter triggers handle that cycle (already in place from the 2026-02-05 migration). The two systems coexist: date-driven recurrences use `frequency IN ('monthly','quarterly','yearly')` and hourmeter-driven ones use `'hourmeter'` + the existing `next_target_service_hour` flow.
+
+---
+
+## [2026-05-01] — ACWER Service Operations Flow — Phase 4 (Path A → Chargeable auto-flip on wear-and-tear part)
+
+### Changed
+
+- **AMC jobs now auto-flip to Chargeable when admin adds a wear-and-tear part to them.** This turns Phase 3's advisory warning into actual enforcement. After the `job_parts` INSERT and inventory deduction in `addPartToJob`, the service checks the part's `is_warranty_excluded` flag. If the part is excluded AND the job is currently classified as Path A (AMC), the service updates the job to `billing_path='chargeable'`, with a human-readable reason like *"Auto-flipped from AMC to Chargeable: contains wear-and-tear part 'AIR FILTER [4.5 TON]'"* and a fresh `billing_path_overridden_at` timestamp + `billing_path_overridden_by_id = <actor>` for audit. Already-chargeable jobs are unaffected (idempotent).
+- **The admin's part-add toast now surfaces the flip** explicitly. Previously Phase 3 just said "Wear-and-tear part on AMC job — Phase 4 will eventually flip"; now it says "Job auto-flipped to Chargeable" with the concrete reason text. Non-wear-tear adds and adds on non-AMC jobs continue to show the standard "Part added" success toast.
+
+### Verification
+
+- 10 verification rounds, all passing: typecheck (×2), `npm run build` (×2 — 2636 modules unchanged), `npm run lint` 0 errors (one extra pre-existing warning surfaced, on a destructured-but-unused `loadJob` parameter — `git diff` confirms zero new `loadJob` references in the Phase 4 changes), live-DB end-to-end auto-flip simulation on a fresh test job (7 sub-assertions: AMC job created, non-wear part doesn't flip, AMC stays AMC, wear-and-tear part flips to chargeable, reason text contains the part name, idempotent re-run is a no-op, cleanup), and a production safety check confirming `SELECT COUNT(*) FROM jobs WHERE billing_path_reason LIKE 'Auto-flipped from AMC%' = 0` so deploying this code produced no historical flips — only new part-adds going forward will trigger it.
+
+### Scope notes
+
+- The enforcement lives in the **service layer** (`addPartToJob`), not in a DB trigger. Every UI part-add path funnels through this function, so the service-level check is the right enforcement point. A DB trigger would also fire on data-loader / migration / direct-SQL inserts, which is the wrong audience.
+- **Existing AMC jobs whose covering contract expires mid-stream stay AMC by deliberate design.** The work was started under contract; auto-flipping retroactively would distort financial tracking. The classifier already short-circuits NEW jobs created after the contract expires to Path B, so the expiry behaviour is correct for new work.
+- The flip path does NOT extend to the technician's van-stock-use path (`useVanStockPart` / `handleUseVanStockPart`). Tech-driven van-stock use is a separate code path from `addPartToJob`. If Shin reports that AMC jobs commonly receive parts via the van-stock path, we'll wire it as a small follow-up.
+- A manual "restore to AMC" admin UI isn't shipped here — once a job auto-flips, admin restores it by editing the row directly (the schema already supports this via `billing_path_overridden_by_id`). A proper button is a small follow-up to the Phase 1 advisory badge that we deliberately scoped out at the time.
+
+---
+
+## [2026-05-01] — ACWER Service Operations Flow — Phase 3 (wear-and-tear seed + AMC part-add warning)
+
+### Added
+
+- **128 parts in the catalog are now flagged as wear-and-tear**, mirroring the ACWER flow doc's "tires, LED lights, seats, etc." exclusion list. The seed UPDATE matches on six keyword classes (tires/tyres, bulbs/beacons/LED, seats, branded oils like "engine oil"/"hydraulic oil"/"gear oil" but specifically NOT bare "oil" so OIL SEAL doesn't get false-flagged, grease, and "air filter"/"oil filter"/"fuel filter") and explicitly excludes structural-keyword names (BRACKET, BOLT, NUT, SCREW, HUB, etc.) so "BEACON LIGHT BRACKET" or "FRONT TYRE BOLT" stay un-flagged. Distribution by class: 47 tires/tyres, 31 LED-bulbs-beacons, 16 seats, 13 oils, 4 greases, 42 filters (some parts match multiple keywords). The seed migration is idempotent — gated on `is_warranty_excluded = FALSE` — and re-running it changed zero rows on the second pass.
+- **Admin gets a warning toast** when adding a wear-and-tear part to a Path A (AMC) job. The toast says: "Wear-and-tear part on AMC job — This part is excluded from AMC coverage. Once Phase 4 enforcement ships this will auto-flip the job to chargeable; for now the path stays as-is." Non-blocking — the part is still added; this is just a heads-up for the admin so they can adjust pricing manually until Phase 4 turns the auto-flip on.
+- The `Part` interface gained a typed `is_warranty_excluded?: boolean` field, and both `PARTS_SELECT` and `PARTS_LIST_SELECT` in `services/partsService.ts` now include the column so it flows through every existing fetcher (catalog, picker, low-stock dashboards) without any per-call additions.
+
+### Verification
+
+- 10 verification rounds, all passing: typecheck (×2), build (×2 — 2636 modules unchanged from Phase 2 since this is type + select-shape additions, no new components), lint (89 pre-existing warnings — none new), live-DB seed shape audit (count in expected range, zero OIL SEAL false positives, zero structural-keyword false positives, all six categories represented, idempotency confirmed on rerun), and integration spot-checks (warning string is wired in `handleAddPart`, type is updated, select shapes are updated).
+
+### Scope notes
+
+- Did NOT add a part-picker chip (visual "wear-and-tear" indicator at selection time) — the warning is post-add only for now. Picker UX is a small follow-up that depends on which picker surface admins prefer for AMC jobs.
+- Did NOT auto-flip the job's `billing_path` — that's Phase 4's deliberate scope. Phase 3 is **observation + warning** only.
+- Did NOT extend the warning to the technician's van-stock part-use path. Techs typically don't operate on AMC jobs; if Shin reports otherwise, we'll wire it alongside Phase 4 enforcement.
+- The seed list is intentionally **conservative**. False negatives (a wear part not yet flagged) are easier to fix (admin flips one row in the parts editor) than false positives (a structural part that wrongly bills as wear-and-tear once Phase 4 is on). Awaiting Shin's closed list to refine — until then, admin can override any individual flag.
+
+---
+
+## [2026-05-01] — ACWER Service Operations Flow — Phase 2 (service contracts CRUD on the customer page)
+
+### Added
+
+- **Admin can now create, edit, and deactivate service contracts** for a customer directly from the customer detail page. Each customer profile gets a new "Service contracts" section listing all of that customer's contracts (active, expired, deactivated) with status chips. Adding a contract opens a modal collecting: contract type (AMC / Warranty / Maintenance), contract number, start/end dates, coverage scope (all customer's forklifts vs. a specific subset via multi-select against `current_customer_id`), `includes_parts` / `includes_labor` flags, and free-form notes. Coverage scope defaults to "all customer's forklifts" — the more common case — and only surfaces the per-forklift multi-select when the admin opts in.
+- This **closes the loop on Phase 1's classifier**: `getActiveContractsForCustomer()` now has data to find. A customer-owned forklift on a customer with an active covering contract starts classifying as **Path A — AMC** at job intake (and keeps that classification on the job's `billing_path` column). Without a contract, customer-owned forklifts continue to classify as Path B — Chargeable.
+- New service `services/serviceContractService.ts` with the 5-entry CRUD surface (`getContractsForCustomer`, `getContractById`, `createContract`, `updateContract`, `deactivateContract`); `services/forkliftService.ts` gains `getForkliftsByCustomerId()` for the modal's coverage multi-select.
+
+### Verification
+
+- 10 verification rounds, all passing: typecheck (×2), `npm run build` (×2 — 2636 modules), `npm run lint` (0 errors / 89 pre-existing warnings unchanged), live-DB CRUD roundtrip with 7 sub-assertions (insert/list/update/classifier-finds/deactivate/classifier-stops-finding/cleanup), barrel-export plumbing checks, and CustomerProfilePage mount confirmation.
+
+### Scope notes
+
+- Reaches contracts via the customer detail page rather than a standalone "Service Contracts" admin page — contracts are conceptually attached to a customer, so this is where admin already navigates. A separate top-level admin page can be added later if a global view (e.g. "all contracts expiring in the next 30 days") is needed.
+- The per-contract `wear_tear_part_ids` override column exists on the table but isn't surfaced by the modal yet. Global wear-and-tear classification is Phase 3; per-contract overrides are a small follow-up tweak that doesn't need schema changes.
+- This phase is still pre-enforcement. A contract being active does NOT yet reject parts that are wear-and-tear (Phase 3 adds the warning, Phase 4 adds the enforcement flip), and an expired contract does NOT yet auto-flip the job to chargeable. The classifier just observes.
+
+---
+
+## [2026-05-01] — ACWER Service Operations Flow — Phase 1 (path classification at intake, advisory)
+
+### Added
+
+- **Path A/B/C classification is now visible on every job.** Jobs created in this phase or later are classified at the moment a forklift + customer are selected: Acwer-owned forklifts auto-classify as Path C (Fleet); customer-owned forklifts with an active service contract covering them classify as Path A (AMC); customer-owned forklifts without a covering contract classify as Path B (Chargeable). The classification flows through `useCreateJobForm` → `createJob` → `jobs.billing_path` and `jobs.billing_path_reason`, and surfaces as a small color-coded badge ("Path A · AMC", "Path B · Chargeable", "Path C · Fleet") in the JobDetail header next to the existing status / job-type / priority badges. Hovering the badge reveals the human-readable reason ("Forklift is Acwer-owned (Path C — Fleet)" or "Active contract AMC-001 (Path A — AMC)" etc.).
+- **Existing jobs were backfilled** so the classification is consistent for the whole job table, not just for jobs created from this point forward. Phase 0 left every job at `'unset'`; Phase 1's idempotent backfill migration set 674 jobs to `'fleet'` (Acwer-owned forklift), 75 to `'chargeable'` (customer-owned, no active contract), and left 161 at `'unset'` because they have no `forklift_id` and therefore aren't classifiable. Zero jobs were classified as `'amc'` because no service contracts have been populated yet (that's Phase 2). The backfill runs in three stages, each gated by `billing_path = 'unset'` so re-running is a no-op, and a closing DO block raises a hard exception if any classifiable job (a job with a forklift whose `ownership` is `'company'` or `'customer'`) was somehow left unset.
+- **`BillingPathBadge` component** at `components/BillingPathBadge.tsx` — small read-only chip with four variants (emerald/sky/amber/gray for amc/chargeable/fleet/unset), an optional `compact` mode for board chips later, and a `title` attribute carrying the classification reason. Used in `JobHeader.tsx` today; reusable for the Create Job form badge and JobBoard chip in a near-term follow-up.
+
+### Changed
+
+- **`pages/CreateJob/hooks/useCreateJobForm.ts`** now runs the Phase 0 classifier (`classifyBillingPath()`) inside a `useEffect` keyed on `customer_id` and `selectedForklift`. Company-owned forklifts short-circuit to `'fleet'` without a network round-trip; customer-owned forklifts trigger an `await getActiveContractsForCustomer(customerId)` and then a pure-function classification. A `cancelled` flag on the effect's return cleanup handles fast-changing forklift selections without race conditions. Form submit now passes `billing_path` and `billing_path_reason` into `MockDb.createJob({ ... })`.
+- **`services/jobService.ts:createJob`** now writes `billing_path` (defaulting to `'unset'` if the caller didn't classify) and `billing_path_reason` into the insert payload.
+- **`pages/CreateJob/types.ts:CreateJobFormData`** gained `billing_path` and `billing_path_reason` fields.
+
+### Verification
+
+- 10 verification rounds, all passing: typecheck (×2 for stability), `npm run lint` (0 errors / same 89 pre-existing warnings), `npm run build` (2633 modules — 2 new vs Phase 0; build completes in 4.35s), live-DB backfill correctness (10 sub-assertions including distribution shape, reason-text content, no orphan unsets), end-to-end insert + read through the SELECT * path (4 sub-assertions), AMC classification simulated end-to-end (insert contract → classifier predicate finds it → insert job with `billing_path='amc'` → cleanup), backfill idempotency confirmed by re-running the migration and seeing zero rows updated.
+
+### Scope notes
+
+- This is still **advisory only**. No service-layer logic acts on `billing_path` yet — `addPartToJob` still deducts inventory immediately on add, invoicing still goes through the same code path, the legacy `billing_type` field continues to do what it did before. Path A enforcement (auto-flip to chargeable when a wear-and-tear part is added or the contract has expired) is Phase 4. Path C overage gating is Phase 6. The deduct-on-finalize semantic flip is Phase 7 (still gated behind `acwer_settings.feature_deduct_on_finalize = FALSE`).
+- Did NOT yet add a CreateJobPage form-side live badge or a JobBoard list-row chip — both are easy reuses of the new `BillingPathBadge` and can ship as a follow-up if it adds value. Phase 1 deliberately scoped to the JobDetail header so we have one canonical place to read the classification per job.
+- Did NOT yet wire the admin manual-override UI — the `billing_path_overridden_by_id` / `billing_path_overridden_at` columns are still empty. Override semantics matter once Path A enforcement starts flipping jobs to chargeable (Phase 4); Phase 1 has no need for them yet.
+
+---
+
 ## [2026-05-01] — ACWER Service Operations Flow — Phase 0 foundation
 
 ### Added

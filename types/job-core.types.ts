@@ -243,6 +243,14 @@ export interface Job {
   billing_path_reason?: string | null;
   billing_path_overridden_by_id?: string | null;
   billing_path_overridden_at?: string | null;
+  // ACWER Phase 6 — accident / customer-negligence flag. Flips Path C
+  // (fleet) jobs to chargeable. Set by admin at intake or via JobDetail.
+  is_accident?: boolean;
+  accident_notes?: string | null;
+
+  // AutoCount export linkage (Phase 8)
+  autocount_export_id?: string | null;
+  autocount_exported_at?: string | null;
 
   // Condition checklist (checked when starting job)
   condition_checklist?: ForkliftConditionChecklist;

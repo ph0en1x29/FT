@@ -12,6 +12,7 @@ Zap
 } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import BillingPathBadge from '../../../components/BillingPathBadge';
 import SlotInSLABadge from '../../../components/SlotInSLABadge';
 import { Job,JobPriority,JobType } from '../../../types';
 import { RoleFlags,StatusFlags } from '../types';
@@ -114,6 +115,10 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
               )}
               {job.priority === JobPriority.EMERGENCY && (
                 <span className="badge badge-error">Emergency</span>
+              )}
+              {/* ACWER service flow path (Phase 1, advisory only) */}
+              {job.billing_path && job.billing_path !== 'unset' && (
+                <BillingPathBadge path={job.billing_path} reason={job.billing_path_reason} />
               )}
               {statusFlags.isEscalated && (
                 <span className="badge badge-error animate-pulse">⚠️ Escalated</span>
