@@ -5,6 +5,8 @@ export { default as AddEditSiteModal } from './AddEditSiteModal';
 export { default as BulkEndRentalModal } from './BulkEndRentalModal';
 export { default as ContactsSection } from './ContactsSection';
 export { default as ContractsSection } from './ContractsSection';
+export { default as QuotationModal } from './QuotationModal';
+export { default as QuotationsSection } from './QuotationsSection';
 export { default as CustomerHeader } from './CustomerHeader';
 export { default as CustomerKPIStrip } from './CustomerKPIStrip';
 export { default as EditCustomerModal } from './EditCustomerModal';

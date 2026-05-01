@@ -204,6 +204,98 @@ export const updateJob = async (jobId: string, updates: Partial<Job>): Promise<J
   return data as Job;
 };
 
+/**
+ * ACWER Phase 6 — Mark a job as an accident / customer-negligence case.
+ * If the job is currently `billing_path='fleet'`, this also flips it to
+ * 'chargeable' with an audit reason in the same operation.
+ *
+ * Setting `isAccident=false` clears the flag and the notes; it does NOT
+ * restore the original billing_path (admin uses the manual override UI for
+ * that — the auto-flip only happens on the false→true transition).
+ */
+export const markJobAsAccident = async (
+  jobId: string,
+  isAccident: boolean,
+  accidentNotes: string | null,
+  actorId?: string,
+  _actorName?: string,
+): Promise<Job> => {
+  // First read the current path so we know whether to flip.
+  const { data: current, error: readErr } = await supabase
+    .from('jobs')
+    .select('billing_path')
+    .eq('job_id', jobId)
+    .single();
+  if (readErr) throw new Error(readErr.message);
+
+  const updates: Record<string, unknown> = {
+    is_accident: isAccident,
+    accident_notes: accidentNotes,
+  };
+  // Only flip the path on true & currently fleet
+  if (isAccident === true && current?.billing_path === 'fleet') {
+    const reason = accidentNotes
+      ? `Auto-flipped from Fleet to Chargeable: accident case — ${accidentNotes}`
+      : 'Auto-flipped from Fleet to Chargeable: accident case (Path C → B)';
+    updates.billing_path = 'chargeable';
+    updates.billing_path_reason = reason;
+    updates.billing_path_overridden_at = new Date().toISOString();
+    updates.billing_path_overridden_by_id = actorId ?? null;
+  }
+
+  const { data, error } = await supabase
+    .from('jobs')
+    .update(updates)
+    .eq('job_id', jobId)
+    .select(`
+      *,
+      customer:customers(*),
+      forklift:forklifts!forklift_id(*),
+      parts_used:job_parts(*),
+      media:job_media!job_media_job_id_fkey(*),
+      extra_charges:extra_charges(*)
+    `)
+    .single();
+  if (error) throw new Error(error.message);
+  return data as Job;
+};
+
+/**
+ * ACWER Phase 1+ — Manual billing_path override. Admin restores or sets
+ * the path explicitly with a mandatory reason. Sets the override audit
+ * fields (`billing_path_overridden_by_id`, `billing_path_overridden_at`).
+ */
+export const overrideBillingPath = async (
+  jobId: string,
+  newPath: 'amc' | 'chargeable' | 'fleet' | 'unset',
+  reason: string,
+  actorId?: string,
+  actorName?: string,
+): Promise<Job> => {
+  if (!reason.trim()) throw new Error('Override reason is required');
+  const fullReason = `Manual override by ${actorName ?? 'admin'}: ${reason.trim()}`;
+  const { data, error } = await supabase
+    .from('jobs')
+    .update({
+      billing_path: newPath,
+      billing_path_reason: fullReason,
+      billing_path_overridden_at: new Date().toISOString(),
+      billing_path_overridden_by_id: actorId ?? null,
+    })
+    .eq('job_id', jobId)
+    .select(`
+      *,
+      customer:customers(*),
+      forklift:forklifts!forklift_id(*),
+      parts_used:job_parts(*),
+      media:job_media!job_media_job_id_fkey(*),
+      extra_charges:extra_charges(*)
+    `)
+    .single();
+  if (error) throw new Error(error.message);
+  return data as Job;
+};
+
 // =====================
 // JOB OPERATIONS
 // =====================

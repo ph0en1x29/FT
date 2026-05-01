@@ -10,9 +10,10 @@ import { Loader2, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { getForkliftsByCustomerId } from '../../../services/forkliftService';
+import { getParts } from '../../../services/partsService';
 import { createContract,updateContract } from '../../../services/serviceContractService';
 import { showToast } from '../../../services/toastService';
-import type { Forklift, ServiceContract, User } from '../../../types';
+import type { Forklift, Part, ServiceContract, User } from '../../../types';
 
 interface Props {
   isOpen: boolean;
@@ -44,6 +45,9 @@ export const AddEditContractModal: React.FC<Props> = ({
   const [includesLabor, setIncludesLabor] = useState(true);
   const [notes, setNotes] = useState('');
   const [forklifts, setForklifts] = useState<Forklift[]>([]);
+  const [wearTearOverrideIds, setWearTearOverrideIds] = useState<string[]>([]);
+  const [showWearTearPicker, setShowWearTearPicker] = useState(false);
+  const [allWearTearParts, setAllWearTearParts] = useState<Part[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Reset form whenever the modal opens or the contract being edited changes
@@ -59,7 +63,22 @@ export const AddEditContractModal: React.FC<Props> = ({
     setIncludesParts(contract?.includes_parts ?? true);
     setIncludesLabor(contract?.includes_labor ?? true);
     setNotes(contract?.notes ?? '');
+    const wearOverrides = contract?.wear_tear_part_ids ?? null;
+    setWearTearOverrideIds(wearOverrides ?? []);
+    setShowWearTearPicker(Boolean(wearOverrides && wearOverrides.length > 0));
   }, [isOpen, contract]);
+
+  // Load the wear-and-tear parts catalog when admin expands the override picker
+  useEffect(() => {
+    if (!isOpen || !showWearTearPicker || allWearTearParts.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      const all = await getParts();
+      if (cancelled) return;
+      setAllWearTearParts(all.filter(p => p.is_warranty_excluded === true));
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, showWearTearPicker, allWearTearParts.length]);
 
   // Load this customer's forklifts for the multi-select
   useEffect(() => {
@@ -100,6 +119,7 @@ export const AddEditContractModal: React.FC<Props> = ({
         covered_forklift_ids: coverAll ? null : selectedForkliftIds,
         includes_parts: includesParts,
         includes_labor: includesLabor,
+        wear_tear_part_ids: wearTearOverrideIds.length > 0 ? wearTearOverrideIds : null,
         notes: notes.trim() || null,
       };
       if (editing && contract) {
@@ -201,6 +221,45 @@ export const AddEditContractModal: React.FC<Props> = ({
                       </span>
                     </label>
                   ))
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showWearTearPicker}
+                onChange={e => {
+                  setShowWearTearPicker(e.target.checked);
+                  if (!e.target.checked) setWearTearOverrideIds([]);
+                }}
+              />
+              <span>Override wear-and-tear list for this contract (carve out exceptions)</span>
+            </label>
+            {showWearTearPicker && (
+              <div className="border border-[var(--border)] rounded p-2 max-h-40 overflow-y-auto">
+                {allWearTearParts.length === 0 ? (
+                  <p className="text-xs text-[var(--text-muted)]">Loading wear-and-tear catalog…</p>
+                ) : (
+                  <>
+                    <p className="text-xs text-[var(--text-muted)] mb-1.5">
+                      Selected parts will be treated as <strong>covered</strong> by this contract (overriding the global wear-and-tear flag). Adding any of them to a job under this contract will NOT trigger Path A → Chargeable auto-flip.
+                    </p>
+                    {allWearTearParts.map(p => (
+                      <label key={p.part_id} className="flex items-center gap-2 text-xs py-0.5">
+                        <input
+                          type="checkbox"
+                          checked={wearTearOverrideIds.includes(p.part_id)}
+                          onChange={() => setWearTearOverrideIds(prev =>
+                            prev.includes(p.part_id) ? prev.filter(x => x !== p.part_id) : [...prev, p.part_id]
+                          )}
+                        />
+                        <span>{p.part_code ?? '(no code)'} — {p.part_name}</span>
+                      </label>
+                    ))}
+                  </>
                 )}
               </div>
             )}

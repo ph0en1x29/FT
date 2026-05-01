@@ -10,3 +10,5 @@ export { ScheduledServicesSection } from './ScheduledServicesSection';
 export { ScheduleServiceModal } from './ScheduleServiceModal';
 export { ServiceHistorySection } from './ServiceHistorySection';
 export { ServiceTrackingCard } from './ServiceTrackingCard';
+export { default as RecurrenceSection } from './RecurrenceSection';
+export { default as QuotaOverridesSection } from './QuotaOverridesSection';

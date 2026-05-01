@@ -39,6 +39,9 @@ interface JobHeaderProps {
   onExportToAutoCount: () => void;
   onDeleteJob: () => void;
   onAcknowledgeJob: () => void;
+  // ACWER admin overrides (Phase 6 + Phase 1+)
+  onMarkAccident?: () => void;
+  onOverridePath?: () => void;
 }
 
 export const JobHeader: React.FC<JobHeaderProps> = ({
@@ -61,6 +64,8 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
   onExportToAutoCount,
   onDeleteJob,
   onAcknowledgeJob,
+  onMarkAccident,
+  onOverridePath,
 }) => {
   const navigate = useNavigate();
   const {
@@ -119,6 +124,40 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
               {/* ACWER service flow path (Phase 1, advisory only) */}
               {job.billing_path && job.billing_path !== 'unset' && (
                 <BillingPathBadge path={job.billing_path} reason={job.billing_path_reason} />
+              )}
+              {/* ACWER accident flag (Phase 6) */}
+              {job.is_accident && (
+                <span
+                  className="badge badge-error"
+                  title={job.accident_notes ?? 'Accident / customer-negligence case'}
+                >
+                  ⚠️ Accident
+                </span>
+              )}
+              {/* ACWER admin overrides (Phase 6 + Phase 1+) — visible to admin/admin_service/supervisor */}
+              {(isAdmin || isAdminService || isSupervisor) && (
+                <>
+                  {onMarkAccident && (
+                    <button
+                      type="button"
+                      onClick={onMarkAccident}
+                      className="text-[10px] px-1.5 py-0.5 rounded border border-amber-300 text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-900/20"
+                      title="Mark / unmark this job as an accident case"
+                    >
+                      {job.is_accident ? 'Edit accident' : 'Mark accident'}
+                    </button>
+                  )}
+                  {onOverridePath && (
+                    <button
+                      type="button"
+                      onClick={onOverridePath}
+                      className="text-[10px] px-1.5 py-0.5 rounded border border-slate-300 text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-800"
+                      title="Manually override the billing path classification"
+                    >
+                      Override path
+                    </button>
+                  )}
+                </>
               )}
               {statusFlags.isEscalated && (
                 <span className="badge badge-error animate-pulse">⚠️ Escalated</span>

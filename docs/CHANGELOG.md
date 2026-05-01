@@ -1,3 +1,44 @@
+## [2026-05-02] — ACWER UI follow-ups (Tiers 1, 2, 3, 4)
+
+### Added (admin operational surfaces)
+
+- **Mark/edit accident + manual path override** (Tiers 1.1 + 2.3) — combined `PathOverrideModal` reachable via two new admin-gated buttons next to the BillingPathBadge in the JobDetail header. "Mark accident" sets `is_accident=TRUE` and auto-flips Path C jobs to Chargeable with an audit reason. "Override path" lets admin manually set `billing_path` to A/B/C/Unset with a mandatory reason — useful for restoring auto-flipped jobs back to AMC. An "⚠️ Accident" inline badge surfaces on JobHeader for jobs flagged as accident cases.
+- **Recurring PM schedule + Run-now button** (Tiers 1.3 + 3.3) — new `RecurrenceSection` on ForkliftProfile (only visible for company-owned forklifts). Lists active recurrences with frequency / next due date / last fire timestamp, one-click "+ Monthly / + Quarterly / + Yearly" defaults, and a "Run now" admin button calling `runRecurringScheduleGenerator()` on demand instead of waiting for tomorrow's 00:30 UTC cron.
+- **AutoCount export queue admin UI** (Tier 1.2) — was already shipped in `pages/AutoCountExport/`. Verified it consumes the linter-added lightweight `PendingExportJob` projection.
+- **Live Path badge on Create Job form** (Tier 2.1) — `BillingPathBadge` renders live next to the page title, updating as admin picks customer + forklift.
+- **JobBoard / JobList chip** (Tier 2.2) — compact `BillingPathBadge` on every job card. `JOB_SELECT.LIST` and `JOB_SELECT.BOARD` now include `billing_path` / `billing_path_reason` / `is_accident` so the chip flows through list reads.
+- **Per-contract wear-and-tear override** (Tier 3.1) — `AddEditContractModal` gained a multi-select against the wear-and-tear catalog; selected parts persist to `service_contracts.wear_tear_part_ids`.
+- **Per-forklift consumable quota overrides** (Tier 3.2) — new `services/partsUsageQuotaService.ts` + `QuotaOverridesSection` on ForkliftProfile. Lists per-forklift overrides + shows globals as fallback context.
+- **Quotation creation flow** (Tier 4.1) — full `QuotationModal` (auto-generated `QT-YYYYMMDD-NNN` numbers, items editor with running subtotals, all term fields) + `QuotationsSection` on CustomerProfile with status transitions and "Convert to job" deep-link.
+
+### Deferred (documented)
+
+- **Tier 4.2 cost-margin internal report variant** — needs `parts.cost_price` rolled up onto `job_parts` at fetch time. The existing `showPrices` toggle (Phase 9) covers the primary customer-vs-admin distinction.
+- **Quotation PDF generator + email/WhatsApp send** — create/edit and status transitions work; PDF + send remain as follow-ups.
+- **Per-forklift / per-customer quota resolution in `addPartToJob`** — service has the lookup helpers; enforcement currently still uses globals only. Wiring per-scope precedence is a small tweak.
+
+### Verification
+
+- typecheck exit 0; `npm run build` exit 0 (2650 modules); `npm run lint` 0 errors / 64 warnings. Three pre-existing `react-hooks/rules-of-hooks` errors caught mid-flight (early returns above `useQuery` calls) and fixed by hoisting hooks + `enabled: isFleet` gating.
+- All admin surfaces gate on existing role checks. No new feature flags — these are UI consumers of Phases 0-10 infrastructure.
+
+---
+
+## [2026-05-02] — Add: ACWER Phase 6 accident detection + billing path override modal
+
+### Added
+
+- **ACWER Phase 6: accident case detection with auto-flip, plus manual override modal.** Two new exports in `services/jobService.ts`: `markJobAsAccident(jobId, isAccident, accidentNotes, actorId?, actorName?)` and `overrideBillingPath(jobId, newPath, reason, actorId?, actorName?)`. New `pages/JobDetail/components/PathOverrideModal.tsx` component — a combined modal for both accident-flagging and manual path override. Accident mode allows admin to mark a job as an accident/customer-negligence case, with optional notes; on save, if the job is currently on Path C (fleet), it auto-flips to Path B (chargeable) with an audit reason chain. Override mode lets admin manually change the path (A ↔ B ↔ C ↔ unset) with a required reason field. Both modes capture full audit trail (actor_id, actor_name, timestamp via `billing_path_overridden_at` / `billing_path_overridden_by_id`). Setting `isAccident=false` clears the flag and notes; it does NOT auto-restore a path that was flipped (admin must use override mode for that, treating the flip as a deliberate system action).
+
+---
+
+
+### Added
+
+- **ACWER Phase 6: accident case detection and billing path auto-flip.** New `services/jobService.ts:markJobAsAccident(jobId, isAccident, accidentNotes, actorId?, actorName?)` helper function. When `isAccident=true` and the job is currently on 'fleet' billing path, the function auto-flips it to 'chargeable' in the same operation, with an audit reason chain ("Auto-flipped from Fleet to Chargeable: accident case — [notes]"). Setting `isAccident=false` clears both the flag and notes; it does NOT auto-restore the original path (admin uses the manual override UI for that, as the auto-flip only occurs on false→true transition). Includes full JSDoc context for ACWER Phase 6.
+
+---
+
 # Changelog
 
 ## [2026-05-02] — Fix: technician customer name now visible on JobDetail

@@ -13,6 +13,8 @@ ForkliftHeader,
 ForkliftInfoCard,
 HourmeterHistorySection,
 NextServiceAlert,
+QuotaOverridesSection,
+RecurrenceSection,
 RentalHistorySection,
 ServiceTrackingCard,
 ScheduledServicesSection,
@@ -186,6 +188,12 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
       )}
 
       <ScheduledServicesSection services={pendingServices} />
+
+      {/* ACWER Phase 5 — recurring PM schedule (only renders for company-owned forklifts) */}
+      <RecurrenceSection forklift={forklift} currentUser={currentUser} />
+
+      {/* ACWER Phase 6 — per-forklift consumable quota overrides */}
+      <QuotaOverridesSection forklift={forklift} currentUser={currentUser} />
 
       {/* Service & Rental History - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

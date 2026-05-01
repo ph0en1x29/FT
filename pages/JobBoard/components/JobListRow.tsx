@@ -13,6 +13,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import React from 'react';
+import BillingPathBadge from '../../../components/BillingPathBadge';
 import SlotInSLABadge from '../../../components/SlotInSLABadge';
 import { JobStatus, JobType } from '../../../types';
 import { getJobTypeColor, getStatusColor } from '../constants';
@@ -166,6 +167,10 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
                 <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${getJobTypeColor(job.job_type as JobType)}`}>
                   {job.job_type}
                 </span>
+              )}
+              {/* ACWER Phase 1 — compact billing path chip */}
+              {job.billing_path && job.billing_path !== 'unset' && (
+                <BillingPathBadge path={job.billing_path} reason={job.billing_path_reason} compact />
               )}
             </div>
 

@@ -1,5 +1,6 @@
 import { ArrowLeft,Building2,CalendarClock,ClipboardList,MapPin,Phone,Save,Truck,User,UserCheck,Wrench } from 'lucide-react';
 import React,{ useMemo } from 'react';
+import BillingPathBadge from '../../components/BillingPathBadge';
 import { Combobox,ComboboxOption } from '../../components/Combobox';
 import { DatePicker } from '../../components/DatePicker';
 import { CREATABLE_JOB_TYPES,ForkliftStatus,JobPriority,JobType,User as UserType } from '../../types';
@@ -93,11 +94,15 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
         >
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
             <Wrench className="w-4 h-4 text-white" />
           </div>
           <h1 className="text-lg md:text-xl font-bold text-slate-900">New Job Order</h1>
+          {/* ACWER Phase 1 — live billing path classification */}
+          {formData.billing_path && formData.billing_path !== 'unset' && (
+            <BillingPathBadge path={formData.billing_path} reason={formData.billing_path_reason} />
+          )}
         </div>
       </div>
 

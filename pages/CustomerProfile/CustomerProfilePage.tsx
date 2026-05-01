@@ -7,6 +7,7 @@ BulkEndRentalModal,
 ContactsSection,
 ContractsSection,
 CustomerHeader,
+QuotationsSection,
 CustomerKPIStrip,
 EditCustomerModal,
 EditRentalModal,
@@ -199,6 +200,9 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
 
       {/* ACWER service contracts (Phase 2) — drives Path A classification */}
       <ContractsSection customerId={customer.customer_id} currentUser={currentUser} />
+
+      {/* ACWER quotations (Phase 10) — Path B chargeable workflow */}
+      <QuotationsSection customer={customer} currentUser={currentUser} />
 
       {rentalActions.editingRental && (
         <EditRentalModal

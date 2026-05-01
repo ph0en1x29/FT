@@ -30,3 +30,6 @@ StartJobModal
 } from './JobDetailModals';
 export { CustomerSignatureModal } from './CustomerSignatureModal';
 export { default as HourmeterAmendmentModal } from '../../../components/HourmeterAmendmentModal';
+
+// ACWER service flow (Phase 6 + Phase 1+) — accident flag + manual path override
+export { default as PathOverrideModal } from './PathOverrideModal';

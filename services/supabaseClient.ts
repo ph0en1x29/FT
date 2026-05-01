@@ -227,9 +227,12 @@ export const JOB_SELECT = {
     scheduled_date,
     technician_accepted_at,
     technician_rejected_at,
-    acknowledged_at
+    acknowledged_at,
+    billing_path,
+    billing_path_reason,
+    is_accident
   `,
-  
+
   // For job board (with timing info)
   BOARD: `
     job_id,
@@ -264,7 +267,10 @@ export const JOB_SELECT = {
     job_confirmed_at,
     created_at,
     scheduled_date,
-    is_starred
+    is_starred,
+    billing_path,
+    billing_path_reason,
+    is_accident
   `,
 
   // For technician dashboard (with acceptance status)

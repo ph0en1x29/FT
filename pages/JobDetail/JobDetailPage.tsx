@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle,ArrowLeft,Camera,ClipboardList,Clock,FileText,ImageIcon,Package,ShieldCheck } from 'lucide-react';
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate,useParams } from 'react-router-dom';
 import { ComboboxOption } from '../../components/Combobox';
 import ServiceUpgradeModal from '../../components/ServiceUpgradeModal';
@@ -32,6 +32,7 @@ HelperModal,
 HourmeterAmendmentModal,
 JobDetailsCard,
 JobHeader,
+PathOverrideModal,
 JobPhotosSection,
 JobRequestsSection,
 JobTimeline,
@@ -58,6 +59,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const { user_id: currentUserId, name: currentUserName } = currentUser;
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  // ACWER Phase 6 + Phase 1+ — accident flag and manual path override
+  const [pathOverrideMode, setPathOverrideMode] = useState<'accident' | 'override' | null>(null);
 
   // All state in one hook
   const state = useJobDetailState();
@@ -180,7 +183,9 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         onCustomerUnavailable={() => state.setShowDeferredModal(true)} onFinalizeInvoice={() => state.setShowFinalizeModal(true)}
         onPrintServiceReport={actions.handlePrintServiceReport} onExportPDF={actions.handleExportPDF}
         onExportToAutoCount={actions.handleExportToAutoCount} onDeleteJob={() => state.setShowDeleteModal(true)}
-        onAcknowledgeJob={actions.handleAcknowledgeJob} />
+        onAcknowledgeJob={actions.handleAcknowledgeJob}
+        onMarkAccident={() => setPathOverrideMode('accident')}
+        onOverridePath={() => setPathOverrideMode('override')} />
 
       {isMobileTechnicianFlow && (
         <div className="px-4 pt-4">
@@ -404,6 +409,18 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         show={state.showReportOptionsModal}
         onSelect={actions.handleConfirmPrintServiceReport}
         onClose={() => state.setShowReportOptionsModal(false)}
+      />
+      {/* ACWER Phase 6 + Phase 1+ — accident flag + manual path override */}
+      <PathOverrideModal
+        isOpen={pathOverrideMode !== null}
+        mode={pathOverrideMode ?? 'accident'}
+        job={job}
+        currentUser={currentUser}
+        onClose={() => setPathOverrideMode(null)}
+        onSaved={(updated) => {
+          state.setJob({ ...updated });
+          setPathOverrideMode(null);
+        }}
       />
       {state.showHourmeterAmendmentModal && job.forklift && (
         <HourmeterAmendmentModal job={job} previousReading={job.forklift.hourmeter || 0}
