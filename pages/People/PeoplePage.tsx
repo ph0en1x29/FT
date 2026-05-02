@@ -1,4 +1,5 @@
 import {
+Award,
 BarChart3,Briefcase,
 Calendar,
 LayoutDashboard,
@@ -12,6 +13,7 @@ import { useDevModeContext } from '../../contexts/DevModeContext';
 import { User } from '../../types';
 import TechnicianKPIPage from '../TechnicianKPIPageV2/index';
 import EmployeesTab from './components/EmployeesTab';
+import KpiScoreTab from './components/KpiScoreTab';
 import LeaveTab from './components/LeaveTab';
 import OverviewTab from './components/OverviewTab';
 import UsersTab from './components/UsersTab';
@@ -73,6 +75,7 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
     ...(canViewHR ? [{ id: 'employees' as TabType, label: 'Employees', icon: UserIcon, description: 'HR profiles' }] : []),
     ...(canViewHR ? [{ id: 'leave' as TabType, label: 'Leave', icon: Calendar, description: 'Requests & approvals' }] : []),
     ...(canViewKPI ? [{ id: 'performance' as TabType, label: 'Performance', icon: BarChart3, description: 'KPI metrics' }] : []),
+    ...(canViewKPI ? [{ id: 'kpi-score' as TabType, label: 'KPI Score', icon: Award, description: 'Points & bonus leaderboard' }] : []),
   ];
 
   // Default to first available tab
@@ -135,6 +138,9 @@ const People: React.FC<PeopleProps> = ({ currentUser }) => {
       )}
       {effectiveTab === 'performance' && canViewKPI && (
         <TechnicianKPIPage currentUser={currentUser} hideHeader />
+      )}
+      {effectiveTab === 'kpi-score' && canViewKPI && (
+        <KpiScoreTab currentUser={currentUser} />
       )}
     </div>
   );

@@ -1,3 +1,56 @@
+## [2026-05-03] — KPI Engine Phase 2 (Transfer-clone, kpiService orchestrator, leaderboard UI) + security/correctness hardening
+
+### Added
+
+- **Job Transfer with auto-cloned `-B`/`-C` job IDs** (KPI_SPEC §3.2). New service `services/jobTransferService.ts:transferJobToTechnician(jobId, toTechId, toTechName, reason, override:0|5, actorId, actorName)`. Reads parent → computes next suffix from existing children count (rooted at the un-suffixed original per spec invariant) → INSERTs clone with parent_job_id + reset timer fields + carried-forward customer/forklift/scheduling/notes/billing context → copies parent's job_media (filtered to exclude any future signature media) → marks parent `Incomplete - Reassigned` with `transfer_override_pts` + reassigned_at/by/etc. + appended `[HH:MM:SS] [Transfer] reason` note → ends any active job_assignments on the parent → fires `notifyJobAssignment(toTech, clone)` + `JOB_UPDATED "Job Transferred"` notification to outgoing tech. Atomicity caveat: the clone INSERT is the irreversible commit point; failures after that surface to the caller but the clone is left in place for manual reconciliation.
+- **`TransferJobModal` in JobDetail**: tech picker (filters out current assignee), required reason textarea, two-button toggle for 0/5 pts override, "Transferring..." spinner, admin/supervisor-only Transfer chip on the CustomerAssignmentCard alongside Reassign. Tooltip on the chip explains the difference: "clones the job to a new -B/-C and freezes this one. Use when receiving tech should start a fresh timer." On success the admin is navigated to the clone via `/jobs/${clone.job_id}`.
+- **`services/kpiSynthesizer.ts` (pure)**: converts FT row shapes (`jobs` + `job_status_history` + helper `job_assignments` + children rows) into the spec's `JobForScoring` with synthetic `TimerEvent[]`. Lead-tech sessions are derived from status transitions because `job_assignments` is empty for legacy completed jobs (verified via live introspection — a key design decision). Helper sessions use `job_assignments` rows. TRANSFERRED events are emitted on the parent when child clones exist. Includes a legacy fallback (uses `repair_start_time`/`completion_time`) for jobs with empty status history.
+- **`services/kpiService.ts` (orchestrator)**: public API `recomputeMonthlyForTech / recomputeMonthlyForAllTechs / loadSnapshot / loadLeaderboard / loadSnapshotsForTech`. Reads completed jobs (filtered by `completion_time` in month) UNION transferred-out jobs (filtered by `reassigned_at`, NOT `updated_at` — `jobs` has no such column; live-DB smoke test caught this), reads PHs + leaves, derives `AttendanceInput` per tech (AL/MC/EL distinguished by `leave_types.name`; weekday-overlap with the month including half-day handling), upserts into `kpi_monthly_snapshots`. The all-techs flow batches the leave query (`WHERE user_id IN (...)`) to eliminate the N+1 — 21 techs went from 21 sequential reads to 3 parallel reads.
+- **`KpiScoreTab` inside the People page** (new tab `kpi-score`, gated on `canViewKPI`): year/month period picker (default current MYT), admin-only Recompute button, loading/error/empty states, leaderboard table (rank with trophy on #1, tech name, job pts, attendance %, bonus, total, tier badge: Elite/Steady/Warning with red-flag triangle on Warning rows). Reads via `loadLeaderboard(year, month)`; lazy-loads tech names via Supabase users query. Coexists with the existing 'performance' tab (TechnicianKPIPageV2 ops metrics) — they're separate KPI dimensions: V2 is FTFR/MTTR/utilization/revenue, this is points + attendance bonus per the spec.
+- **`jobs.parent_job_id`** (UUID, FK to jobs(job_id) ON DELETE SET NULL, indexed via partial `idx_jobs_parent_job_id WHERE NOT NULL`) — link from clone back to root original.
+- **`jobs.transfer_override_pts`** (INT, CHECK NULL OR IN (0, 5)) — set on the parent at transfer time. NULL = not transferred, 0 = outgoing tech gets 0 pts (default), 5 = admin override approved partial credit for initial labor.
+
+### Hardening (driven by parallel review agents)
+
+- **B1 — Trigger `trg_protect_transfer_override_pts`** on `jobs`: BEFORE UPDATE, blocks writes to `transfer_override_pts` from any actor whose users.role is not in `(admin, admin_service, admin_store, supervisor)`. Uses a new STABLE SECURITY DEFINER function `is_admin_or_supervisor()` keyed on `users.auth_id = auth.uid()`. Without this, any tech could `UPDATE jobs SET transfer_override_pts=5 WHERE assigned_technician_id=<self>` for any of their completed jobs and award themselves +5 KPI pts each.
+- **B2 — Trigger `trg_protect_clone_creation`** on `jobs`: BEFORE INSERT (with `WHEN (NEW.parent_job_id IS NOT NULL)` guard so normal inserts pay zero overhead), blocks non-admin clone INSERTs, enforces `parent_job_id != job_id` (no self-loop), and enforces the spec invariant that the parent must itself have `parent_job_id IS NULL` (the clone always points to the root original, never an intermediate clone). Without this, any tech could forge a TRANSFERRED event on a victim's job to either inflate or void the victim's KPI.
+- **B3 — `kpi_monthly_snapshots` RLS rewrite**: dropped the permissive `kpi_snapshots_auth_all`, added 4 split policies — SELECT lets a tech see their own row (`technician_id = (SELECT user_id FROM users WHERE auth_id = auth.uid())`) plus admin-sees-all; INSERT/UPDATE/DELETE all gate through `is_admin_or_supervisor()`. Without this any tech could overwrite anyone's frozen snapshot AND read everyone's compensation data.
+- **`employee_leaves.chk_half_day_single_day`** CHECK constraint: enforces `NOT is_half_day OR start_date = end_date`. Plus a defensive client-side clamp in `computeOverlapDays` so a stale row from before the constraint can't bypass it. Without this, a half-day leave row with span > 1 day silently over-counts attendance, inflating the tech's KPI.
+- **Suffix race recovery**: jobTransferService now catches Postgres error code `23505` (unique_violation) on the clone INSERT and surfaces a friendly "Transfer race detected — another transfer just created job X. Reload and try again." instead of the cryptic generic error.
+- **PII**: clone now nulls `customer_signature` (was missing — only `technician_signature` was nulled); media copy filters out any signature-category rows defensively.
+- **Idempotency**: Transfer rejects calls where the parent is already `Incomplete - Reassigned` to prevent double-clone from a double-click or a concurrent transfer.
+- **Defensive validation**: `upsertSnapshot` now runtime-asserts `bonusPoints ∈ {0,20,35}` so a future tier-table change surfaces as a TypeScript-thrown error instead of a cryptic Postgres CHECK violation.
+- **Synthesizer guard**: `TRANSFERRED` events are no longer emitted on jobs with no assigned lead tech (would have been `techId: ''`).
+
+### Decisions baked into code
+
+- **Job-type bucketing**: defaults from Phase 1 (`Service / Minor Service / Courier` mapped to 15/15/10 via `JOB_TYPE_POINTS`).
+- **Transfer scope**: deep-clone media + notes + history + customer/forklift context. Parts/quotations/invoices stay on the parent (single billing event regardless of which tech did the work).
+- **N-tech assistance**: capped at 2 (lead + assistant). `job_assignments` UNIQUE constraint is unchanged. Pro-rata math is N-ready for a future relaxation.
+- **EL identical to MC** in the attendance formula.
+- **Cross-month**: full points to the completion month (no slicing).
+- **Override authority**: per-transfer admin checkbox in the modal (not a global config).
+- **Snapshot cadence**: monthly upsert via Recompute button (no cron).
+
+### Out of scope (Phase 3 candidates)
+
+- pg_cron for month-end auto-recompute.
+- Per-tech KPI history view (charts).
+- Dispute/correction flow on a frozen snapshot.
+- Relaxing `job_assignments` UNIQUE for N>2 helpers.
+- Backfill of `kpi_monthly_snapshots` for historical months.
+- Emailed monthly leaderboard report.
+- Server-side actor derivation in jobTransferService (would need an RPC).
+
+### Verification
+
+- typecheck exit 0; vitest 48/48 pass (Phase 1 27 + synthesizer 11 + existing 10); `npm run build` 527.67kb / 800kb (no growth).
+- 7 live-DB smoke queries all return expected shapes after the `reassigned_at` fix (one bug surfaced and fixed during the detail-check round: kpiService was filtering on `updated_at` which doesn't exist on `jobs`; switched to `reassigned_at`).
+- Hardening migration verified live: 1 helper function + 2 triggers + 4 RLS policies + 1 CHECK constraint present.
+- Two parallel review agents (ft-reviewer, security-reviewer) executed against the new files and their findings drove the hardening commit.
+
+---
+
 ## [2026-05-03] — KPI Engine Phase 1 (pure functions + monthly snapshot table)
 
 ### Added

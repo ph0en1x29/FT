@@ -43,6 +43,7 @@ ReassignModal,
 RejectJobModal,
 ReportOptionsModal,
 SignaturesCard,
+TransferJobModal,
 StartJobModal,
 MobileTechnicianWorkflowCard,
 } from './components';
@@ -131,7 +132,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   // Hide sticky action bar when any modal is open (prevents overlap)
   const hasModalOpen =
     state.showStartJobModal ||
-    state.showFinalizeModal || state.showReassignModal || state.showContinueTomorrowModal ||
+    state.showFinalizeModal || state.showReassignModal || state.showTransferModal || state.showContinueTomorrowModal ||
     state.showDeleteModal || state.showRejectJobModal || state.showHourmeterAmendmentModal ||
     state.showChecklistWarningModal || state.showRequestModal || state.showApprovalModal ||
     state.showBulkApproveModal || state.showAssignHelperModal || state.showDeferredModal ||
@@ -224,6 +225,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onCancelDescriptionEdit={actions.handleCancelDescriptionEdit}
             onSelectedTechIdChange={state.setSelectedTechId} onAssignJob={actions.handleAssignJob}
             onOpenReassignModal={() => state.setShowReassignModal(true)}
+            onOpenTransferModal={() => state.setShowTransferModal(true)}
             onOpenHelperModal={() => state.setShowAssignHelperModal(true)} onRemoveHelper={actions.handleRemoveHelper}
             onScheduledDateChange={actions.handleScheduledDateChange} />
           <CollapsibleCard
@@ -383,6 +385,25 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
       <ReassignModal show={state.showReassignModal} job={job} techOptions={techOptions} reassignTechId={state.reassignTechId}
         onReassignTechIdChange={state.setReassignTechId} onReassign={actions.handleReassignJob}
         onClose={() => { state.setShowReassignModal(false); state.setReassignTechId(''); }} />
+      <TransferJobModal
+        show={state.showTransferModal}
+        job={job}
+        techOptions={techOptions}
+        transferTechId={state.transferTechId}
+        transferReason={state.transferReason}
+        transferOverridePts={state.transferOverridePts}
+        submitting={state.submittingTransfer}
+        onTransferTechIdChange={state.setTransferTechId}
+        onTransferReasonChange={state.setTransferReason}
+        onTransferOverridePtsChange={state.setTransferOverridePts}
+        onTransfer={actions.handleTransferJob}
+        onClose={() => {
+          state.setShowTransferModal(false);
+          state.setTransferTechId('');
+          state.setTransferReason('');
+          state.setTransferOverridePts(0);
+        }}
+      />
       <ContinueTomorrowModal show={state.showContinueTomorrowModal} job={job} reason={state.continueTomorrowReason}
         submitting={state.submittingContinue} onReasonChange={state.setContinueTomorrowReason}
         onConfirm={actions.handleContinueTomorrow} onClose={() => { state.setShowContinueTomorrowModal(false); state.setContinueTomorrowReason(''); }} />

@@ -118,6 +118,15 @@ export const useJobDetailState = () => {
   // Reassignment states
   const [reassignTechId, setReassignTechId] = useState('');
 
+  // Transfer (KPI Engine Phase 2): admin-initiated reassignment that clones
+  // the job to a new -B/-C suffix and sets the outgoing tech's award to 0/5
+  // pts via transfer_override_pts on the parent.
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferTechId, setTransferTechId] = useState('');
+  const [transferReason, setTransferReason] = useState('');
+  const [transferOverridePts, setTransferOverridePts] = useState<0 | 5>(0);
+  const [submittingTransfer, setSubmittingTransfer] = useState(false);
+
   // Delete states
   const [deletionReason, setDeletionReason] = useState('');
 
@@ -201,6 +210,11 @@ export const useJobDetailState = () => {
     showFinalizeModal, setShowFinalizeModal,
     showStartJobModal, setShowStartJobModal,
     showReassignModal, setShowReassignModal,
+    showTransferModal, setShowTransferModal,
+    transferTechId, setTransferTechId,
+    transferReason, setTransferReason,
+    transferOverridePts, setTransferOverridePts,
+    submittingTransfer, setSubmittingTransfer,
     showDeleteModal, setShowDeleteModal,
     showAssignHelperModal, setShowAssignHelperModal,
     showChecklistWarningModal, setShowChecklistWarningModal,

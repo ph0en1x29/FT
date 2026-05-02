@@ -298,9 +298,12 @@ Core work orders.
 | `billing_path_overridden_at` | TIMESTAMPTZ | YES | | **(NEW 2026-05-01)** When the path was overridden (manual admin action OR Phase 4/6 auto-flip) |
 | `is_accident` | BOOLEAN | NO | `false` | **(NEW 2026-05-01)** ACWER Phase 6 — TRUE = accident / customer negligence / external-party damage. Flips Path C jobs to chargeable. Set at intake or via JobDetail |
 | `accident_notes` | TEXT | YES | | **(NEW 2026-05-01)** Phase 6 — free-form context for the accident flag |
+| `parent_job_id` | UUID | YES | | **(NEW 2026-05-03)** KPI Engine Phase 2 — when this row is a Transfer-clone (job_number suffix `-B`/`-C`/...), points to the un-suffixed root original. NULL for normal jobs. Spec invariant enforced by `trg_protect_clone_creation`: always points to the root original, never to an intermediate clone |
+| `transfer_override_pts` | INTEGER | YES | | **(NEW 2026-05-03)** KPI Engine Phase 2 — set on the ORIGINAL row at transfer time. NULL = not transferred. 0 = outgoing tech gets no pts (default per spec §3.2). 5 = admin approved partial credit. Writes are gated by `trg_protect_transfer_override_pts` to admin/supervisor only |
 
 Constraints:
 - PK: `job_id`
+- CHECK: `transfer_override_pts IS NULL OR transfer_override_pts IN (0, 5)` **(NEW 2026-05-03)**
 
 Foreign keys:
 - `customer_id` -> `customers.customer_id`
@@ -313,9 +316,15 @@ Foreign keys:
 - `invoiced_by_id` -> `users.user_id`
 - `deleted_by` -> `users.user_id`
 - `billing_path_overridden_by_id` -> `users.user_id` **(NEW 2026-05-01)**
+- `parent_job_id` -> `jobs.job_id` ON DELETE SET NULL **(NEW 2026-05-03)**
+
+Triggers (KPI Engine Phase 2 — added 2026-05-03):
+- `trg_protect_transfer_override_pts` BEFORE UPDATE OF `transfer_override_pts` — rejects writes from non-admin/supervisor actors via `is_admin_or_supervisor()` predicate
+- `trg_protect_clone_creation` BEFORE INSERT WHEN (`NEW.parent_job_id IS NOT NULL`) — gates clone creation to admin/supervisor, enforces no-self-loop, enforces parent-must-be-root invariant
 
 Notable indexes:
 - `idx_jobs_starred` on `job_id` WHERE `is_starred = true` **(NEW 2026-04-04)**
+- `idx_jobs_parent_job_id` on `(parent_job_id)` WHERE `parent_job_id IS NOT NULL` **(NEW 2026-05-03)** — partial index for child-of-parent lookups in KPI synthesizer
 
 ---
 
@@ -1516,6 +1525,7 @@ Leave requests.
 
 Constraints:
 - PK: `leave_id`
+- CHECK: `chk_half_day_single_day` — `NOT is_half_day OR start_date = end_date` **(NEW 2026-05-03)** — KPI Engine Phase 2 hardening: prevents half-day leaves spanning multiple days from inflating KPI attendance via `computeOverlapDays` in `services/kpiService.ts`
 
 Foreign keys:
 - `user_id` -> `users.user_id`
@@ -1746,9 +1756,13 @@ Indexes:
 - `idx_kpi_snapshots_tech_period` on `(technician_id, year DESC, month DESC)` — per-tech recent reads
 - `idx_kpi_snapshots_period` on `(year DESC, month DESC)` — leaderboard reads
 
-RLS: permissive — `auth.uid() IS NOT NULL` for all (matches `jobs` and
-`employee_leaves`; gating happens at the app layer). Replace with role-based
-RLS via a follow-up migration if required.
+RLS (rewritten 2026-05-03 hardening):
+- `kpi_snapshots_select_own_or_admin` (SELECT) — tech sees own row (`technician_id = (SELECT user_id FROM users WHERE auth_id = auth.uid())`); admin/supervisor sees all
+- `kpi_snapshots_insert_admin` (INSERT) — gated through `is_admin_or_supervisor()`
+- `kpi_snapshots_update_admin` (UPDATE) — gated through `is_admin_or_supervisor()`
+- `kpi_snapshots_delete_admin` (DELETE) — gated through `is_admin_or_supervisor()`
+
+Helper function: `is_admin_or_supervisor()` STABLE SECURITY DEFINER — returns TRUE when the calling `auth.uid()` corresponds to a `users` row with role in `(admin, admin_service, admin_store, supervisor)`. Used by the four policies above plus the two `jobs` triggers added in the same hardening migration.
 
 Bonus tier table (computed from `attendance_pct` per spec §4):
 - `>= 95` → `elite`, `bonus_points = 35`

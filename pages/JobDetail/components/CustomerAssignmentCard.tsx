@@ -1,4 +1,4 @@
-import { Building2,CalendarClock,Check,Edit2,MapPin,Navigation,Phone,RefreshCw,UserCheck,UserPlus,X } from 'lucide-react';
+import { Building2,CalendarClock,Check,Edit2,MapPin,Navigation,Phone,RefreshCw,Send,UserCheck,UserPlus,X } from 'lucide-react';
 import React from 'react';
 import { Combobox,ComboboxOption } from '../../../components/Combobox';
 import { DatePicker, formatMalaysiaDateLabel } from '../../../components/DatePicker';
@@ -24,6 +24,7 @@ interface CustomerAssignmentCardProps {
   onSelectedTechIdChange: (id: string) => void;
   onAssignJob: () => void;
   onOpenReassignModal: () => void;
+  onOpenTransferModal?: () => void;
   onOpenHelperModal?: () => void;
   onRemoveHelper?: () => void;
   onScheduledDateChange?: (iso: string) => void;
@@ -47,6 +48,7 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
   onSelectedTechIdChange,
   onAssignJob,
   onOpenReassignModal,
+  onOpenTransferModal,
   onOpenHelperModal,
   onRemoveHelper,
   onScheduledDateChange,
@@ -261,9 +263,21 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
               <p className="label-premium mb-0.5">Assigned Technician</p>
               <p className="value-premium">{job.assigned_technician_name}</p>
             </div>
-            <button type="button" onClick={onOpenReassignModal} className="chip-premium chip-premium-accent cursor-pointer">
-              <RefreshCw className="w-3.5 h-3.5" /> Reassign
-            </button>
+            <div className="flex flex-col gap-1.5">
+              <button type="button" onClick={onOpenReassignModal} className="chip-premium chip-premium-accent cursor-pointer">
+                <RefreshCw className="w-3.5 h-3.5" /> Reassign
+              </button>
+              {onOpenTransferModal && (roleFlags.isAdmin || roleFlags.isSupervisor) && (
+                <button
+                  type="button"
+                  onClick={onOpenTransferModal}
+                  className="chip-premium chip-premium-warning cursor-pointer"
+                  title="Transfer (KPI): clones the job to a new -B/-C and freezes this one. Use when receiving tech should start a fresh timer."
+                >
+                  <Send className="w-3.5 h-3.5" /> Transfer
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

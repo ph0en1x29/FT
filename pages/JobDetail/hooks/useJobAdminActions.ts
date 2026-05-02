@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { transferJobToTechnician } from '../../../services/jobTransferService';
 import { uploadRejectionPhoto } from '../../../services/rejectionPhotoUpload';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
@@ -99,6 +100,48 @@ export function useJobAdminActions({
       showToast.error('Failed to reassign job', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
     }
   }, [job, state, technicians, currentUserId, currentUserName]);
+
+  const handleTransferJob = useCallback(async () => {
+    if (!job || !state.transferTechId) return;
+    if (!state.transferReason.trim()) {
+      showToast.error('Transfer requires a reason', 'Explain why this job is being transferred.');
+      return;
+    }
+    const tech = technicians.find(t => t.user_id === state.transferTechId);
+    if (!tech) {
+      showToast.error('Transfer failed', 'Receiving technician not found.');
+      return;
+    }
+    state.setSubmittingTransfer(true);
+    try {
+      const { parent, clone } = await transferJobToTechnician(
+        job.job_id,
+        tech.user_id,
+        tech.name,
+        state.transferReason.trim(),
+        state.transferOverridePts,
+        currentUserId,
+        currentUserName,
+      );
+      // Apply the parent update via setJob — same realtime self-echo dedupe
+      // pattern as handleReassignJob. Don't loadJob().
+      state.setJob({ ...parent } as Job);
+      state.setShowTransferModal(false);
+      state.setTransferTechId('');
+      state.setTransferReason('');
+      state.setTransferOverridePts(0);
+      showToast.success(
+        `Job transferred to ${tech.name}`,
+        `New job ${clone.job_number} created for the receiving tech.`,
+      );
+      // Navigate to the clone so the admin can monitor it.
+      navigate(`/jobs/${clone.job_id}`);
+    } catch (e) {
+      showToast.error('Failed to transfer job', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
+    } finally {
+      state.setSubmittingTransfer(false);
+    }
+  }, [job, state, technicians, currentUserId, currentUserName, navigate]);
 
   const handleScheduledDateChange = useCallback(async (iso: string) => {
     if (!job) return;
@@ -204,5 +247,6 @@ export function useJobAdminActions({
     handleRemoveHelper,
     handleScheduledDateChange,
     handleSwitchForklift,
+    handleTransferJob,
   };
 }
