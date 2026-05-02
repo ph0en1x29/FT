@@ -1700,6 +1700,63 @@ Foreign keys:
 
 ---
 
+### `kpi_monthly_snapshots` **(NEW 2026-05-03)**
+Frozen monthly KPI score per technician for the points + attendance bonus engine
+defined in `KPI_SPEC.md` (sourced from KPI030526.docx). One row per
+`(technician_id, year, month)`. Distinct from `technician_kpi_snapshots`, which
+stores operational metrics (FTFR, MTTR, utilization, revenue) — both can coexist.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `snapshot_id` | UUID | NO | `gen_random_uuid()` |
+| `technician_id` | UUID | NO | |
+| `year` | INTEGER | NO | |
+| `month` | INTEGER | NO | |
+| `job_points` | INTEGER | NO | `0` |
+| `attendance_pct` | NUMERIC(5,2) | NO | `0` |
+| `bonus_points` | INTEGER | NO | `0` |
+| `tier` | TEXT | NO | |
+| `total_kpi_score` | INTEGER | NO | `0` |
+| `red_flag` | BOOLEAN | NO | `false` |
+| `working_days` | INTEGER | YES | |
+| `net_expected_days` | INTEGER | YES | |
+| `actual_days_worked` | INTEGER | YES | |
+| `computed_at` | TIMESTAMPTZ | NO | `now()` |
+| `computed_by` | UUID | YES | |
+| `notes` | TEXT | YES | |
+
+Constraints:
+- PK: `snapshot_id`
+- UNIQUE: `(technician_id, year, month)`
+- CHECK: `year BETWEEN 2024 AND 2100`
+- CHECK: `month BETWEEN 1 AND 12`
+- CHECK: `job_points >= 0`
+- CHECK: `attendance_pct BETWEEN 0 AND 100`
+- CHECK: `bonus_points IN (0, 20, 35)`
+- CHECK: `tier IN ('elite', 'steady', 'warning')`
+- CHECK: `working_days IS NULL OR working_days >= 0`
+- CHECK: `net_expected_days IS NULL OR net_expected_days >= 0`
+- CHECK: `actual_days_worked IS NULL OR actual_days_worked >= 0`
+
+Foreign keys:
+- `technician_id` -> `users.user_id` (ON DELETE CASCADE)
+- `computed_by` -> `users.user_id`
+
+Indexes:
+- `idx_kpi_snapshots_tech_period` on `(technician_id, year DESC, month DESC)` — per-tech recent reads
+- `idx_kpi_snapshots_period` on `(year DESC, month DESC)` — leaderboard reads
+
+RLS: permissive — `auth.uid() IS NOT NULL` for all (matches `jobs` and
+`employee_leaves`; gating happens at the app layer). Replace with role-based
+RLS via a follow-up migration if required.
+
+Bonus tier table (computed from `attendance_pct` per spec §4):
+- `>= 95` → `elite`, `bonus_points = 35`
+- `80–94.99` → `steady`, `bonus_points = 20`
+- `< 80` → `warning`, `bonus_points = 0`, `red_flag = true`
+
+---
+
 ## System Settings
 
 ### `public_holidays`

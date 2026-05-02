@@ -1,3 +1,35 @@
+## [2026-05-03] — KPI Engine Phase 1 (pure functions + monthly snapshot table)
+
+### Added
+
+- **KPI computation primitives** (`utils/kpi/`) — pure functions implementing the client KPI spec (`/home/jay/Downloads/KPI_SPEC.md`). `deriveSessions(events)` walks an append-only `TimerEvent[]` log and produces closed `WorkSession[]` per technician, pairing `JOB_STARTED`/`JOB_RESUMED` with the next `CONTINUE_TOMORROW`/`WORK_COMPLETED`/`TRANSFERRED` event for the same tech. Open sessions (no closing event) are dropped per spec invariant #1. `awardJobPoints(job, opts?)` handles all three spec cases: (i) Continue Tomorrow → owner gets 100% of `JOB_TYPE_POINTS[type]`; (ii) Transfer source job → outgoing tech gets `transferOverride ?? 0` (the cloned child job is scored separately); (iii) Assistance → largest-remainder pro-rata split with leftover units allocated to the tech with the largest laborMs. `computeAttendance(input)` implements the spec's `(actualDaysWorked / netExpectedDays) × 100` formula with the `netExpected === 0 ⇒ Elite +35` divbyzero guard and inclusive-lower-bound tier matching (≥95 Elite +35, ≥80 Steady +20, <80 Warning 0 + red flag). `computeMonthlyKpi(techId, awards, attendance)` filters awards by techId, sums, and adds the attendance bonus. `rankLeaderboard(scores)` returns a NEW sorted array (input not mutated, per the global Immutability rule). All functions are Supabase-free and React-free — fully unit-testable.
+- **Job-type → points mapping** (`types/kpi.types.ts:JOB_TYPE_POINTS`) — single source of truth keyed by FT's `JobType` enum (capitalized). Default values: Repair / Slot-In = 20; Service / Full Service / Minor Service / Field Technical Services = 15; Checking / Courier = 10. Three FT types (Service, Minor Service, Courier) had no explicit mapping in the spec — defaults are flagged for client confirmation; changing them is a one-line edit.
+- **`kpi_monthly_snapshots` table** — frozen monthly bonus record per technician. One row per `(technician_id, year, month)` (unique constraint). 9 CHECK constraints enforce the spec's value ranges: year 2024-2100, month 1-12, job_points ≥ 0, attendance_pct 0-100, bonus_points ∈ {0, 20, 35}, tier ∈ {elite, steady, warning}, day-count fields non-negative. RLS uses FT's permissive `auth.uid() IS NOT NULL` pattern (matches `jobs` and `employee_leaves` — gating happens at the app layer). Composite index on `(technician_id, year DESC, month DESC)` for "show me my recent KPI" reads, plus a period-only index for leaderboard queries.
+- **Composite index `idx_jsh_job_changed_at`** on `job_status_history(job_id, changed_at)` — the spec's session derivation reads per-job ordered by changed_at; existing indexes are on those columns separately. New composite avoids a sort on the per-job session-extraction query.
+- **Vitest test suite for KPI** (`tests/unit/kpi/`) — 27 cases across 4 files, covering all 10 fixtures in spec §7 plus tier boundaries (95% inclusive Elite, 80% inclusive Steady), the divbyzero edge case, EL=MC equivalence, three-tech largest-remainder rounding (Checking 10pt split), `rankLeaderboard` non-mutation, and TRANSFERRED resolving via `meta.fromTechId`. Run via `npm run test:unit -- tests/unit/kpi`.
+
+### Decisions worth flagging
+
+- **Why no new `audit_event_type` enum values + no new triggers**: the spec models an append-only timer-event log (`JOB_STARTED`, `CONTINUE_TOMORROW`, etc.). FT's existing `job_status_history` already records every status transition with timestamp, actor, and reason — sufficient to derive sessions at read time without touching the immutable `job_audit_log` (20 existing values + `trg_prevent_audit_update`) or wiring a new event-emission trigger that could re-trigger the realtime self-echo gotcha. The future `services/kpiService.ts` reader will map `job_status_history` rows → `TimerEvent[]` for the pure functions to consume. Trade-off: less semantically rich than the spec's purist event log; sufficient for Phase 1 leaderboard math.
+- **Why permissive RLS on `kpi_monthly_snapshots`**: matches the `jobs` and `employee_leaves` policy shape (`auth.uid() IS NOT NULL` for all). Tighter role-based gating happens at the app layer in FT, not at the RLS layer. Replacing this with role-based RLS later is a single follow-up migration.
+- **`TechnicianKPIPageV2` left untouched**: it computes operational metrics (FTFR, MTTR, utilization, jobs/day, revenue) keyed off `efficiency_score` — a different KPI than the spec's points-based one. They will coexist as separate tabs once the leaderboard UI lands.
+
+### Deferred (Phase 2)
+
+- **Transfer-clone scheme**: the `parent_job_id` column, `-B`/`-C` suffix on `jobs.job_number` generator, photo/parts/quotation migration to clone, RLS for cloned jobs, JobBoard/JobList rendering of parent vs clone — defer until client confirms whether Transfer is a real deep clone vs symbolic close+create.
+- **N-tech Assistance** beyond the existing 2 (lead + assistant): `job_assignments` has `UNIQUE (job_id, assignment_type) WHERE is_active=true`; relaxing this requires client confirmation that >2 techs is a real requirement.
+- **`services/kpiService.ts` Supabase loader**: maps `job_status_history` + `jobs` + `employee_leaves` + `public_holidays` → `TimerEvent[]` + `AttendanceInput`, calls the pure functions, upserts into `kpi_monthly_snapshots`. Manual button trigger for now; pg_cron at month-end as a follow-up.
+- **Leaderboard UI tab** inside `pages/TechnicianKPIPageV2/`.
+- **Client-confirmation defaults** in `JOB_TYPE_POINTS`: Service / Minor Service / Courier defaults need explicit sign-off.
+
+### Verification
+
+- `npm run test:unit -- tests/unit/kpi` → 27/27 pass in 344ms.
+- `npm run typecheck` → exit 0.
+- Live DB verified post-migration: `kpi_monthly_snapshots` exists with 1 RLS policy + 9 CHECK constraints + 2 indexes; `idx_jsh_job_changed_at` present on `job_status_history`.
+
+---
+
 ## [2026-05-02] — ACWER UI follow-ups (Tiers 1, 2, 3, 4)
 
 ### Added (admin operational surfaces)
