@@ -323,7 +323,7 @@ async function loadActiveTechnicians(): Promise<{
 
 // ─── Per-job award computation ────────────────────────────────────
 
-export function computeAwardsForBundle(
+function computeAwardsForBundle(
   bundle: PeriodJobsBundle,
 ): JobPointAward[] {
   const out: JobPointAward[] = [];
@@ -434,18 +434,30 @@ export async function loadSnapshot(
   return (data ?? null) as KpiMonthlySnapshotRow | null;
 }
 
+export type LeaderboardRow = KpiMonthlySnapshotRow & {
+  technician_name: string | null;
+};
+
 export async function loadLeaderboard(
   year: number,
   month: number,
-): Promise<KpiMonthlySnapshotRow[]> {
+): Promise<LeaderboardRow[]> {
   const { data, error } = await supabase
     .from('kpi_monthly_snapshots')
-    .select('*')
+    .select('*, technician:users!technician_id(name)')
     .eq('year', year)
     .eq('month', month)
     .order('total_kpi_score', { ascending: false });
   if (error) throw error;
-  return (data ?? []) as KpiMonthlySnapshotRow[];
+  return (data ?? []).map((r) => {
+    const { technician, ...rest } = r as KpiMonthlySnapshotRow & {
+      technician?: { name?: string } | null;
+    };
+    return {
+      ...rest,
+      technician_name: technician?.name ?? null,
+    } as LeaderboardRow;
+  });
 }
 
 export async function loadSnapshotsForTech(

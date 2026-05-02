@@ -1,3 +1,29 @@
+## [2026-05-03] — KPI Engine Phase 2 — regression sweep + cleanup + UX polish
+
+### Verification (5-round regression sweep)
+
+- **R1 — baseline**: typecheck 0; vitest 48/48; lint 67 warnings (none new from Phase 2 logic); build 527.67kb / 800kb.
+- **R2 — live-DB**: 10/10 transactional SQL probes pass. Confirmed normal job/leave INSERT/UPDATE flows are untouched, the two new triggers fire only on protected operations, and the new CHECK constraint blocks the half-day multi-day overcounting path.
+- **R3 — performance**: EXPLAIN ANALYZE on all 6 kpiService queries — all sub-2ms on current data sizes. The new partial index on `parent_job_id` and the composite index on `(job_id, changed_at)` are both being used by the planner. Bundle delta for the entire Phase 2 + hardening + polish: ~600 bytes (in noise).
+- **R4 — cleanup**: extracted `TransferJobModal` to its own file (`pages/JobDetail/components/TransferJobModal.tsx`) — `JobDetailModals.tsx` dropped from 489 → 375 lines, matches FT's one-modal-per-file pattern. Unexported `computeAwardsForBundle` from kpiService (was internal-only).
+- **R5 — UX polish**: see Changed below.
+
+### Changed
+
+- **`KpiScoreTab` migrated to @tanstack/react-query** — `useQuery` for the leaderboard read (60s staleTime since snapshots are frozen), `useMutation` for Recompute. Matches the FT pattern (`pages/JobDetail/JobDetailPage.tsx:77`). Benefits: dedup of in-flight queries when toggling months, automatic refetch on window focus (catches a recompute by another admin), no manual `cancelled` flag.
+- **Leaderboard skeleton**: replaced "Loading..." spinner with a 5-row table skeleton (better perceived perf; matches modern UI conventions).
+- **Background-fetch indicator**: small spinner in the header during react-query refetches without hiding the existing data.
+- **Tech name JOIN at the leaderboard read**: `loadLeaderboard` now embeds `users!technician_id(name)` and returns a new `LeaderboardRow = KpiMonthlySnapshotRow & { technician_name }`. Eliminates the previous follow-up `users` query and the dynamic `import()` for supabaseClient.
+- **`TransferJobModal` extracted** to its own file. JobDetailModals.tsx now exports it via the components barrel (`./TransferJobModal` re-export from `index.ts`).
+
+### Decided not to do (this round)
+
+- No new tables/columns/triggers/indexes (this was a no-functional-change pass).
+- No change to `recomputeMonthlyForAllTechs` math (already verified by R2 + R3).
+- No change to the `JOB_TYPE_POINTS` table or RLS — defaulted from earlier decisions.
+
+---
+
 ## [2026-05-03] — KPI Engine Phase 2 (Transfer-clone, kpiService orchestrator, leaderboard UI) + security/correctness hardening
 
 ### Added
