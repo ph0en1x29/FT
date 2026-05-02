@@ -1,3 +1,30 @@
+## [2026-05-02] — KPI leaderboard UX/data quality fixes — filter never-worked techs, remove stale snapshots, add dormancy banner
+
+### Fixed
+
+- **Never-worked technicians polluting leaderboard** — `loadActiveTechnicians` returned every user with `role='technician'`, including test accounts never assigned to a job. Filter added: now requires `assigned_technician_id IS NOT NULL` in live job history (source-level fix prevents future stale snapshots). Test/practice accounts automatically re-appear when assigned their first real job.
+- **3 stale zero-point snapshots** — early recompute in Phase 3 created April snapshots for test accounts before the filter. Deleted manually (April `kpi_monthly_snapshots`: 21 → 19 valid rows).
+- **Dormant attendance bonus not visible** — 21 April techs show "Elite 100% attendance" + +35 bonus, but only 4 leave records exist in entire FT history (nobody files leaves through FT). Added blue informational banner in KpiScoreTab explaining the bonus is dormant because no leaves were filed for the period. The fix is not code — it's visibility + asking team to use the Leave tab.
+
+### Hardened
+
+- **`loadActiveTechnicians` in kpiService** — added subquery filtering to techs with at least one `assigned_technician_id IS NOT NULL` reference in jobs table. Matches FT's intent: only real assigned technicians appear in KPI metrics.
+- **KpiScoreTab dormancy detection** — new `loadLeaveCountForPeriod(year, month)` query counts `approved` leaves overlapping the period; renders `LeaveDormancyBanner` when count is 0 and data is loaded. Makes invisible-by-default behavior (everyone elites) explicit.
+
+### Architecture decisions worth flagging
+
+- **Filter at read-time, not display time.** `loadActiveTechnicians` filters early so if the data is fed elsewhere (reporting, exports, future APIs), the filter applies globally. It also means stale snapshots can't be created by future recomputes.
+- **Never-worked = assigned_technician_id IS NOT NULL, not completion_time IS NOT NULL.** A tech assigned but mid-job (still real) should count. Waiting until they finish to count them would delay their appearance until job completion.
+- **Leaves-filed visibility as a banner, not a data silence.** The bonus dormancy is real (a process/behavior problem, not a code bug). Banner makes it impossible to miss; client/product decides whether to push team to file leaves, reduce bonus weight, or source attendance elsewhere.
+
+### Verification
+
+- Typecheck exit 0; vitest 48/48 still pass; build 530.45kb / 800kb (+0.27kb for loadLeaveCountForPeriod + LeaveDormancyBanner).
+- Live-DB test: `loadActiveTechnicians` now returns 19 techs (filtered from 21); `loadLeaveCountForPeriod(2026, 4)` returns 0 (correct); banner renders when data loads with zero leaves.
+- April leaderboard math verified: top scorer = 1610 points = 51 Repair ×20 + 24 Checking ×10 + 13 Service ×15 + 9 Full Service ×15 + 1 Slot-In ×20 ✓ (no test-account noise).
+
+---
+
 ## [2026-05-03] — KPI Engine Phase 3 — audit hardening + dispute notes + history chart + cron reminder
 
 ### Added

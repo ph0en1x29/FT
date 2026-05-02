@@ -312,13 +312,31 @@ async function loadActiveTechnicians(): Promise<{
   user_id: string;
   name: string;
 }[]> {
+  // Pull techs who have completed at least one job ever — excludes test
+  // accounts and not-yet-started new hires from leaderboard noise. They
+  // re-appear automatically the moment they complete their first job.
+  // Using assigned_technician_id rather than completed_at is intentional:
+  // we want anyone who's *been assigned* work, not only those who finished.
+  const { data: workedIds, error: workedErr } = await supabase
+    .from('jobs')
+    .select('assigned_technician_id')
+    .not('assigned_technician_id', 'is', null)
+    .is('deleted_at', null)
+    .limit(10000);
+  if (workedErr) throw workedErr;
+  const workedSet = new Set(
+    (workedIds ?? []).map((r) => r.assigned_technician_id as string),
+  );
+
   const { data, error } = await supabase
     .from('users')
     .select('user_id, name')
     .eq('role', 'technician')
     .neq('employment_status', 'terminated');
   if (error) throw error;
-  return (data ?? []) as { user_id: string; name: string }[];
+  return ((data ?? []) as { user_id: string; name: string }[]).filter((u) =>
+    workedSet.has(u.user_id),
+  );
 }
 
 // ─── Per-job award computation ────────────────────────────────────
@@ -547,6 +565,30 @@ export async function updateSnapshotNotes(
     .single();
   if (error) throw error;
   return data as KpiMonthlySnapshotRow;
+}
+
+// ─── Phase 3 polish — Leaves-filed visibility ─────────────────────
+
+/**
+ * Count of approved leaves overlapping the period. KpiScoreTab shows this
+ * in the header so admin sees at a glance whether the attendance bonus has
+ * any signal to work with — if it returns 0 for a month, the bonus is
+ * dormant and everyone will tier as Elite regardless of actual presence.
+ */
+export async function loadLeaveCountForPeriod(
+  year: number,
+  month: number,
+): Promise<number> {
+  const monthStart = new Date(Date.UTC(year, month - 1, 1)).toISOString().slice(0, 10);
+  const monthEnd = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+  const { count, error } = await supabase
+    .from('employee_leaves')
+    .select('leave_id', { count: 'exact', head: true })
+    .eq('status', 'approved')
+    .lte('start_date', monthEnd)
+    .gte('end_date', monthStart);
+  if (error) throw error;
+  return count ?? 0;
 }
 
 // ─── Phase 3.4 — Recompute reminder queue ─────────────────────────

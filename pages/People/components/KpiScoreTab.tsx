@@ -30,6 +30,7 @@ import React, { useMemo, useState } from 'react';
 import {
   acknowledgeRecompute,
   loadLeaderboard,
+  loadLeaveCountForPeriod,
   loadPendingRecomputes,
   recomputeMonthlyForAllTechs,
   updateSnapshotNotes,
@@ -71,6 +72,12 @@ const KpiScoreTab: React.FC<KpiScoreTabProps> = ({ currentUser }) => {
     queryFn: loadPendingRecomputes,
     enabled: isAdminish,
     staleTime: 5 * 60_000,
+  });
+
+  const { data: leaveCount = 0 } = useQuery({
+    queryKey: ['kpi-leaves-filed', year, month] as const,
+    queryFn: () => loadLeaveCountForPeriod(year, month),
+    staleTime: 60_000,
   });
 
   const recomputeMutation = useMutation({
@@ -130,6 +137,10 @@ const KpiScoreTab: React.FC<KpiScoreTabProps> = ({ currentUser }) => {
 
       {isAdminish && pending.length > 0 && (
         <PendingReminderBanner pending={pending} onJumpTo={jumpToPending} />
+      )}
+
+      {!isLoading && snapshots.length > 0 && leaveCount === 0 && (
+        <LeaveDormancyBanner />
       )}
 
       {isLoading && <KpiScoreSkeleton />}
@@ -261,6 +272,21 @@ interface PendingProps {
   pending: { year: number; month: number; queued_at: string }[];
   onJumpTo: (p: { year: number; month: number }) => void;
 }
+
+const LeaveDormancyBanner: React.FC = () => (
+  <div className="card-premium p-3 border border-blue-200 bg-blue-50 flex items-start gap-3">
+    <AlertTriangle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+    <div className="flex-1 text-sm">
+      <p className="font-medium text-blue-800">No leaves filed in this period</p>
+      <p className="text-xs text-blue-700 mt-1">
+        Attendance bonus is dormant — every tech defaults to 100% attendance and
+        receives the Elite +35 bonus. The leaderboard ranks purely on labor.
+        If techs take leave outside FT, ask them to file via the Leave tab so
+        the bonus actually differentiates reliability.
+      </p>
+    </div>
+  </div>
+);
 
 const PendingReminderBanner: React.FC<PendingProps> = ({ pending, onJumpTo }) => (
   <div className="card-premium p-3 border border-amber-200 bg-amber-50 flex items-start gap-3">
