@@ -1,3 +1,33 @@
+## [2026-05-03] — KPI Engine Phase 3 — audit hardening + dispute notes + history chart + cron reminder
+
+### Added
+
+- **Per-tech 12-month KPI history chart** (`KpiTechHistoryModal`) — admin clicks the TrendingUp icon next to any leaderboard row → modal opens with a 12-month bar chart of `total_kpi_score` for that tech. **Zero new dependencies** — div-based bars with tier-colored fills (Elite=amber, Steady=blue, Warning=red, Missing=grey). Hover tooltips with per-month attendance %; summary row showing peak / average / months on record. Re-uses the cached `loadSnapshotsForTech` data via React Query.
+- **Dispute / correction notes** (`updateSnapshotNotes` in kpiService + `KpiNotesModal` in KpiScoreTab) — admin clicks the FileText icon on a leaderboard row → modal lets them edit the snapshot's `notes` column. UI copy makes it clear notes do NOT change the score (paper trail only); to change the score, edit underlying job/leave data and Recompute. Rows with notes show an amber FileText icon at-a-glance.
+- **Month-end recompute reminder** — pg_cron schedules `kpi_queue_last_month_recompute()` at `0 1 1 * *` (1am UTC = 9am MYT, 1st of each month). Function inserts a row into a new `kpi_recompute_pending` table for the previous MYT month (idempotent via `ON CONFLICT (year, month) DO NOTHING`). KpiScoreTab loads pending rows and shows an amber "📊 Bell" banner with chip-per-period that jumps the user directly to that period's view. On a successful Recompute, the matching pending row is auto-acknowledged.
+
+### Hardened
+
+- **Audit-actor override trigger** (`trg_override_transfer_audit_actor`) — closes review B4. When `transfer_override_pts` changes on a job (the unambiguous transfer signal), the trigger looks up the calling user via `users.auth_id = auth.uid()` and OVERRIDES `reassigned_by_id` / `reassigned_by_name` with the derived values. An admin can no longer pass another admin's ID in the audit fields. Scoped to transfer ops; regular `reassignJob` (which doesn't touch transfer_override_pts) is untouched.
+
+### Architecture decisions worth flagging
+
+- **Reminder pattern, NOT auto-recompute.** Porting the full Phase 1 math (Continue Tomorrow / Transfer / Assistance pro-rata / largest-remainder rounding) to PL/pgSQL is a ~3h job with significant correctness risk. The reminder is honest: the cron tells the admin "the new month is here, click Recompute" without trying to silently get the math wrong. If/when the math is ported, swap the function body — schema and UI plumbing stay the same.
+- **Zero-dep chart.** recharts is not currently in FT's deps (CLAUDE.md was stale). For one chart on one screen, div-based bars are cheaper than +80kb of bundle.
+- **Notes are paper trail only.** Editing notes doesn't recompute the score — keeps the audit story simple. If the score is wrong, the fix is to correct the underlying jobs/leaves and Recompute.
+
+### Migration
+
+- `supabase/migrations/20260503_kpi_engine_phase3_audit_and_cron.sql` — applied live. Adds 1 trigger, 1 PL/pgSQL function (`kpi_queue_last_month_recompute`), 1 SECURITY DEFINER predicate function (re-uses Phase 2 `is_admin_or_supervisor`), 1 table (`kpi_recompute_pending`) with 2 RLS policies + 1 partial index, 1 cron schedule. All idempotent via `IF NOT EXISTS` + conditional `cron.unschedule` + `ON CONFLICT DO NOTHING`.
+
+### Verification
+
+- typecheck exit 0; vitest 48/48 still pass; build 530.18kb / 800kb (+1.85kb for chart modal + service additions).
+- 5/5 live-DB smoke probes pass: cron function inserts correctly, idempotent on re-run, cron job is scheduled, audit-override trigger overrides spoofed values, snapshot notes write through RLS.
+- The Phase 2 regression suite (10/10) still passes.
+
+---
+
 ## [2026-05-03] — KPI Engine Phase 2 — regression sweep + cleanup + UX polish
 
 ### Verification (5-round regression sweep)

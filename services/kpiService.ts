@@ -524,5 +524,78 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+// ─── Phase 3.2 — Dispute / correction notes ───────────────────────
+
+/**
+ * Update the `notes` column on a frozen snapshot. Used by admin to record a
+ * correction rationale (e.g. "Manual adjustment +5 pts after dispute on
+ * Job-260420-003 — admin override approved 2026-05-04"). Does NOT change
+ * any of the score columns; that's intentional — corrections are recorded
+ * as a paper trail. If the score itself needs to change, recompute.
+ *
+ * RLS gates this to admin/supervisor at the DB layer (kpi_snapshots_update_admin).
+ */
+export async function updateSnapshotNotes(
+  snapshotId: string,
+  notes: string,
+): Promise<KpiMonthlySnapshotRow> {
+  const { data, error } = await supabase
+    .from('kpi_monthly_snapshots')
+    .update({ notes })
+    .eq('snapshot_id', snapshotId)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as KpiMonthlySnapshotRow;
+}
+
+// ─── Phase 3.4 — Recompute reminder queue ─────────────────────────
+
+export interface RecomputePendingRow {
+  pending_id: string;
+  year: number;
+  month: number;
+  queued_at: string;
+  queued_by: string;
+  acknowledged_at: string | null;
+  acknowledged_by: string | null;
+}
+
+/**
+ * Returns the unacknowledged reminder rows. KpiScoreTab uses this to surface
+ * a banner when a new month is due for recompute.
+ */
+export async function loadPendingRecomputes(): Promise<RecomputePendingRow[]> {
+  const { data, error } = await supabase
+    .from('kpi_recompute_pending')
+    .select('*')
+    .is('acknowledged_at', null)
+    .order('year', { ascending: false })
+    .order('month', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as RecomputePendingRow[];
+}
+
+/**
+ * Mark a pending reminder acknowledged. Called automatically after a
+ * successful recompute for the matching period.
+ */
+export async function acknowledgeRecompute(
+  year: number,
+  month: number,
+  actorUserId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('kpi_recompute_pending')
+    .update({
+      acknowledged_at: new Date().toISOString(),
+      acknowledged_by: actorUserId,
+    })
+    .eq('year', year)
+    .eq('month', month)
+    .is('acknowledged_at', null);
+  if (error) throw error;
+}
+
 // Re-export utility ranking for UI consumers.
 export { rankLeaderboard, computeAttendance };

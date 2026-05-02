@@ -1771,6 +1771,40 @@ Bonus tier table (computed from `attendance_pct` per spec §4):
 
 ---
 
+### `kpi_recompute_pending` **(NEW 2026-05-03)**
+Reminder queue for monthly KPI recompute. `pg_cron` inserts a row on the 1st of each month for the previous MYT month. KpiScoreTab UI shows a banner while `acknowledged_at IS NULL`. Admin clicks Recompute → service marks the matching row acknowledged. Reminder pattern (NOT auto-recompute).
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `pending_id` | UUID | NO | `gen_random_uuid()` |
+| `year` | INTEGER | NO | |
+| `month` | INTEGER | NO | |
+| `queued_at` | TIMESTAMPTZ | NO | `now()` |
+| `queued_by` | TEXT | NO | `'pg_cron'` |
+| `acknowledged_at` | TIMESTAMPTZ | YES | |
+| `acknowledged_by` | UUID | YES | |
+
+Constraints:
+- PK: `pending_id`
+- UNIQUE: `(year, month)` — one pending row per period; `kpi_queue_last_month_recompute()` uses `ON CONFLICT DO NOTHING` for idempotent re-runs
+- CHECK: `year BETWEEN 2024 AND 2100`, `month BETWEEN 1 AND 12`
+
+Foreign keys:
+- `acknowledged_by` -> `users.user_id`
+
+Indexes:
+- `idx_kpi_pending_open` on `(year, month) WHERE acknowledged_at IS NULL` — partial index for the banner read
+
+RLS (admin/supervisor only):
+- `kpi_pending_select` (SELECT) — gated through `is_admin_or_supervisor()`
+- `kpi_pending_update` (UPDATE) — gated through `is_admin_or_supervisor()`
+- INSERT comes from pg_cron (privileged) — no end-user INSERT policy needed
+
+Related cron:
+- `kpi-month-end-reminder` scheduled `0 1 1 * *` (1am UTC = 9am MYT, 1st of every month) calls `kpi_queue_last_month_recompute()`
+
+---
+
 ## System Settings
 
 ### `public_holidays`

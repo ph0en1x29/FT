@@ -1,5 +1,5 @@
 /**
- * KPI Score Tab — points + attendance bonus leaderboard (KPI Engine Phase 2).
+ * KPI Score Tab — points + attendance bonus leaderboard (KPI Engine Phase 2/3).
  *
  * Source spec: /home/jay/Downloads/KPI_SPEC.md.
  *
@@ -8,27 +8,37 @@
  * shows the spec's points + tier bonus model, surfaced from
  * `kpi_monthly_snapshots` via services/kpiService.ts.
  *
- * Data fetching uses @tanstack/react-query for FT-consistent caching, dedupe,
- * and automatic refetch on window focus.
+ * Phase 3 additions:
+ *   - Banner when pg_cron has queued a month-end reminder (3.4)
+ *   - Per-row "📊 History" → 12-month trend chart (3.3)
+ *   - Per-row notes edit for admin/supervisor (3.2 — dispute/correction)
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   Award,
+  Bell,
+  FileText,
   Loader2,
   RefreshCw,
+  TrendingUp,
   Trophy,
+  X,
 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import {
+  acknowledgeRecompute,
   loadLeaderboard,
+  loadPendingRecomputes,
   recomputeMonthlyForAllTechs,
+  updateSnapshotNotes,
   type LeaderboardRow,
 } from '../../../services/kpiService';
 import { showToast } from '../../../services/toastService';
 import type { User } from '../../../types';
 import type { AttendanceTier } from '../../../types/kpi.types';
+import KpiTechHistoryModal from './KpiTechHistoryModal';
 
 interface KpiScoreTabProps {
   currentUser: User;
@@ -38,6 +48,8 @@ const KpiScoreTab: React.FC<KpiScoreTabProps> = ({ currentUser }) => {
   const now = useMemo(() => new Date(), []);
   const [year, setYear] = useState(now.getUTCFullYear());
   const [month, setMonth] = useState(now.getUTCMonth() + 1);
+  const [historyTech, setHistoryTech] = useState<{ id: string; name: string } | null>(null);
+  const [notesRow, setNotesRow] = useState<LeaderboardRow | null>(null);
   const queryClient = useQueryClient();
 
   const isAdminish =
@@ -46,24 +58,25 @@ const KpiScoreTab: React.FC<KpiScoreTabProps> = ({ currentUser }) => {
     currentUser.role === 'supervisor';
 
   const leaderboardKey = ['kpi-leaderboard', year, month] as const;
+  const pendingKey = ['kpi-recompute-pending'] as const;
 
-  const {
-    data: snapshots = [],
-    isLoading,
-    isFetching,
-    error,
-  } = useQuery({
+  const { data: snapshots = [], isLoading, isFetching, error } = useQuery({
     queryKey: leaderboardKey,
     queryFn: () => loadLeaderboard(year, month),
-    staleTime: 60_000, // snapshots are frozen — 1 min cache is plenty
+    staleTime: 60_000,
+  });
+
+  const { data: pending = [] } = useQuery({
+    queryKey: pendingKey,
+    queryFn: loadPendingRecomputes,
+    enabled: isAdminish,
+    staleTime: 5 * 60_000,
   });
 
   const recomputeMutation = useMutation({
     mutationFn: () => recomputeMonthlyForAllTechs(year, month, currentUser.user_id),
-    onSuccess: (rows) => {
+    onSuccess: async (rows) => {
       queryClient.setQueryData(leaderboardKey, () =>
-        // recompute returns rows without the joined technician_name; map
-        // them onto the existing names from the cache where possible
         rows
           .map((r) => {
             const existing = snapshots.find((s) => s.technician_id === r.technician_id);
@@ -71,8 +84,17 @@ const KpiScoreTab: React.FC<KpiScoreTabProps> = ({ currentUser }) => {
           })
           .sort((a, b) => b.total_kpi_score - a.total_kpi_score),
       );
-      // also invalidate so the next focus does a fresh read with the join
       queryClient.invalidateQueries({ queryKey: leaderboardKey });
+      // Auto-acknowledge any pending reminder for this period
+      const matching = pending.find((p) => p.year === year && p.month === month);
+      if (matching) {
+        try {
+          await acknowledgeRecompute(year, month, currentUser.user_id);
+          queryClient.invalidateQueries({ queryKey: pendingKey });
+        } catch (_e) {
+          // non-blocking
+        }
+      }
       showToast.success(
         `Recomputed ${rows.length} snapshot${rows.length === 1 ? '' : 's'}`,
         `${year}-${String(month).padStart(2, '0')} period refreshed.`,
@@ -85,6 +107,11 @@ const KpiScoreTab: React.FC<KpiScoreTabProps> = ({ currentUser }) => {
 
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
   const yearOptions = [now.getUTCFullYear() - 1, now.getUTCFullYear(), now.getUTCFullYear() + 1];
+
+  const jumpToPending = (p: { year: number; month: number }) => {
+    setYear(p.year);
+    setMonth(p.month);
+  };
 
   return (
     <div className="space-y-6">
@@ -100,6 +127,10 @@ const KpiScoreTab: React.FC<KpiScoreTabProps> = ({ currentUser }) => {
         isFetching={isFetching && !isLoading}
         onRecompute={() => recomputeMutation.mutate()}
       />
+
+      {isAdminish && pending.length > 0 && (
+        <PendingReminderBanner pending={pending} onJumpTo={jumpToPending} />
+      )}
 
       {isLoading && <KpiScoreSkeleton />}
 
@@ -121,13 +152,42 @@ const KpiScoreTab: React.FC<KpiScoreTabProps> = ({ currentUser }) => {
       )}
 
       {!isLoading && !error && snapshots.length > 0 && (
-        <KpiLeaderboardTable rows={snapshots} />
+        <KpiLeaderboardTable
+          rows={snapshots}
+          isAdminish={isAdminish}
+          onOpenHistory={(id, name) => setHistoryTech({ id, name })}
+          onOpenNotes={(row) => setNotesRow(row)}
+        />
       )}
 
       <p className="text-xs text-theme-muted px-1">
         Sources: monthly snapshots in <code>kpi_monthly_snapshots</code>. Computed by{' '}
         <code>services/kpiService.ts</code> from job status history + leave records + public holidays.
       </p>
+
+      {historyTech && (
+        <KpiTechHistoryModal
+          show={!!historyTech}
+          technicianId={historyTech.id}
+          technicianName={historyTech.name}
+          onClose={() => setHistoryTech(null)}
+        />
+      )}
+
+      {notesRow && (
+        <KpiNotesModal
+          row={notesRow}
+          onClose={() => setNotesRow(null)}
+          onSaved={(updated) => {
+            queryClient.setQueryData(leaderboardKey, (prev: LeaderboardRow[] = []) =>
+              prev.map((r) =>
+                r.snapshot_id === updated.snapshot_id ? { ...r, notes: updated.notes } : r,
+              ),
+            );
+            setNotesRow(null);
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -148,16 +208,9 @@ interface HeaderProps {
 }
 
 const KpiScoreHeader: React.FC<HeaderProps> = ({
-  year,
-  month,
-  yearOptions,
-  monthOptions,
-  onYearChange,
-  onMonthChange,
-  isAdminish,
-  recomputing,
-  isFetching,
-  onRecompute,
+  year, month, yearOptions, monthOptions,
+  onYearChange, onMonthChange,
+  isAdminish, recomputing, isFetching, onRecompute,
 }) => (
   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
     <div>
@@ -176,9 +229,7 @@ const KpiScoreHeader: React.FC<HeaderProps> = ({
         onChange={(e) => onYearChange(Number(e.target.value))}
         className="rounded-lg border border-theme bg-[var(--bg)] px-3 py-2 text-sm text-theme"
       >
-        {yearOptions.map((y) => (
-          <option key={y} value={y}>{y}</option>
-        ))}
+        {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
       </select>
       <select
         value={month}
@@ -206,6 +257,34 @@ const KpiScoreHeader: React.FC<HeaderProps> = ({
   </div>
 );
 
+interface PendingProps {
+  pending: { year: number; month: number; queued_at: string }[];
+  onJumpTo: (p: { year: number; month: number }) => void;
+}
+
+const PendingReminderBanner: React.FC<PendingProps> = ({ pending, onJumpTo }) => (
+  <div className="card-premium p-3 border border-amber-200 bg-amber-50 flex items-start gap-3">
+    <Bell className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+    <div className="flex-1 text-sm">
+      <p className="font-medium text-amber-800">
+        {pending.length === 1 ? 'A new month is due for recompute' : `${pending.length} months due for recompute`}
+      </p>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {pending.map((p) => (
+          <button
+            key={`${p.year}-${p.month}`}
+            type="button"
+            onClick={() => onJumpTo(p)}
+            className="rounded-full border border-amber-300 bg-white px-2.5 py-0.5 text-xs text-amber-800 hover:bg-amber-100 transition"
+          >
+            Jump to {new Date(p.year, p.month - 1, 1).toLocaleString('en-MY', { month: 'short' })} {p.year}
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 const KpiScoreSkeleton: React.FC = () => (
   <div className="card-premium overflow-hidden">
     <div className="bg-[var(--bg-subtle)] p-3">
@@ -225,7 +304,14 @@ const KpiScoreSkeleton: React.FC = () => (
   </div>
 );
 
-const KpiLeaderboardTable: React.FC<{ rows: LeaderboardRow[] }> = ({ rows }) => (
+interface TableProps {
+  rows: LeaderboardRow[];
+  isAdminish: boolean;
+  onOpenHistory: (techId: string, techName: string) => void;
+  onOpenNotes: (row: LeaderboardRow) => void;
+}
+
+const KpiLeaderboardTable: React.FC<TableProps> = ({ rows, isAdminish, onOpenHistory, onOpenNotes }) => (
   <div className="card-premium overflow-x-auto">
     <table className="w-full text-sm">
       <thead className="bg-[var(--bg-subtle)] text-theme-muted">
@@ -237,34 +323,56 @@ const KpiLeaderboardTable: React.FC<{ rows: LeaderboardRow[] }> = ({ rows }) => 
           <th className="text-right px-4 py-3 font-medium">Bonus</th>
           <th className="text-right px-4 py-3 font-medium">Total</th>
           <th className="text-center px-4 py-3 font-medium">Tier</th>
+          <th className="text-center px-4 py-3 font-medium w-20">Actions</th>
         </tr>
       </thead>
       <tbody>
-        {rows.map((row, i) => (
-          <tr key={row.snapshot_id} className="border-t border-theme">
-            <td className="px-4 py-3 text-theme-muted">
-              {i === 0 && <Trophy className="inline w-4 h-4 text-amber-500 mr-1" />}
-              {i + 1}
-            </td>
-            <td className="px-4 py-3 text-theme font-medium">
-              {row.technician_name ?? row.technician_id.slice(0, 8)}
-            </td>
-            <td className="px-4 py-3 text-right text-theme">{row.job_points}</td>
-            <td className="px-4 py-3 text-right text-theme">
-              {Number(row.attendance_pct).toFixed(1)}%
-              {row.red_flag && (
-                <AlertTriangle className="inline w-3.5 h-3.5 text-red-500 ml-1" />
-              )}
-            </td>
-            <td className="px-4 py-3 text-right text-theme">+{row.bonus_points}</td>
-            <td className="px-4 py-3 text-right font-semibold text-theme">
-              {row.total_kpi_score}
-            </td>
-            <td className="px-4 py-3 text-center">
-              <TierBadge tier={row.tier} />
-            </td>
-          </tr>
-        ))}
+        {rows.map((row, i) => {
+          const techName = row.technician_name ?? row.technician_id.slice(0, 8);
+          return (
+            <tr key={row.snapshot_id} className="border-t border-theme">
+              <td className="px-4 py-3 text-theme-muted">
+                {i === 0 && <Trophy className="inline w-4 h-4 text-amber-500 mr-1" />}
+                {i + 1}
+              </td>
+              <td className="px-4 py-3 text-theme font-medium">{techName}</td>
+              <td className="px-4 py-3 text-right text-theme">{row.job_points}</td>
+              <td className="px-4 py-3 text-right text-theme">
+                {Number(row.attendance_pct).toFixed(1)}%
+                {row.red_flag && <AlertTriangle className="inline w-3.5 h-3.5 text-red-500 ml-1" />}
+              </td>
+              <td className="px-4 py-3 text-right text-theme">+{row.bonus_points}</td>
+              <td className="px-4 py-3 text-right font-semibold text-theme">{row.total_kpi_score}</td>
+              <td className="px-4 py-3 text-center">
+                <TierBadge tier={row.tier} />
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onOpenHistory(row.technician_id, techName)}
+                    className="text-theme-muted hover:text-[var(--accent)] transition"
+                    title="12-month history"
+                    aria-label={`View ${techName}'s 12-month KPI history`}
+                  >
+                    <TrendingUp className="w-4 h-4" />
+                  </button>
+                  {isAdminish && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenNotes(row)}
+                      className={`transition ${row.notes ? 'text-amber-600 hover:text-amber-700' : 'text-theme-muted hover:text-[var(--accent)]'}`}
+                      title={row.notes ? `Notes: ${row.notes}` : 'Add correction note'}
+                      aria-label={`${row.notes ? 'Edit' : 'Add'} correction note for ${techName}`}
+                    >
+                      <FileText className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   </div>
@@ -282,6 +390,71 @@ const TierBadge: React.FC<{ tier: AttendanceTier }> = ({ tier }) => {
     <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${cfg.cls}`}>
       {cfg.label}
     </span>
+  );
+};
+
+// ─── Notes modal (Phase 3.2 — dispute/correction) ────────────────
+
+interface NotesModalProps {
+  row: LeaderboardRow;
+  onClose: () => void;
+  onSaved: (updated: { snapshot_id: string; notes: string | null }) => void;
+}
+
+const KpiNotesModal: React.FC<NotesModalProps> = ({ row, onClose, onSaved }) => {
+  const [draft, setDraft] = useState(row.notes ?? '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updated = await updateSnapshotNotes(row.snapshot_id, draft);
+      showToast.success('Note saved', `Snapshot ${row.year}-${String(row.month).padStart(2, '0')} updated.`);
+      onSaved({ snapshot_id: updated.snapshot_id, notes: updated.notes });
+    } catch (e) {
+      showToast.error('Could not save note', (e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-premium-elevated">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-bold text-lg text-[var(--text)] flex items-center gap-2">
+            <FileText className="w-5 h-5 text-[var(--accent)]" /> Correction Note
+          </h4>
+          <button type="button" onClick={onClose} className="text-theme-muted hover:text-theme">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <p className="text-xs text-theme-muted mb-4">
+          For {row.technician_name ?? row.technician_id.slice(0, 8)} — {row.year}-{String(row.month).padStart(2, '0')}.
+          Notes are a paper trail; they don't change the score. To change the score itself, edit underlying job/leave data and Recompute.
+        </p>
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          rows={5}
+          placeholder="e.g. Manual review — admin override approved 2026-05-04 (job JOB-260420-003 disputed)"
+          className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)] p-2 text-sm text-[var(--text)] focus:border-[var(--accent)] focus:outline-none mb-4"
+        />
+        <div className="flex gap-3">
+          <button type="button" onClick={onClose} disabled={saving} className="btn-premium btn-premium-secondary flex-1 disabled:opacity-50">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-premium btn-premium-primary flex-1 disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
