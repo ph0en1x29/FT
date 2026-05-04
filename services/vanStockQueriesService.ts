@@ -18,7 +18,7 @@ export const getAllVanStocks = async (): Promise<VanStock[]> => {
         technician:users!technician_id(name),
         items:van_stock_items(
           item_id, part_id, quantity, container_quantity, bulk_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
-          part:parts(part_id, part_name, part_code, cost_price, sell_price, is_liquid, base_unit, container_unit, container_size)
+          part:parts(part_id, part_name, part_code, cost_price, sell_price, is_liquid, base_unit, container_unit, container_size, avg_cost_per_liter, last_purchase_cost_per_liter)
         )
       `)
       .eq('is_active', true)
@@ -47,7 +47,7 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
         technician:users!technician_id(name),
         items:van_stock_items(
           item_id, part_id, quantity, container_quantity, bulk_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
-          part:parts(part_id, part_name, part_code, cost_price, sell_price, is_liquid, base_unit, container_unit, container_size)
+          part:parts(part_id, part_name, part_code, cost_price, sell_price, is_liquid, base_unit, container_unit, container_size, avg_cost_per_liter, last_purchase_cost_per_liter)
         )
       `)
       .eq('temporary_tech_id', technicianId)
@@ -118,7 +118,7 @@ export const getVanStockById = async (vanStockId: string): Promise<VanStock | nu
         technician:users!technician_id(name),
         items:van_stock_items(
           item_id, part_id, quantity, container_quantity, bulk_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
-          part:parts(part_id, part_name, part_code, cost_price, sell_price, is_liquid, base_unit, container_unit, container_size)
+          part:parts(part_id, part_name, part_code, cost_price, sell_price, is_liquid, base_unit, container_unit, container_size, avg_cost_per_liter, last_purchase_cost_per_liter)
         )
       `)
       .eq('van_stock_id', vanStockId)

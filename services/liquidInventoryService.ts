@@ -516,28 +516,58 @@ export function formatStockDisplay(part: Pick<Part, 'container_quantity' | 'bulk
   return `${totalLiters.toFixed(1)} ${baseUnit}`;
 }
 
-/**
- * Cost-value of a single van stock line, liquid-aware.
- *
- * Non-liquid: cost_price × quantity (count-based).
- * Liquid: cost_price × ((container_qty × container_size) + bulk_qty), since
- * `quantity` is meaningless for liquid SKUs — actual stock lives in the
- * dual-unit fields. Mirrors the qty-cell logic in VanStockDetailModal.
- */
-export function computeVanStockItemValue(item: {
+type LinePart = Pick<Part, 'cost_price' | 'sell_price' | 'is_liquid' | 'container_size' | 'avg_cost_per_liter' | 'last_purchase_cost_per_liter'>;
+type LineItem = {
   quantity?: number;
   container_quantity?: number;
   bulk_quantity?: number;
-  part?: Pick<Part, 'cost_price' | 'is_liquid' | 'container_size'> | null;
-}): number {
-  const cost = item.part?.cost_price ?? 0;
-  if (!item.part?.is_liquid) {
-    return cost * (item.quantity ?? 0);
-  }
+  part?: LinePart | null;
+};
+
+/**
+ * Per-unit cost rate for a van stock line.
+ *
+ * Non-liquid: parts.cost_price (per piece).
+ * Liquid: prefer last_purchase_cost_per_liter, then avg_cost_per_liter, then
+ * cost_price as fallback. Liquid SKUs in the catalog often have BOTH a
+ * per-container cost_price AND a per-liter rate — Shin's verification Excel
+ * uses the per-liter rate, so we match it here. The drift between the two
+ * columns is surfaced by the parts_liquid_price_drift audit view.
+ */
+export function getVanStockItemUnitPrice(item: LineItem): number {
+  if (!item.part?.is_liquid) return item.part?.cost_price ?? 0;
+  const lpc = item.part.last_purchase_cost_per_liter ?? 0;
+  if (lpc > 0) return lpc;
+  const avg = item.part.avg_cost_per_liter ?? 0;
+  if (avg > 0) return avg;
+  return item.part.cost_price ?? 0;
+}
+
+/**
+ * Effective stock count used for value math.
+ *
+ * Non-liquid: quantity.
+ * Liquid: prefer dual-unit fields (containers × container_size + bulk). Falls
+ * back to `quantity` only when both dual-unit fields are zero — covers legacy
+ * van rows seeded before the dual-unit migration where stock counts live in
+ * `quantity` only.
+ */
+export function getVanStockItemEffectiveQty(item: LineItem): number {
+  if (!item.part?.is_liquid) return item.quantity ?? 0;
   const containers = item.container_quantity ?? 0;
   const bulk = item.bulk_quantity ?? 0;
   const size = item.part.container_size ?? 0;
-  return cost * ((containers * size) + bulk);
+  const dualUnit = (containers * size) + bulk;
+  return dualUnit > 0 ? dualUnit : (item.quantity ?? 0);
+}
+
+/**
+ * Cost-value of a single van stock line: unit price × effective qty.
+ * See getVanStockItemUnitPrice and getVanStockItemEffectiveQty for the
+ * liquid-aware rate and quantity selection.
+ */
+export function computeVanStockItemValue(item: LineItem): number {
+  return getVanStockItemUnitPrice(item) * getVanStockItemEffectiveQty(item);
 }
 
 /**

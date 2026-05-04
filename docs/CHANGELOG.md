@@ -1,5 +1,106 @@
 # Changelog
 
+## [2026-05-04] — Van Stock: backfill liquid quantity → bulk_quantity (eliminate negative-bq + at-risk seeds), document price-diff for Shin
+
+### Fixes
+
+**Eliminated the negative `bulk_quantity` data bug + 11 at-risk rows that would have gone negative on next job consumption.**
+
+- Investigation: VFG 7238 SHELL TELLUS had `bulk_quantity = -7` and SHELL RIMULA had `bulk_quantity = -9`. Root cause: HAFIZ used 7L of TELLUS and 9L of RIMULA on jobs (4/27–4/29). Each `use_internal` movement subtracted from `bulk_quantity`, but the seed migration (20260424) had loaded `bulk_quantity = 0` (only `quantity` was populated). So `bq` drained 0 → −7 and 0 → −9. Movement audit log is correct — the running balance was meaningless because the starting state was wrong.
+- Cross-fleet audit found **11 more liquid rows on the 3 vans imported on 2026-05-04** (BRK 3280, FA 8326, VFA 6286) with the same setup (`quantity > 0` AND `bulk_quantity = 0`). Time bombs — first job consuming any liquid would drive `bq` negative.
+- Fix: `supabase/migrations/20260504_van_stock_liquid_quantity_backfill.sql` — single migration covering all 32 liquid rows. Uses a deterministic per-row heuristic based on `inventory_movements` history to handle four different broken pre-states without ambiguity (the rule is documented in the migration header). Validation: 0 residual `quantity > 0`, 0 `bulk_quantity < 0` post-apply.
+- VFG 7238 SHELL TELLUS now correctly shows **13 L** (load 20L − usage 7L); SHELL RIMULA shows **23 L** (load 32L − usage 9L).
+
+### Pattern for future liquid imports
+
+Header comment in the new migration documents the rule going forward: when importing a new van's checklist, branch on `parts.is_liquid` and put liquid stock into `bulk_quantity` (NOT `quantity`). Both 20260424 and 20260504 violated this; the corrective backfill closed the gap retroactively.
+
+### Outstanding for Shin (price-diff table — review and confirm canonical rates)
+
+The catalog `parts.cost_price` disagrees with the technician's verification Excel `Unit Price (RM)` column on 18 parts. Most are minor (1–10% drift), but the top 2 are 10× and 3× off — likely typos. Confirm which side is correct, then a one-line UPDATE migration ships the fix.
+
+| Part code | Description | Liquid | DB cost | Excel | # vans |
+|---|---|:-:|--:|--:|:-:|
+| BTP29659 | SIDE SHIFT SPRING | – | **11.00** | **110.00** | 1 |
+| S-00961 | BRAKE BULB 1016 [48V] TW | – | **7.00** | **22.24** | 1 |
+| 58130-20411-71 | HORN 48V [7FB] | – | 120.00 | 130.00 | 7 |
+| S-02498 | BATTERY 105D31L / 125D31L [COZZIE] | – | 318.25 | 323.00 | 8 |
+| S-01987 | BATTERY CONNECTOR GREY [SB350-70MM] | – | 66.00 | 60.00 | 6 |
+| 19101-76007 | DISTRIBUTOR CAP [1301077] | – | 52.71 | 45.05 | 6 |
+| LW-HPT-82X93[PU] | HPT LOAD WHEEL 82×93MM [PU] | – | 35.00 | 40.00 | 1 |
+| LW-C-85x95/97x25 | LOAD WHEEL | – | 29.71 | 27.40 | 1 |
+| LW-C-85x70/75x25 | LOAD WHEEL | – | 25.58 | 23.60 / 24.86 | 2 |
+| DW-C-215x79/89x60 MDI | DRIVE WHEEL | – | 131.22 | 121.03 | 1 |
+| S-00325 | CARBON BRUSH 40×12.5×31 [6FBRE] | – | 48.00 | 46.00 | 2 |
+| XRL 2010A 10-110V DC | LED BEACON LIGHT (ORANGE) | – | 32.34 | 34.64 | 3 |
+| XRL 1004C 10-80V DC | LED HEAD LIGHT 10V-80V | – | 23.36 | 24.43 | 4 |
+| S-01044 | GRANTT ATF DEX-III [18L] | L | 11.00 | 11.66 | 9 |
+| S-01925 | SHELL RIMULA R4PLUS 15W40 [209L] | L | 9.80 | 9.86 | 8 |
+| S-01031 | SPRAY N10 | – | 6.00 | 6.50 | 8 |
+| S-00959 | SIGNAL REVERSE BULB 1141 [12V] STL | – | 0.75 | 0.80 | 9 |
+| S-00960 | BRAKE BULB 1016 [12V] TW | – | 0.60 | 0.75 | 7 |
+
+### Other audit findings (recorded, not fixed this commit)
+
+- **VEW 9631 (BASRI)** has the most drift in the fleet — 10 quantity mismatches and 5 SKUs in his Excel that DB doesn't have (`1191-76001`, `42X53X7`, `57414-22500-71`, `57451-23320-71`, `75X105X12`). Worth a separate physical audit / re-checklist with BASRI.
+- **`23303-64010 B` (with whitespace) vs `23303-64010B` (no whitespace)** — same physical SKU represented as 2 catalog rows. Affects 8/9 vans where techs carry both. Catalog-level decision: merge into one SKU, or keep split. Out of scope until Shin decides.
+- A few connector parts (`62002018/27/41/42/43`, `169944`, `3470`, `5500`, `11191-76001`) appear in DB but not on any Excel checklist — likely added via transfer-from-store after the checklists were drafted.
+
+### Verification
+
+- Migration applied to live DB; pre/post `RAISE NOTICE` confirms `state_a=11 state_b=18 state_c=1 state_d=2 → residual_qty=0 still_negative=0 with_real_stock=32`.
+- Per-van totals stable (the helper's `> 0` fallback path is no longer needed; dual-unit math now sees the correct values directly).
+- `npm run typecheck` clean (no code changed in this entry — pure data + docs).
+
+---
+
+## [2026-05-04] — Van Stock: liquid line value uses per-liter rate; ship parts_liquid_price_drift audit view
+
+### Fixes
+
+**Van Stock totals over-reported by ~RM 20,000 fleet-wide because the catalog stored two disagreeing prices for liquid items and the system used the wrong one.**
+
+- Client report (Shin, 5/4): "VEW 8235 [VEW8236] system shows RM 6,416.55 vs file recorded RM 5,218.50" — initial liquid-aware fix earlier today didn't resolve it because the issue isn't the formula shape, it's the price column.
+- Live-DB audit across 9 active vans found Δ RM 20,190.24 fleet-wide, with **99.5% of the gap from a single bad row**: GRANTT ATF DEX-III [18L] (`part_code = S-01044`). The catalog has `cost_price = 210` (interpreted as per 18L drum) AND `last_purchase_cost_per_liter = 11` (per L). 210 ÷ 18 ≈ 11.67 ≠ 11.00 — the two columns on the same row don't agree. System was using `cost_price`; Shin's verification Excel uses the per-liter rate.
+- Fix (`services/liquidInventoryService.ts`): split `computeVanStockItemValue` into three composable helpers — `getVanStockItemUnitPrice` (per-liter rate for liquids: prefers `last_purchase_cost_per_liter` > `avg_cost_per_liter` > `cost_price`), `getVanStockItemEffectiveQty` (dual-unit math `containers × size + bulk` for liquids; falls back to `quantity` for legacy seed rows where dual-unit fields are zero, using `> 0` so the `bulk_quantity = -9` data bug on VFG 7238 falls back gracefully), and `computeVanStockItemValue` (their product).
+- `services/vanStockQueriesService.ts` SELECT clauses extended to fetch `avg_cost_per_liter, last_purchase_cost_per_liter` so the helper has what it needs.
+- `VanStockDetailModal.tsx` Unit Price cell now uses `getVanStockItemUnitPrice` — liquid rows display the per-liter rate (e.g. `RM 11.00/L` for GRANTT ATF) instead of the misleading per-container `cost_price`. Subtotal column already used the helper, so it picked up the new math automatically.
+
+**Live-DB verification per van** (system_old → system_new):
+
+| Van | Tech | Before | After |
+|---|---|--:|--:|
+| BNX8936 | HASRUL | 6,807.35 | 5,809.35 |
+| BRK 3280 | HISHAM | 8,235.36 | 5,845.44 |
+| FA 8326 | SHEN | 5,847.56 | 4,851.36 |
+| FA 9238 | FIRDAUS | 8,441.23 | 6,450.15 |
+| MDT 6631 | GOH | 7,544.33 | 5,554.33 |
+| VEW 9631 | BASRI | 9,816.57 | 5,756.25 |
+| VEW8236 | YONG JIA | 6,416.55 | **5,221.35** (Shin's Excel: 5,218.50 — Δ 2.85 rounding) |
+| VFA 6286 | ONG | 5,670.60 | 4,277.00 |
+| VFG 7238 | HAFIZ | 10,872.65 | 5,043.02 |
+| **TOTAL** | | **69,652.20** | **48,808.25** |
+
+### Added
+
+**`parts_liquid_price_drift` audit view** (`supabase/migrations/20260504_parts_liquid_price_drift_view.sql`).
+
+- Read-only Postgres view listing liquid SKUs where `cost_price` and `last_purchase_cost_per_liter` disagree by >5% — surfaces catalog drift like the GRANTT ATF case. Both price columns should reflect the same per-unit rate regardless of unit choice; large disagreement = one is stored in different units than the other and needs fixing.
+- Migration applied to live DB. Post-apply diagnostic logs the count + worst offender via `RAISE NOTICE`. Currently flags exactly 1 row: S-01044 GRANTT ATF DEX-III [18L] at 1,809.09% disagreement.
+- Idempotent (DROP+CREATE; can't use `CREATE OR REPLACE VIEW` because Postgres won't let it rename columns).
+
+### Outstanding (for Shin)
+
+1. **GRANTT ATF DEX-III [18L]** — confirm canonical rate. RM 11/L (per-liter) or RM 210/drum (per 18L)? Once confirmed, run `UPDATE parts SET <wrong_column> = <correct_value> WHERE part_code = 'S-01044'`. Until then, the system uses RM 11/L for van stock totals (matches Excel) but the parts row remains internally inconsistent.
+2. **VFG 7238 SHELL RIMULA bulk_quantity = -9** — separate data bug, probably a return-to-store transaction that went below zero. Audit needed.
+
+### Verification
+
+- `npm run typecheck` exit 0. Migration applied to live DB; `parts_liquid_price_drift` returns exactly 1 row (S-01044, 1809% disagreement). All other 3 liquid SKUs in the catalog show <1% disagreement.
+- Helper signatures use `Pick<Part, ...>` — accepts both lean SELECT shapes (van queries) and full `Part` (modal) without casts.
+
+---
+
 ## [2026-05-04] — Van Stock: fix total_value miscalc on liquid SKUs + show Unit Price / Subtotal for Admin 2 reconciliation
 
 ### Fixes

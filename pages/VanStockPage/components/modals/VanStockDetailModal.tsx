@@ -17,7 +17,7 @@ TrendingDown,
 X,
 } from 'lucide-react';
 import { useEffect,useState } from 'react';
-import { computeVanStockItemValue, transferToVan, returnToStore } from '../../../../services/liquidInventoryService';
+import { computeVanStockItemValue, getVanStockItemUnitPrice, transferToVan, returnToStore } from '../../../../services/liquidInventoryService';
 import { showToast } from '../../../../services/toastService';
 import { VanStock,VanStockItem } from '../../../../types';
 import { getLowStockItems,getStockStatusColor } from '../../hooks/useVanStockData';
@@ -253,7 +253,7 @@ export function VanStockDetailModal({
               </thead>
               <tbody className="divide-y divide-theme">
                 {(vanStock.items || []).map((item) => {
-                  const unitPrice = item.part?.cost_price ?? 0;
+                  const unitPrice = getVanStockItemUnitPrice(item);
                   const priceSuffix = item.part?.is_liquid ? `/${item.part?.base_unit || 'L'}` : '';
                   const lineSubtotal = computeVanStockItemValue(item);
                   return (
