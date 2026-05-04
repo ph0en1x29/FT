@@ -17,6 +17,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
+  ArrowRight,
   Award,
   Bell,
   FileText,
@@ -27,6 +28,7 @@ import {
   X,
 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   acknowledgeRecompute,
   loadLeaderboard,
@@ -281,9 +283,16 @@ const LeaveDormancyBanner: React.FC = () => (
       <p className="text-xs text-blue-700 mt-1">
         Attendance bonus is dormant — every tech defaults to 100% attendance and
         receives the Elite +35 bonus. The leaderboard ranks purely on labor.
-        If techs take leave outside FT, ask them to file via the Leave tab so
-        the bonus actually differentiates reliability.
+        Per the 2026-05-04 decision, push the team to file leaves via the Leave
+        tab so the bonus actually differentiates reliability.
       </p>
+      <Link
+        to="/people?tab=leave"
+        className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-blue-300 bg-white px-3 py-1 text-xs font-medium text-blue-800 hover:bg-blue-100 transition"
+      >
+        Open Leave tab
+        <ArrowRight className="w-3 h-3" />
+      </Link>
     </div>
   </div>
 );

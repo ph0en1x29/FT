@@ -1,5 +1,22 @@
 # Changelog
 
+## [2026-05-04] — KPI Engine: Q3 close-out (push-leaves CTA on dormancy banner)
+
+### Changed
+
+- **Leave dormancy banner now has a one-click "Open Leave tab" CTA.** When the KpiScoreTab detects 0 leaves filed for the period, the existing blue dormancy banner now ends with an "Open Leave tab →" pill that deep-links to `/people?tab=leave`. Lets admin go from "I see the problem" to "I can act on it" without navigating manually.
+- Banner copy updated to cite the 2026-05-04 decision explicitly: "Per the 2026-05-04 decision, push the team to file leaves..."
+
+### Closes
+
+- **Q3 from the 2026-05-03 client questions** — Shin picked option (a): push the team to file leaves through FT (vs option b reduce-bonus-weight or option c source-attendance-elsewhere). No math change to the engine; the banner + CTA support the management push.
+
+### Verification
+
+- typecheck exit 0; vitest 48/48 still pass; build 531.03kb / 800kb (no net growth — new icon import offset by tree-shaking).
+
+---
+
 ## [2026-05-04] — Van Stock: import 3 more vans (HISHAM/ONG/SHEN), bring fleet to 9 active
 
 ### Data load (no schema changes)
