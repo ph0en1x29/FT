@@ -1,5 +1,5 @@
 import { useCallback,useRef,useState } from 'react';
-import { ForkliftConditionChecklist,HourmeterFlagReason,Job,JobRequest,JobRequestType,ServiceUpgradePrompt,VanStock } from '../../../types';
+import { ForkliftConditionChecklist,HourmeterFlagReason,Job,JobRequest,JobRequestType,JobType,ServiceUpgradePrompt,VanStock } from '../../../types';
 
 /**
  * Custom hook that manages all state for JobDetailPage
@@ -97,6 +97,12 @@ export const useJobDetailState = () => {
   const [recommendationInput, setRecommendationInput] = useState('');
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionInput, setDescriptionInput] = useState('');
+  // Job type edit (admin/admin_service only, gated to pre-start statuses).
+  // Mirrors the description-edit pair above. The actual gate (admin role +
+  // status='New'/'Assigned') lives in CustomerAssignmentCard.tsx where the
+  // Edit button is rendered.
+  const [editingJobType, setEditingJobType] = useState(false);
+  const [jobTypeInput, setJobTypeInput] = useState<JobType | ''>('');
   const [editingChecklist, setEditingChecklist] = useState(false);
   const [checklistEditData, setChecklistEditData] = useState<ForkliftConditionChecklist>({});
 
@@ -247,6 +253,8 @@ export const useJobDetailState = () => {
     recommendationInput, setRecommendationInput,
     editingDescription, setEditingDescription,
     descriptionInput, setDescriptionInput,
+    editingJobType, setEditingJobType,
+    jobTypeInput, setJobTypeInput,
     editingChecklist, setEditingChecklist,
     checklistEditData, setChecklistEditData,
 

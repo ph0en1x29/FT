@@ -2,7 +2,8 @@ import { Building2,CalendarClock,Check,Edit2,MapPin,Navigation,Phone,RefreshCw,S
 import React from 'react';
 import { Combobox,ComboboxOption } from '../../../components/Combobox';
 import { DatePicker, formatMalaysiaDateLabel } from '../../../components/DatePicker';
-import { Job } from '../../../types';
+import { Job, JobType } from '../../../types';
+import { CREATABLE_JOB_TYPES, JOB_TYPE_LABEL, jobTypeLabel } from '../../../types/job-core.types';
 import { CustomerContact,CustomerSite } from '../../../types/customer.types';
 import { RoleFlags,StatusFlags } from '../types';
 
@@ -21,6 +22,13 @@ interface CustomerAssignmentCardProps {
   onStartEditDescription: () => void;
   onSaveDescription: () => void;
   onCancelDescriptionEdit: () => void;
+  // Job type edit (admin/admin_service only, pre-start statuses)
+  editingJobType?: boolean;
+  jobTypeInput?: JobType | '';
+  onJobTypeInputChange?: (v: JobType) => void;
+  onStartEditJobType?: () => void;
+  onSaveJobType?: () => void;
+  onCancelJobTypeEdit?: () => void;
   onSelectedTechIdChange: (id: string) => void;
   onAssignJob: () => void;
   onOpenReassignModal: () => void;
@@ -45,6 +53,12 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
   onStartEditDescription,
   onSaveDescription,
   onCancelDescriptionEdit,
+  editingJobType,
+  jobTypeInput,
+  onJobTypeInputChange,
+  onStartEditJobType,
+  onSaveJobType,
+  onCancelJobTypeEdit,
   onSelectedTechIdChange,
   onAssignJob,
   onOpenReassignModal,
@@ -60,6 +74,12 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
     (roleFlags.isAdmin || roleFlags.isSupervisor) &&
     (statusFlags.isNew || statusFlags.isAssigned);
   const hasScheduledDate = !!job.scheduled_date;
+  // Job type is editable only by admin/admin_service before the tech starts work.
+  // Mirrors the scheduled-date gate above and the description-edit gate below.
+  const canEditJobType =
+    !!onStartEditJobType &&
+    roleFlags.isAdminService &&
+    (statusFlags.isNew || statusFlags.isAssigned);
   const contactPhone = jobContact?.phone || job.customer?.phone;
   const contactName = jobContact?.name || job.customer?.contact_person;
   const siteAddress = jobSite?.address;
@@ -166,6 +186,52 @@ export const CustomerAssignmentCard: React.FC<CustomerAssignmentCardProps> = ({
             <Navigation className="w-4 h-4" />
             Navigate to Site
           </a>
+        </div>
+      )}
+
+      {/* Job Type — visible to all, editable by admin/admin_service while unstarted */}
+      {(job.job_type || canEditJobType) && (
+        <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+          <div className="flex items-center justify-between mb-0.5">
+            <p className="label-premium">Job Type</p>
+            {canEditJobType && !editingJobType && (
+              <button
+                type="button"
+                onClick={onStartEditJobType}
+                className="btn-premium btn-premium-ghost text-xs"
+                title="Editable until the tech starts the job"
+              >
+                <Edit2 className="w-3.5 h-3.5" /> Edit
+              </button>
+            )}
+          </div>
+          {editingJobType ? (
+            <div className="space-y-2">
+              <Combobox
+                options={CREATABLE_JOB_TYPES.map(t => ({ id: t, label: JOB_TYPE_LABEL[t] }))}
+                value={jobTypeInput || ''}
+                onChange={(val) => onJobTypeInputChange?.(val as JobType)}
+                placeholder="Select job type..."
+              />
+              <div className="flex gap-2 justify-end">
+                <button type="button" onClick={onCancelJobTypeEdit} className="btn-premium btn-premium-ghost text-xs">
+                  <X className="w-3.5 h-3.5" /> Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={onSaveJobType}
+                  disabled={!jobTypeInput || jobTypeInput === job.job_type}
+                  className="btn-premium btn-premium-primary text-xs disabled:opacity-50"
+                >
+                  <Check className="w-3.5 h-3.5" /> Save
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[var(--text-secondary)] text-sm">
+              {jobTypeLabel(job.job_type) || <span className="text-[var(--text-muted)] italic">Not set</span>}
+            </p>
+          )}
         </div>
       )}
 

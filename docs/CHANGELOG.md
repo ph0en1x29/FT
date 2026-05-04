@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-05-04] — JobDetail: admin-editable Job Type (pre-start statuses only)
+
+### Added
+
+- **Admin can edit a job's Job Type** via a new inline editor in `CustomerAssignmentCard`. Mirrors the existing description-edit pattern: small "Edit" button → Combobox dropdown sourced from `CREATABLE_JOB_TYPES` with `JOB_TYPE_LABEL` rendering ("General Service" / "Normal Service" etc.) → Save / Cancel.
+- Visible to all roles (read-only for non-admins); editable only when:
+  - Caller's role is `admin` or `admin_service` (matches description-edit gate)
+  - Job status is `New` or `Assigned` (i.e. **before the tech has started work**)
+- Once status flips to `In Progress` / `Completed` / etc., the Edit button disappears — preventing job_type changes from invalidating already-in-flight hourmeter / checklist / parts validation.
+- `auto-saves` via `MockDb.updateJob({ job_type })`; new value flows through `setJob({...updated})` per the realtime self-echo dedupe contract — no `loadJob()` after mutation.
+- Tooltip on the Edit button explains "Editable until the tech starts the job" so admins understand the gate.
+
+### Verification
+
+- typecheck exit 0; vitest 48/48 still pass; build 531.52kb / 800kb (+0.49kb).
+- No DB schema change (the `jobs.job_type` CHECK constraint and existing audit trigger handle everything).
+- No KPI impact: pre-start jobs have 0 awards by construction; the synthesizer only fires events on completed/transferred jobs.
+
+---
+
 ## [2026-05-04] — KPI Engine: Q3 close-out (push-leaves CTA on dormancy banner)
 
 ### Changed

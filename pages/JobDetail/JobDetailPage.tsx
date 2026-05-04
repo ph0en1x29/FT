@@ -225,6 +225,11 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onStartEditDescription={actions.handleStartEditDescription}
             onSaveDescription={actions.handleSaveDescription}
             onCancelDescriptionEdit={actions.handleCancelDescriptionEdit}
+            editingJobType={state.editingJobType} jobTypeInput={state.jobTypeInput}
+            onJobTypeInputChange={state.setJobTypeInput}
+            onStartEditJobType={actions.handleStartEditJobType}
+            onSaveJobType={actions.handleSaveJobType}
+            onCancelJobTypeEdit={actions.handleCancelJobTypeEdit}
             onSelectedTechIdChange={state.setSelectedTechId} onAssignJob={actions.handleAssignJob}
             onOpenReassignModal={() => state.setShowReassignModal(true)}
             onOpenTransferModal={() => state.setShowTransferModal(true)}

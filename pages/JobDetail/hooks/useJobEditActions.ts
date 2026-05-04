@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import type { ForkliftConditionChecklist, Job } from '../../../types';
+import type { ForkliftConditionChecklist, Job, JobType } from '../../../types';
 import type { JobDetailState } from './useJobDetailState';
 
 interface UseJobEditActionsParams {
@@ -166,6 +166,38 @@ export function useJobEditActions({
     state.setDescriptionInput('');
   }, [state]);
 
+  // Job type edit — admin/admin_service only, gated to pre-start statuses
+  // (New, Assigned). The role + status gates are in CustomerAssignmentCard;
+  // these handlers trust the UI's gating.
+  const handleStartEditJobType = useCallback(() => {
+    if (!job) return;
+    state.setEditingJobType(true);
+    state.setJobTypeInput((job.job_type as JobType | undefined) ?? '');
+  }, [job, state]);
+
+  const handleSaveJobType = useCallback(async () => {
+    if (!job || !state.jobTypeInput) return;
+    if (state.jobTypeInput === job.job_type) {
+      state.setEditingJobType(false);
+      return;
+    }
+    try {
+      const updated = await MockDb.updateJob(job.job_id, {
+        job_type: state.jobTypeInput,
+      } as Partial<Job>);
+      state.setJob({ ...updated } as Job);
+      state.setEditingJobType(false);
+      showToast.success('Job type updated');
+    } catch (e) {
+      showToast.error('Could not update job type', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
+    }
+  }, [job, state]);
+
+  const handleCancelJobTypeEdit = useCallback(() => {
+    state.setEditingJobType(false);
+    state.setJobTypeInput('');
+  }, [state]);
+
   const handleAddExtraCharge = useCallback(async () => {
     if (!job) return;
     const amount = parseFloat(state.chargeAmount);
@@ -214,6 +246,9 @@ export function useJobEditActions({
     handleStartEditChecklist,
     handleStartEditDescription,
     handleStartEditJobCarriedOut,
+    handleStartEditJobType,
+    handleSaveJobType,
+    handleCancelJobTypeEdit,
     handleTechnicianSignature,
     handleTechnicianSwipeSign,
   };
