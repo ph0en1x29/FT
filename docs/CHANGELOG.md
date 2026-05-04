@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-05-04] — Van Stock: import 3 more vans (HISHAM/ONG/SHEN), bring fleet to 9 active
+
+### Data load (no schema changes)
+
+- **3 new van_stocks rows** added from Shin's 2026-05-04 xlsx batch:
+  - `BRK 3280` — MUHAMMAD HISHAM BIN SAIFUL (tech13) — 92 items, qty 292
+  - `VFA 6286` — ONG HENG WENG (tech21) — 57 items, qty 162
+  - `FA 8326` — BEH CHOON SHEN (tech8) — 55 items, qty 232
+- **204 new van_stock_items** total (after deduping HISHAM's single duplicated code by summing quantity).
+- **Active van fleet**: 6 → **9**.
+- All 139 unique part codes resolved (138 direct match against `parts.part_code`; 1 fuzzy — same `"23303-64010 B"` → `23303-64010B` variant the prior 6-van migration documented).
+- Migration: `supabase/migrations/20260504_van_stock_3_vans_addition.sql` — single BEGIN/COMMIT, post-apply DO-block assertion, idempotent against UNIQUE(technician_id) and UNIQUE(van_stock_id, part_id) by pre-flighting tech ownership and merging in-file duplicates.
+- Van Stock service code, RLS, triggers, and UI surfaces — **unchanged**. New vans show up automatically in `pages/MyVanStock/` and `pages/StoreAdminDashboard/` for the assigned techs.
+
+### Roster note
+
+Shin's roster screenshot lists 20 techs (18 + 2 helpers). 9 vans now mapped; the remaining 9 techs either don't have vans yet, share, or work off helper vehicles. Awaiting Shin to confirm assignments for the rest before importing.
+
+---
+
 ## [2026-05-04] — KPI Engine: client-confirmed points table + UI rename + transferred-job banner
 
 ### Changed
