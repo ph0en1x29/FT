@@ -517,6 +517,30 @@ export function formatStockDisplay(part: Pick<Part, 'container_quantity' | 'bulk
 }
 
 /**
+ * Cost-value of a single van stock line, liquid-aware.
+ *
+ * Non-liquid: cost_price × quantity (count-based).
+ * Liquid: cost_price × ((container_qty × container_size) + bulk_qty), since
+ * `quantity` is meaningless for liquid SKUs — actual stock lives in the
+ * dual-unit fields. Mirrors the qty-cell logic in VanStockDetailModal.
+ */
+export function computeVanStockItemValue(item: {
+  quantity?: number;
+  container_quantity?: number;
+  bulk_quantity?: number;
+  part?: Pick<Part, 'cost_price' | 'is_liquid' | 'container_size'> | null;
+}): number {
+  const cost = item.part?.cost_price ?? 0;
+  if (!item.part?.is_liquid) {
+    return cost * (item.quantity ?? 0);
+  }
+  const containers = item.container_quantity ?? 0;
+  const bulk = item.bulk_quantity ?? 0;
+  const size = item.part.container_size ?? 0;
+  return cost * ((containers * size) + bulk);
+}
+
+/**
  * Check for stock mismatch (audit alert)
  * Returns discrepancy if container*size + bulk doesn't match expected
  */

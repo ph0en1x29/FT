@@ -5,6 +5,7 @@
  */
 
 import type { VanStock, VanStockItem, VanStockUsage } from '../types';
+import { computeVanStockItemValue } from './liquidInventoryService';
 import { supabase } from './supabaseClient';
 import type { VanStockItemRow, VanStockRow } from './vanStockTypes';
 
@@ -30,10 +31,7 @@ export const getAllVanStocks = async (): Promise<VanStock[]> => {
     return ((data || []) as unknown as VanStockRow[]).map((vs) => ({
       ...vs,
       technician_name: vs.technician?.name || 'Unknown',
-      total_value: vs.items?.reduce((sum: number, item: VanStockItemRow) => {
-        const partCost = item.part?.cost_price || 0;
-        return sum + (partCost * item.quantity);
-      }, 0) || 0,
+      total_value: vs.items?.reduce((sum: number, item: VanStockItemRow) => sum + computeVanStockItemValue(item), 0) || 0,
     })) as unknown as VanStock[];
   } catch (_e) {
     return [];
@@ -76,10 +74,7 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
       }
 
       const items = (data.items || []) as unknown as VanStockItemRow[];
-      const total_value = items.reduce((sum: number, item: VanStockItemRow) => {
-        const partCost = item.part?.cost_price || 0;
-        return sum + (partCost * item.quantity);
-      }, 0);
+      const total_value = items.reduce((sum: number, item: VanStockItemRow) => sum + computeVanStockItemValue(item), 0);
 
       const row = data as unknown as VanStockRow;
       return { ...row, technician_name: row.technician?.name || 'Unknown', total_value } as unknown as VanStock;
@@ -87,10 +82,7 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
 
     const tempRow = vanData as unknown as VanStockRow;
     const items = (tempRow.items || []) as VanStockItemRow[];
-    const total_value = items.reduce((sum: number, item: VanStockItemRow) => {
-      const partCost = item.part?.cost_price || 0;
-      return sum + (partCost * item.quantity);
-    }, 0);
+    const total_value = items.reduce((sum: number, item: VanStockItemRow) => sum + computeVanStockItemValue(item), 0);
 
     return { ...tempRow, technician_name: tempRow.technician?.name || 'Unknown', total_value } as unknown as VanStock;
   } catch (_e) {
@@ -137,10 +129,7 @@ export const getVanStockById = async (vanStockId: string): Promise<VanStock | nu
     }
 
     const items = (data.items || []) as unknown as VanStockItemRow[];
-    const total_value = items.reduce((sum: number, item: VanStockItemRow) => {
-      const partCost = item.part?.cost_price || 0;
-      return sum + (partCost * item.quantity);
-    }, 0);
+    const total_value = items.reduce((sum: number, item: VanStockItemRow) => sum + computeVanStockItemValue(item), 0);
 
     const row = data as unknown as VanStockRow;
     return { ...row, technician_name: row.technician?.name || 'Unknown', total_value } as unknown as VanStock;

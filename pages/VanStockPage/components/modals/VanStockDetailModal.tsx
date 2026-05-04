@@ -17,7 +17,7 @@ TrendingDown,
 X,
 } from 'lucide-react';
 import { useEffect,useState } from 'react';
-import { transferToVan, returnToStore } from '../../../../services/liquidInventoryService';
+import { computeVanStockItemValue, transferToVan, returnToStore } from '../../../../services/liquidInventoryService';
 import { showToast } from '../../../../services/toastService';
 import { VanStock,VanStockItem } from '../../../../types';
 import { getLowStockItems,getStockStatusColor } from '../../hooks/useVanStockData';
@@ -237,7 +237,7 @@ export function VanStockDetailModal({
 
           {/* Items Table */}
           <h3 className="font-semibold mb-3">Stock Items</h3>
-          <div className="border border-theme rounded-lg overflow-hidden">
+          <div className="border border-theme rounded-lg overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-theme-surface-2">
                 <tr>
@@ -245,12 +245,18 @@ export function VanStockDetailModal({
                   <th className="text-center p-3 text-theme-muted">Qty</th>
                   <th className="text-center p-3 text-theme-muted">Min</th>
                   <th className="text-center p-3 text-theme-muted">Max</th>
+                  <th className="text-right p-3 text-theme-muted">Unit Price</th>
+                  <th className="text-right p-3 text-theme-muted">Subtotal</th>
                   <th className="text-center p-3 text-theme-muted">Status</th>
                   <th className="p-3 text-center text-xs font-semibold text-slate-500">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme">
-                {(vanStock.items || []).map((item) => (
+                {(vanStock.items || []).map((item) => {
+                  const unitPrice = item.part?.cost_price ?? 0;
+                  const priceSuffix = item.part?.is_liquid ? `/${item.part?.base_unit || 'L'}` : '';
+                  const lineSubtotal = computeVanStockItemValue(item);
+                  return (
                   <tr key={item.item_id} className="clickable-row">
                     <td className="p-3">
                       <div className="font-medium">{item.part?.part_name || 'Unknown'}</div>
@@ -265,6 +271,12 @@ export function VanStockDetailModal({
                     </td>
                     <td className="p-3 text-center text-slate-500">{item.min_quantity}</td>
                     <td className="p-3 text-center text-slate-500">{item.max_quantity}</td>
+                    <td className="p-3 text-right text-slate-700 tabular-nums">
+                      RM {unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{priceSuffix}
+                    </td>
+                    <td className="p-3 text-right font-medium text-slate-900 tabular-nums">
+                      RM {lineSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
                     <td className="p-3 text-center">
                       <StockStatusBadge item={item} />
                     </td>
@@ -344,7 +356,8 @@ export function VanStockDetailModal({
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

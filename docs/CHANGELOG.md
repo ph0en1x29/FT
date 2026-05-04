@@ -1,5 +1,33 @@
 # Changelog
 
+## [2026-05-04] — Van Stock: fix total_value miscalc on liquid SKUs + show Unit Price / Subtotal for Admin 2 reconciliation
+
+### Fixes
+
+**Van Stock total value silently underreported by ~10× for any van carrying liquid stock.**
+
+- Client report (Shin, 5/4 5:04am MYT): "All uploaded van stock amounts are not tallying with the Excel file." The amounts shown in the Van Stock page didn't match Shin's master Excel.
+- Root cause: all four `total_value` reducers in `services/vanStockQueriesService.ts` (lines 33-36, 79-82, 90-93, 140-143) computed value as `cost_price × item.quantity`. That's correct for count-based SKUs but wrong for liquid SKUs (`is_liquid = true`) where the real stock lives in `container_quantity × container_size + bulk_quantity` — `quantity` itself is meaningless on those rows and is usually 0. So a van carrying 5 sealed 10L drums of oil at RM50/L came out as `50 × 0 = RM0` instead of `RM2,500`. The qty *display* in `VanStockDetailModal.tsx:262` already did the dual-unit math correctly; the value reducers had drifted from it. The page-wide "Total Value" stat (`useVanStockData.ts:44`) sums these per-van totals, so it was wrong too.
+- Fix: added a single `computeVanStockItemValue(item)` helper in `services/liquidInventoryService.ts` (next to the existing `formatStockDisplay`/`getTotalBaseUnits` helpers — same domain). Branches on `item.part?.is_liquid`: liquid → `cost_price × ((containers × container_size) + bulk_qty)`; non-liquid → `cost_price × quantity`. Replaced the four reducer call sites in `vanStockQueriesService.ts` with `sum + computeVanStockItemValue(item)`. Single source of truth — future drift is structurally impossible.
+
+### Added
+
+**Unit Price + Subtotal columns on the Van Stock detail items table.**
+
+- Client request (same WhatsApp): "Can we show item prices on the van stock screen for Admin 2 to verify?" — Admin 2 (`ADMIN_STORE` role) needs per-row reconciliation against the source Excel, which the previous columns (Part / Qty / Min / Max / Status / Actions) didn't allow.
+- Two new columns in `pages/VanStockPage/components/modals/VanStockDetailModal.tsx`:
+  - **Unit Price** — right-aligned, `RM X.XX` formatting, suffixed with `/L` (or whatever `base_unit` is) when the part is liquid so Admin 2 can tell at a glance which rate they're looking at.
+  - **Subtotal** — right-aligned, bold, computed by the same `computeVanStockItemValue` helper that drives the summary "Total Value" — meaning the on-screen line items now sum exactly to the Total Value figure shown above the table.
+- Both columns use `tabular-nums` so figures align across rows for easy column-by-column scanning against an Excel sheet. Switched the table wrapper from `overflow-hidden` to `overflow-x-auto` since 8 columns exceeds the 768px modal width on small viewports.
+- Cost vs. sell: the displayed unit price is `cost_price`, matching the cost-based Total Value figure. If a future client request is to reconcile against sell prices instead, that's a one-line swap.
+
+### Verification
+
+- `npm run typecheck` exit 0. No schema or data changes. Pure calc fix + UI addition — `useVanStockData.ts`, the cards, the grid, and the page-wide stats all benefit from the corrected totals automatically since they consume `total_value`.
+- Recommended manual check for Shin: reload the Van Stock page, open one van whose Excel total you trust, and compare per-row Subtotal against the Excel column. If a specific row's unit price disagrees with Excel, the fix is to update `cost_price` on that part in the parts catalog (the discrepancy was always there — it just wasn't visible until now).
+
+---
+
 ## [2026-05-04] — JobDetail: admin-editable Job Type (pre-start statuses only)
 
 ### Added
