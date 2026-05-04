@@ -30,7 +30,7 @@ const job = (
 });
 
 describe('awardJobPoints — Continue Tomorrow', () => {
-  it('spec test 1 — single tech, two sessions, full points (20 for repair)', () => {
+  it('spec test 1 — single tech, two sessions, full points (25 for repair, post-2026-05-03 client update)', () => {
     const awards = awardJobPoints(
       job([
         ev('JOB_STARTED', 'A', '2026-04-20T10:00:00Z'),
@@ -41,7 +41,7 @@ describe('awardJobPoints — Continue Tomorrow', () => {
     );
     expect(awards).toHaveLength(1);
     expect(awards[0].techId).toBe('A');
-    expect(awards[0].points).toBe(20);
+    expect(awards[0].points).toBe(25);
     expect(awards[0].role).toBe('owner');
     expect(awards[0].share).toBe(1);
   });
@@ -56,10 +56,10 @@ describe('awardJobPoints — Continue Tomorrow', () => {
         JobType.SERVICE,
       ),
     );
-    expect(awards[0].points).toBe(15);
+    expect(awards[0].points).toBe(20);
   });
 
-  it('Checking job awards 10 pts', () => {
+  it('Checking job awards 5 pts (post-2026-05-03 client update)', () => {
     const awards = awardJobPoints(
       job(
         [
@@ -69,7 +69,7 @@ describe('awardJobPoints — Continue Tomorrow', () => {
         JobType.CHECKING,
       ),
     );
-    expect(awards[0].points).toBe(10);
+    expect(awards[0].points).toBe(5);
   });
 
   it('returns [] when job has not been completed', () => {
@@ -132,13 +132,17 @@ describe('awardJobPoints — Transfer (spec §3.2)', () => {
     };
     const awards = awardJobPoints(cloneJob);
     expect(awards[0].techId).toBe('B');
-    expect(awards[0].points).toBe(20);
+    expect(awards[0].points).toBe(25);
     expect(awards[0].role).toBe('owner');
   });
 });
 
 describe('awardJobPoints — Assistance (spec §3.3)', () => {
-  it('spec test 5 — Repair, A=6h, B=2h → A:15 B:5 (sum=20)', () => {
+  it('spec test 5 — Repair (25 pts), A=6h, B=2h → A:19 B:6 (sum=25)', () => {
+    // Post-2026-05-03 client points table: Repair=25.
+    // Pro-rata: A=6/8*25=18.75 → floor 18, remainder .75; B=2/8*25=6.25
+    // → floor 6, remainder .25. Sum 24, leftover 1 → largest remainder is
+    // A → A=19, B=6.
     const awards = awardJobPoints(
       job([
         ev('JOB_STARTED', 'A', '2026-04-20T10:00:00Z'),
@@ -149,15 +153,15 @@ describe('awardJobPoints — Assistance (spec §3.3)', () => {
       ]),
     );
     const total = awards.reduce((s, a) => s + a.points, 0);
-    expect(total).toBe(20);
+    expect(total).toBe(25);
     const byId = Object.fromEntries(awards.map((a) => [a.techId, a]));
-    expect(byId['A'].points).toBe(15);
+    expect(byId['A'].points).toBe(19);
     expect(byId['A'].role).toBe('owner');
-    expect(byId['B'].points).toBe(5);
+    expect(byId['B'].points).toBe(6);
     expect(byId['B'].role).toBe('assistant');
   });
 
-  it('largest-remainder rounding — Checking 10pt, A=5h B=2h C=1h sums to 10', () => {
+  it('largest-remainder rounding — Checking 5pt, A=5h B=2h C=1h sums to 5', () => {
     const awards = awardJobPoints(
       job(
         [
@@ -173,9 +177,11 @@ describe('awardJobPoints — Assistance (spec §3.3)', () => {
       ),
     );
     const total = awards.reduce((s, a) => s + a.points, 0);
-    expect(total).toBe(10);
+    expect(total).toBe(5);
     expect(awards.every((a) => Number.isInteger(a.points))).toBe(true);
-    // Largest laborMs (A=5h) gets the leftover unit.
+    // Pro-rata: A=5/8*5=3.125 floor 3 rem .125; B=2/8*5=1.25 floor 1 rem .25;
+    // C=1/8*5=0.625 floor 0 rem .625. Sum 4, leftover 1 → largest remainder
+    // is C → C gets +1. Final: A=3, B=1, C=1.
     const byId = Object.fromEntries(awards.map((a) => [a.techId, a]));
     expect(byId['A'].points).toBeGreaterThanOrEqual(byId['B'].points);
     expect(byId['B'].points).toBeGreaterThanOrEqual(byId['C'].points);

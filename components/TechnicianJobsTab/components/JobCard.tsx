@@ -2,6 +2,7 @@ import { AlertTriangle,ChevronRight,Clock,Package,Wrench } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Job,JobType } from '../../../types';
+import { jobTypeLabel } from '../../../types/job-core.types';
 import { getJobTypeTone,getStatusTone } from '../utils/jobStyles';
 
 interface JobCardProps {
@@ -77,7 +78,7 @@ const JobCard: React.FC<JobCardProps> = ({ job }) => {
             <span
               className={`px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap ${typeTone.bg} ${typeTone.text}`}
             >
-              {job.job_type}
+              {jobTypeLabel(job.job_type)}
             </span>
           )}
           <ChevronRight className="w-4 h-4 text-theme-muted flex-shrink-0" />

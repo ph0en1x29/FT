@@ -131,7 +131,7 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
             <p>Your ref no.: {job.customer?.account_number || '-'}</p>
             <div className="grid grid-cols-2 gap-2 mt-2">
               <label className="flex items-center gap-1">
-                <input type="checkbox" checked={job.job_type === JobType.SERVICE} disabled className="w-4 h-4" /> SERVICE
+                <input type="checkbox" checked={job.job_type === JobType.SERVICE} disabled className="w-4 h-4" /> GENERAL SERVICE
               </label>
               <label className="flex items-center gap-1">
                 <input type="checkbox" checked={job.job_type === JobType.REPAIR} disabled className="w-4 h-4" /> REPAIR
@@ -602,7 +602,7 @@ export const printServiceReport = (
         <div class="customer-box">
           <div>Your ref no.: ${sanitizeHtml(job.customer.account_number || '-')}</div>
           <div style="margin-top: 10px;">
-            <label><input type="checkbox" ${job.job_type === 'Service' ? 'checked' : ''} disabled> SERVICE</label>
+            <label><input type="checkbox" ${job.job_type === 'Service' ? 'checked' : ''} disabled> GENERAL SERVICE</label>
             <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Repair' ? 'checked' : ''} disabled> REPAIR</label>
             <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Checking' ? 'checked' : ''} disabled> CHECKING</label>
             <label style="margin-left: 10px;"><input type="checkbox" ${job.job_type === 'Slot-In' ? 'checked' : ''} disabled> SLOT-IN</label>

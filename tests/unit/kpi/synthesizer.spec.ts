@@ -63,11 +63,11 @@ describe('synthesizeJobForScoring — Continue Tomorrow path', () => {
     ]);
     expect(result.events.every((e) => e.techId === 'TECH-A')).toBe(true);
 
-    // End-to-end through Phase 1 awardJobPoints
+    // End-to-end through Phase 1 awardJobPoints (Repair = 25 pts post-2026-05-03)
     const awards = awardJobPoints(result);
     expect(awards).toHaveLength(1);
     expect(awards[0].techId).toBe('TECH-A');
-    expect(awards[0].points).toBe(20);
+    expect(awards[0].points).toBe(25);
     expect(awards[0].role).toBe('owner');
   });
 
@@ -82,7 +82,7 @@ describe('synthesizeJobForScoring — Continue Tomorrow path', () => {
       'WORK_COMPLETED',
     ]);
     const awards = awardJobPoints(result);
-    expect(awards[0].points).toBe(20);
+    expect(awards[0].points).toBe(25);
   });
 
   it('no lead tech (assigned_technician_id null) → no events, no awards', () => {
@@ -102,7 +102,7 @@ describe('synthesizeJobForScoring — Continue Tomorrow path', () => {
     const result = synthesizeJobForScoring(job, history, [], []);
     expect(result.status).toBe('completed');
     const awards = awardJobPoints(result);
-    expect(awards[0].points).toBe(20);
+    expect(awards[0].points).toBe(25);
   });
 });
 
@@ -130,12 +130,13 @@ describe('synthesizeJobForScoring — Helper / Assistance path', () => {
 
     const awards = awardJobPoints(result);
     // TECH-A: 6h (10:00 → 16:00), TECH-B: 2h (09:00 → 11:00)
-    // Total 8h, repair = 20 pts
-    // A: 6/8 × 20 = 15, B: 2/8 × 20 = 5
-    expect(awards.reduce((s, a) => s + a.points, 0)).toBe(20);
+    // Total 8h, repair = 25 pts (post-2026-05-03 client update)
+    // Pro-rata: A=6/8*25=18.75 floor 18 rem .75; B=2/8*25=6.25 floor 6 rem .25
+    // Sum 24, leftover 1 → largest remainder is A → A=19, B=6, sum=25
+    expect(awards.reduce((s, a) => s + a.points, 0)).toBe(25);
     const byId = Object.fromEntries(awards.map((a) => [a.techId, a]));
-    expect(byId['TECH-A'].points).toBe(15);
-    expect(byId['TECH-B'].points).toBe(5);
+    expect(byId['TECH-A'].points).toBe(19);
+    expect(byId['TECH-B'].points).toBe(6);
     expect(byId['TECH-B'].role).toBe('assistant');
   });
 });
@@ -210,7 +211,7 @@ describe('synthesizeJobForScoring — Transfer path', () => {
     const awards = awardJobPoints(result);
     expect(awards).toHaveLength(1);
     expect(awards[0].techId).toBe('TECH-B');
-    expect(awards[0].points).toBe(20);
+    expect(awards[0].points).toBe(25);
     expect(awards[0].role).toBe('owner');
   });
 });

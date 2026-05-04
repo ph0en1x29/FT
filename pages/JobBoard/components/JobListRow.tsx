@@ -16,6 +16,7 @@ import React from 'react';
 import BillingPathBadge from '../../../components/BillingPathBadge';
 import SlotInSLABadge from '../../../components/SlotInSLABadge';
 import { JobStatus, JobType } from '../../../types';
+import { jobTypeLabel } from '../../../types/job-core.types';
 import { getJobTypeColor, getStatusColor } from '../constants';
 import { JobWithHelperFlag, ResponseTimeState } from '../types';
 
@@ -165,7 +166,7 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
               </span>
               {job.job_type && (
                 <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${getJobTypeColor(job.job_type as JobType)}`}>
-                  {job.job_type}
+                  {jobTypeLabel(job.job_type)}
                 </span>
               )}
               {/* ACWER Phase 1 — compact billing path chip */}
@@ -311,7 +312,7 @@ export const JobListRow: React.FC<JobListRowProps> = React.memo(({
         </span>
         {job.job_type && (
           <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${getJobTypeColor(job.job_type as JobType)}`}>
-            {job.job_type}
+            {jobTypeLabel(job.job_type)}
           </span>
         )}
       </div>

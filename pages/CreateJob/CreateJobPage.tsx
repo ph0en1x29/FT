@@ -4,6 +4,7 @@ import BillingPathBadge from '../../components/BillingPathBadge';
 import { Combobox,ComboboxOption } from '../../components/Combobox';
 import { DatePicker } from '../../components/DatePicker';
 import { CREATABLE_JOB_TYPES,ForkliftStatus,JobPriority,JobType,User as UserType } from '../../types';
+import { JOB_TYPE_LABEL } from '../../types/job-core.types';
 import { DuplicateJobWarningModal,ExternalForkliftSection,ForkliftSelectionSection,NewCustomerModal } from './components';
 import { INPUT_CLASS_NAME } from './constants';
 import { useCreateJobForm } from './hooks';
@@ -188,7 +189,7 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
               <div className={`min-w-0 grid grid-cols-1 sm:grid-cols-2 ${canCreateJobs ? 'lg:grid-cols-3' : ''} gap-4`}>
                 <Combobox
                   label="Job Type"
-                  options={CREATABLE_JOB_TYPES.map(t => ({ id: t, label: t }))}
+                  options={CREATABLE_JOB_TYPES.map(t => ({ id: t, label: JOB_TYPE_LABEL[t] }))}
                   value={formData.job_type}
                   onChange={(val) => setFormData(prev => ({...prev, job_type: val as JobType}))}
                   placeholder="Select..."

@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import { sanitizeHtml } from '../services/sanitizeService';
 import { Job } from '../types';
+import { jobTypeLabel } from '../types/job-core.types';
 
 // Company info interface for customization
 interface CompanyInfo {
@@ -481,7 +482,7 @@ export const printInvoice = (job: Job, companyInfo: CompanyInfo = defaultCompany
       </div>
       <div class="terms-row">
         <span class="terms-label">Job Type:</span>
-        <span>${sanitizeHtml(job.job_type || 'Service')}</span>
+        <span>${sanitizeHtml(jobTypeLabel(job.job_type) || 'General Service')}</span>
       </div>
       ${job.recommendation ? `
       <div class="terms-row">

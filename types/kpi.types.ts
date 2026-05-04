@@ -12,22 +12,21 @@ export type TechnicianId = string;
 export type JobId = string;
 
 // ─── Point table ──────────────────────────────────────────────────
-// Mapping of FT JobType (capitalized DB values) onto the spec's three
-// buckets. Open question #1 in the review: confirm Service / Minor Service /
-// Courier with client. Default below — easy to retune since this is the
-// single source of truth for point values.
+// Confirmed by client (Shin) 2026-05-03 via WhatsApp — DRAFT proposal,
+// pending management sign-off. Easy to retune; this is the single source
+// of truth.
 export const JOB_TYPE_POINTS: Record<JobType, number> = {
-  // 20 — repair bucket (skilled/complex)
-  Repair: 20,
-  'Slot-In': 20,
-  // 15 — service bucket (planned maintenance + field work)
-  Service: 15,
-  'Full Service': 15,
-  'Minor Service': 15,
-  'Field Technical Services': 15,
-  // 10 — diagnostic / light bucket
-  Checking: 10,
-  Courier: 10,
+  // High-value: complex / urgent
+  'Slot-In': 30,                    // 15-min SLA emergency
+  Repair: 25,                       // unplanned breakdown work
+  // Mid: planned service work
+  Service: 20,                      // UI label "General Service"
+  'Full Service': 15,               // UI label "Normal Service"
+  'Field Technical Services': 15,   // FTS — replaces Minor Service + Courier
+  'Minor Service': 15,              // legacy — defaults to FTS rate
+  // Light tasks
+  Checking: 5,                      // diagnostic only
+  Courier: 5,                       // legacy — light task
 } as JobTypePointsMap;
 
 type JobTypePointsMap = { [K in JobType]: number };

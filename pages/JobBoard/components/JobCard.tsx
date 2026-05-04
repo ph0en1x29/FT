@@ -15,6 +15,7 @@ import React from 'react';
 import BillingPathBadge from '../../../components/BillingPathBadge';
 import SlotInSLABadge from '../../../components/SlotInSLABadge';
 import { JobStatus, JobType, User } from '../../../types';
+import { jobTypeLabel } from '../../../types/job-core.types';
 import { getJobTypeColor, getStatusColor } from '../constants';
 import { JobWithHelperFlag, ResponseTimeState } from '../types';
 
@@ -159,7 +160,7 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({
 
           {job.job_type && (
             <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${getJobTypeColor(job.job_type as JobType)}`}>
-              {job.job_type}
+              {jobTypeLabel(job.job_type)}
             </span>
           )}
 

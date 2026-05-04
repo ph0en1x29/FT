@@ -1,3 +1,57 @@
+# Changelog
+
+## [2026-05-04] — KPI Engine: client-confirmed points table + UI rename + transferred-job banner
+
+### Changed
+
+- **New points table** (per client confirmation 2026-05-03 — flagged as draft pending management sign-off): Slot-In **30** (was 20), Repair **25** (was 20), Service **20** (was 15), Full Service / Field Technical Services / Minor Service **15**, Checking **5** (was 10), Courier **5** (was 10). Single edit to `JOB_TYPE_POINTS` in `types/kpi.types.ts` is the source of truth — touch this constant to retune.
+- **UI rename — "Service" → "General Service", "Full Service" → "Normal Service"** (per client). Implemented as **DB-safe display mapping**: new `JOB_TYPE_LABEL` constant + `jobTypeLabel(jobType)` helper in `types/job-core.types.ts`. DB enum values, CHECK constraint, RLS policies, ACWER classifier, hourmeter logic, and KPI engine all stay untouched. Only the rendered string changes. Updated 6 surfaces: JobBoard `JobCard` + `JobListRow`, JobDetail `JobHeader`, TechnicianJobsTab `JobCard`, CreateJob form Combobox, `InvoicePDF`, `ServiceReportPDF`.
+- **April 2026 leaderboard re-frozen** with the new points table. Top scorer's job points went 1610 → 1820 (Δ +210). Ranking shifted slightly because Repair-heavy techs got bigger bumps and Checking-heavy ones lost ground.
+
+### Added
+
+- **`TransferredJobBanner`** at the top of JobDetail when a job is the parent of a Transfer (status='Incomplete - Reassigned' AND clones exist). Lists each clone as a clickable chip showing `{job_number} · {assigned_technician_name} →`. Banner copy makes the architecture explicit: "This job has been transferred — view only. All work has moved to the new job. The records here (parts, notes, history) are preserved as a snapshot at the moment of transfer; they cannot be modified." This answers the client's clarifying question about Transfer scope (Q2).
+- **`jobTypeLabel(jobType: string | null | undefined): string`** helper — accepts arbitrary string input and falls back to the input if no mapping exists, so downstream rendering never breaks on stale or unknown values.
+
+### Verification
+
+- typecheck exit 0; vitest 48/48 pass (after fixture updates for new points); build 531.07kb / 800kb (+0.4kb for the banner). 18 April snapshots in DB, math hand-verified.
+
+### Still open (Q3 — leave dormancy)
+
+The "no leaves filed → everyone Elite +35" issue from the prior commit's banner is still awaiting a client decision: (a) push process change so techs file leaves through FT, (b) accept flat bonus baseline, (c) revisit weighting. Banner stays in place.
+
+---
+
+## [2026-05-03]
+
+### Added
+- feat(acwer): ship deferred follow-ups (Quotation PDF + email, cost-margin report) + fix audit-flagged RLS (`91167a5`)
+- feat(acwer): UI follow-ups Tier 1/2/3/4 — accident toggle, recurrence setup, badges, quota overrides, quotation flow (`300ef74`)
+- feat(acwer): ACWER service operations flow Phases 1-10 (path enforcement + auto-flips + cron + AutoCount) (`4f2c937`)
+
+### Fixed
+- fix(jobboard): server-side status counts so KPI tiles aren't capped at 100 jobs (`368c00b`)
+- fix(jobboard,dashboard): use server hasMore + remove nested-button HTML (`538b152`)
+
+### Documentation
+- docs(changelog): update weekly magic docs (`999be5a`)
+
+### Chores
+- auto-commit session changes (`10e6c0e`)
+- auto-commit session changes (`167e198`)
+- auto-commit session changes (`4c95f87`)
+- auto-commit session changes (`809bc43`)
+- auto-commit session changes (`014371f`)
+- auto-commit session changes (`00a3249`)
+- auto-commit session changes (`e6ce42b`)
+- auto-commit session changes (`06db11e`)
+- auto-commit session changes (`b27dbb9`)
+- auto-commit session changes (`2308a74`)
+- auto-commit session changes (`a8a3841`)
+- auto-commit session changes (`003aea2`)
+- complete system performance update (`c727c82`)
+
 ## [2026-05-02] — KPI leaderboard UX/data quality fixes — filter never-worked techs, remove stale snapshots, add dormancy banner
 
 ### Fixed

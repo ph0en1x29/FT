@@ -31,15 +31,52 @@ export enum JobPriority {
 }
 
 // Job Type Classification
+//
+// **DB enum values are stable** — `jobs.job_type` CHECK constraint pins
+// these strings, and many code paths (RLS policies, triggers, ACWER
+// classifier, hourmeter logic, KPI engine) compare against them. Renaming
+// the DB values would be a 940-row migration plus a sweep through every
+// reference. For UI display rename, use `JOB_TYPE_LABEL` below — the
+// client-facing string changes without touching storage.
 export enum JobType {
-  SERVICE = 'Service',           // Legacy - kept for backward compatibility
-  FULL_SERVICE = 'Full Service', // PM with oil change - resets hourmeter cycle
+  SERVICE = 'Service',           // Display: "General Service"
+  FULL_SERVICE = 'Full Service', // Display: "Normal Service" — PM with oil change, resets hourmeter cycle
   MINOR_SERVICE = 'Minor Service', // Legacy - kept for existing jobs only
   REPAIR = 'Repair',
   CHECKING = 'Checking',
   SLOT_IN = 'Slot-In',    // Emergency/same-day response (15-min SLA)
   COURIER = 'Courier',     // Legacy - kept for existing jobs only
   FIELD_TECHNICAL_SERVICES = 'Field Technical Services', // Replaces Minor Service + Courier — no hourmeter/checklist
+}
+
+/**
+ * UI display labels — confirmed by client (Shin) 2026-05-03.
+ * "Service" → "General Service", "Full Service" → "Normal Service".
+ * DB values stay as-is (see JobType enum comment above).
+ *
+ * Use this constant instead of the raw enum string anywhere a job type is
+ * shown to a user. For DB filters, comparisons, and backend logic, continue
+ * to use the JobType enum directly.
+ */
+export const JOB_TYPE_LABEL: Record<JobType, string> = {
+  [JobType.SERVICE]: 'General Service',
+  [JobType.FULL_SERVICE]: 'Normal Service',
+  [JobType.MINOR_SERVICE]: 'Minor Service',
+  [JobType.REPAIR]: 'Repair',
+  [JobType.CHECKING]: 'Checking',
+  [JobType.SLOT_IN]: 'Slot-In',
+  [JobType.COURIER]: 'Courier',
+  [JobType.FIELD_TECHNICAL_SERVICES]: 'Field Technical Services',
+};
+
+/**
+ * Convenience helper — safe for arbitrary string input (e.g. raw DB rows
+ * typed as `string` rather than the JobType enum). Falls back to the input
+ * if no mapping exists, so downstream rendering never breaks.
+ */
+export function jobTypeLabel(jobType: string | null | undefined): string {
+  if (!jobType) return '';
+  return JOB_TYPE_LABEL[jobType as JobType] ?? jobType;
 }
 
 // Job types available for new job creation (excludes legacy types)

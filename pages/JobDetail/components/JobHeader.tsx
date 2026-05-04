@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import BillingPathBadge from '../../../components/BillingPathBadge';
 import SlotInSLABadge from '../../../components/SlotInSLABadge';
 import { Job,JobPriority,JobType } from '../../../types';
+import { jobTypeLabel } from '../../../types/job-core.types';
 import { RoleFlags,StatusFlags } from '../types';
 import { getResponseTimeRemaining,getStatusBadgeClass, isHourmeterExemptJob } from '../utils';
 
@@ -116,7 +117,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
                   job.job_type === JobType.REPAIR ? 'badge-warning' :
                   job.job_type === JobType.CHECKING ? 'bg-purple-100 text-purple-700' :
                   'badge-success'
-                }`}>{job.job_type}</span>
+                }`}>{jobTypeLabel(job.job_type)}</span>
               )}
               {job.priority === JobPriority.EMERGENCY && (
                 <span className="badge badge-error">Emergency</span>

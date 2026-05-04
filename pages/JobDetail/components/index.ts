@@ -29,6 +29,7 @@ ChecklistWarningModal,ContinueTomorrowModal,DeferredCompletionModal,DeleteModal,
 StartJobModal
 } from './JobDetailModals';
 export { TransferJobModal } from './TransferJobModal';
+export { default as TransferredJobBanner } from './TransferredJobBanner';
 export { CustomerSignatureModal } from './CustomerSignatureModal';
 export { default as HourmeterAmendmentModal } from '../../../components/HourmeterAmendmentModal';
 

@@ -44,6 +44,7 @@ RejectJobModal,
 ReportOptionsModal,
 SignaturesCard,
 TransferJobModal,
+TransferredJobBanner,
 StartJobModal,
 MobileTechnicianWorkflowCard,
 } from './components';
@@ -175,6 +176,7 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
 
   return (
     <div className={`min-w-0 max-w-7xl mx-auto overflow-x-hidden pb-24 md:pb-8 ${(statusFlags.isInProgress || statusFlags.isCompleted) && !hasModalOpen ? 'pt-16 md:pt-0' : ''} fade-in`}>
+      {statusFlags.isIncompleteReassigned && <TransferredJobBanner jobId={job.job_id} />}
       <JobHeader job={job} isRealtimeConnected={true} roleFlags={roleFlags} statusFlags={statusFlags}
         partsDeclarationRequired={partsDeclarationRequired}
         exportingToAutoCount={state.exportingToAutoCount} onAcceptJob={actions.handleAcceptJob}
