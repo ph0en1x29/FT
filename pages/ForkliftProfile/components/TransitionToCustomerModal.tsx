@@ -1,9 +1,10 @@
 import { Building2, Loader2, UserCheck, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { getCustomersForList } from '../../../services/customerService';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Combobox, ComboboxOption } from '../../../components/Combobox';
+import { searchCustomers } from '../../../services/customerService';
 import { transitionFleetToCustomer } from '../../../services/forkliftService';
 import { showToast } from '../../../services/toastService';
-import { Customer, Forklift, User } from '../../../types';
+import { Forklift, User } from '../../../types';
 
 interface TransitionToCustomerModalProps {
   forklift: Forklift;
@@ -22,7 +23,12 @@ export const TransitionToCustomerModal: React.FC<TransitionToCustomerModalProps>
   onClose,
   onSuccess,
 }) => {
-  const [customers, setCustomers] = useState<Pick<Customer, 'customer_id' | 'name' | 'address'>[]>([]);
+  const [customerOptions, setCustomerOptions] = useState<ComboboxOption[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  // Picked customer is tracked separately so its label survives subsequent
+  // server-side searches (which replace customerOptions on each query).
+  const [pickedCustomer, setPickedCustomer] = useState<ComboboxOption | null>(null);
+
   const [customerId, setCustomerId] = useState('');
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
   const [salePrice, setSalePrice] = useState('');
@@ -31,13 +37,48 @@ export const TransitionToCustomerModal: React.FC<TransitionToCustomerModalProps>
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<'form' | 'confirm'>('form');
 
-  useEffect(() => {
-    getCustomersForList()
-      .then(setCustomers)
-      .catch(() => showToast.error('Failed to load customer list'));
+  // Server-side customer search via the existing searchCustomers RPC.
+  // Inactive customers are surfaced with an "(Inactive)" suffix so admins can
+  // still close a sale to them if needed (e.g. customer reactivated post-sale).
+  const handleCustomerSearch = useCallback(async (query: string) => {
+    setIsSearching(true);
+    try {
+      const results = await searchCustomers(query, 20);
+      setCustomerOptions(
+        results.map(c => ({
+          id: c.customer_id,
+          label: c.is_active ? c.name : `${c.name} (Inactive)`,
+        }))
+      );
+    } catch {
+      setCustomerOptions([]);
+    } finally {
+      setIsSearching(false);
+    }
   }, []);
 
-  const selectedCustomer = customers.find(c => c.customer_id === customerId);
+  // Pre-populate the dropdown so the user sees something on first click.
+  useEffect(() => {
+    handleCustomerSearch('');
+  }, [handleCustomerSearch]);
+
+  // Merge picked customer back into visible list so the Combobox can always
+  // render its selected label, even after a follow-up search drops that id.
+  const displayOptions = useMemo(() => {
+    if (!pickedCustomer) return customerOptions;
+    if (customerOptions.some(o => o.id === pickedCustomer.id)) return customerOptions;
+    return [pickedCustomer, ...customerOptions];
+  }, [customerOptions, pickedCustomer]);
+
+  const handlePickCustomer = useCallback((id: string) => {
+    setCustomerId(id);
+    if (!id) {
+      setPickedCustomer(null);
+      return;
+    }
+    const opt = customerOptions.find(o => o.id === id) ?? pickedCustomer;
+    if (opt) setPickedCustomer(opt);
+  }, [customerOptions, pickedCustomer]);
 
   const handleConfirm = async () => {
     setSubmitting(true);
@@ -49,7 +90,7 @@ export const TransitionToCustomerModal: React.FC<TransitionToCustomerModalProps>
         actorName: currentUser.name,
         reason: reason.trim() || undefined,
       });
-      showToast.success(`Forklift transferred to ${selectedCustomer?.name || 'customer'}`);
+      showToast.success(`Forklift transferred to ${pickedCustomer?.label || 'customer'}`);
       onSuccess();
     } catch (e) {
       showToast.error(e instanceof Error ? e.message : 'Transfer failed');
@@ -96,19 +137,17 @@ export const TransitionToCustomerModal: React.FC<TransitionToCustomerModalProps>
                 <label className="block text-xs font-medium text-slate-600 mb-1">
                   Customer <span className="text-red-500">*</span>
                 </label>
-                <select
+                <Combobox
+                  options={displayOptions}
                   value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                >
-                  <option value="">Select customer…</option>
-                  {customers
-                    .slice()
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map(c => (
-                      <option key={c.customer_id} value={c.customer_id}>{c.name}</option>
-                    ))}
-                </select>
+                  onChange={handlePickCustomer}
+                  placeholder="Type to search customers…"
+                  onSearch={handleCustomerSearch}
+                  isSearching={isSearching}
+                />
+                <div className="text-xs text-slate-400 mt-1">
+                  Inactive customers are shown with an "(Inactive)" suffix.
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -188,11 +227,8 @@ export const TransitionToCustomerModal: React.FC<TransitionToCustomerModalProps>
                 <div className="text-xs text-slate-500">New owner</div>
                 <div className="font-medium flex items-center gap-1.5">
                   <Building2 className="w-4 h-4 text-slate-400" />
-                  {selectedCustomer?.name || '—'}
+                  {pickedCustomer?.label || '—'}
                 </div>
-                {selectedCustomer?.address && (
-                  <div className="text-xs text-slate-500 mt-0.5">{selectedCustomer.address}</div>
-                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-50 rounded-lg p-3">
