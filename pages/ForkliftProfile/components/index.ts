@@ -11,5 +11,6 @@ export { ScheduleServiceModal } from './ScheduleServiceModal';
 export { ServiceHistorySection } from './ServiceHistorySection';
 export { ServiceTrackingCard } from './ServiceTrackingCard';
 export { TransitionToCustomerModal } from './TransitionToCustomerModal';
+export { default as ForkliftOwnershipCard } from './ForkliftOwnershipCard';
 export { default as RecurrenceSection } from './RecurrenceSection';
 export { default as QuotaOverridesSection } from './QuotaOverridesSection';

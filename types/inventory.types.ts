@@ -43,10 +43,19 @@ export interface Part {
 export interface JobPartUsed {
   job_part_id: string;
   job_id: string;
-  part_id: string;
+  /** NULL when this is an external-purchase / wildcard row (added 2026-05-07). */
+  part_id: string | null;
   part_name: string;
   quantity: number;
   sell_price_at_time: number;
+  /**
+   * Tech-initiated external purchase (added 2026-05-07). When TRUE, this
+   * row was added by a tech who bought the part from an outside vendor due
+   * to inventory shortage. `part_id` is NULL; no stock deduction happens.
+   */
+  is_external_purchase?: boolean;
+  /** Optional context recorded by the tech, e.g. vendor name. (Added 2026-05-07.) */
+  external_purchase_notes?: string | null;
   /**
    * ACWER Phase 9b — snapshot of `parts.cost_price` at the moment this row
    * was added to the job. Used by `ServiceReportPDF view='internal_cost'`

@@ -133,7 +133,7 @@ export {
 acceptJobAssignment,acknowledgeSkillfulTechRequest,
 // Job Locking
 acquireJobLock,addExtraCharge,addMedia,deleteMedia,addNote,starJob,unstarJob,
-addPartToJob,approveAssistanceRequest,approveSparePartRequest,assignHelper,assignJob,checkExpiredJobResponses,checkJobLock,
+addExternalPartToJob,addPartToJob,approveAssistanceRequest,approveSparePartRequest,assignHelper,assignJob,checkExpiredJobResponses,checkJobLock,
 cleanupExpiredLocks,createJob,
 // Job Requests
 createJobRequest,deleteJob,endHelperWork,finalizeInvoice,generateInvoiceText,getActiveHelper,getHelperJobs,
@@ -323,6 +323,7 @@ export const SupabaseDb = {
   unstarJob: jobs.unstarJob,
   addNote: jobs.addNote,
   addPartToJob: jobs.addPartToJob,
+  addExternalPartToJob: jobs.addExternalPartToJob,
   addMedia: jobs.addMedia,
   deleteMedia: jobs.deleteMedia,
   signJob: jobs.signJob,

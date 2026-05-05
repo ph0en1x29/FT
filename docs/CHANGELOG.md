@@ -1,5 +1,90 @@
 # Changelog
 
+## [2026-05-05 — late night] — Parts: tech wildcard / external-purchase support + (VS) marker for van-stock parts
+
+Two related additions to the JobDetail parts list, both per Shin's request.
+
+### Added
+
+**Wildcard / external-purchase parts (the "tech bought it from outside" flow).**
+
+When inventory is short, technicians sometimes have to buy a part from an outside vendor on the spot. Until now there was no clean way to record that on the job — you'd have to fake it as a catalog entry or skip it entirely, neither of which gave admin or the customer the right paper trail.
+
+- New collapsible **"Add external part (out of inventory)"** form on the JobDetail parts section, available to both technicians and admins while a job is In Progress or Awaiting Finalization. Fields: part name (required), quantity, price paid (required, becomes both the recorded cost and what the customer is charged unless admin edits the sell price afterward), optional notes (vendor / receipt #).
+- Rows render with a small amber **"EXT"** pill and tooltip showing the notes. The tech's free-form name displays exactly as entered (no catalog reference needed).
+- New `addExternalPartToJob()` service function inserts with `part_id=NULL` (the column is already nullable in `job_parts`) and skips main-inventory deduction (there's no catalog row to deduct from).
+- ServiceReportPDF (customer-facing service report) shows external rows with `EXT` in the code column and the part name suffixed " (external)" so the customer knows the line came from outside Acwer inventory.
+
+Schema (migration `supabase/migrations/20260507_external_purchase_and_van_stock_marker.sql`, applied live):
+
+- `job_parts.is_external_purchase BOOLEAN NOT NULL DEFAULT FALSE`
+- `job_parts.external_purchase_notes TEXT`
+- New CHECK constraint `job_parts_external_purchase_has_name` (NOT VALID — historical data grandfathered) ensuring external rows always have a non-empty `part_name`.
+- Partial index on `(job_id) WHERE is_external_purchase = TRUE` for fast filter.
+
+### Fixed
+
+**(VS) marker now actually appears for van-stock parts.**
+
+The `job_parts.from_van_stock` and `van_stock_item_id` columns existed in the schema but **every single row had `from_van_stock=false`** because the van-stock-usage flow was calling `addPartToJob()` without passing the flag. So the (VS) marker was wired up to a column that nothing ever set.
+
+- Extended `addPartToJob()` with a new `vanStockOptions` parameter (`{ fromVanStock, vanStockItemId? }`).
+- Critically: when `fromVanStock=true`, the function now SKIPS main-inventory stock deduction. Without this, van-stock parts would have been double-deducted (once from the van by `vanStockUsageService`, once from the main store by `addPartToJob`).
+- `useJobPartsHandlers.handleUseVanStockPart` now passes the new flag + item_id when calling `addPartToJob`.
+- Each part row in PartsSection now renders a blue **"VS"** pill (with truck icon) when `from_van_stock=true`, alongside the existing "Auto" / "Pending Return" / "Returned" pills.
+- New CHECK constraint `job_parts_van_stock_consistency` (NOT VALID) ensures any future row with `from_van_stock=true` also has `van_stock_item_id` set. Smoke-tested live: the constraint correctly rejects malformed inserts.
+
+### Verification
+
+- `npm run typecheck` clean; `npm run build` green (542 KB, +1 KB from prior commit).
+- Live smoke test via the pooler: inserted a real external-purchase row against an actual In Progress job, confirmed `part_id=NULL` + `is_external_purchase=true` + notes propagated correctly. Attempted an invalid van-stock row missing the `van_stock_item_id`; the new check constraint rejected it as expected. Cleanup row was deleted.
+
+### Scope notes
+
+- The (VS) marker is purely visual and triggers off `from_van_stock=true`, which now gets set correctly going forward. Historical job_parts rows from before this commit continue to show no badge (they were inserted with `from_van_stock=false` even when the part actually came from van stock). A backfill from `van_stock_usage` joined to `job_parts` could populate the historical flag — separate cleanup pass not requested.
+- External parts have no warranty tracking (`warranty_end_date` stays NULL — no catalog reference to source warranty terms from).
+- External parts auto-deduct at insert time (`deducted_at` stamped) — they bypass the Phase 7 deferred-deduction flow because there's nothing to defer.
+- Helpers (`isHelperOnly`) cannot use the external-part form — same gating as the existing van-stock form. Admin / lead tech only.
+
+---
+
+## [2026-05-05 — night] — Bidirectional ownership traceability: ForkliftOwnershipCard + ServicedExternalsSection
+
+Closes the v1 traceability gap surfaced earlier this evening: the new ownership/provenance fields existed in the schema and were being populated correctly, but they weren't visible in any UI panel — and the customer profile had no section listing customer-owned forklifts at all. Both built now.
+
+### Added
+
+**`ForkliftOwnershipCard` on ForkliftProfile.** Renders only for customer-owned forklifts. Shows:
+- Source tag: "Customer-owned (BYO)" or "Sold from Acwer fleet" badge.
+- Owner customer name with a clickable link → customer profile.
+- For sold-from-fleet: sale date and sale price (when populated).
+- Customer's asset code (if assigned), with Acwer's serial preserved underneath.
+- Collapsible lifecycle timeline read from `forklift_history` — shows the most recent 3 events (sold-to-customer, registered-byo, contract changes, status changes) with timestamps and actor names; "Show N more" reveals the rest.
+
+Slotted on the profile between `NextServiceAlert` and `CurrentAssignmentCard` so it's high on the page, not buried below 6+ sections.
+
+**`ServicedExternalsSection` on CustomerProfile.** Parallel to the existing `RentalsSection` (which covers Acwer's fleet rentals) — this one covers the customer-side of the relationship.
+- Lists every customer-owned forklift assigned to this customer, **including dormant rows** so admins see the full historical relationship and can revive when the customer comes back.
+- Per-row: serial / customer asset code / make-model / type / hourmeter / sold-date+price (if sold-from-fleet) / dormant tag (if dormant).
+- Header shows BYO vs sold-from-fleet count chips for quick scan.
+- Click any row → forklift profile (which now shows the new ForkliftOwnershipCard with the full history).
+- Hidden entirely when the customer has 0 customer-owned forklifts — keeps the profile tidy for non-external customers.
+
+### Changed
+
+- `services/forkliftService.ts:getExternalServicedForklifts` — added `options.includeDormant` (default `false`). The cross-customer ExternalFleetTab still excludes dormant rows to keep the dashboard focused on actionable items; the per-customer profile section opts in via `includeDormant: true` so the customer's full historical relationship is visible.
+
+### Verification
+
+- `npm run typecheck` clean; `npm run build` green (541 KB, +2 KB from prior commit).
+- Smoke test: queried NIPPON PAINT (M) SDN BHD (6 customer-owned forklifts: 5 dormant, 1 active). Confirmed the new section returns all 6 with correct metadata, dormant tag populated on the right rows.
+
+### Data quality observation (separate cleanup, not blocking)
+
+- About half of the existing 55 customer-owned forklifts have proper make/model populated (e.g. Toyota 8FD25, TOYOTA 6FBRE16); the other half are skeletal (empty `make`/`model`, hourmeter=0). These were created via the inline `ExternalForkliftSection` form on CreateJobPage with loose required-field enforcement. Worth a backfill pass with Shin's input on which forklifts go with which model. Not blocking — every row still has serial, customer, and at least one historical job.
+
+---
+
 ## [2026-05-05 — late evening] — Serviced Externals tab: row clicks were a dead-end (singular vs plural route)
 
 ### Fixed

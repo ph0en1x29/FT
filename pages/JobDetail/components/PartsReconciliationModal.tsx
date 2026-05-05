@@ -4,7 +4,8 @@ import type { JobPartUsed } from '../../../types';
 
 export interface ReconciliationEntry {
   job_part_id: string;
-  part_id: string;
+  /** Null for external/wildcard parts (no catalog entry). */
+  part_id: string | null;
   part_name: string;
   quantity_issued: number;
   quantity_used: number;

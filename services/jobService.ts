@@ -51,7 +51,7 @@ getJobServiceRecord,setNoPartsUsed,startJobWithCondition,updateConditionChecklis
 
 // Invoice Service
 export {
-addExtraCharge,addPartToJob,finalizeInvoice,generateInvoiceText,removeExtraCharge,removePartFromJob,sendInvoice,updateLaborCost,updatePartPrice
+addExternalPartToJob,addExtraCharge,addPartToJob,finalizeInvoice,generateInvoiceText,removeExtraCharge,removePartFromJob,sendInvoice,updateLaborCost,updatePartPrice
 } from './jobInvoiceService';
 
 // Locking Service
@@ -465,7 +465,8 @@ export const confirmParts = async (
  */
 export interface PartReconciliation {
   job_part_id: string;
-  part_id: string;
+  /** Null for external/wildcard parts (no catalog entry). */
+  part_id: string | null;
   quantity_used: number;
   quantity_returned: number;
 }

@@ -50,6 +50,14 @@ interface PartsSectionProps {
   onPartReturnUpdated?: (updated: JobPartUsed) => void;
   /** True when the current viewer originally requested a Pending Return — UI shows the Cancel button only to them. */
   currentUserId?: string;
+  // External / wildcard part flow (added 2026-05-07). Used when inventory
+  // is short and the tech buys the part from an outside vendor.
+  onAddExternalPart?: (input: {
+    partName: string;
+    quantity: number;
+    pricePaid: number;
+    notes?: string;
+  }) => Promise<void>;
 }
 
 export const PartsSection: React.FC<PartsSectionProps> = ({
@@ -88,12 +96,45 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   selectedPartIsLiquid,
   onPartReturnUpdated,
   currentUserId,
+  onAddExternalPart,
 }) => {
   const { isTechnician, canViewPricing, canEditPrices, canAddParts, isHelperOnly } = roleFlags;
   const { isNew, isAssigned, isInProgress, isAwaitingFinalization } = statusFlags;
 
   const [returningPart, setReturningPart] = useState<JobPartUsed | null>(null);
   const [busyPartId, setBusyPartId] = useState<string | null>(null);
+
+  // External / wildcard part form state — local to this section so the
+  // parent doesn't need to manage it. Collapsed by default to keep the
+  // common van-stock + add-part flows visually dominant.
+  const [extOpen, setExtOpen] = useState(false);
+  const [extName, setExtName] = useState('');
+  const [extQty, setExtQty] = useState('1');
+  const [extPrice, setExtPrice] = useState('');
+  const [extNotes, setExtNotes] = useState('');
+  const [extSubmitting, setExtSubmitting] = useState(false);
+
+  const handleAddExternalPart = async () => {
+    if (!onAddExternalPart) return;
+    const qty = parseFloat(extQty);
+    const price = parseFloat(extPrice);
+    if (!extName.trim()) { showToast.error('Part name required'); return; }
+    if (!Number.isFinite(qty) || qty <= 0) { showToast.error('Quantity must be > 0'); return; }
+    if (!Number.isFinite(price) || price < 0) { showToast.error('Price must be a non-negative number'); return; }
+    setExtSubmitting(true);
+    try {
+      await onAddExternalPart({
+        partName: extName.trim(),
+        quantity: qty,
+        pricePaid: price,
+        notes: extNotes.trim() || undefined,
+      });
+      setExtName(''); setExtQty('1'); setExtPrice(''); setExtNotes('');
+      setExtOpen(false);
+    } finally {
+      setExtSubmitting(false);
+    }
+  };
 
   const handleCancelReturn = async (jobPartId: string) => {
     if (busyPartId) return;
@@ -171,6 +212,26 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
                 <span className={`font-medium text-[var(--text)] ${isReturning ? 'line-through' : ''}`}>
                   {Number.isInteger(p.quantity) ? p.quantity : p.quantity.toFixed(2)}× {p.part_name}
                 </span>
+                {/* Van Stock marker — distinguishes parts deducted from the
+                    tech's van vs main inventory (per Shin's request 2026-05-07). */}
+                {p.from_van_stock && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded-full"
+                    title="Used from technician's van stock"
+                  >
+                    <Truck className="w-3 h-3" /> VS
+                  </span>
+                )}
+                {/* External purchase marker — wildcard part bought outside Acwer
+                    inventory due to shortage (added 2026-05-07). */}
+                {p.is_external_purchase && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full"
+                    title={p.external_purchase_notes || 'Out of inventory — purchased externally by tech'}
+                  >
+                    EXT
+                  </span>
+                )}
                 {p.auto_populated && (
                   <span className="inline-flex items-center gap-1 text-[10px] text-[var(--info)] bg-[var(--info-bg)] px-1.5 py-0.5 rounded-full">
                     <Lock className="w-3 h-3" /> Auto
@@ -489,6 +550,87 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
               <Plus className="w-5 h-5" />
             </button>
           </div>
+        </div>
+      )}
+
+      {/* External / wildcard part — tech buys outside Acwer inventory due to
+          shortage. Available to both technicians and admins while the job is
+          actively being worked on. Hidden behind a collapsed toggle so the
+          common path stays uncluttered. */}
+      {onAddExternalPart && (isInProgress || isAwaitingFinalization) && !isHelperOnly && (
+        <div className="border-t border-[var(--border-subtle)] pt-4 mt-4">
+          <button
+            type="button"
+            onClick={() => setExtOpen(o => !o)}
+            className="text-xs font-medium text-amber-700 hover:text-amber-800 inline-flex items-center gap-1.5"
+            title="Use this when inventory is short and you bought the part from an outside vendor"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            {extOpen ? 'Cancel external part' : 'Add external part (out of inventory)'}
+          </button>
+          {extOpen && (
+            <div className="mt-3 p-3 rounded-xl border border-amber-200 bg-amber-50/40 space-y-2">
+              <p className="text-xs text-amber-800">
+                Logged as <strong>EXT</strong> on the parts list. No catalog entry needed; price you enter becomes both the recorded cost and what the customer is charged (admin can edit later).
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  value={extName}
+                  onChange={(e) => setExtName(e.target.value)}
+                  placeholder="Part name (e.g. Gasket 30mm — bought at ABC Auto)"
+                  className="input-premium text-sm flex-1"
+                />
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0.1"
+                  step="any"
+                  value={extQty}
+                  onChange={(e) => setExtQty(e.target.value)}
+                  placeholder="Qty"
+                  className="input-premium text-sm w-20 text-center"
+                />
+                <div className="relative w-28">
+                  <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs">RM</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    value={extPrice}
+                    onChange={(e) => setExtPrice(e.target.value)}
+                    placeholder="Price paid"
+                    className="input-premium pl-8 text-sm"
+                  />
+                </div>
+              </div>
+              <input
+                type="text"
+                value={extNotes}
+                onChange={(e) => setExtNotes(e.target.value)}
+                placeholder="Notes (vendor, receipt #, reason for outside purchase) — optional"
+                className="input-premium text-sm w-full"
+              />
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  onClick={() => { setExtOpen(false); setExtName(''); setExtQty('1'); setExtPrice(''); setExtNotes(''); }}
+                  disabled={extSubmitting}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddExternalPart}
+                  disabled={extSubmitting || !extName.trim() || !extPrice}
+                  className="px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 inline-flex items-center gap-1"
+                >
+                  {extSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  Add external part
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

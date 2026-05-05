@@ -18,6 +18,7 @@ RentalsSection,
 RentForkliftModal,
 ResultModal,
 ServiceHistory,
+ServicedExternalsSection,
 SitesSection,
 } from './components';
 import {
@@ -203,6 +204,9 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
         <ContactsSection customerId={customer.customer_id} />
         <SitesSection customerId={customer.customer_id} />
       </div>
+
+      {/* Customer-owned forklifts already registered for this customer */}
+      <ServicedExternalsSection customerId={customer.customer_id} />
 
       {/* Customer-owned forklift registration (Acwer services them under contract) */}
       {(isAdmin || isAdminService || isSupervisor) && (

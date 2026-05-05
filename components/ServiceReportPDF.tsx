@@ -309,8 +309,8 @@ export const ServiceReportPDF: React.FC<ServiceReportProps> = ({
             return (
               <tr key={part.job_part_id}>
                 <td className="border border-slate-300 p-2">{idx + 1}</td>
-                <td className="border border-slate-300 p-2 font-mono">{part.part_id.slice(0, 6)}</td>
-                <td className="border border-slate-300 p-2">{part.part_name}</td>
+                <td className="border border-slate-300 p-2 font-mono">{part.part_id ? part.part_id.slice(0, 6) : 'EXT'}</td>
+                <td className="border border-slate-300 p-2">{part.part_name}{part.is_external_purchase && ' (external)'}</td>
                 <td className="border border-slate-300 p-2 text-center">{part.quantity} unit</td>
                 {renderPriceColumns && <td className="border border-slate-300 p-2 text-right">{part.sell_price_at_time.toFixed(2)}</td>}
                 {renderPriceColumns && <td className="border border-slate-300 p-2 text-right">{partRevenue.toFixed(2)}</td>}
@@ -661,8 +661,8 @@ export const printServiceReport = (
             return `
             <tr>
               <td>${idx + 1}</td>
-              <td style="font-family: monospace;">${sanitizeHtml(part.part_id.slice(0, 6))}</td>
-              <td>${sanitizeHtml(part.part_name)}</td>
+              <td style="font-family: monospace;">${sanitizeHtml(part.part_id ? part.part_id.slice(0, 6) : 'EXT')}</td>
+              <td>${sanitizeHtml(part.part_name)}${part.is_external_purchase ? ' (external)' : ''}</td>
               <td class="text-center">${part.quantity}</td>
               ${renderPriceColumns ? `<td class="text-right">${part.sell_price_at_time.toFixed(2)}</td>` : ''}
               ${renderPriceColumns ? `<td class="text-right">${partRevenue.toFixed(2)}</td>` : ''}

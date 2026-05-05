@@ -204,9 +204,21 @@ export const useJobPartsHandlers = ({
         );
       }
 
-      // Also add to job parts for invoicing
+      // Also add to job parts for invoicing — flag the row as from_van_stock
+      // so the JobDetail PartsSection renders the (VS) marker, and so admin
+      // reports / invoices can distinguish van-stock vs main-inventory parts.
       if (item.part) {
-        await MockDb.addPartToJob(job.job_id, item.part_id, qtyToUse, item.part.sell_price ?? item.part.cost_price ?? 0, UserRole.TECHNICIAN, currentUserId, currentUserName);
+        await MockDb.addPartToJob(
+          job.job_id,
+          item.part_id,
+          qtyToUse,
+          item.part.sell_price ?? item.part.cost_price ?? 0,
+          UserRole.TECHNICIAN,
+          currentUserId,
+          currentUserName,
+          undefined,
+          { fromVanStock: true, vanStockItemId: item.item_id }
+        );
       }
 
       // Auto-confirm parts — van stock usage is tracked and auditable,
@@ -271,6 +283,34 @@ export const useJobPartsHandlers = ({
     }
   }, [job, state, currentUserId, currentUserName, setJob, loadVanStock]);
 
+  const handleAddExternalPart = useCallback(async (input: {
+    partName: string;
+    quantity: number;
+    pricePaid: number;
+    notes?: string;
+  }) => {
+    if (!job) return;
+    try {
+      const updated = await MockDb.addExternalPartToJob(
+        job.job_id,
+        input.partName,
+        input.quantity,
+        input.pricePaid,
+        {
+          notes: input.notes,
+          actorId: currentUserId,
+          actorName: currentUserName,
+          actorRole: currentUserRole as UserRole,
+        }
+      );
+      setJob({ ...updated } as Job);
+      showToast.success('External part added', `${input.partName} logged as out-of-inventory`);
+    } catch (e) {
+      showToast.error('Could not add external part', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
+      throw e;
+    }
+  }, [job, currentUserId, currentUserName, currentUserRole, setJob]);
+
   const handleSelectJobVan = useCallback(async (vanStockId: string) => {
     if (!job) return;
     // Prevent changing van after parts have been used from van stock
@@ -302,5 +342,6 @@ export const useJobPartsHandlers = ({
     handleReconcileParts,
     handleUseVanStockPart,
     handleSelectJobVan,
+    handleAddExternalPart,
   };
 };

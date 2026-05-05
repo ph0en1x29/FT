@@ -11,6 +11,7 @@ CurrentAssignmentCard,
 EditRentalRateModal,
 ForkliftHeader,
 ForkliftInfoCard,
+ForkliftOwnershipCard,
 HourmeterHistorySection,
 NextServiceAlert,
 QuotaOverridesSection,
@@ -179,6 +180,9 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
 
       <ServiceTrackingCard forklift={forklift} canEdit={isAdmin || isSupervisor} onUpdate={reload} />
       <NextServiceAlert forklift={forklift} />
+
+      {/* Ownership provenance — renders only for customer-owned units (BYO or sold-from-fleet). */}
+      <ForkliftOwnershipCard forklift={forklift} />
 
       {activeRental && (
         <CurrentAssignmentCard

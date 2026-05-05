@@ -311,7 +311,8 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             onPartReturnUpdated={(updated) => setJob({
               ...job,
               parts_used: (job.parts_used || []).map(p => p.job_part_id === updated.job_part_id ? { ...p, ...updated } : p),
-            })} />
+            })}
+            onAddExternalPart={actions.handleAddExternalPart} />
           </CollapsibleCard>
           </div>
           <ExtraChargesSection job={job} roleFlags={roleFlags} showAddCharge={state.showAddCharge}

@@ -46,7 +46,14 @@ export const addPartToJob = async (
   actorRole?: UserRole,
   actorId?: string,
   actorName?: string,
-  sellSealed?: boolean
+  sellSealed?: boolean,
+  // Van-stock provenance (added 2026-05-07). When set, the resulting
+  // job_parts row is flagged from_van_stock=true with the source item_id.
+  // The "(VS)" marker on the JobDetail parts list keys off these.
+  vanStockOptions?: {
+    fromVanStock: boolean;
+    vanStockItemId?: string;
+  }
 ): Promise<Job> => {
   const { data: part, error: partError } = await supabase
     .from('parts')
@@ -56,8 +63,14 @@ export const addPartToJob = async (
 
   if (partError) throw new Error(partError.message);
   // Admin can add parts regardless of stock (pre-allocation, ordering, etc.)
-  // Technicians are blocked if insufficient stock
-  if (actorRole !== UserRole.ADMIN && part.stock_quantity < quantity) {
+  // Technicians are blocked if insufficient stock — UNLESS it's coming from
+  // van stock (already deducted from van), in which case the catalog stock
+  // check is moot.
+  if (
+    actorRole !== UserRole.ADMIN &&
+    !vanStockOptions?.fromVanStock &&
+    part.stock_quantity < quantity
+  ) {
     throw new Error('Insufficient stock');
   }
 
@@ -74,6 +87,8 @@ export const addPartToJob = async (
       // can compute margin without a parts JOIN at read time. Falls back to
       // 0 if cost_price isn't set on the master row.
       cost_price_at_time: part.cost_price ?? 0,
+      from_van_stock: vanStockOptions?.fromVanStock ?? false,
+      van_stock_item_id: vanStockOptions?.vanStockItemId ?? null,
     });
 
   if (insertError) throw new Error(insertError.message);
@@ -115,7 +130,11 @@ export const addPartToJob = async (
   // Liquid parts always deduct immediately (the Phase 7 deferred-deduction
   // function intentionally doesn't handle liquids — sealed/internal split
   // semantics make deferral too lossy). Non-liquid parts honour the flag.
+  // Skip main-inventory deduction entirely when this part came from van
+  // stock — the van-side deduction already happened upstream
+  // (vanStockUsageService / liquidInventoryService).
   const shouldRunImmediateDeduction =
+    !vanStockOptions?.fromVanStock &&
     (actorRole === UserRole.ADMIN || actorRole === UserRole.TECHNICIAN) &&
     (part.is_liquid === true || !deferDeduction);
   if (shouldRunImmediateDeduction) {
@@ -253,6 +272,77 @@ export const addPartToJob = async (
     if (confirmError) {
       console.warn('Part added, but auto-confirm failed:', confirmError.message);
     }
+  }
+
+  return getJobById(jobId) as Promise<Job>;
+};
+
+/**
+ * Add a tech-purchased external part to a job (the "wildcard" flow).
+ *
+ * Used when inventory is short and the technician buys the part from an
+ * outside vendor. No catalog entry exists, so `part_id` stays NULL and
+ * the row is flagged `is_external_purchase=true`. No stock deduction
+ * happens (there's no catalog row to deduct from).
+ *
+ * Cost and sell price default to the same value (what the tech paid is
+ * what the customer is charged). Admin can edit the sell price afterward
+ * via `updatePartPrice` if a markup is needed.
+ *
+ * (Added 2026-05-07.)
+ */
+export const addExternalPartToJob = async (
+  jobId: string,
+  partName: string,
+  quantity: number,
+  pricePaid: number,
+  options?: {
+    notes?: string;
+    sellPrice?: number; // defaults to pricePaid
+    actorId?: string;
+    actorName?: string;
+    actorRole?: UserRole;
+  }
+): Promise<Job> => {
+  const trimmed = partName.trim();
+  if (!trimmed) throw new Error('Part name is required');
+  if (quantity <= 0) throw new Error('Quantity must be greater than 0');
+  if (pricePaid < 0) throw new Error('Price must be non-negative');
+
+  const sellPrice = options?.sellPrice ?? pricePaid;
+
+  const { error: insertError } = await supabase
+    .from('job_parts')
+    .insert({
+      job_id: jobId,
+      part_id: null,
+      part_name: trimmed,
+      quantity,
+      sell_price_at_time: sellPrice,
+      cost_price_at_time: pricePaid,
+      from_van_stock: false,
+      is_external_purchase: true,
+      external_purchase_notes: options?.notes?.trim() || null,
+      // Externally-purchased parts are immediately "deducted" — there's
+      // nothing to defer because there's no catalog row.
+      deducted_at: new Date().toISOString(),
+      deducted_by_id: options?.actorId ?? null,
+      deducted_by_name: options?.actorName ?? null,
+    });
+
+  if (insertError) throw new Error(insertError.message);
+
+  // Auto-confirm parts when admin adds them — same shortcut as addPartToJob.
+  if (options?.actorRole === UserRole.ADMIN && options.actorId && options.actorName) {
+    const now = new Date().toISOString();
+    await supabase
+      .from('jobs')
+      .update({
+        parts_confirmed_at: now,
+        parts_confirmed_by_id: options.actorId,
+        parts_confirmed_by_name: options.actorName,
+      })
+      .eq('job_id', jobId);
   }
 
   return getJobById(jobId) as Promise<Job>;

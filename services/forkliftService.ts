@@ -117,18 +117,27 @@ export const getForkliftsByCustomerId = async (customerId: string): Promise<Fork
 };
 
 /**
- * Customer-owned forklifts that Acwer is actively servicing. Used by the
- * Serviced Externals tab. Optional customerId narrows to one customer.
+ * Customer-owned forklifts that Acwer is responsible for servicing.
+ * Used by the cross-customer Serviced Externals tab AND by the per-customer
+ * profile section. Optional customerId narrows to one customer.
+ *
+ * `includeDormant` defaults to false — the Serviced Externals tab wants to
+ * hide dormant rows to keep the dashboard tight, but the customer profile
+ * wants to see the full historical relationship (including dormant units
+ * the customer can revive).
  */
 export const getExternalServicedForklifts = async (
-  customerId?: string
+  customerId?: string,
+  options?: { includeDormant?: boolean }
 ): Promise<Forklift[]> => {
   let query = supabase
     .from('forklifts')
     .select(FORKLIFT_SELECT)
     .eq('ownership', 'customer')
-    .neq('service_management_status', 'dormant')
     .order('serial_number');
+  if (!options?.includeDormant) {
+    query = query.neq('service_management_status', 'dormant');
+  }
   if (customerId) {
     query = query.eq('current_customer_id', customerId);
   }
