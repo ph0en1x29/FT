@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowRightLeft, Building2, Loader2, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { getCustomersForList } from '../../../services/customerService';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Combobox, ComboboxOption } from '../../../components/Combobox';
+import { getCustomerById, searchCustomers } from '../../../services/customerService';
 import {
   countOrphanedObligations,
   transferBetweenCustomers,
@@ -26,7 +27,16 @@ export const TransferOwnershipModal: React.FC<Props> = ({
   onClose,
   onSuccess,
 }) => {
-  const [customers, setCustomers] = useState<Pick<Customer, 'customer_id' | 'name' | 'address'>[]>([]);
+  const oldCustomerId = forklift.current_customer_id;
+
+  const [currentOwner, setCurrentOwner] = useState<Pick<Customer, 'customer_id' | 'name' | 'address'> | null>(null);
+  const [customerOptions, setCustomerOptions] = useState<ComboboxOption[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  // The picked customer is tracked separately so its label survives subsequent
+  // searches (server-side search replaces customerOptions; without this the
+  // Combobox would lose the selected label and the confirm step would show '—').
+  const [pickedCustomer, setPickedCustomer] = useState<ComboboxOption | null>(null);
+
   const [newCustomerId, setNewCustomerId] = useState('');
   const [transferDate, setTransferDate] = useState(new Date().toISOString().slice(0, 10));
   const [newAssetNo, setNewAssetNo] = useState('');
@@ -37,15 +47,66 @@ export const TransferOwnershipModal: React.FC<Props> = ({
   const [orphans, setOrphans] = useState<{ activeContracts: number; activeSchedules: number } | null>(null);
   const [orphanLoading, setOrphanLoading] = useState(false);
 
+  // Load the current owner once for header + confirm-view display.
   useEffect(() => {
-    getCustomersForList()
-      .then(setCustomers)
-      .catch(() => showToast.error('Failed to load customer list'));
-  }, []);
+    if (!oldCustomerId) return;
+    let cancelled = false;
+    getCustomerById(oldCustomerId)
+      .then(c => { if (!cancelled && c) setCurrentOwner(c); })
+      .catch(() => { /* non-fatal — header just shows "current owner" generically */ });
+    return () => { cancelled = true; };
+  }, [oldCustomerId]);
 
-  const oldCustomerId = forklift.current_customer_id;
-  const oldOwner = customers.find(c => c.customer_id === oldCustomerId);
-  const newOwner = customers.find(c => c.customer_id === newCustomerId);
+  // Server-side search via the existing searchCustomers RPC. Always exclude
+  // the current owner from results (the RPC also rejects same-customer
+  // transfers, but hiding it from the picker avoids dead-end clicks).
+  // Inactive customers are surfaced with an "(Inactive)" suffix so admins
+  // can still transfer to them if needed (matches AssignForkliftModal's
+  // pattern conventions, but adds the inactive marker).
+  const handleCustomerSearch = useCallback(async (query: string) => {
+    setIsSearching(true);
+    try {
+      const results = await searchCustomers(query, 20);
+      setCustomerOptions(
+        results
+          .filter(c => c.customer_id !== oldCustomerId)
+          .map(c => ({
+            id: c.customer_id,
+            label: c.is_active ? c.name : `${c.name} (Inactive)`,
+          }))
+      );
+    } catch {
+      setCustomerOptions([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [oldCustomerId]);
+
+  // Show an empty-state list initially (Combobox displays "Type to search…").
+  // First focus triggers an empty-query search to surface the most recent
+  // active customers as a starting point.
+  useEffect(() => {
+    handleCustomerSearch('');
+  }, [handleCustomerSearch]);
+
+  // Merge the picked customer back into the visible list so the Combobox can
+  // always render its selected label, even after the user runs a follow-up
+  // search that doesn't include that id.
+  const displayOptions = useMemo(() => {
+    if (!pickedCustomer) return customerOptions;
+    if (customerOptions.some(o => o.id === pickedCustomer.id)) return customerOptions;
+    return [pickedCustomer, ...customerOptions];
+  }, [customerOptions, pickedCustomer]);
+
+  const handlePickCustomer = useCallback((id: string) => {
+    setNewCustomerId(id);
+    if (!id) {
+      setPickedCustomer(null);
+      return;
+    }
+    const opt = customerOptions.find(o => o.id === id) ?? pickedCustomer;
+    if (opt) setPickedCustomer(opt);
+  }, [customerOptions, pickedCustomer]);
 
   // Preflight: when admin moves to confirm step, count what will be left
   // pinned to the old customer.
@@ -80,7 +141,7 @@ export const TransferOwnershipModal: React.FC<Props> = ({
           reason: reason.trim(),
         }
       );
-      showToast.success(`Forklift transferred to ${newOwner?.name || 'new owner'}`);
+      showToast.success(`Forklift transferred to ${pickedCustomer?.label || 'new owner'}`);
       onSuccess();
     } catch (e) {
       showToast.error(e instanceof Error ? e.message : 'Transfer failed');
@@ -119,7 +180,7 @@ export const TransferOwnershipModal: React.FC<Props> = ({
                 </div>
                 <div className="text-xs">
                   Currently owned by{' '}
-                  <span className="font-semibold">{oldOwner?.name || 'unknown customer'}</span>
+                  <span className="font-semibold">{currentOwner?.name || 'unknown customer'}</span>
                 </div>
               </div>
 
@@ -127,20 +188,17 @@ export const TransferOwnershipModal: React.FC<Props> = ({
                 <label className="block text-xs font-medium text-slate-600 mb-1">
                   New owner <span className="text-red-500">*</span>
                 </label>
-                <select
+                <Combobox
+                  options={displayOptions}
                   value={newCustomerId}
-                  onChange={(e) => setNewCustomerId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                >
-                  <option value="">Select customer…</option>
-                  {customers
-                    .slice()
-                    .filter(c => c.customer_id !== oldCustomerId)
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map(c => (
-                      <option key={c.customer_id} value={c.customer_id}>{c.name}</option>
-                    ))}
-                </select>
+                  onChange={handlePickCustomer}
+                  placeholder="Type to search customers…"
+                  onSearch={handleCustomerSearch}
+                  isSearching={isSearching}
+                />
+                <div className="text-xs text-slate-400 mt-1">
+                  Inactive customers are shown with an "(Inactive)" suffix; the current owner is hidden.
+                </div>
                 {sameCustomer && (
                   <div className="text-xs text-red-600 mt-1">
                     New owner cannot be the same as the current owner.
@@ -215,18 +273,18 @@ export const TransferOwnershipModal: React.FC<Props> = ({
                   <div className="text-xs text-slate-500">Current owner</div>
                   <div className="font-medium flex items-center gap-1.5">
                     <Building2 className="w-4 h-4 text-slate-400" />
-                    {oldOwner?.name || '—'}
+                    {currentOwner?.name || '—'}
                   </div>
+                  {currentOwner?.address && (
+                    <div className="text-xs text-slate-500/70 mt-0.5">{currentOwner.address}</div>
+                  )}
                 </div>
                 <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
                   <div className="text-xs text-indigo-700">New owner</div>
                   <div className="font-medium flex items-center gap-1.5 text-indigo-900">
                     <Building2 className="w-4 h-4 text-indigo-500" />
-                    {newOwner?.name || '—'}
+                    {pickedCustomer?.label || '—'}
                   </div>
-                  {newOwner?.address && (
-                    <div className="text-xs text-indigo-700/70 mt-0.5">{newOwner.address}</div>
-                  )}
                 </div>
               </div>
 
@@ -251,17 +309,17 @@ export const TransferOwnershipModal: React.FC<Props> = ({
                       <div className="space-y-0.5">
                         {orphans!.activeContracts > 0 && (
                           <div>
-                            <strong>{orphans!.activeContracts}</strong> active service contract{orphans!.activeContracts === 1 ? '' : 's'} covering this forklift {orphans!.activeContracts === 1 ? 'is' : 'are'} pinned to <strong>{oldOwner?.name}</strong>.
+                            <strong>{orphans!.activeContracts}</strong> active service contract{orphans!.activeContracts === 1 ? '' : 's'} covering this forklift {orphans!.activeContracts === 1 ? 'is' : 'are'} pinned to <strong>{currentOwner?.name || 'the current owner'}</strong>.
                           </div>
                         )}
                         {orphans!.activeSchedules > 0 && (
                           <div>
-                            <strong>{orphans!.activeSchedules}</strong> active recurring schedule{orphans!.activeSchedules === 1 ? '' : 's'} {orphans!.activeSchedules === 1 ? 'is' : 'are'} pinned to <strong>{oldOwner?.name}</strong>.
+                            <strong>{orphans!.activeSchedules}</strong> active recurring schedule{orphans!.activeSchedules === 1 ? '' : 's'} {orphans!.activeSchedules === 1 ? 'is' : 'are'} pinned to <strong>{currentOwner?.name || 'the current owner'}</strong>.
                           </div>
                         )}
                       </div>
                       <div className="mt-2">
-                        After this transfer, edit those contracts/schedules to remove this forklift from {oldOwner?.name}'s coverage and add it under {newOwner?.name || 'the new owner'}'s. We don't auto-move them — invoicing assumptions could break silently.
+                        After this transfer, edit those contracts/schedules to remove this forklift from {currentOwner?.name || 'the current owner'}'s coverage and add it under {pickedCustomer?.label || 'the new owner'}'s. We don't auto-move them — invoicing assumptions could break silently.
                       </div>
                     </div>
                   </div>
