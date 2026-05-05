@@ -192,6 +192,118 @@ export const getForkliftHistory = async (
   return data as import('../types').ForkliftHistoryEvent[];
 };
 
+/**
+ * Admin correction RPC: edit sale_date / sale_price / customer_asset_no on a
+ * customer-owned forklift. Pass undefined to leave a field unchanged; pass
+ * `clearSalePrice: true` or `clearAssetNo: true` to explicitly NULL it.
+ * Writes an `ownership_edited` history row when anything changes.
+ */
+export const editOwnershipDetails = async (
+  forkliftId: string,
+  options: {
+    saleDate?: string;
+    salePrice?: number;
+    customerAssetNo?: string;
+    clearSalePrice?: boolean;
+    clearAssetNo?: boolean;
+    actorId?: string;
+    actorName?: string;
+    correctionReason?: string;
+  }
+): Promise<Forklift> => {
+  const { data, error } = await supabase.rpc('acwer_edit_ownership_details', {
+    p_forklift_id: forkliftId,
+    p_sale_date: options.saleDate ?? null,
+    p_sale_price: options.salePrice ?? null,
+    p_customer_asset_no: options.customerAssetNo ?? null,
+    p_actor_id: options.actorId ?? null,
+    p_actor_name: options.actorName ?? null,
+    p_correction_reason: options.correctionReason ?? null,
+    p_clear_sale_price: options.clearSalePrice ?? false,
+    p_clear_asset_no: options.clearAssetNo ?? false,
+  });
+  if (error) throw new Error(error.message);
+  return data as Forklift;
+};
+
+/**
+ * Admin RPC: undo a sold_from_fleet sale. Flips the forklift back to
+ * company-owned, clears sale fields, status returns to Available. Refuses
+ * BYO and any non-sold-from-fleet customer-owned record.
+ */
+export const reverseSaleToFleet = async (
+  forkliftId: string,
+  options?: {
+    actorId?: string;
+    actorName?: string;
+    reason?: string;
+  }
+): Promise<Forklift> => {
+  const { data, error } = await supabase.rpc('acwer_reverse_sale_to_fleet', {
+    p_forklift_id: forkliftId,
+    p_actor_id: options?.actorId ?? null,
+    p_actor_name: options?.actorName ?? null,
+    p_reason: options?.reason ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return data as Forklift;
+};
+
+/**
+ * Admin RPC: change owner of a customer-owned forklift from one customer to
+ * another (Acwer keeps servicing). Active service_contracts and
+ * recurring_schedules pinned to the old customer are NOT auto-moved — the
+ * call to {@link countOrphanedObligations} powers the warning the modal
+ * shows before the admin commits.
+ */
+export const transferBetweenCustomers = async (
+  forkliftId: string,
+  newCustomerId: string,
+  transferDate: string,
+  options?: {
+    newCustomerAssetNo?: string;
+    clearAssetNo?: boolean;
+    actorId?: string;
+    actorName?: string;
+    reason?: string;
+  }
+): Promise<Forklift> => {
+  const { data, error } = await supabase.rpc('acwer_transfer_between_customers', {
+    p_forklift_id: forkliftId,
+    p_new_customer_id: newCustomerId,
+    p_transfer_date: transferDate,
+    p_actor_id: options?.actorId ?? null,
+    p_actor_name: options?.actorName ?? null,
+    p_reason: options?.reason ?? null,
+    p_new_customer_asset_no: options?.newCustomerAssetNo ?? null,
+    p_clear_asset_no: options?.clearAssetNo ?? false,
+  });
+  if (error) throw new Error(error.message);
+  return data as Forklift;
+};
+
+/**
+ * Read-only preflight for transferBetweenCustomers: how many active contracts
+ * and recurring schedules are pinned to the current owner that cover the
+ * given forklift. The admin will need to manually reassign these after the
+ * transfer.
+ */
+export const countOrphanedObligations = async (
+  forkliftId: string,
+  customerId: string
+): Promise<{ activeContracts: number; activeSchedules: number }> => {
+  const { data, error } = await supabase.rpc('acwer_count_orphaned_obligations', {
+    p_forklift_id: forkliftId,
+    p_customer_id: customerId,
+  });
+  if (error) throw new Error(error.message);
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    activeContracts: Number(row?.active_contracts ?? 0),
+    activeSchedules: Number(row?.active_schedules ?? 0),
+  };
+};
+
 export const getForkliftById = async (forkliftId: string): Promise<Forklift | null> => {
   const initial = await supabase
     .from('forklifts')

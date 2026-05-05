@@ -882,7 +882,7 @@ Append-only audit log for forklift lifecycle events: ownership transitions, cont
 |--------|------|----------|---------|
 | `history_id` | UUID | NO | `gen_random_uuid()` |
 | `forklift_id` | UUID | NO | |
-| `event_type` | TEXT | NO | | One of `'sold_to_customer'`, `'registered_byo'`, `'transferred'`, `'contract_started'`, `'contract_ended'`, `'service_status_changed'`, `'note'`. |
+| `event_type` | TEXT | NO | | One of `'sold_to_customer'`, `'registered_byo'`, `'transferred'`, `'contract_started'`, `'contract_ended'`, `'service_status_changed'`, `'note'`, `'sale_reversed'` **(NEW 2026-05-07)**, `'ownership_edited'` **(NEW 2026-05-07)**. |
 | `event_data` | JSONB | YES | | Free-form payload (sale price, customer_id, reason, etc.). |
 | `actor_id` | UUID | YES | | The user who performed the action. |
 | `actor_name` | TEXT | YES | |
@@ -898,10 +898,20 @@ Foreign keys:
 
 Writes:
 - Inserted by `acwer_transition_fleet_to_customer()` RPC (`event_type='sold_to_customer'`).
+- Inserted by `acwer_edit_ownership_details()` RPC **(NEW 2026-05-07)** with `event_type='ownership_edited'` and a before/after diff in `event_data.changes`.
+- Inserted by `acwer_reverse_sale_to_fleet()` RPC **(NEW 2026-05-07)** with `event_type='sale_reversed'` and the previous owner / sale fields in `event_data`.
+- Inserted by `acwer_transfer_between_customers()` RPC **(NEW 2026-05-07)** with `event_type='transferred'` and `event_data.from_customer_id` / `to_customer_id` plus `orphaned_active_contracts` / `orphaned_active_schedules` counts.
 - Future events (`registered_byo`, `contract_*`) appended by upcoming UI flows.
 
 Reads:
 - `services/forkliftService.ts:getForkliftHistory(forkliftId)` returns newest first.
+
+#### Admin correction RPCs **(NEW 2026-05-07)**
+
+- `acwer_edit_ownership_details(p_forklift_id, p_sale_date, p_sale_price, p_customer_asset_no, p_actor_id, p_actor_name, p_correction_reason, p_clear_sale_price, p_clear_asset_no) → forklifts` — corrects sale_date / sale_price / customer_asset_no on a customer-owned forklift. NULL args leave columns unchanged; `p_clear_sale_price=TRUE` / `p_clear_asset_no=TRUE` explicitly NULL them. Writes `ownership_edited` audit row only when something actually changed.
+- `acwer_reverse_sale_to_fleet(p_forklift_id, p_actor_id, p_actor_name, p_reason) → forklifts` — undoes a `sold_from_fleet` sale. Refuses BYO and refuses anything not `acquisition_source='sold_from_fleet'`. Flips `ownership='company'`, clears sale fields, sets status=Available. Active rentals are NOT auto-reopened.
+- `acwer_transfer_between_customers(p_forklift_id, p_new_customer_id, p_transfer_date, p_actor_id, p_actor_name, p_reason, p_new_customer_asset_no, p_clear_asset_no) → forklifts` — owner change customer A → customer B (Acwer continues to service). Does NOT auto-move pinned `service_contracts` / `recurring_schedules`; the audit row records `orphaned_active_contracts` / `orphaned_active_schedules` counts so the UI prompts the admin.
+- `acwer_count_orphaned_obligations(p_forklift_id, p_customer_id) → (active_contracts INT, active_schedules INT)` — read-only preflight for the transfer modal.
 
 ---
 

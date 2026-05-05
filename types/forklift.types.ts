@@ -179,7 +179,10 @@ export interface ForkliftHistoryEvent {
     | 'contract_started'
     | 'contract_ended'
     | 'service_status_changed'
-    | 'note';
+    | 'note'
+    // Admin corrections (added 2026-05-07)
+    | 'sale_reversed'
+    | 'ownership_edited';
   event_data?: Record<string, unknown> | null;
   actor_id?: string | null;
   actor_name?: string | null;

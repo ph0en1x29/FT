@@ -1,5 +1,50 @@
 # Changelog
 
+## [2026-05-06] — Admin correction tools for external/customer-owned forklift ownership
+
+Follow-up to the [2026-05-06 external-fleet-management release](#) that shipped the BYO and sold-from-fleet flows. The original release was deliberately one-way: `acwer_transition_fleet_to_customer()` explicitly refused to flip an already-customer-owned forklift back, and there was no UI for editing or reversing a sale. Operationally, that meant any mistake — wrong sale price, sold against the wrong forklift, customer reselling to another customer Acwer also services — had to be patched by direct SQL against the live database.
+
+This release closes those gaps with an admin-only correction surface on the existing Ownership card.
+
+### Added
+
+**Admin kebab menu on `ForkliftOwnershipCard`.** Visible only when `isAdmin && currentUser` are passed (wired up in `ForkliftProfilePage.tsx` from `displayRole === UserRole.ADMIN`). Three actions:
+
+- **Edit ownership details** — opens `EditOwnershipDetailsModal`. Edits sale_date, sale_price, customer_asset_no on a customer-owned forklift. Empty fields leave the value alone; "Clear" checkbox explicitly NULLs a column. Reason is required and recorded with a before→after diff. Useful when the sale itself was correct but a value was typo'd.
+- **Transfer to new owner** — opens `TransferOwnershipModal`. Customer A → Customer B ownership change; Acwer continues to service. Two-step wizard. The Review step calls `acwer_count_orphaned_obligations` to count active service contracts and recurring schedules pinned to the *current* owner that cover this forklift, and renders an amber warning instructing the admin to manually reassign those (we do NOT auto-move them — silently moving contract coverage could break invoicing assumptions). Records `transferred` event with from/to customer ids and the orphan counts in `event_data`.
+- **Reverse sale to fleet** — opens `ReverseSaleModal`. Only available when `acquisition_source='sold_from_fleet'` (the menu hides the option for BYO records and shows a stub explaining why). Flips ownership back to `company`, clears `sold_to_customer_at` / `sold_price` / `customer_forklift_no` / `current_customer_id`, sets status=Available, and the forklift moves back to the Fleet tab. High-blast-radius op: requires typing `reverse` to confirm AND a written reason of at least 4 characters. Active rentals are NOT auto-reopened — the deliberate decision is that admin starts a fresh rental if needed; auto-reopening invites stale rate / end-date weirdness.
+
+**Two new lifecycle history event types.** `forklift_history.event_type` CHECK widened to include `'sale_reversed'` and `'ownership_edited'`. The existing `'transferred'` event is reused for customer-to-customer transfers (it was already in the CHECK but no code wrote it). All three render in the timeline with humanized labels ("Sale reversed" / "Details corrected" / "Transferred") and event-aware summaries — the edit summary names which fields changed, the transfer summary surfaces the orphan count.
+
+**Read-only preflight RPC `acwer_count_orphaned_obligations(p_forklift_id, p_customer_id)`.** Returns `(active_contracts, active_schedules)` so the transfer modal can warn the admin before they commit. The admin sees the count of contracts/schedules they will leave behind for manual cleanup.
+
+### Schema deltas (migration `20260507_external_fleet_admin_corrections.sql`, applied live)
+
+- `forklift_history.event_type` CHECK widened: 7 → 9 allowed values.
+- 4 new SECURITY DEFINER RPCs:
+  - `acwer_edit_ownership_details(p_forklift_id, p_sale_date, p_sale_price, p_customer_asset_no, p_actor_id, p_actor_name, p_correction_reason, p_clear_sale_price, p_clear_asset_no)`
+  - `acwer_reverse_sale_to_fleet(p_forklift_id, p_actor_id, p_actor_name, p_reason)`
+  - `acwer_transfer_between_customers(p_forklift_id, p_new_customer_id, p_transfer_date, p_actor_id, p_actor_name, p_reason, p_new_customer_asset_no, p_clear_asset_no)`
+  - `acwer_count_orphaned_obligations(p_forklift_id, p_customer_id)` — read-only preflight.
+- All three mutating RPCs are atomic; each writes one `forklift_history` audit row. Edit RPC is no-op safe (skips audit when `before == after`).
+
+### Verification
+
+- `npm run typecheck` clean.
+- `npm run build` green (544.84 KB across 60 chunks, well within the 800 KB budget).
+- Live migration apply via the Supabase pooler succeeded; post-apply verification block confirmed the CHECK constraint now contains `sale_reversed` and `ownership_edited`, and that all 4 functions are present.
+- Migration is idempotent (`CREATE OR REPLACE FUNCTION` + checked CHECK swap) — safe to re-apply.
+
+### Scope notes
+
+- BYO reversal (deleting a customer-owned forklift that was registered by mistake) is NOT supported by this PR. Reversing a BYO requires deleting the row, which is a different sensitive op and would lose any service history accumulated against it. If that flow is ever needed, it should be a separate admin action with its own confirmation and a soft-delete pattern.
+- Auto-moving `service_contracts` / `recurring_schedules` on customer-to-customer transfer was intentionally left out. The orphan-warning approach surfaces the consequence (admin sees what they're leaving behind) without making invoicing assumptions on their behalf. If auto-move is ever added, it should be opt-in per-contract with explicit prorating logic, not a default.
+- The kebab menu hides the reverse option for non-sold-from-fleet records rather than showing it disabled — the underlying RPC also refuses, but the UI hint avoids a dead-end click.
+- Permission gate is `isAdmin` only (not supervisor). These are financial-record corrections; supervisors don't need this.
+- The original `TransitionToCustomerModal` was untouched — the new flows are siblings, not replacements.
+
+---
+
 ## [2026-05-05 — late night] — Parts: tech wildcard / external-purchase support + (VS) marker for van-stock parts
 
 Two related additions to the JobDetail parts list, both per Shin's request.

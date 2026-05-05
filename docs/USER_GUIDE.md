@@ -641,6 +641,16 @@ A daily cron (09:30 MYT) automatically marks a customer-owned forklift as **dorm
 
 Dormant units stop showing in the Serviced Externals list (they're still in the database, just hidden). To revive: open the forklift profile and either create a new contract, create a job, or manually edit `service_management_status` back to `active`. There is no auto-revive — that's an explicit admin decision so the dashboard stays trustworthy.
 
+#### Admin corrections (NEW 2026-05-07)
+
+On a customer-owned forklift's profile, the **Ownership** card shows a kebab (⋮) menu — **admin only** — with three correction tools. Every action writes a row to the lifecycle audit log so nothing is silent.
+
+1. **Edit ownership details.** Fix typos in the sale date, sale price, or customer's asset number. Empty fields are left as-is; tick "Clear" to explicitly NULL a field. A reason is required and is recorded as `ownership_edited` in the lifecycle history with a before→after diff. Use this when the original sale was entered correctly but a value was wrong.
+
+2. **Reverse sale to fleet.** Undoes a *sold-from-fleet* sale and returns the forklift to Acwer's fleet (ownership flips back to `company`, sale fields are cleared, status set to Available). Only available for `acquisition_source='sold_from_fleet'` records — BYO forklifts cannot be "reversed" since Acwer never owned them. The action requires typing `reverse` to confirm and a written reason; both are recorded as `sale_reversed` in the audit log. Use this when a sale is genuinely cancelled (deal fell through, customer returned the unit, sale was entered against the wrong forklift). Do NOT use it as a way to "transfer" the unit to someone else — there's a separate flow for that. Active rentals are NOT auto-reopened; if the customer wants to keep using the machine on rental, start a fresh rental.
+
+3. **Transfer to new owner.** Customer-to-customer ownership change while Acwer continues to service. Pick the new owner and enter a transfer date and reason. The Review step shows a preflight warning if the *current* owner has any active service contracts or recurring schedules covering this forklift — those are NOT auto-moved (auto-moving could silently break invoicing). After the transfer, edit those contracts/schedules manually to remove this forklift from the old owner's coverage and add it under the new owner's. The action is recorded as `transferred` in the audit log with the old/new customer ids and the orphaned-obligation counts.
+
 #### Attaching an AMC contract
 1. Customer profile → **Service Contracts** section → "New service contract".
 2. Pick `AMC`, set start/end dates, choose coverage scope (all customer's forklifts or specific ones).
