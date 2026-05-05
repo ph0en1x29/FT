@@ -80,8 +80,11 @@ const CreateJobPage: React.FC<CreateJobProps> = ({ currentUser }) => {
     [sites, formData.site_id]
   );
 
-  const customerForklifts = useMemo(() => 
-    forklifts.filter(f => f.current_customer_id === formData.customer_id && f.status === ForkliftStatus.RENTED_OUT),
+  const customerForklifts = useMemo(() =>
+    forklifts.filter(f =>
+      f.current_customer_id === formData.customer_id &&
+      (f.status === ForkliftStatus.RENTED_OUT || f.ownership === 'customer')
+    ),
     [forklifts, formData.customer_id]
   );
 

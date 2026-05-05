@@ -34,6 +34,48 @@ export const getFleetServiceOverview = async (): Promise<FleetServiceOverview[]>
 };
 
 /**
+ * External / customer-owned forklifts that Acwer is responsible for
+ * servicing. Reads from v_forklift_service_predictions which exposes the
+ * hourmeter prediction + service_responsibility classification.
+ *
+ * Used by the Serviced Externals tab. (Added 2026-05-06.)
+ */
+export interface ExternalServicedForklift {
+  forklift_id: string;
+  serial_number: string;
+  make: string;
+  model: string;
+  type: string;
+  fuel_type: string | null;
+  status: string;
+  current_hourmeter: number | null;
+  last_service_date: string | null;
+  next_service_due: string | null;
+  predicted_date: string | null;
+  days_remaining: number | null;
+  service_urgency: 'overdue' | 'due_soon' | 'upcoming' | 'ok';
+  customer_id: string | null;
+  current_customer_id: string | null;
+  ownership: 'company' | 'customer';
+  ownership_type: 'fleet' | 'external';
+  service_management_status: 'active' | 'dormant' | 'contract_ended' | null;
+  acquisition_source: 'new_byo' | 'sold_from_fleet' | 'transferred' | null;
+  customer_forklift_no: string | null;
+  service_responsibility: 'fleet' | 'amc' | 'chargeable_external' | 'unmanaged';
+}
+
+export const getExternalServicedFleet = async (): Promise<ExternalServicedForklift[]> => {
+  const { data, error } = await supabase
+    .from('v_forklift_service_predictions')
+    .select('forklift_id, serial_number, make, model, type, fuel_type, status, current_hourmeter, last_service_date, next_service_due, predicted_date, days_remaining, service_urgency, customer_id, current_customer_id, ownership, ownership_type, service_management_status, acquisition_source, customer_forklift_no, service_responsibility')
+    .eq('ownership', 'customer')
+    .neq('service_management_status', 'dormant')
+    .order('days_remaining', { ascending: true, nullsFirst: false });
+  if (error) throw new Error(`Failed to fetch external serviced fleet: ${error.message}`);
+  return (data as ExternalServicedForklift[]) || [];
+};
+
+/**
  * Get daily usage for a specific forklift
  */
 export const getForkliftDailyUsage = async (

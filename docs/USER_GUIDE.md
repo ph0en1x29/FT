@@ -619,6 +619,29 @@ For jobs in "Assigned" or "In Progress":
 4. Update hourmeter readings
 5. Manage rental assignments
 
+### Servicing Customer-Owned Forklifts (NEW — 2026-05-06)
+
+Acwer now manages two kinds of customer-owned forklifts in addition to the rental fleet:
+
+- **BYO** — the customer brought their own forklift and signed a service contract with Acwer.
+- **Sold-from-fleet** — Acwer sold one of its rental forklifts to a customer; ongoing service stays with Acwer.
+
+#### Where to find them
+- **Forklifts → "Serviced Externals" tab.** Shows every customer-owned unit Acwer is actively servicing, with overdue / due-soon / AMC summary tiles. Filter by customer, contract status, or service urgency. Click "Schedule service" to open the job-creation page with the customer + forklift pre-filled, or "Open" to view the full forklift profile.
+
+#### How a forklift gets there
+1. **BYO** — open the customer's profile (Customers → {name}). Click the green **"Register forklift"** button between the Sites and Contracts sections. Enter serial / make / model / type / hourmeter (and the customer's own asset code if they have one). The unit immediately appears in the Serviced Externals tab.
+2. **Sold-from-fleet** — open the forklift's profile while it is still in the fleet (active rental). On the "Currently Rented To" card, click the indigo **"Sell to customer"** button. Confirm sale date, optional sale price, and the customer's asset code (if different from Acwer's serial). On confirm, the forklift moves out of the Fleet tab and into Serviced Externals — the service history and hourmeter trace stay attached.
+
+#### Attaching an AMC contract
+1. Customer profile → **Service Contracts** section → "New service contract".
+2. Pick `AMC`, set start/end dates, choose coverage scope (all customer's forklifts or specific ones).
+3. **New: tick "Auto-generate recurring service schedule for covered forklifts"** and pick a frequency (Monthly / Quarterly / Yearly / Every N hours). On save, the system automatically creates a recurring schedule per covered forklift — the daily 08:30 MYT cron then auto-creates scheduled service jobs.
+4. Without auto-generate, you can still attach a recurring schedule per-forklift manually from the forklift profile's Recurrence section.
+
+#### What customers see today
+Nothing — this release is internal-only. The admin sees the overdue list and contacts the customer manually. Customer-facing email / SMS / portal reminders are planned for a later release.
+
 ### Service Prediction (Hourmeter-Based)
 
 For Diesel, LPG, and Petrol forklifts, the system predicts when service is due based on actual usage.

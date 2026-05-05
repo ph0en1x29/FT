@@ -30,7 +30,7 @@ export interface ForkliftsPage {
   pageSize: number;
 }
 
-const FORKLIFT_SELECT = 'forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, current_site_id, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, delivery_date, source_item_group, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update, ownership_type';
+const FORKLIFT_SELECT = 'forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, current_site_id, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, delivery_date, source_item_group, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update, ownership_type, acquisition_source, original_fleet_forklift_id, service_management_status, sold_to_customer_at, sold_price';
 const LEGACY_FORKLIFT_SELECT = 'forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update, ownership_type';
 
 const isMissingColumnError = (error: { message?: string } | null | undefined) =>
@@ -114,6 +114,73 @@ export const getForkliftsByCustomerId = async (customerId: string): Promise<Fork
     .order('forklift_no', { ascending: true, nullsFirst: false });
   if (error || !data) return [];
   return data as Forklift[];
+};
+
+/**
+ * Customer-owned forklifts that Acwer is actively servicing. Used by the
+ * Serviced Externals tab. Optional customerId narrows to one customer.
+ */
+export const getExternalServicedForklifts = async (
+  customerId?: string
+): Promise<Forklift[]> => {
+  let query = supabase
+    .from('forklifts')
+    .select(FORKLIFT_SELECT)
+    .eq('ownership', 'customer')
+    .neq('service_management_status', 'dormant')
+    .order('serial_number');
+  if (customerId) {
+    query = query.eq('current_customer_id', customerId);
+  }
+  const { data, error } = await query;
+  if (error || !data) return [];
+  return data as Forklift[];
+};
+
+/**
+ * Sold-fleet transition. Atomic flip via the
+ * acwer_transition_fleet_to_customer Postgres RPC. Returns the updated
+ * forklift row.
+ */
+export const transitionFleetToCustomer = async (
+  forkliftId: string,
+  customerId: string,
+  saleDate: string,
+  options?: {
+    salePrice?: number;
+    customerAssetNo?: string;
+    actorId?: string;
+    actorName?: string;
+    reason?: string;
+  }
+): Promise<Forklift> => {
+  const { data, error } = await supabase.rpc('acwer_transition_fleet_to_customer', {
+    p_forklift_id: forkliftId,
+    p_customer_id: customerId,
+    p_sale_date: saleDate,
+    p_sale_price: options?.salePrice ?? null,
+    p_customer_asset_no: options?.customerAssetNo ?? null,
+    p_actor_id: options?.actorId ?? null,
+    p_actor_name: options?.actorName ?? null,
+    p_reason: options?.reason ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return data as Forklift;
+};
+
+/**
+ * Append-only audit log for a forklift. Newest first.
+ */
+export const getForkliftHistory = async (
+  forkliftId: string
+): Promise<import('../types').ForkliftHistoryEvent[]> => {
+  const { data, error } = await supabase
+    .from('forklift_history')
+    .select('history_id, forklift_id, event_type, event_data, actor_id, actor_name, created_at')
+    .eq('forklift_id', forkliftId)
+    .order('created_at', { ascending: false });
+  if (error || !data) return [];
+  return data as import('../types').ForkliftHistoryEvent[];
 };
 
 export const getForkliftById = async (forkliftId: string): Promise<Forklift | null> => {

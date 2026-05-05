@@ -1,4 +1,4 @@
-import { Building2,Calendar,DollarSign,Edit2 } from 'lucide-react';
+import { Building2,Calendar,DollarSign,Edit2,UserCheck } from 'lucide-react';
 import React from 'react';
 import { ForkliftRental } from '../../../types';
 
@@ -7,6 +7,8 @@ interface CurrentAssignmentCardProps {
   canEditRentalRates: boolean;
   onEditRate: (rental: ForkliftRental) => void;
   onEndRental: (rentalId: string) => void;
+  /** Optional: shown to admins so they can move this fleet forklift to customer-owned. */
+  onSellToCustomer?: () => void;
 }
 
 export const CurrentAssignmentCard: React.FC<CurrentAssignmentCardProps> = ({
@@ -14,6 +16,7 @@ export const CurrentAssignmentCard: React.FC<CurrentAssignmentCardProps> = ({
   canEditRentalRates,
   onEditRate,
   onEndRental,
+  onSellToCustomer,
 }) => {
   return (
     <div className="bg-[var(--surface)] rounded-xl shadow-sm p-6 border border-green-200">
@@ -63,12 +66,23 @@ export const CurrentAssignmentCard: React.FC<CurrentAssignmentCardProps> = ({
           <span className="text-xs text-slate-400">{rental.currency || 'RM'}/month</span>
         </div>
 
-        <button
-          onClick={() => onEndRental(rental.rental_id)}
-          className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-200 self-start"
-        >
-          End Rental
-        </button>
+        <div className="flex flex-col gap-2 self-start">
+          <button
+            onClick={() => onEndRental(rental.rental_id)}
+            className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-200"
+          >
+            End Rental
+          </button>
+          {onSellToCustomer && (
+            <button
+              onClick={onSellToCustomer}
+              className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-200 inline-flex items-center justify-center gap-1"
+              title="Transfer ownership to the customer (sold-fleet flow)"
+            >
+              <UserCheck className="w-4 h-4" /> Sell to customer
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

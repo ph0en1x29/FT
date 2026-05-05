@@ -25,6 +25,12 @@ interface CreateContractInput {
   includes_labor?: boolean;
   wear_tear_part_ids?: string[] | null;
   notes?: string | null;
+  // Recurrence defaults (added 2026-05-06) — picked up by trigger
+  // trg_seed_recurring_from_contract to auto-seed recurring_schedules rows.
+  auto_generate_recurring?: boolean;
+  default_frequency?: 'monthly' | 'quarterly' | 'yearly' | 'hourmeter' | null;
+  default_hourmeter_interval?: number | null;
+  default_lead_time_days?: number;
 }
 
 interface UpdateContractInput extends Partial<CreateContractInput> {
@@ -76,6 +82,10 @@ export async function createContract(
     wear_tear_part_ids: input.wear_tear_part_ids ?? null,
     notes: input.notes ?? null,
     is_active: true,
+    auto_generate_recurring: input.auto_generate_recurring ?? false,
+    default_frequency: input.default_frequency ?? null,
+    default_hourmeter_interval: input.default_hourmeter_interval ?? null,
+    default_lead_time_days: input.default_lead_time_days ?? 7,
     created_by_id: createdById ?? null,
     created_by_name: createdByName ?? null,
   };

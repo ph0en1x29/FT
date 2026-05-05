@@ -35,10 +35,13 @@ export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
     const groups = new Map<string, SiteGroup & { siteIds: Set<string> }>();
 
     jobs.forEach((job) => {
-      if (
-        job.status !== 'In Progress' ||
-        job.assigned_technician_id !== currentUser.user_id
-      ) {
+      // Include both primary-assigned jobs AND helper assignments so
+      // helpers (e.g. tech2) on-site can also surface the bulk-sign banner
+      // for the company they're working at. The job_assignments-derived
+      // helper rows are flagged with `_isHelperAssignment` by jobReadService.
+      const isPrimary = job.assigned_technician_id === currentUser.user_id;
+      const isHelper = (job as { _isHelperAssignment?: boolean })._isHelperAssignment === true;
+      if (job.status !== 'In Progress' || (!isPrimary && !isHelper)) {
         return;
       }
 
@@ -55,7 +58,7 @@ export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
           customerName: job.customer?.name || 'Customer',
           siteId: job.site_id || 'no-site',
           siteAddress:
-            (job as any).customer_site?.site_name ||
+            (job as { customer_site?: { site_name?: string } }).customer_site?.site_name ||
             job.customer?.address ||
             'No address',
           jobs: [],

@@ -3,6 +3,7 @@ import { useNavigate,useParams } from 'react-router-dom';
 import { SupabaseDb as MockDb } from '../../services/supabaseService';
 import { showToast } from '../../services/toastService';
 import {
+AddCustomerOwnedForkliftModal,
 BulkEndRentalModal,
 ContactsSection,
 ContractsSection,
@@ -47,6 +48,9 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
 
   // Delete confirmation modal
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Customer-owned forklift registration modal
+  const [showAddCustomerForklift, setShowAddCustomerForklift] = useState(false);
   
   // Role checks
   const isAdmin = currentUser.role.toString().toLowerCase() === 'admin';
@@ -198,6 +202,25 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
         <SitesSection customerId={customer.customer_id} />
       </div>
 
+      {/* Customer-owned forklift registration (Acwer services them under contract) */}
+      {(isAdmin || isAdminService || isSupervisor) && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-center justify-between gap-4">
+          <div className="text-sm text-emerald-900">
+            <div className="font-semibold">Customer-owned forklift?</div>
+            <div className="text-xs text-emerald-800">
+              Register a unit the customer brought in (BYO) so it appears on the
+              Serviced Externals list and can be linked to an AMC contract.
+            </div>
+          </div>
+          <button
+            onClick={() => setShowAddCustomerForklift(true)}
+            className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
+          >
+            Register forklift
+          </button>
+        </div>
+      )}
+
       {/* ACWER service contracts (Phase 2) — drives Path A classification */}
       <ContractsSection customerId={customer.customer_id} currentUser={currentUser} />
 
@@ -253,6 +276,15 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
           onClose={() => setShowEditModal(false)}
           onSave={handleSaveCustomerEdit}
           saving={savingCustomer}
+        />
+      )}
+
+      {showAddCustomerForklift && customer && (
+        <AddCustomerOwnedForkliftModal
+          customerId={customer.customer_id}
+          customerName={customer.name}
+          onClose={() => setShowAddCustomerForklift(false)}
+          onSuccess={() => { setShowAddCustomerForklift(false); loadCustomerData(); }}
         />
       )}
 

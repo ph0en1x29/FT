@@ -851,16 +851,57 @@ Equipment records.
 | `last_serviced_hourmeter` | INTEGER | YES | | Hourmeter when last Full Service completed |
 | `next_target_service_hour` | INTEGER | YES | | Calculated: last_serviced + interval |
 | `last_hourmeter_update` | TIMESTAMPTZ | YES | | For stale data detection (60+ days) |
+| `ownership` | TEXT | YES | | `'company'` (Acwer-owned, Path C) or `'customer'` (customer-owned). |
+| `ownership_type` | TEXT | NO | | `'fleet'` (in Acwer's rental fleet) or `'external'` (BYO / sold-from-fleet). |
+| `customer_forklift_no` | VARCHAR | YES | | Customer's own asset code, when they assign one (used preferentially over `forklift_no` in the Serviced Externals tab). |
+| `acquisition_source` | TEXT | YES | | **(NEW 2026-05-06)** How this forklift entered Acwer's service responsibility — `'new_byo'` / `'sold_from_fleet'` / `'transferred'`. NULL for legacy fleet. |
+| `original_fleet_forklift_id` | UUID | YES | | **(NEW 2026-05-06)** For sold-from-fleet rows: self-reference to forklift_id at time of sale (preserved across the ownership flip). |
+| `service_management_status` | TEXT | YES | `'active'` | **(NEW 2026-05-06)** Whether Acwer is actively servicing — `'active'` / `'dormant'` / `'contract_ended'`. Drives visibility in ExternalFleetTab. |
+| `sold_to_customer_at` | TIMESTAMPTZ | YES | | **(NEW 2026-05-06)** Date Acwer sold this fleet unit to the customer. Set by `acwer_transition_fleet_to_customer()` RPC. |
+| `sold_price` | NUMERIC(12,2) | YES | | **(NEW 2026-05-06)** Sale price recorded at transition time. Optional. |
 
 Constraints:
 - PK: `forklift_id`
 - UNIQUE: `serial_number`
+- CHECK: `acquisition_source IN ('new_byo','sold_from_fleet','transferred')` *(NEW 2026-05-06)*
+- CHECK: `service_management_status IN ('active','dormant','contract_ended')` *(NEW 2026-05-06)*
 
 Foreign keys:
 - `customer_id` -> `customers.customer_id`
 - `current_customer_id` -> `customers.customer_id`
 - `current_site_id` -> `customer_sites.site_id`
 - `last_service_job_id` -> `jobs.job_id`
+- `original_fleet_forklift_id` -> `forklifts.forklift_id` *(NEW 2026-05-06, self-reference)*
+
+---
+
+### `forklift_history` **(NEW 2026-05-06)**
+Append-only audit log for forklift lifecycle events: ownership transitions, contract events, status changes. Mirrors the `*_audit_log` pattern.
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `history_id` | UUID | NO | `gen_random_uuid()` |
+| `forklift_id` | UUID | NO | |
+| `event_type` | TEXT | NO | | One of `'sold_to_customer'`, `'registered_byo'`, `'transferred'`, `'contract_started'`, `'contract_ended'`, `'service_status_changed'`, `'note'`. |
+| `event_data` | JSONB | YES | | Free-form payload (sale price, customer_id, reason, etc.). |
+| `actor_id` | UUID | YES | | The user who performed the action. |
+| `actor_name` | TEXT | YES | |
+| `created_at` | TIMESTAMPTZ | NO | `now()` |
+
+Constraints:
+- PK: `history_id`
+- CHECK on `event_type` (see above)
+- INDEX on `(forklift_id, created_at DESC)` for fast timeline reads.
+
+Foreign keys:
+- `forklift_id` -> `forklifts.forklift_id` (ON DELETE CASCADE)
+
+Writes:
+- Inserted by `acwer_transition_fleet_to_customer()` RPC (`event_type='sold_to_customer'`).
+- Future events (`registered_byo`, `contract_*`) appended by upcoming UI flows.
+
+Reads:
+- `services/forkliftService.ts:getForkliftHistory(forkliftId)` returns newest first.
 
 ---
 
@@ -2053,11 +2094,19 @@ Customer-level service contracts (AMC / warranty / maintenance). Drives Path A c
 | `updated_at` | TIMESTAMPTZ | NO | `now()` |
 | `updated_by_id` | UUID | YES | |
 | `updated_by_name` | TEXT | YES | |
+| `auto_generate_recurring` | BOOLEAN | NO | `true` | **(NEW 2026-05-06)** When TRUE + `default_frequency` set, the `trg_seed_recurring_from_contract` trigger seeds one `recurring_schedules` row per covered forklift on contract create/update. |
+| `default_frequency` | TEXT | YES | | **(NEW 2026-05-06)** `'monthly' \| 'quarterly' \| 'yearly' \| 'hourmeter'`. |
+| `default_hourmeter_interval` | INTEGER | YES | | **(NEW 2026-05-06)** Required when `default_frequency='hourmeter'`. |
+| `default_lead_time_days` | INTEGER | NO | `7` | **(NEW 2026-05-06)** Lead-time copied into seeded `recurring_schedules` rows. |
 
 Constraints:
 - PK: `contract_id`
 - CHECK: `contract_type IN ('amc','warranty','maintenance')`
 - CHECK: `end_date >= start_date`
+- CHECK: `default_frequency IN ('monthly','quarterly','yearly','hourmeter')` *(NEW 2026-05-06)*
+
+Triggers:
+- `trg_seed_recurring_from_contract` (AFTER INSERT/UPDATE of `auto_generate_recurring`, `default_frequency`, `covered_forklift_ids`) **(NEW 2026-05-06)** — calls `seed_recurring_from_contract()`. Idempotent via `ON CONFLICT DO NOTHING` on `(forklift_id, contract_id)` UNIQUE in `recurring_schedules`.
 
 Foreign keys:
 - `customer_id` -> `customers.customer_id` (CASCADE)
@@ -2127,19 +2176,25 @@ Recurrence rules for fleet (Acwer-owned) forklift maintenance. Phase 5 cron gene
 | `last_generated_at` | TIMESTAMPTZ | YES | |
 | `notes` | TEXT | YES | |
 | `created_at` | TIMESTAMPTZ | NO | `now()` |
+| `customer_id` | UUID | YES | | **(NEW 2026-05-06)** Denormalized from forklift's current customer for fast cross-customer dashboards. Backfilled on migration. |
 
 Constraints:
 - PK: `schedule_id`
 - CHECK: `frequency IN ('monthly','quarterly','yearly','hourmeter')`
+- UNIQUE: `(forklift_id, contract_id)` **(NEW 2026-05-06)** — supports trigger idempotency.
 
 Foreign keys:
 - `forklift_id` -> `forklifts.forklift_id` (CASCADE)
 - `service_interval_id` -> `service_intervals.interval_id`
 - `contract_id` -> `service_contracts.contract_id` (SET NULL)
+- `customer_id` -> `customers.customer_id` *(NEW 2026-05-06)*
 
 Indexes:
 - `idx_recurring_schedules_due` on `next_due_date` WHERE `is_active = true`
 - `idx_recurring_schedules_forklift` on `forklift_id` WHERE `is_active = true`
+- `idx_recurring_schedules_customer_id` on `customer_id` WHERE `customer_id IS NOT NULL` *(NEW 2026-05-06)*
+
+Recurrence is no longer fleet-only as of 2026-05-06. Customer-owned forklifts (AMC + chargeable-external) can have schedules attached too via the contract trigger or the ForkliftProfile recurrence section.
 
 RLS:
 - `admin / admin_service / supervisor`: ALL

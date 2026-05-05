@@ -48,6 +48,13 @@ export const AddEditContractModal: React.FC<Props> = ({
   const [wearTearOverrideIds, setWearTearOverrideIds] = useState<string[]>([]);
   const [showWearTearPicker, setShowWearTearPicker] = useState(false);
   const [allWearTearParts, setAllWearTearParts] = useState<Part[]>([]);
+  // Auto-recurrence (added 2026-05-06): when set, the trigger
+  // trg_seed_recurring_from_contract creates one recurring_schedules row per
+  // covered forklift on save.
+  const [autoGenerateRecurring, setAutoGenerateRecurring] = useState(false);
+  const [defaultFrequency, setDefaultFrequency] = useState<'monthly' | 'quarterly' | 'yearly' | 'hourmeter' | ''>('');
+  const [defaultHourmeterInterval, setDefaultHourmeterInterval] = useState('500');
+  const [defaultLeadTimeDays, setDefaultLeadTimeDays] = useState('7');
   const [saving, setSaving] = useState(false);
 
   // Reset form whenever the modal opens or the contract being edited changes
@@ -66,6 +73,14 @@ export const AddEditContractModal: React.FC<Props> = ({
     const wearOverrides = contract?.wear_tear_part_ids ?? null;
     setWearTearOverrideIds(wearOverrides ?? []);
     setShowWearTearPicker(Boolean(wearOverrides && wearOverrides.length > 0));
+    setAutoGenerateRecurring(contract?.auto_generate_recurring ?? false);
+    setDefaultFrequency(contract?.default_frequency ?? '');
+    setDefaultHourmeterInterval(
+      contract?.default_hourmeter_interval != null ? String(contract.default_hourmeter_interval) : '500'
+    );
+    setDefaultLeadTimeDays(
+      contract?.default_lead_time_days != null ? String(contract.default_lead_time_days) : '7'
+    );
   }, [isOpen, contract]);
 
   // Load the wear-and-tear parts catalog when admin expands the override picker
@@ -121,6 +136,14 @@ export const AddEditContractModal: React.FC<Props> = ({
         includes_labor: includesLabor,
         wear_tear_part_ids: wearTearOverrideIds.length > 0 ? wearTearOverrideIds : null,
         notes: notes.trim() || null,
+        // Recurrence defaults — picked up by trg_seed_recurring_from_contract
+        auto_generate_recurring: autoGenerateRecurring,
+        default_frequency: autoGenerateRecurring && defaultFrequency ? defaultFrequency : null,
+        default_hourmeter_interval:
+          autoGenerateRecurring && defaultFrequency === 'hourmeter'
+            ? Number(defaultHourmeterInterval) || null
+            : null,
+        default_lead_time_days: autoGenerateRecurring ? Number(defaultLeadTimeDays) || 7 : 7,
       };
       if (editing && contract) {
         await updateContract(contract.contract_id, payload, currentUser.user_id, currentUser.name);
@@ -274,6 +297,66 @@ export const AddEditContractModal: React.FC<Props> = ({
               <input type="checkbox" checked={includesLabor} onChange={e => setIncludesLabor(e.target.checked)} />
               <span>Includes labor</span>
             </label>
+          </div>
+
+          <div className="space-y-2 rounded-lg border border-indigo-200 bg-indigo-50/40 p-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-indigo-900">
+              <input
+                type="checkbox"
+                checked={autoGenerateRecurring}
+                onChange={e => {
+                  setAutoGenerateRecurring(e.target.checked);
+                  if (e.target.checked && !defaultFrequency) setDefaultFrequency('quarterly');
+                }}
+              />
+              <span>Auto-generate recurring service schedule for covered forklifts</span>
+            </label>
+            {autoGenerateRecurring && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pl-6">
+                <label className="block text-xs">
+                  <span className="text-indigo-900/80">Frequency</span>
+                  <select
+                    value={defaultFrequency}
+                    onChange={e => setDefaultFrequency(e.target.value as typeof defaultFrequency)}
+                    className="mt-1 w-full border border-indigo-200 rounded px-2 py-1.5 bg-white"
+                  >
+                    <option value="">Select…</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="hourmeter">Every N hours</option>
+                  </select>
+                </label>
+                {defaultFrequency === 'hourmeter' && (
+                  <label className="block text-xs">
+                    <span className="text-indigo-900/80">Hourmeter interval</span>
+                    <input
+                      type="number"
+                      min="50"
+                      step="50"
+                      value={defaultHourmeterInterval}
+                      onChange={e => setDefaultHourmeterInterval(e.target.value)}
+                      className="mt-1 w-full border border-indigo-200 rounded px-2 py-1.5 bg-white"
+                    />
+                  </label>
+                )}
+                <label className="block text-xs">
+                  <span className="text-indigo-900/80">Lead time (days)</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={defaultLeadTimeDays}
+                    onChange={e => setDefaultLeadTimeDays(e.target.value)}
+                    className="mt-1 w-full border border-indigo-200 rounded px-2 py-1.5 bg-white"
+                  />
+                </label>
+              </div>
+            )}
+            {autoGenerateRecurring && (
+              <p className="text-xs text-indigo-800/80 pl-6">
+                On save, one recurring schedule per covered forklift will be created. The daily cron will then auto-create scheduled service jobs.
+              </p>
+            )}
           </div>
 
           <label className="block text-sm">

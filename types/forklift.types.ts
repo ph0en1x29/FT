@@ -160,6 +160,30 @@ export interface Forklift {
   last_hourmeter_update?: string; // Timestamp of last hourmeter reading (for stale detection)
   source_item_group?: string;
   ownership_type?: 'fleet' | 'external';
+  // External / customer-owned fleet management (added 2026-05-06)
+  acquisition_source?: 'new_byo' | 'sold_from_fleet' | 'transferred' | null;
+  original_fleet_forklift_id?: string | null;
+  service_management_status?: 'active' | 'dormant' | 'contract_ended';
+  sold_to_customer_at?: string | null;
+  sold_price?: number | null;
+}
+
+// Forklift lifecycle audit log (added 2026-05-06)
+export interface ForkliftHistoryEvent {
+  history_id: string;
+  forklift_id: string;
+  event_type:
+    | 'sold_to_customer'
+    | 'registered_byo'
+    | 'transferred'
+    | 'contract_started'
+    | 'contract_ended'
+    | 'service_status_changed'
+    | 'note';
+  event_data?: Record<string, unknown> | null;
+  actor_id?: string | null;
+  actor_name?: string | null;
+  created_at: string;
 }
 
 // Rental Status

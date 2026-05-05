@@ -1,4 +1,5 @@
 // CustomerProfile components barrel export
+export { default as AddCustomerOwnedForkliftModal } from './AddCustomerOwnedForkliftModal';
 export { default as AddEditContactModal } from './AddEditContactModal';
 export { default as AddEditContractModal } from './AddEditContractModal';
 export { default as AddEditSiteModal } from './AddEditSiteModal';

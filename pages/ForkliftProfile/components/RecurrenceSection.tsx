@@ -34,15 +34,19 @@ const RecurrenceSection: React.FC<Props> = ({ forklift, currentUser }) => {
   const role = currentUser.role.toString().toLowerCase();
   const canManage = role === 'admin' || role === 'admin_service' || role === 'supervisor';
   const isFleet = forklift.ownership === 'company';
+  const isCustomerOwned = forklift.ownership === 'customer';
 
   const { data: schedules = [], isLoading } = useQuery({
     queryKey: ['recurring-schedules', forklift.forklift_id],
     queryFn: () => getRecurringSchedulesForForklift(forklift.forklift_id),
-    enabled: isFleet,
+    // Show for both fleet (Path C) and customer-owned (AMC / chargeable) so
+    // admins can attach a PM cadence to externally-serviced units too.
+    enabled: isFleet || isCustomerOwned,
   });
 
-  // Hide entirely for non-fleet forklifts — Path C recurrence only applies to company-owned units.
-  if (!isFleet) return null;
+  // Only hide for fully-anonymous forklifts (no ownership) — anything with
+  // an ownership flag now supports recurrence.
+  if (!isFleet && !isCustomerOwned) return null;
 
   const activeSchedules = (schedules as RecurringSchedule[]).filter(s => s.is_active);
 
@@ -108,7 +112,10 @@ const RecurrenceSection: React.FC<Props> = ({ forklift, currentUser }) => {
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-base font-semibold inline-flex items-center gap-2">
           <CalendarClock className="w-4 h-4" />
-          Recurring PM schedule (Path C)
+          Recurring PM schedule
+          <span className="px-2 py-0.5 rounded-full text-xs font-normal bg-slate-100 text-slate-600">
+            {isFleet ? 'Path C · Fleet' : 'Customer-owned'}
+          </span>
           <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600 font-normal">
             {activeSchedules.length} active
           </span>

@@ -20,6 +20,7 @@ ServiceTrackingCard,
 ScheduledServicesSection,
 ScheduleServiceModal,
 ServiceHistorySection,
+TransitionToCustomerModal,
 } from './components';
 import { useForkliftData } from './hooks/useForkliftData';
 
@@ -35,6 +36,7 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
   const [showEditRentalModal, setShowEditRentalModal] = useState(false);
   const [showScheduleServiceModal, setShowScheduleServiceModal] = useState(false);
   const [showEditForkliftModal, setShowEditForkliftModal] = useState(false);
+  const [showTransitionModal, setShowTransitionModal] = useState(false);
   const [editingRental, setEditingRental] = useState<ForkliftRental | null>(null);
   const [forkliftFormData, setForkliftFormData] = useState({
     serial_number: '',
@@ -184,6 +186,11 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
           canEditRentalRates={canEditRentalRates}
           onEditRate={handleEditRentalRate}
           onEndRental={handleEndRental}
+          onSellToCustomer={
+            canManageRentals && forklift?.ownership !== 'customer'
+              ? () => setShowTransitionModal(true)
+              : undefined
+          }
         />
       )}
 
@@ -244,6 +251,15 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
           setFormData={setForkliftFormData}
           onSubmit={handleSubmitForklift}
           isEditing={true}
+        />
+      )}
+
+      {showTransitionModal && forklift && (
+        <TransitionToCustomerModal
+          forklift={forklift}
+          currentUser={currentUser}
+          onClose={() => setShowTransitionModal(false)}
+          onSuccess={() => { setShowTransitionModal(false); reload(); }}
         />
       )}
 

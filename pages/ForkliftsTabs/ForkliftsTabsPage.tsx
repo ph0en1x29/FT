@@ -1,4 +1,4 @@
-import { AlertTriangle,ClipboardCheck,LayoutDashboard,Settings,Truck } from 'lucide-react';
+import { AlertTriangle,Building2,ClipboardCheck,LayoutDashboard,Settings,Truck } from 'lucide-react';
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AssetDashboardV3_1 from '../../components/AssetDashboard/AssetDashboardV3_1';
@@ -6,6 +6,7 @@ import StaleDataBanner from '../../components/StaleDataBanner';
 import { useDevModeContext } from '../../contexts/DevModeContext';
 import { UserRole } from '../../types';
 import HourmeterReview from '../HourmeterReview';
+import ExternalFleetTab from './components/ExternalFleetTab';
 import FleetTab from './components/FleetTab';
 import ServiceDueTab from './components/ServiceDueTab';
 import ServiceIntervalsTab from './components/ServiceIntervalsTab';
@@ -50,6 +51,7 @@ const ForkliftsTabsPage: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
   const tabs = [
     ...(isAdminOrSupervisor ? [{ id: 'dashboard' as TabType, label: 'Overview', icon: LayoutDashboard }] : []),
     { id: 'fleet' as TabType, label: 'Fleet', icon: Truck },
+    { id: 'serviced-externals' as TabType, label: 'Serviced Externals', icon: Building2 },
     ...(isAdmin ? [{ id: 'intervals' as TabType, label: 'Service Intervals', icon: Settings }] : []),
     { id: 'service-due' as TabType, label: 'Service Due', icon: AlertTriangle },
     ...(isAdminOrSupervisor ? [{ id: 'hourmeter' as TabType, label: 'Hourmeter Review', icon: ClipboardCheck }] : []),
@@ -102,6 +104,9 @@ const ForkliftsTabsPage: React.FC<ForkliftsTabsProps> = ({ currentUser }) => {
       )}
       {activeTab === 'fleet' && (
         <FleetTab currentUser={currentUser} />
+      )}
+      {activeTab === 'serviced-externals' && (
+        <ExternalFleetTab currentUser={currentUser} />
       )}
       {activeTab === 'intervals' && isAdmin && (
         <ServiceIntervalsTab currentUser={currentUser} />

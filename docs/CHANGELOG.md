@@ -1,5 +1,61 @@
 # Changelog
 
+## [2026-05-05] — External / Customer-Owned Fleet management v1 + bulk-sign banner now also appears for helper techs
+
+### Added
+
+**Serviced Externals — a new operational surface for customer-owned forklifts.**
+
+Acwer is moving into a new line of business: selling fleet units to customers (and continuing to service them) and signing service contracts on customers' BYO forklifts. The system already had `forklifts.ownership='customer'` as a first-class concept (1321 fleet vs 55 customer-owned today), and a `service_contracts` table from the Phase 2 ACWER work — but there was no dedicated operational view, no sold-fleet transition flow, no auto-seeding of recurring service from contracts, and no way to admit customer-owned forklifts into the job-creation forklift dropdown.
+
+This release fills those gaps. It is **internal-only** in v1 — Shin / admins see overdue customer-owned units in-app and contact the customer manually. Email/SMS/portal reminders are explicitly deferred to v3 (would need net-new vendor + secrets infra).
+
+#### What's new
+
+- **New tab "Serviced Externals" on the Forklifts page** (`pages/ForkliftsTabs/components/ExternalFleetTab.tsx`). Shows every customer-owned forklift Acwer is responsible for servicing, with overdue / due-soon / AMC summary tiles and per-row "Schedule service" + "Open" actions. Filters by urgency, contract status, and customer.
+- **"Sell to customer" wizard on ForkliftProfile** (`TransitionToCustomerModal.tsx`). Two steps: capture sale date / price / customer's own asset code → review → call the new Postgres RPC. The forklift instantly disappears from the Fleet tab and shows up in Serviced Externals. Same DB row is preserved (no service-history fork), but `ownership` flips, `acquisition_source='sold_from_fleet'` is recorded, the active rental is auto-closed, and an audit row is written to a new `forklift_history` table.
+- **"Register customer-owned forklift" modal on CustomerProfile** (`AddCustomerOwnedForkliftModal.tsx`). One-step BYO registration without needing to start a job first — pre-sets `ownership='customer'`, `ownership_type='external'`, `acquisition_source='new_byo'`. Surfaced via a green call-to-action panel between the contacts/sites and contracts sections.
+- **Auto-seed recurring service schedules from a contract**. `AddEditContractModal` gains a checkbox "Auto-generate recurring service schedule for covered forklifts" + frequency / lead-time fields. On contract save with this enabled, a new Postgres trigger (`trg_seed_recurring_from_contract`) materializes one `recurring_schedules` row per covered forklift. The existing daily cron (`acwer_generate_recurring_jobs`) already picks those up — no cron change needed.
+- **Recurrence section on ForkliftProfile now applies to customer-owned units too**. Previously the section was hidden unless `ownership='company'` (Path C). Now admins can attach a PM cadence to AMC and chargeable-external units as well; the section shows a contextual "Customer-owned" badge to indicate the path.
+- **CreateJob forklift dropdown admits customer-owned units**. Previously the per-customer forklift filter only included `status='Rented Out'` rows, which excluded BYO and sold-fleet units. The filter is now `status='Rented Out' || ownership='customer'`, so the dropdown surfaces customer-owned forklifts without requiring a fictitious rental.
+
+#### Schema deltas (single migration `20260506_external_fleet_management.sql`, applied live)
+
+- `forklifts`: 5 new columns — `acquisition_source`, `original_fleet_forklift_id`, `service_management_status`, `sold_to_customer_at`, `sold_price`. The pre-existing `customer_forklift_no` column is reused as the customer's asset code (no duplication).
+- `service_contracts`: 4 new columns — `auto_generate_recurring`, `default_frequency`, `default_hourmeter_interval`, `default_lead_time_days`.
+- `recurring_schedules`: `customer_id` denormalized for fast filtering, backfilled from the linked forklift's `current_customer_id`.
+- New table `forklift_history`: append-only audit log for ownership transitions and lifecycle events (`sold_to_customer`, `registered_byo`, etc.). Mirrors the `*_audit_log` pattern.
+- Replaces view `v_forklift_service_predictions` (29 cols, was 23): adds `ownership`, `ownership_type`, `service_management_status`, `acquisition_source`, `customer_forklift_no`, and a derived `service_responsibility ('fleet'|'amc'|'chargeable_external'|'unmanaged')`.
+- New RPC `acwer_transition_fleet_to_customer(forklift_id, customer_id, sale_date, …)`: the atomic sold-fleet flip used by the wizard.
+- New trigger `trg_seed_recurring_from_contract` on `service_contracts` (AFTER INSERT/UPDATE of recurrence fields): idempotent via `ON CONFLICT DO NOTHING` on the new `(forklift_id, contract_id)` UNIQUE.
+
+All 55 existing customer-owned forklifts were backfilled with `acquisition_source='new_byo'`. No data destruction; everything is additive.
+
+#### Verification
+
+- Typecheck clean, build green (536 KB total, budget 800 KB).
+- Smoke test on live DB: ran the sold-fleet RPC end-to-end on a real fleet forklift (flip → audit row → restore), and exercised the auto-recurrence trigger by creating an AMC contract on SOY PRODUCTS (2 customer-owned forklifts) — confirmed exactly 2 `recurring_schedules` rows seeded by the trigger.
+- One bug caught + fixed during smoke: the RPC initially set `status='available'` (lowercase), which violated `forklifts_status_check`. Corrected to `'Available'` in both the live function and the migration file.
+
+#### Out of scope / parking lot
+
+- Customer-facing email / SMS / WhatsApp reminders → v3 (needs vendor selection + secrets management).
+- CSV bulk onboarding → v2 (inline modal handles single-add for now).
+- Cross-page admin dashboard tile and `ServiceDueTab` ownership filter → v2 (the new tab itself surfaces the overdue counts in its summary tiles).
+- Auto `service_management_status='dormant'` lifecycle on contract expiry + N idle days → v2.
+- "Sell to a customer that doesn't exist yet" combined wizard → admin creates the customer first.
+
+### Fixed
+
+**Bulk-sign banner now appears for helper techs (Tech2 report).**
+
+- **Client report (Shin, WhatsApp 2026-05-05):** "I tested using the Tech2 account, and the feature only appeared after multiple refresh attempts. Is that normal?"
+- **Root cause:** `pages/JobBoard/components/SiteSignOffBanner.tsx` filtered by `assigned_technician_id === currentUser.user_id`, which excluded helper assignments entirely. Tech2 is a HELPER (per Shin's roster: `tech2@example.com – HELPER` for Tech14), so most of his "My Jobs" rows come back from `services/jobReadService.ts:184-202` flagged with `_isHelperAssignment: true` and `assigned_technician_id = tech14.user_id`. The banner only appeared in the rare race where Tech2 happened to be the primary on a job — explains the "appeared after multiple refresh attempts" symptom (the test data state was shifting in the background, and after a few refreshes it briefly landed on a state where Tech2 was primary on something).
+- **Fix:** include helper assignments in the banner filter (`isPrimary || isHelper`). A helper is on-site and can collect customer signatures the same as the primary tech. Also replaced two `(job as any)` casts with typed assertions while editing.
+- **Known follow-up not in this release:** the JobBoard's realtime subscription only listens to `jobs` table updates, not `job_assignments`. So when an admin adds Tech2 as a helper on an existing job, Tech2 won't see that change until the next manual refresh / `fetchJobs()` call. Adding a realtime subscription on `job_assignments` is tracked as a separate follow-up.
+
+---
+
 ## [2026-05-05] — Van Stock: 2 more vans imported (P.SIANG / SYUKRI) + bulk site sign-off banner now actually shows up
 
 ### Added

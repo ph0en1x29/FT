@@ -43,7 +43,7 @@ export interface ForkliftDue {
   current_customer_id?: string;
 }
 
-export type TabType = 'dashboard' | 'fleet' | 'intervals' | 'service-due' | 'hourmeter';
+export type TabType = 'dashboard' | 'fleet' | 'intervals' | 'service-due' | 'serviced-externals' | 'hourmeter';
 
 export interface ResultModalState {
   show: boolean;

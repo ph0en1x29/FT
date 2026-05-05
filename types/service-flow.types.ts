@@ -56,6 +56,14 @@ export interface ServiceContract {
   updated_at: string;
   updated_by_id?: string | null;
   updated_by_name?: string | null;
+  // Recurrence defaults — when set with auto_generate_recurring, the
+  // trg_seed_recurring_from_contract trigger seeds recurring_schedules
+  // rows for each covered forklift on contract create/update.
+  // (Added 2026-05-06.)
+  auto_generate_recurring?: boolean;
+  default_frequency?: 'monthly' | 'quarterly' | 'yearly' | 'hourmeter' | null;
+  default_hourmeter_interval?: number | null;
+  default_lead_time_days?: number;
 }
 
 /**
