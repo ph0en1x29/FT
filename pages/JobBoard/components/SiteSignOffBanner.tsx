@@ -19,8 +19,10 @@ interface SiteGroup {
 }
 
 /**
- * Groups technician's "In Progress" jobs by customer+site
- * Shows a banner for each site with ≥2 unsigned jobs
+ * Groups technician's "In Progress" jobs by customer (one bucket per company).
+ * Shows a banner per customer with ≥2 unsigned jobs so the tech can sign them
+ * all with a single customer signature. Jobs missing an after-photo are still
+ * surfaced — the modal flags them as "needs photo" rather than hiding them.
  */
 export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
   jobs,
@@ -29,12 +31,10 @@ export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
 }) => {
   const [selectedGroup, setSelectedGroup] = useState<SiteGroup | null>(null);
 
-  // Group jobs by customer_id + site_id
-  const siteGroups = React.useMemo(() => {
-    const groups = new Map<string, SiteGroup>();
+  const customerGroups = React.useMemo(() => {
+    const groups = new Map<string, SiteGroup & { siteIds: Set<string> }>();
 
     jobs.forEach((job) => {
-      // Only process "In Progress" jobs assigned to current technician
       if (
         job.status !== 'In Progress' ||
         job.assigned_technician_id !== currentUser.user_id
@@ -42,50 +42,58 @@ export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
         return;
       }
 
-      // Skip if both signatures present
       if (job.technician_signature && job.customer_signature) {
         return;
       }
 
       const customerId = job.customer_id;
-      const siteId = job.site_id || 'no-site';
-      const key = `${customerId}:${siteId}`;
+      if (!customerId) return;
 
-      if (!groups.has(key)) {
-        groups.set(key, {
+      if (!groups.has(customerId)) {
+        groups.set(customerId, {
           customerId,
-          customerName: 'Site',
-          siteId,
-          siteAddress: (job as any).customer_site?.site_name || job.customer?.address || 'No address',
+          customerName: job.customer?.name || 'Customer',
+          siteId: job.site_id || 'no-site',
+          siteAddress:
+            (job as any).customer_site?.site_name ||
+            job.customer?.address ||
+            'No address',
           jobs: [],
           unsignedCount: 0,
+          siteIds: new Set<string>(),
         });
       }
 
-      const group = groups.get(key)!;
+      const group = groups.get(customerId)!;
       group.jobs.push(job);
-      
-      // Count as ready to sign: missing tech signature AND has after photo
-      const hasAfterPhoto = job.media?.some((m) => m.category === 'after') ?? false;
-      if (!job.technician_signature && hasAfterPhoto) {
+      group.siteIds.add(job.site_id || 'no-site');
+
+      if (!job.technician_signature) {
         group.unsignedCount++;
       }
     });
 
-    // Filter to only groups with ≥2 unsigned jobs
-    return Array.from(groups.values()).filter((group) => group.unsignedCount >= 2);
+    return Array.from(groups.values())
+      .filter((group) => group.unsignedCount >= 2)
+      .map(({ siteIds, ...rest }) => ({
+        ...rest,
+        siteAddress:
+          siteIds.size > 1
+            ? `${rest.jobs.length} jobs across ${siteIds.size} sites`
+            : rest.siteAddress,
+      }));
   }, [jobs, currentUser.user_id]);
 
-  if (siteGroups.length === 0) {
+  if (customerGroups.length === 0) {
     return null;
   }
 
   return (
     <>
       <div className="space-y-3 mb-6">
-        {siteGroups.map((group) => (
+        {customerGroups.map((group) => (
           <div
-            key={`${group.customerId}:${group.siteId}`}
+            key={group.customerId}
             className="card-premium p-4 flex items-center justify-between gap-4"
           >
             <div className="flex-1 min-w-0">

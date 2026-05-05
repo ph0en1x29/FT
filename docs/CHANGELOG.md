@@ -1,5 +1,117 @@
 # Changelog
 
+## [2026-05-05] — Van Stock: 2 more vans imported (P.SIANG / SYUKRI) + bulk site sign-off banner now actually shows up
+
+### Added
+
+**Van Stock seed for two more technicians.**
+
+- Shin sent over (WhatsApp 2026-05-05 ~00:21) two more checklist xlsx files plus an updated ACWER KOTA KEMUNING [AIE] roster image with explicit van-to-tech assignments. The two new vans:
+  - **BEH PHENG SIANG** (tech6) → `BQU 8619` — checked 2026-04-28, 103 unique SKUs, total RM 4,748.87
+  - **SYUKRI** (tech20) → `VLG 7223` — checked 2026-05-05, 32 unique SKUs, total RM 3,823.42
+
+  SYUKRI's stock was the long-outstanding tech20 sheet that the 2026-04-24 changelog had flagged as "pending separate stock sheet from client". This closes that gap.
+
+- `supabase/migrations/20260505_van_stock_2_vans_addition.sql` follows the established pattern (6-vans-initial → 3-vans-addition → 2-vans-addition). All 111 unique part_codes resolved against `parts.part_code` directly, with one fuzzy variant for `23303-64010 B` → `23303-64010B` (FUEL FILTER 1182 @ NISSIN — same as the prior migrations after Shin's 2026-05-04 clarification). Both xlsx files have the 1182 / 1182B rows correctly separated already, so no merge logic was needed in this batch.
+
+- Liquid items rely on the `trg_route_liquid_to_bulk_quantity` trigger added 2026-05-04: the migration writes liquid quantities into `quantity` and the trigger silently routes them into `bulk_quantity` at INSERT time. Post-apply assertion confirms 0 liquid rows landed in `quantity` — all 137 L of bulk liquid stock (51 L for P.SIANG, 86 L for SYUKRI) sat in `bulk_quantity` as expected.
+
+- **Total active van_stocks now 11** (was 9 before this migration).
+
+### Fixed
+
+**Bulk site sign-off banner: multi-job-one-signature feature was effectively invisible.**
+
+- **Client report (Shin, WhatsApp 2026-05-05):** "the feature that allows multiple jobs under the same company to be completed with a single signature is currently missing". Investigation showed the feature is wired (`SiteSignOffBanner` → `BulkSignOffModal`, mounted at `pages/JobBoard/JobBoard.tsx:396`), but three gating bugs in `SiteSignOffBanner.tsx` made the banner essentially impossible to see in real-world conditions:
+
+  1. **Grouping was `customer_id + site_id`.** Jobs at the same company but different sites — or with missing/null `site_id` — never grouped together. So a tech with 3 jobs at one customer's two adjacent sites would not see a bulk banner at all.
+  2. **`unsignedCount` only counted jobs that already had an "after" category photo uploaded.** The threshold to show the banner is ≥2. Result: a tech with 4 unsigned jobs but only 1 with an after-photo uploaded would have `unsignedCount = 1` and the banner would be hidden — even though 3 more jobs were waiting to be signed once their photos went up.
+  3. **Cosmetic: `customerName: 'Site'` was hardcoded.** The displayed group title was the literal string "Site" instead of the customer's actual name.
+
+- **Fix (`pages/JobBoard/components/SiteSignOffBanner.tsx`):**
+  - Switched grouping key to `customer_id` alone — one bucket per company.
+  - `unsignedCount` now counts every "In Progress" job missing a technician signature, regardless of after-photo state. Banner threshold stays at ≥2.
+  - Title set from `job.customer?.name`. When a group spans multiple sites, the second line reads "N jobs across M sites" instead of a single misleading address; single-site groups still show the site name.
+  - The after-photo gate is **preserved at the per-row level inside `BulkSignOffModal`** (lines 62–64): jobs missing an after-photo render in the modal's "Cannot sign yet — missing after photo" section with an AlertTriangle warning and a disabled checkbox. So techs can see what's waiting and what they need to upload to unblock it, but can't accidentally sign without photo evidence.
+
+- **Why the after-photo requirement was kept at all:** photo evidence matters for billing disputes and warranty claims. Removing it entirely (option B in the planning round) would have been a regression for accountability, even though it would have made the banner appear more often. The chosen design — banner shows, modal flags blockers — gives Shin's techs the visibility they were missing without weakening the audit trail.
+
+- **Verification:** `npm run typecheck` clean. Migration applied live via the pooler with post-apply assertion (2 vans, 135 items, 0 misrouted liquids). Bulk-sign banner change traced through code paths only — no e2e run; behaviour confirmed by inspection of the grouping/filter logic against the prior version.
+
+### Outstanding
+
+- Shin's updated roster lists 9 techs without explicit van plates (BEH CHOON SHYAN, EU SENG CHEONG, LEE KAI LUN, LIM KHER YUAN, MUHAMMAD FADHIL BIN ISMAIL, MUHAMMAD SYAHRIL BIN BAHARUDDIN, LIM KIM HO) plus 2 helpers (NASHARUDEN, ZULFIQRIE). Pending Shin's clarification on whether they share vans, work from the office, or use the helper vehicle before importing more stocks.
+
+---
+
+## [2026-05-04] — Van Stock: split merged FUEL FILTER 1182 SKU on 5 vans; client confirms "follow system" on price drifts
+
+### Fixes
+
+**FUEL FILTER 1182 was incorrectly merged with FUEL FILTER 1182 @ NISSIN on 5 vans.**
+
+- Client clarification (Shin sent `stock.jpeg` 2026-05-04 evening): rows 37–38 of his Excel checklist show the two are **different physical SKUs**:
+  - `23303-64010` — FUEL FILTER 1182 (cost RM 11.60)
+  - `23303-64010 B` — FUEL FILTER 1182 @ NISSIN (cost RM 10.50, different supplier)
+- Catalog state was already correct (both rows exist in `parts`), but the **20260424 import** had folded both Excel codes into a single van_stock_items row pointing at `23303-64010` for 5 of the 6 original vans. The 20260504 import got it right (BRK 3280, FA 8326, MDT 6631 each have separate rows).
+- Fix (`supabase/migrations/20260504_van_stock_fuel_filter_1182b_split.sql`): for the 5 affected vans, decrement the existing `23303-64010` row by the Excel-B qty and INSERT a new `23303-64010B` row at the Excel-B qty. Net total per van is unchanged — the merged row is just split into two correct rows.
+
+| Van | Pre (DB) | Post (DB = Excel) |
+|---|---|---|
+| BNX 8936 | A=4, B=missing | A=3, B=1 |
+| FA 9238 | A=8, B=missing | A=5, B=3 |
+| VEW 9631 | A=5, B=missing | A=4, B=1 |
+| VEW8236 | A=3, B=missing | A=2, B=1 |
+| VFG 7238 | A=6, B=missing | A=4, B=2 |
+
+### Client decisions registered (no code/migration shipped)
+
+**Shin: "follow system" on the 18 catalog price drifts flagged earlier today.** System-side `parts.cost_price` is canonical; no catalog UPDATE migration ships. The `parts_liquid_price_drift` view continues to surface future drift if/when any new liquid SKU's two price columns disagree.
+
+### Outstanding (small drift, separate from this fix)
+
+- **MDT 6631 — `23303-64010` qty: DB=2 vs Excel=4** (2-unit drift on the A side). The B side matches (3=3). Likely post-import tech consumption since the 2026-04-24 import, not a migration bug. Flagged for Shin's next physical audit; not auto-fixed.
+
+### Verification
+
+- Migration applied to live DB; pre/post `RAISE NOTICE` confirms each of the 5 affected vans lands on its target Excel qty exactly.
+- Final state across all 9 vans verified — A and B rows now consistent with Excel for every van that has both SKUs.
+
+---
+
+## [2026-05-04] — Van Stock: DB guard so the "liquid stock in `quantity`" anti-pattern can't recur
+
+### Added
+
+**Auto-routing trigger `trg_route_liquid_to_bulk_quantity` on `van_stock_items`.**
+
+- BEFORE INSERT/UPDATE OF `quantity`: if the row's part is liquid AND `quantity > 0`, silently moves the value into `bulk_quantity` (additive merge), then sets `quantity = 0`. Catches three known threat vectors:
+  - Future van-import migrations that copy the 20260424/20260504 pattern.
+  - Admin-added liquid items via `addVanStockItem` (`services/vanStockMutationsService.ts:147`), which writes to `quantity` blindly without branching on `is_liquid`.
+  - Any RPC or other code path doing the same.
+- Silent fix (no error raised) — preferred over a hard rejection because existing service paths weren't designed to handle DB-level liquid/non-liquid branching. Transparency keeps the UX intact while data lands in the right column.
+
+**Non-negative CHECK constraints:**
+
+- `van_stock_items_quantity_nonneg`: `quantity >= 0`
+- `van_stock_items_container_quantity_nonneg`: `container_quantity >= 0`
+- **NOT constrained: `bulk_quantity`** — deliberate. The `use_internal` flow at `services/liquidInventoryService.ts:424` ("May go negative — allowed with warning flag") supports a `balance_override` UX where techs can record consumption against insufficient stock; admins reconcile later. A CHECK there would break that intent.
+
+### Verification
+
+Adversarial post-apply tests:
+
+| Test | Expected | Result |
+|---|---|---|
+| UPDATE quantity = 50 on liquid item | Trigger routes to bulk_quantity, quantity → 0 | ✓ bq 20 → 70, qty → 0 |
+| UPDATE quantity = -5 on non-liquid | CHECK rejects | ✓ rejected by `van_stock_items_quantity_nonneg` |
+| UPDATE container_quantity = -2 | CHECK rejects | ✓ rejected |
+| UPDATE bulk_quantity = -3 | Allowed (balance_override preserved) | ✓ allowed |
+
+Migration is idempotent (CREATE OR REPLACE FUNCTION + DROP IF EXISTS trigger + NOT EXISTS guards on the CHECKs).
+
+---
+
 ## [2026-05-04] — Van Stock: backfill liquid quantity → bulk_quantity (eliminate negative-bq + at-risk seeds), document price-diff for Shin
 
 ### Fixes
