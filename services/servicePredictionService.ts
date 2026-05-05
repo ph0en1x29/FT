@@ -364,7 +364,7 @@ export async function getForkliftsDueForService(withinDays: number = 7): Promise
     // 1b. Get due/overdue forklifts from prediction view
     const { data: predictionData, error: predError } = await supabase
       .from('v_forklift_service_predictions')
-      .select('forklift_id, serial_number, make, model, type, hourmeter, year, capacity_kg, location, site, status, last_service_date, next_service_due, notes, created_at, updated_at, ownership, customer_id, forklift_no, customer_forklift_no, current_customer_id, last_service_hourmeter, service_interval_hours, last_serviced_hourmeter, next_target_service_hour, last_hourmeter_update, current_hourmeter, predicted_date, days_remaining, hours_until_service, avg_daily_hours, next_service_hourmeter, confidence, service_urgency')
+      .select('forklift_id, serial_number, make, model, type, status, ownership, ownership_type, customer_id, current_customer_id, customer_forklift_no, last_service_date, next_service_due, last_service_hourmeter, service_interval_hours, next_target_service_hour, current_hourmeter, predicted_date, days_remaining, hours_until_service, avg_daily_hours, next_service_hourmeter, confidence, service_urgency, service_responsibility, service_management_status')
       .or(`service_urgency.eq.overdue,service_urgency.eq.due_soon,days_remaining.lte.${withinDays}`)
       .order('days_remaining', { ascending: true });
     

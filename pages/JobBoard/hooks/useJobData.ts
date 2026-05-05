@@ -75,6 +75,9 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
   // emit 5-20 UPDATE/INSERT events per second on a busy day; without this,
   // each one fires 11 parallel HEAD count queries.
   const fetchCountsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Separate debounce for job_assignments → fetchJobs so we don't clobber
+  // an in-flight count fetch (different work, different debounce).
+  const fetchJobsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Re-fetch only the server-side status counts (without re-fetching the
   // paginated job list). Used by the realtime handlers below so that
@@ -271,6 +274,35 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
           }
         }
       )
+      .on(
+        // Helper-assignment realtime — when admin adds/removes the current
+        // technician as an assistant on a job, the helper-jobs branch in
+        // jobReadService doesn't auto-replay (it only runs in fetchJobs).
+        // Without this listener, helpers had to manually refresh to see new
+        // assignments — that was the root cause of Tech2's "appeared after
+        // multiple refreshes" report. Trigger a full re-fetch on any
+        // job_assignments change for this user; debounced via the existing
+        // scheduleFetchCounts ref pattern.
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'job_assignments',
+          filter: `technician_id=eq.${currentUser.user_id}`,
+        },
+        () => {
+          // Coalesce bursts (e.g. admin doing bulk reassignment) — full
+          // fetch is the simplest correct behaviour since the helper-jobs
+          // join + dedup logic lives in jobReadService.
+          if (fetchJobsDebounceRef.current) {
+            clearTimeout(fetchJobsDebounceRef.current);
+          }
+          fetchJobsDebounceRef.current = setTimeout(() => {
+            fetchJobsRef.current?.();
+            fetchJobsDebounceRef.current = null;
+          }, 750);
+        }
+      )
       .subscribe((status) => {
         setIsRealtimeConnected(status === 'SUBSCRIBED');
       });
@@ -279,6 +311,10 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
       if (fetchCountsDebounceRef.current) {
         clearTimeout(fetchCountsDebounceRef.current);
         fetchCountsDebounceRef.current = null;
+      }
+      if (fetchJobsDebounceRef.current) {
+        clearTimeout(fetchJobsDebounceRef.current);
+        fetchJobsDebounceRef.current = null;
       }
       supabase.removeChannel(channel);
     };

@@ -24,6 +24,16 @@ import { ForkliftDue, TabProps } from '../types';
 const VALID_FILTERS = ['all', 'overdue', 'due_soon', 'job_created', 'stale'] as const;
 type FilterType = typeof VALID_FILTERS[number];
 
+const OWNERSHIP_FILTERS = ['all', 'fleet', 'amc', 'no_contract'] as const;
+type OwnershipFilter = typeof OWNERSHIP_FILTERS[number];
+
+const OWNERSHIP_LABELS: Record<OwnershipFilter, string> = {
+  all: 'All ownership',
+  fleet: 'Fleet (Acwer-owned)',
+  amc: 'Customer · AMC',
+  no_contract: 'Customer · No contract',
+};
+
 const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -36,6 +46,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
   const [fleetOverview, setFleetOverview] = useState<FleetServiceOverview[]>([]);
   const [dailyUsage, setDailyUsage] = useState<Record<string, DailyUsageResult>>({});
   const [filter, setFilter] = useState<FilterType>(initialFilter);
+  const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter>('all');
   const [timeWindow, setTimeWindow] = useState<number>(30);
   const [running, setRunning] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
@@ -145,6 +156,15 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
       if (filter === 'job_created') return f.has_open_job;
       return true;
     }))
+    .filter(f => {
+      // Ownership filter — sourced from v_forklift_service_predictions.
+      // Falls back to "show all" for stale/legacy rows that lack the field.
+      if (ownershipFilter === 'all') return true;
+      if (ownershipFilter === 'fleet') return f.ownership === 'company' || f.service_responsibility === 'fleet';
+      if (ownershipFilter === 'amc') return f.service_responsibility === 'amc';
+      if (ownershipFilter === 'no_contract') return f.service_responsibility === 'chargeable_external';
+      return true;
+    })
     .sort((a, b) => {
       if (sortBy === 'urgency') return getUrgencyScore(a) - getUrgencyScore(b);
       if (sortBy === 'name') return `${a.make} ${a.model}`.localeCompare(`${b.make} ${b.model}`);
@@ -300,6 +320,20 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
                 className={`px-2 py-1 rounded ${sortBy === s ? 'bg-blue-100 text-blue-700 font-medium' : 'hover:bg-slate-100'}`}
               >
                 {s === 'urgency' ? '⚡ Urgency' : s === 'name' ? 'A-Z' : '🕐 Hours'}
+              </button>
+            ))}
+          </div>
+          <span className="text-slate-300">|</span>
+          <div className="flex items-center gap-1 text-xs text-slate-500">
+            <span>Ownership:</span>
+            {OWNERSHIP_FILTERS.map(o => (
+              <button
+                key={o}
+                onClick={() => setOwnershipFilter(o)}
+                className={`px-2 py-1 rounded ${ownershipFilter === o ? 'bg-indigo-100 text-indigo-700 font-medium' : 'hover:bg-slate-100'}`}
+                title={OWNERSHIP_LABELS[o]}
+              >
+                {o === 'all' ? 'All' : o === 'fleet' ? '🚚 Fleet' : o === 'amc' ? '🛡️ AMC' : '💵 No contract'}
               </button>
             ))}
           </div>

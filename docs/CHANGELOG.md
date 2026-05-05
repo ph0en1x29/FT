@@ -1,5 +1,92 @@
 # Changelog
 
+## [2026-05-05 — 11:00 AM] — Session auto-commit
+
+### Changed
+
+- Accumulated code and documentation changes from session 10c96e09-1ccd-455a-8997-1708ae2499a0 staged for commit via stop hook.
+
+---
+
+
+## [2026-05-05 — evening] — Tech roster: rename tech2, tech3, tech6 to canonical names per Shin's WhatsApp roster
+
+### Changed
+
+**Three tech accounts renamed to match Shin's roster image (WhatsApp 2026-05-05).** Diffed live tech1-tech21 records against the roster; 16 of 19 already matched, 3 needed updates.
+
+| Tech | Was | Now | Notes |
+|---|---|---|---|
+| tech2 | `Tech Two` | `MUHAMMAD NASHARUDEN BIN AHMAD` | HELPER, 10 assigned jobs preserved |
+| tech3 | `Tech Three` | `MUHAMMAD ZULFIQRIE BIN ZAIFUL` | HELPER, 0 assigned jobs (helper-only) |
+| tech6 | `BEE PHENG SIANG` | `BEH PHENG SIANG` | Typo fix BEE→BEH, 54 assigned jobs + van BQU 8619 preserved |
+
+- Same in-place rename pattern as the 2026-04-24 SYUKRI/Yazid and 2026-05-06 LIM KIM HO renames. All three preserve their `user_id`, so every FK-attached row (assigned jobs, job_assignments helper rows, completed_by_id, van_stocks, etc.) stays attached. Verified post-apply: tech6's van BQU 8619 still resolves to `BEH PHENG SIANG`.
+- Audit lines appended to `users.notes` for all three with date + previous value + rationale.
+
+### User decisions registered (no rename shipped)
+
+- **tech20 (SYUKRI)** explicitly NOT touched — Jay opted to keep the short display form already in use ("SYUKRI"), even though Shin's roster lists the full canonical name "MUHAMMAD SYUKRI TAUFIQ BIN RAFIZI". Long form felt disruptive for users used to seeing the short name in dropdowns.
+- **HELPER handling for tech2/tech3:** keep `role='technician'` in the schema (no separate helper role) and rely on the existing `users.notes` flag pattern from 2026-04-24, rather than introducing a new column. Larger schema change deferred.
+
+### Outstanding
+
+- Still 5 techs without explicit van plates per Shin's roster (BEH CHOON SHYAN, EU SENG CHEONG, LEE KAI LUN, LIM KHER YUAN, MUHAMMAD SYAHRIL BIN BAHARUDDIN). Helpers tech2/tech3 also lack van assignments — expected, they ride with their primary tech. Awaiting Shin's clarification on shared vans vs. office-based for the remaining 5.
+
+---
+
+## [2026-05-05 — late afternoon] — Van Stock: 2 more vans imported (FADHIL VCS 6852 + KIM BRM 6332) + tech1 placeholder renamed to LIM KIM HO
+
+### Added
+
+**Van Stock seed for FADHIL (tech19) and KIM (tech1).**
+
+- Shin sent over (WhatsApp 2026-05-05 afternoon) two more checklist xlsx files. They landed in the parent `/home/jay/Downloads/` rather than the `Ft/` subfolder, but the contents follow the same template as the earlier batches.
+  - **FADHIL** (tech19) → `VCS 6852` — checked 2026-04-16, 70 unique SKUs.
+  - **KIM** (tech1) → `BRM 6332` — checked 2026-04-24, 61 unique SKUs.
+- Migration `supabase/migrations/20260506_van_stock_2_more_vans_kim_fadhil.sql` follows the established pattern. All 104 unique part_codes resolved against `parts.part_code` directly (no fuzzy variants needed — neither xlsx has the `23303-64010 B` whitespace variant the earlier batches handled).
+- Liquid routing handled by the existing `trg_route_liquid_to_bulk_quantity` trigger: 133 L of bulk liquid (55 L for KIM, 78 L for FADHIL) auto-routed into `bulk_quantity`. Post-apply assertion confirms 0 liquid rows landed in `quantity`.
+- **Total active van_stocks now 13** (was 11 before this migration).
+
+### Changed
+
+**tech1 user record: placeholder name → 'LIM KIM HO'.**
+
+- Pre-flight found tech1 in a partially-renamed state: `name='kim'` (lowercase, presumably from an earlier ad-hoc edit) and `full_name='Tech One'` (legacy placeholder). Shin's roster pic (WhatsApp 2026-05-05) had already established that tech1 is LIM KIM HO, and the SYUKRI/Yazid rename from 2026-04-24 set the precedent for normalizing this in-place.
+- Migration updates both `name` and `full_name` to `'LIM KIM HO'` and appends an audit line to `users.notes` recording the previous values + date + rationale. Email kept as `tech1@example.com` — a rename there would ripple into auth invitations and notification addressing (same call as the SYUKRI rename).
+- 43 assigned + 24 completed jobs reference tech1's `user_id`, which doesn't change — all historical jobs remain attached.
+
+### Outstanding
+
+- Per Shin's roster, still 7 techs without explicit van plates (BEH CHOON SHYAN, EU SENG CHEONG, LEE KAI LUN, LIM KHER YUAN, MUHAMMAD SYAHRIL BIN BAHARUDDIN) plus 2 helpers (NASHARUDEN, ZULFIQRIE). Awaiting Shin's clarification on whether they share vans, work from the office, or use the helper vehicle.
+
+---
+
+## [2026-05-05 — afternoon] — External Fleet v1: shipped the "deferred" follow-ups in the same release
+
+After committing the v1 with several items parked for v2/v3, ended up pulling all of them forward in the same session — what shipped is the complete v1 not a staged drip.
+
+### Added
+
+- **Auto-dormant lifecycle for customer-owned forklifts.** New migration `20260506_external_fleet_dormant_lifecycle.sql` adds `acwer_auto_flip_external_dormant()` SQL function plus a daily pg_cron job (`acwer-external-fleet-dormant-check`, 01:30 UTC = 09:30 MYT). Flips a customer-owned forklift to `service_management_status='dormant'` when EITHER (no active contract AND no jobs in 180 days) OR (all contracts expired >90 days ago AND no jobs in 180 days). Reversible — admin manually flips back when re-engaging. First pass on apply moved 9 of 55 customer-owned forklifts to dormant (each with a `forklift_history` audit row, `actor_name='system:auto_dormant_cron'`). The Serviced Externals tab already filters out dormant rows, so the dashboard now shows the 46 actually-active machines.
+
+- **Cross-page dashboard tile for external fleet.** New `AdminDashboardV7_1ExternalFleetTile` component slots into the admin dashboard between the Approvals and Pipeline sections. Shows total managed / overdue / due-in-7-days / AMC-covered counts with click-through to the Serviced Externals tab pre-filtered by urgency. Hidden entirely when the customer has 0 external machines so accounts that haven't onboarded the new business line don't see dead pixels.
+
+- **ServiceDueTab ownership filter pill.** Added a 4-pill filter row (All / 🚚 Fleet / 🛡️ AMC / 💵 No contract) on the existing Service Due tab. Sources from `v_forklift_service_predictions.ownership` and `service_responsibility`. Also tightened the underlying prediction-view SELECT in `services/servicePredictionService.ts` — it was selecting columns that don't exist in the view (year, capacity_kg, etc.) and silently getting nulls back; new SELECT only requests what the view actually projects.
+
+- **CSV bulk-import for customer fleets.** New modal `BulkRegisterCustomerFleetModal` on CustomerProfile, accessible via a "Bulk import (CSV)" button next to the single-add "Register one" CTA. Supports paste-or-upload, with required columns `serial_number, make, model` and optional `type, hourmeter, customer_forklift_no`. Custom inline CSV parser — handles quoted fields and embedded commas without adding a PapaParse dependency. Pre-validates against existing serials (loads the catalog once for dedup) and flags within-batch duplicates. Preview table marks each row as ✓ ready / ⚠ duplicate / ✗ error with per-row error reasons; only ✓ rows are inserted. Concurrency cap of 4 parallel inserts so the connection pool isn't hammered. Template-download button included.
+
+### Fixed
+
+- **JobBoard realtime now picks up helper assignments.** Added a third realtime subscription to the existing `job-board-realtime` channel, listening on `job_assignments` filtered server-side to the current user (`technician_id=eq.${userId}`). Any INSERT/UPDATE/DELETE triggers a debounced (750ms) re-fetch — full fetch is the simplest correct behaviour because the helper-jobs second query + dedup logic lives in `services/jobReadService.ts`. Closes the structural root cause of the Tech2 "appeared after multiple refreshes" report (the helper-filter fix earlier in the session was a partial fix; this is the structural one).
+
+### Verification
+
+- `npm run typecheck` clean; `npm run build` green (539 KB, +3 KB from prior commit, well under 800 KB budget).
+- Auto-dormant cron registered + first run executed live: 9 forklifts flipped, all with audit rows.
+
+---
+
 ## [2026-05-05] — External / Customer-Owned Fleet management v1 + bulk-sign banner now also appears for helper techs
 
 ### Added

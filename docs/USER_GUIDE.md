@@ -630,8 +630,16 @@ Acwer now manages two kinds of customer-owned forklifts in addition to the renta
 - **Forklifts → "Serviced Externals" tab.** Shows every customer-owned unit Acwer is actively servicing, with overdue / due-soon / AMC summary tiles. Filter by customer, contract status, or service urgency. Click "Schedule service" to open the job-creation page with the customer + forklift pre-filled, or "Open" to view the full forklift profile.
 
 #### How a forklift gets there
-1. **BYO** — open the customer's profile (Customers → {name}). Click the green **"Register forklift"** button between the Sites and Contracts sections. Enter serial / make / model / type / hourmeter (and the customer's own asset code if they have one). The unit immediately appears in the Serviced Externals tab.
-2. **Sold-from-fleet** — open the forklift's profile while it is still in the fleet (active rental). On the "Currently Rented To" card, click the indigo **"Sell to customer"** button. Confirm sale date, optional sale price, and the customer's asset code (if different from Acwer's serial). On confirm, the forklift moves out of the Fleet tab and into Serviced Externals — the service history and hourmeter trace stay attached.
+1. **BYO (single)** — open the customer's profile (Customers → {name}). Click the green **"Register one"** button between the Sites and Contracts sections. Enter serial / make / model / type / hourmeter (and the customer's own asset code if they have one). The unit immediately appears in the Serviced Externals tab.
+2. **BYO (bulk import)** — same panel, click **"Bulk import (CSV)"**. Paste a CSV or upload a `.csv` file with required columns `serial_number, make, model` and optional `type, hourmeter, customer_forklift_no`. Click "Parse & preview" — each row shows as ✓ ready / ⚠ duplicate (skipped) / ✗ error (per-row reason shown). Click "Register N forklifts" to bulk-create only the ✓ rows. A template download button is provided.
+3. **Sold-from-fleet** — open the forklift's profile while it is still in the fleet (active rental). On the "Currently Rented To" card, click the indigo **"Sell to customer"** button. Confirm sale date, optional sale price, and the customer's asset code (if different from Acwer's serial). On confirm, the forklift moves out of the Fleet tab and into Serviced Externals — the service history and hourmeter trace stay attached.
+
+#### How dormant cleanup works
+A daily cron (09:30 MYT) automatically marks a customer-owned forklift as **dormant** when EITHER:
+- It has no active service contract AND no jobs were created against it in the last 180 days, OR
+- All of its (formerly) covering contracts ended >90 days ago AND no jobs were created in the last 180 days.
+
+Dormant units stop showing in the Serviced Externals list (they're still in the database, just hidden). To revive: open the forklift profile and either create a new contract, create a job, or manually edit `service_management_status` back to `active`. There is no auto-revive — that's an explicit admin decision so the dashboard stays trustworthy.
 
 #### Attaching an AMC contract
 1. Customer profile → **Service Contracts** section → "New service contract".

@@ -41,6 +41,10 @@ export interface ForkliftDue {
   is_overdue: boolean;
   has_open_job: boolean;
   current_customer_id?: string;
+  /** From v_forklift_service_predictions (added 2026-05-06). */
+  ownership?: 'company' | 'customer';
+  /** From v_forklift_service_predictions (added 2026-05-06). */
+  service_responsibility?: 'fleet' | 'amc' | 'chargeable_external' | 'unmanaged';
 }
 
 export type TabType = 'dashboard' | 'fleet' | 'intervals' | 'service-due' | 'serviced-externals' | 'hourmeter';

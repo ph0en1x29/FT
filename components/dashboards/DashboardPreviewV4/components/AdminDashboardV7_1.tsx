@@ -8,6 +8,7 @@ import { CheckCircle, FileText } from 'lucide-react';
 import React from 'react';
 import type { Job, User } from '../../../../types';
 import { AdminDashboardV7_1ApprovalSections } from './AdminDashboardV7_1ApprovalSections';
+import { AdminDashboardV7_1ExternalFleetTile } from './AdminDashboardV7_1ExternalFleetTile';
 import { AdminDashboardV7_1Header } from './AdminDashboardV7_1Header';
 import { AdminDashboardV7_1PipelineSection } from './AdminDashboardV7_1PipelineSection';
 import { BulkActionBar } from './AdminDashboardV7_1Primitives';
@@ -31,6 +32,7 @@ const AdminDashboardV7_1: React.FC<AdminDashboardV7_1Props> = (props) => {
     <div className="space-y-4">
       <AdminDashboardV7_1Header data={data} />
       <AdminDashboardV7_1ApprovalSections data={data} />
+      <AdminDashboardV7_1ExternalFleetTile />
       <AdminDashboardV7_1PipelineSection data={data} />
       <AdminDashboardV7_1ScheduleSection data={data} />
       <AdminDashboardV7_1TeamFinancialSections data={data} />

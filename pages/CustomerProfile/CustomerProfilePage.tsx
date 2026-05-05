@@ -5,6 +5,7 @@ import { showToast } from '../../services/toastService';
 import {
 AddCustomerOwnedForkliftModal,
 BulkEndRentalModal,
+BulkRegisterCustomerFleetModal,
 ContactsSection,
 ContractsSection,
 CustomerHeader,
@@ -49,8 +50,9 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
   // Delete confirmation modal
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Customer-owned forklift registration modal
+  // Customer-owned forklift registration modals
   const [showAddCustomerForklift, setShowAddCustomerForklift] = useState(false);
+  const [showBulkRegister, setShowBulkRegister] = useState(false);
   
   // Role checks
   const isAdmin = currentUser.role.toString().toLowerCase() === 'admin';
@@ -204,20 +206,29 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
 
       {/* Customer-owned forklift registration (Acwer services them under contract) */}
       {(isAdmin || isAdminService || isSupervisor) && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-center justify-between gap-4">
-          <div className="text-sm text-emerald-900">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="text-sm text-emerald-900 flex-1 min-w-0">
             <div className="font-semibold">Customer-owned forklift?</div>
             <div className="text-xs text-emerald-800">
               Register a unit the customer brought in (BYO) so it appears on the
-              Serviced Externals list and can be linked to an AMC contract.
+              Serviced Externals list and can be linked to an AMC contract. For a
+              whole fleet, use the bulk import instead.
             </div>
           </div>
-          <button
-            onClick={() => setShowAddCustomerForklift(true)}
-            className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
-          >
-            Register forklift
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowBulkRegister(true)}
+              className="px-4 py-2 rounded-lg border border-emerald-600 text-emerald-700 text-sm font-medium hover:bg-emerald-100"
+            >
+              Bulk import (CSV)
+            </button>
+            <button
+              onClick={() => setShowAddCustomerForklift(true)}
+              className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
+            >
+              Register one
+            </button>
+          </div>
         </div>
       )}
 
@@ -285,6 +296,15 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
           customerName={customer.name}
           onClose={() => setShowAddCustomerForklift(false)}
           onSuccess={() => { setShowAddCustomerForklift(false); loadCustomerData(); }}
+        />
+      )}
+
+      {showBulkRegister && customer && (
+        <BulkRegisterCustomerFleetModal
+          customerId={customer.customer_id}
+          customerName={customer.name}
+          onClose={() => setShowBulkRegister(false)}
+          onSuccess={() => { setShowBulkRegister(false); loadCustomerData(); }}
         />
       )}
 
