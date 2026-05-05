@@ -255,8 +255,14 @@ const ExternalFleetTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => 
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filtered.map(row => (
-                  <tr key={row.forklift_id} className="hover:bg-slate-50">
+                {filtered.map(row => {
+                  const modelDisplay = [row.make, row.model].filter(Boolean).join(' ').trim();
+                  return (
+                  <tr
+                    key={row.forklift_id}
+                    onClick={() => navigate(`/forklifts/${row.forklift_id}`)}
+                    className="hover:bg-slate-50 cursor-pointer"
+                  >
                     <td className="px-4 py-3 text-slate-700">
                       {row.current_customer_id
                         ? customerNameById.get(row.current_customer_id) || '—'
@@ -274,7 +280,7 @@ const ExternalFleetTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => 
                       )}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {row.make} {row.model}
+                      {modelDisplay || <span className="text-slate-400">—</span>}
                       <div className="text-xs text-slate-400">{row.type}{row.fuel_type ? ` · ${row.fuel_type}` : ''}</div>
                     </td>
                     <td className="px-4 py-3 text-slate-600">
@@ -306,13 +312,13 @@ const ExternalFleetTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => 
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
-                          onClick={() => goCreateJob(row)}
+                          onClick={(e) => { e.stopPropagation(); goCreateJob(row); }}
                           className="text-xs font-medium text-blue-600 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50"
                         >
                           Schedule service
                         </button>
                         <button
-                          onClick={() => navigate(`/forklift/${row.forklift_id}`)}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/forklifts/${row.forklift_id}`); }}
                           className="text-xs font-medium text-slate-500 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-100 inline-flex items-center gap-1"
                         >
                           Open <ChevronRight className="w-3 h-3" />
@@ -320,7 +326,8 @@ const ExternalFleetTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => 
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

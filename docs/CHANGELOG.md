@@ -1,5 +1,35 @@
 # Changelog
 
+## [2026-05-05 — late evening] — Serviced Externals tab: row clicks were a dead-end (singular vs plural route)
+
+### Fixed
+
+**The "Open" button + row click on the new Serviced Externals tab routed to nowhere.** Reported as: "*are the service external valid? why do i feel like those are decoy as when i click onto it, not wired*".
+
+- **Root cause #1 (the actual bug):** `ExternalFleetTab.tsx` navigated to `/forklift/${id}` (singular) but the app router registers the route as `/forklifts/:id` (plural). No Route matched → silent dead-end.
+- **Root cause #2 (UX):** Only the small "Open" button was clickable, not the row body / customer cell / asset cell. So clicking what felt like the obvious target did nothing.
+- **Root cause #3 (cosmetic):** 53 of 55 customer-owned forklifts have empty `make`/`model` strings (created ad-hoc via `ExternalForkliftSection` at job creation, with loose required-field enforcement). The Model column rendered as a blank space, reinforcing the "fake data" feel.
+
+**Fix (`pages/ForkliftsTabs/components/ExternalFleetTab.tsx`):**
+- Route corrected to `/forklifts/${id}` in both the row click and the "Open" button.
+- `<tr onClick>` added so clicking anywhere on the row opens the forklift profile.
+- `e.stopPropagation()` on the action buttons so they don't double-fire the row click.
+- Empty `make`/`model` now renders as `—` instead of a blank string.
+
+**Data is valid.** All 46 active customer-owned forklifts have ≥1 real job and a real customer name (SETIA CORPORATION, TOP GLOVE, NIPPON PAINT, etc). The empty make/model fields are a separate data-quality cleanup — every row still has `serial_number`, `current_customer_id`, `hourmeter`, and at least one historical job, so they're functionally usable.
+
+### Sanity sweep (no action taken without approval)
+
+While in the user table, ran a broader audit. Surfaced for Shin's review:
+- **5 placeholder display names** still active: `admin1=Admin One` (admin_service, actor for all import migrations), `admin2=Admin Two` (admin_store), `accountant1=Accountant One`, `dev@test.com=Developer` (⚠️ admin role on a test-looking email), `super1234@gmail.com=Super2`.
+- **4 duplicate customer-name pairs**: TASCO BERHAD, TOP GLOVE SDN BHD, METROD (MALAYSIA) SDN BHD, POS LOGISTICS BERHAD — each appears as 2 separate `customer_id` rows. Could be legit divisions or import dupes.
+- **1 "Test" customer** at "JALAN OLO" — used in this session's smoke test for the sold-fleet RPC, but it's been there longer.
+- **116 forklifts assigned to inactive customers** (`current_customer_id` points to a customer with `is_active=false`). Could be stale assignments where the relationship ended but the forklift wasn't unassigned.
+
+**Confirmed clean:** zero inactive users referenced in jobs, zero duplicate active full_names, zero orphan van_stocks, zero customer-owned forklifts with NULL `current_customer_id`, zero `customer_id ≠ current_customer_id` drift, tech4 / service@acwer fully removed (not lurking).
+
+---
+
 ## [2026-05-05 — 11:00 AM] — Session auto-commit
 
 ### Changed
