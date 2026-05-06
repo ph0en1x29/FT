@@ -297,22 +297,35 @@ export async function updateServiceInterval(
 // =============================================
 
 /**
- * Check if forklift type requires hourmeter tracking
+ * Check if forklift type requires hourmeter tracking.
+ * Calendar-serviced (electric, reach truck, others) returns false.
+ * Whitespace tolerant: 'Battery / Electrical' (with spaces) lowercases-trims
+ * to the same key as 'battery/electrical'.
  */
-export function requiresHourmeterTracking(type: ForkliftType | string): boolean {
-  const engineTypes = ['Diesel', 'LPG', 'Petrol'];
-  return engineTypes.includes(type);
+export function requiresHourmeterTracking(
+  type: ForkliftType | string | null | undefined,
+  fuelType?: string | null
+): boolean {
+  return !isCalendarServiced(type, fuelType);
 }
 
-export function isElectricType(type: string): boolean {
-  return ['Electric', 'Battery/Electrical', 'Reach Truck'].includes(type);
+export function isCalendarServiced(
+  type: string | null | undefined,
+  fuelType?: string | null
+): boolean {
+  const t = (type ?? '').toLowerCase().trim();
+  const f = (fuelType ?? '').toLowerCase().trim();
+  if (f === 'electric') return true;
+  return ['battery/electrical', 'battery / electrical', 'reach truck', 'others', 'electric'].includes(t);
+}
+
+// Back-compat: existing callers pass only `type`. Routes via type only.
+export function isElectricType(type: string | null | undefined): boolean {
+  return isCalendarServiced(type, null);
 }
 
 export function getServiceIntervalType(type: string): string {
-  if (type === 'Reach Truck' || type === 'Battery/Electrical') {
-    return 'Electric';
-  }
-
+  if (isCalendarServiced(type, null)) return 'Electric';
   return type;
 }
 
@@ -373,7 +386,7 @@ export async function getForkliftsDueForService(withinDays: number = 7): Promise
     // 2. Get ALL forklifts not in predictions (catches Electric + any missing units)
     const { data: allForklifts, error: allError } = await supabase
       .from('forklifts')
-      .select('forklift_id, serial_number, make, model, type, hourmeter, last_service_date, next_service_due, next_service_hourmeter, status')
+      .select('forklift_id, serial_number, make, model, type, fuel_type, hourmeter, last_service_date, next_service_due, next_service_hourmeter, status')
       .not('status', 'in', '("Inactive","Out of Service")');
 
     if (allError) throw allError;
@@ -392,7 +405,7 @@ export async function getForkliftsDueForService(withinDays: number = 7): Promise
     const fallbackResults = (allForklifts || [])
       .filter(f => !allPredictionIds.has(f.forklift_id))
       .map(f => {
-        const isElectric = isElectricType(f.type);
+        const isElectric = isCalendarServiced(f.type, f.fuel_type);
         let daysRemaining: number | null = null;
         let hoursUntil: number | null = null;
 

@@ -317,14 +317,18 @@ export const getInventoryCatalogStats = async (): Promise<InventoryCatalogStats>
  * render low-stock / out-of-stock alerts without paying the full Part shape.
  * The caller does its own filtering (low vs OOS) — this keeps the contract
  * small and reusable across dashboards.
+ *
+ * Includes `effective_stock` (generated column from
+ * supabase/migrations/20260501_search_perf_trigram_and_low_stock.sql) so the
+ * caller can branch on liquid vs solid via one number. PR 4 2026-05-07.
  */
-export const getStockAlertParts = async (): Promise<Array<Pick<Part, 'part_name' | 'stock_quantity' | 'min_stock_level'>>> => {
+export const getStockAlertParts = async (): Promise<Array<Pick<Part, 'part_name' | 'stock_quantity' | 'min_stock_level'> & { effective_stock: number; is_liquid: boolean | null }>> => {
   const { data, error } = await supabase
     .from('parts')
-    .select('part_name, stock_quantity, min_stock_level');
+    .select('part_name, stock_quantity, min_stock_level, effective_stock, is_liquid');
 
   if (error) throw new Error(error.message);
-  return (data as Array<Pick<Part, 'part_name' | 'stock_quantity' | 'min_stock_level'>>) || [];
+  return (data as Array<Pick<Part, 'part_name' | 'stock_quantity' | 'min_stock_level'> & { effective_stock: number; is_liquid: boolean | null }>) || [];
 };
 
 export const createPart = async (partData: Partial<Part>): Promise<Part> => {

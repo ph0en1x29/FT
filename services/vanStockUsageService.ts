@@ -4,8 +4,37 @@
  * Handles usage entries, approvals, rejections, and audit scheduling.
  */
 
-import type { VanStockAudit, VanStockUsage } from '../types';
+import type { JobPartUsed, VanStockAudit, VanStockUsage } from '../types';
 import { supabase } from './supabaseClient';
+
+/**
+ * Atomic non-liquid van-stock consumption (PR 2 2026-05-07).
+ * Wraps the rpc_use_van_stock_part RPC so decrement + usage + movement +
+ * job_parts insert happen in one Postgres transaction. Idempotent via
+ * idempotencyKey: same key returns the same job_parts row, no double-decrement.
+ *
+ * Caller MUST mint a stable idempotency key per logical user action (e.g. one
+ * "Add to job" button click). Re-mint on retry, not on each call inside a retry.
+ */
+export const consumeVanStockPartAtomic = async (args: {
+  itemId: string;
+  jobId: string;
+  quantity: number;
+  idempotencyKey: string;
+  useBulk?: boolean;
+  notes?: string;
+}): Promise<JobPartUsed> => {
+  const { data, error } = await supabase.rpc('rpc_use_van_stock_part', {
+    p_item_id: args.itemId,
+    p_job_id: args.jobId,
+    p_quantity: args.quantity,
+    p_idempotency_key: args.idempotencyKey,
+    p_use_bulk: args.useBulk ?? false,
+    p_notes: args.notes ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return data as JobPartUsed;
+};
 
 export const useVanStockPart = async (
   vanStockItemId: string,

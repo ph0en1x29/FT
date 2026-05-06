@@ -4,6 +4,7 @@ import { Combobox,ComboboxOption } from '../../../components/Combobox';
 import { showToast } from '../../../services/toastService';
 import { cancelPartReturn, confirmPartReturn } from '../../../services/jobPartReturnService';
 import { Job, JobPartUsed, VanStock } from '../../../types';
+import { getVanStockAvailableQty } from '../../../utils/vanStock';
 import { RoleFlags,StatusFlags } from '../types';
 import { PartReturnModal } from './PartReturnModal';
 
@@ -412,10 +413,11 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
                       >
                         <option value="">Select part from van...</option>
                         {vanStock.items
-                          .filter(i => i.quantity > 0)
+                          .filter(i => getVanStockAvailableQty(i) > 0)
                           .map(i => {
                             const unit = i.part?.unit || 'pcs';
-                            const qtyDisplay = Number.isInteger(i.quantity) ? i.quantity : i.quantity.toFixed(2);
+                            const qty = getVanStockAvailableQty(i);
+                            const qtyDisplay = Number.isInteger(qty) ? qty : qty.toFixed(2);
                             return (
                               <option key={i.item_id} value={i.item_id}>
                                 {i.part?.part_name || 'Unknown'} — {qtyDisplay} {unit} available
@@ -448,9 +450,10 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
                     const selectedItem = vanStock.items?.find(i => i.item_id === selectedVanStockItemId);
                     if (!selectedItem) return null;
                     const unit = selectedItem.part?.unit || 'pcs';
+                    const availQty = getVanStockAvailableQty(selectedItem);
                     return (
                       <p className="text-xs text-[var(--text-muted)]">
-                        Available: {Number.isInteger(selectedItem.quantity) ? selectedItem.quantity : selectedItem.quantity.toFixed(2)} {unit}
+                        Available: {Number.isInteger(availQty) ? availQty : availQty.toFixed(2)} {unit}
                         {unit !== 'pcs' && ' · Supports decimal quantities'}
                       </p>
                     );

@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
-import { useVanStockPart as deductVanStockPart } from '../../../services/inventoryService';
+import { useCallback, useRef } from 'react';
+import { consumeVanStockPartAtomic } from '../../../services/vanStockUsageService';
+import { getVanStockAvailableQty } from '../../../utils/vanStock';
 import { useVanBulk as deductVanBulk } from '../../../services/liquidInventoryService';
 import { supabase } from '../../../services/supabaseClient';
 import { createReplenishmentRequest } from '../../../services/replenishmentService';
@@ -30,6 +31,10 @@ export const useJobPartsHandlers = ({
   loadVanStock,
   setJob,
 }: UseJobPartsHandlersParams) => {
+  // Guards against user double-tap of "Use from Van Stock". One in-flight request at a time.
+  // Resets after the request settles. PR 2 2026-05-07.
+  const vanStockSubmitRef = useRef(false);
+
   const handleAddPart = useCallback(async () => {
     if (!job || !state.selectedPartId) return;
     const qty = parseFloat(state.addPartQuantity) || 1;
@@ -151,24 +156,34 @@ export const useJobPartsHandlers = ({
 
   const handleUseVanStockPart = useCallback(async () => {
     if (!job || !state.selectedVanStockItemId || !state.vanStock) return;
+    if (vanStockSubmitRef.current) {
+      // Double-tap guard: an earlier click is still in flight.
+      return;
+    }
     const item = state.vanStock.items?.find(i => i.item_id === state.selectedVanStockItemId);
     if (!item) { showToast.error('Van stock item not found'); return; }
 
     const qtyToUse = parseFloat(state.vanStockQuantity) || 1;
     if (qtyToUse <= 0) { showToast.error('Invalid quantity', 'Quantity must be greater than 0'); return; }
-    const availableQty = item.part?.is_liquid
-      ? (item.container_quantity || 0) * (item.part?.container_size || 0) + (item.bulk_quantity || 0)
-      : item.quantity;
+    const availableQty = getVanStockAvailableQty(item);
     // For liquid items, allow negative balance (will be flagged as balance_override)
     if (availableQty < qtyToUse && !item.part?.is_liquid) {
       showToast.error('Insufficient stock', `Only ${availableQty} ${item.part?.base_unit || item.part?.unit || 'pcs'} available in van`);
       return;
     }
 
+    // Mint one idempotency key for this user action (handler entry, not per call inside).
+    // Re-tries within the request stay on this key; double-tap is blocked above.
+    const idempotencyKey = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+      ? crypto.randomUUID()
+      : `vs-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    vanStockSubmitRef.current = true;
     try {
       if (item.part?.is_liquid && item.part?.container_size) {
-        // Liquid: use dual-unit deduction from van
-        // Fetch avg_cost_per_liter for cost tracking
+        // Liquid path: existing dual-unit deductVanBulk + addPartToJob. The legacy
+        // trigger that double-decremented bulk_quantity was dropped in PR 2 2026-05-07,
+        // so this two-step call is now correct. Migrating to the atomic RPC for liquids
+        // is a follow-up (needs container vs bulk routing UX).
         const { data: partCostData } = await supabase
           .from('parts')
           .select('avg_cost_per_liter')
@@ -192,33 +207,30 @@ export const useJobPartsHandlers = ({
         if (result?.balanceOverride) {
           showToast.warning('Van balance insufficient — logged with warning flag for admin review.');
         }
+        if (item.part) {
+          await MockDb.addPartToJob(
+            job.job_id,
+            item.part_id,
+            qtyToUse,
+            item.part.sell_price ?? item.part.cost_price ?? 0,
+            UserRole.TECHNICIAN,
+            currentUserId,
+            currentUserName,
+            undefined,
+            { fromVanStock: true, vanStockItemId: item.item_id }
+          );
+        }
       } else {
-        // Non-liquid: legacy van stock usage
-        await deductVanStockPart(
-          item.item_id,
-          job.job_id,
-          qtyToUse,
-          currentUserId,
-          currentUserName,
-          false
-        );
-      }
-
-      // Also add to job parts for invoicing — flag the row as from_van_stock
-      // so the JobDetail PartsSection renders the (VS) marker, and so admin
-      // reports / invoices can distinguish van-stock vs main-inventory parts.
-      if (item.part) {
-        await MockDb.addPartToJob(
-          job.job_id,
-          item.part_id,
-          qtyToUse,
-          item.part.sell_price ?? item.part.cost_price ?? 0,
-          UserRole.TECHNICIAN,
-          currentUserId,
-          currentUserName,
-          undefined,
-          { fromVanStock: true, vanStockItemId: item.item_id }
-        );
+        // Non-liquid: atomic RPC. One transaction across decrement + usage + movement
+        // + job_parts. Fixes Bug 4 (double-deduct via dropped trigger) and Bug 5
+        // (orphan when addPartToJob throws after deduct commits) — both can no longer
+        // happen because the four writes share one transaction. Idempotent.
+        await consumeVanStockPartAtomic({
+          itemId: item.item_id,
+          jobId: job.job_id,
+          quantity: qtyToUse,
+          idempotencyKey,
+        });
       }
 
       // Auto-confirm parts — van stock usage is tracked and auditable,
@@ -280,6 +292,8 @@ export const useJobPartsHandlers = ({
       loadVanStock(job.job_van_stock_id || undefined);
     } catch (e) {
       showToast.error('Failed to use van stock part', (e as Error).message, e, { action_target: 'job', target_id: job?.job_id });
+    } finally {
+      vanStockSubmitRef.current = false;
     }
   }, [job, state, currentUserId, currentUserName, setJob, loadVanStock]);
 

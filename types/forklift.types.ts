@@ -152,8 +152,10 @@ export interface Forklift {
   current_customer_id?: string;
   current_customer?: Customer; // Populated when fetched with joins
   // Hourmeter-based service prediction (for Diesel/LPG/Petrol)
+  fuel_type?: string | null; // 'diesel' | 'lpg' | 'gas' | 'petrol' | 'electric' (DB CHECK constraint)
   last_service_hourmeter?: number; // Hourmeter reading after last service
-  service_interval_hours?: number; // Hours between services (default 500)
+  next_service_hourmeter?: number | null; // Hourmeter at which next service is due
+  service_interval_hours?: number | null; // Hours between services (NULL for calendar-serviced units)
   // Service tracking fields (2026-02-05 enhancement)
   last_serviced_hourmeter?: number; // Hourmeter when last Full Service completed
   next_target_service_hour?: number; // Auto-calculated: last_serviced + interval
