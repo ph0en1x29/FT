@@ -2957,6 +2957,55 @@ Permissions: Accountant, Admin
 
 ---
 
+#### `check_job_completion_readiness(p_job_ids UUID[]) RETURNS TABLE(job_id UUID, can_complete BOOLEAN, blocker TEXT)` **(NEW 2026-05-07)**
+
+Read-only pre-flight for the bulk sign-off banner. For each job_id in the input array, returns whether the completion trigger would currently accept the AWAITING_FINALIZATION transition, and if not, the specific blocker reason.
+
+Delegates to the shared `evaluate_job_completion` helper — same logic the trigger uses. SECURITY INVOKER so RLS on the read tables (`jobs`, `job_service_records`, `job_parts`, `job_requests`, `job_media`, `job_inventory_usage`) governs access; `auth.uid()` flows through normally for the admin-bypass branch.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `p_job_ids` | UUID[] | Jobs to evaluate. Soft-deleted jobs are filtered out. |
+
+| Returns | Description |
+|---------|-------------|
+| job_id | The job |
+| can_complete | TRUE if the trigger would accept the transition |
+| blocker | NULL when can_complete; otherwise the specific reason ("Cannot complete job: Checklist has not been filled.", etc.) |
+
+Permissions: `authenticated`, `service_role`
+
+---
+
+#### `rpc_bulk_complete_jobs(p_job_ids UUID[], p_tech_name TEXT, p_tech_signed_at TIMESTAMPTZ, p_customer_name TEXT, p_customer_ic TEXT, p_customer_signed_at TIMESTAMPTZ) RETURNS TABLE(job_id UUID, ok BOOLEAN, blocker TEXT)` **(NEW 2026-05-07)**
+
+Atomic per-job sign-and-finalize for the bulk sign-off modal. Replaces the previous 3-write flow (tech sig + customer sig + status) which left jobs stuck in a half-state when the trigger rejected the status transition.
+
+Per job: PL/pgSQL implicit subtransaction (`BEGIN ... EXCEPTION ... END`) → `SELECT ... FOR UPDATE NOWAIT` (returns "Job is locked by another session" on contention rather than blocking) → synthesize the post-write row → call `evaluate_job_completion` → if blocker, return ok=false WITHOUT writing → otherwise single UPDATE writing both signatures + status='Awaiting Finalization', then upsert into `job_service_records` for the *_signature_at timestamp columns. Failed iterations roll back without affecting siblings.
+
+Tech sig is idempotent (`COALESCE(jobs.technician_signature, ...)`) — re-entries preserve the original `signed_at` audit trail. Customer sig always overwrites (re-entries can carry different name/IC).
+
+SECURITY DEFINER so the modal can call it without admin role (the trigger's admin-bypass still evaluates against the caller's `auth.uid()`).
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `p_job_ids` | UUID[] | Jobs to complete in this batch |
+| `p_tech_name` | TEXT | Technician name to record on `signed_by_name` (only used if no existing tech sig) |
+| `p_tech_signed_at` | TIMESTAMPTZ | When the technician completed the swipe gesture (audit trail) |
+| `p_customer_name` | TEXT | Customer name |
+| `p_customer_ic` | TEXT | Customer IC number |
+| `p_customer_signed_at` | TIMESTAMPTZ | When the customer completed the swipe gesture |
+
+| Returns | Description |
+|---------|-------------|
+| job_id | The job |
+| ok | TRUE if signed and transitioned to Awaiting Finalization |
+| blocker | NULL on success; trigger blocker text or "Job is locked by another session" / "Job not found or deleted" on failure |
+
+Permissions: `authenticated`, `service_role`
+
+---
+
 ### Service Automation Functions
 
 #### `get_forklifts_due_for_service(p_days_ahead INTEGER DEFAULT 7)`
@@ -3021,7 +3070,8 @@ Scheduled via pg_cron at 8:00 AM MYT daily.
 | `set_technician_response_deadline()` | `trg_set_response_deadline` BEFORE INSERT OR UPDATE OF assigned_at ON jobs | **(NEW 2026-04-07)** Auto-populates `technician_response_deadline` to `assigned_at + 15 minutes` whenever `assigned_at` is written. Resets `last_response_alert_at` and `response_alert_count` on a fresh assignment |
 | `clear_scheduled_reminder_on_date_change()` | `trg_clear_scheduled_reminder_on_date_change` BEFORE UPDATE OF scheduled_date ON jobs | **(NEW 2026-04-10)** Resets `scheduled_reminder_sent_at` to NULL whenever `scheduled_date` is rewritten, so rescheduling a job automatically re-arms the 7:30 AM MYT reminder for the new date |
 | `send_scheduled_job_reminders()` | Called from `run_escalation_checks()` every 5 minutes | **(NEW 2026-04-10)** Selects `status IN ('New','Assigned')` jobs where `scheduled_date <= NOW()` AND `scheduled_reminder_sent_at IS NULL` AND `assigned_technician_id IS NOT NULL`, inserts a `scheduled_job` notification for the assigned technician, stamps `scheduled_reminder_sent_at = NOW()`. 24-hour lookback prevents burst-firing historical rows on cold start |
-| `validate_job_completion_requirements()` | `trg_validate_completion` ON jobs | Ensures all required fields before job completion |
+| `validate_job_completion_requirements()` | `trg_validate_completion` ON jobs | Thin wrapper. **(REFACTORED 2026-05-07)** Early-returns on non-finalization transitions, then delegates to `evaluate_job_completion(NEW, user_role)` and `RAISE EXCEPTION` if the helper returns a non-NULL blocker. Same external behavior; gate logic now defined once in the helper |
+| `evaluate_job_completion(p_row jobs, p_user_role text) RETURNS text` | callable directly (NOT a trigger) | **(NEW 2026-05-07)** Shared helper holding all 8 completion gates (job started, checklist, service notes / job_carried_out, parts recorded or no_parts_used, approved spare-part acknowledged, spare-part-photo conflict, tech sig, customer sig). Returns the blocker reason as TEXT, or NULL if the job would pass. Called by both `validate_job_completion_requirements` (the trigger) and `check_job_completion_readiness` (the read RPC) and `rpc_bulk_complete_jobs` (the atomic write RPC). Single source of truth |
 | `lock_service_record_on_invoice()` | `trg_lock_on_invoice` ON jobs | Locks service records when job is invoiced |
 | `prevent_locked_service_record_edit()` | `trg_prevent_locked_edit` ON job_service_records | Prevents unauthorized edits to locked records |
 | `deduct_inventory_on_completion()` | `trg_deduct_inventory` ON jobs | Deducts parts from inventory on job completion |

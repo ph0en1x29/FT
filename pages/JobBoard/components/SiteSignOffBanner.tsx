@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
+import { checkJobCompletionReadiness } from '../../../services/jobCompletionService';
+import { showToast } from '../../../services/toastService';
 import type { Job } from '../../../types';
 import type { User } from '../../../types/user.types';
 import { BulkSignOffModal } from './BulkSignOffModal';
+
+export type ReadinessMap = Map<string, { canComplete: boolean; blocker: string | null }>;
 
 interface SiteSignOffBannerProps {
   jobs: Job[];
@@ -30,6 +34,33 @@ export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
   onComplete,
 }) => {
   const [selectedGroup, setSelectedGroup] = useState<SiteGroup | null>(null);
+  const [readiness, setReadiness] = useState<ReadinessMap>(new Map());
+  const [loadingGroupId, setLoadingGroupId] = useState<string | null>(null);
+
+  const handleOpenSignOff = async (group: SiteGroup) => {
+    setLoadingGroupId(group.customerId);
+    try {
+      // Pre-flight readiness check: ask the DB which jobs in this group
+      // would actually pass the completion trigger if we tried to flip them
+      // to 'Awaiting Finalization' now. The modal renders the per-job
+      // blocker (missing checklist / service notes / parts / etc.) so the
+      // tech knows what to fix BEFORE swiping signatures. The board payload
+      // (JOB_SELECT.BOARD) doesn't carry the joined data needed to evaluate
+      // these gates client-side, so we resolve them per-click here.
+      const map = await checkJobCompletionReadiness(group.jobs.map((j) => j.job_id));
+      setReadiness(map);
+      setSelectedGroup(group);
+    } catch {
+      showToast.error('Could not check job readiness. Please try again.');
+    } finally {
+      setLoadingGroupId(null);
+    }
+  };
+
+  const handleClose = () => {
+    setSelectedGroup(null);
+    setReadiness(new Map());
+  };
 
   const customerGroups = React.useMemo(() => {
     const groups = new Map<string, SiteGroup & { siteIds: Set<string> }>();
@@ -71,7 +102,9 @@ export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
       group.jobs.push(job);
       group.siteIds.add(job.site_id || 'no-site');
 
-      if (!job.technician_signature) {
+      // Count any job missing EITHER signature so the banner stays
+      // available for tech-signed-but-customer-unsigned recovery cases.
+      if (!job.technician_signature || !job.customer_signature) {
         group.unsignedCount++;
       }
     });
@@ -116,10 +149,11 @@ export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
               </div>
             </div>
             <button
-              onClick={() => setSelectedGroup(group)}
-              className="btn-premium px-4 py-2 text-sm font-medium whitespace-nowrap"
+              onClick={() => handleOpenSignOff(group)}
+              disabled={loadingGroupId === group.customerId}
+              className="btn-premium px-4 py-2 text-sm font-medium whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Sign Off
+              {loadingGroupId === group.customerId ? 'Loading…' : 'Sign Off'}
             </button>
           </div>
         ))}
@@ -128,12 +162,13 @@ export const SiteSignOffBanner: React.FC<SiteSignOffBannerProps> = ({
       {selectedGroup && (
         <BulkSignOffModal
           siteGroup={selectedGroup}
+          readiness={readiness}
           currentUser={currentUser}
           onComplete={() => {
-            setSelectedGroup(null);
+            handleClose();
             onComplete();
           }}
-          onClose={() => setSelectedGroup(null)}
+          onClose={handleClose}
         />
       )}
     </>

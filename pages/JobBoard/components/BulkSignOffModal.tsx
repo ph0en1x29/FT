@@ -1,12 +1,11 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
 import { SwipeToSign } from '../../../components/SwipeToSign';
-import { bulkSwipeSignJobs } from '../../../services/jobMediaService';
+import { bulkCompleteJobs } from '../../../services/jobCompletionService';
 import { showToast } from '../../../services/toastService';
-import { updateJobStatus } from '../../../services/jobStatusService';
-import { JobStatus } from '../../../types';
 import type { Job } from '../../../types';
 import type { User } from '../../../types/user.types';
+import type { ReadinessMap } from './SiteSignOffBanner';
 
 interface SiteGroup {
   customerId: string;
@@ -19,6 +18,13 @@ interface SiteGroup {
 
 interface BulkSignOffModalProps {
   siteGroup: SiteGroup;
+  /**
+   * Pre-flight readiness map (lazy-fetched by the banner). For each job,
+   * `canComplete=true` means the trigger would accept the AWAITING_FINALIZATION
+   * transition right now; otherwise `blocker` carries the specific reason
+   * (missing checklist, missing service notes, parts not recorded, etc.).
+   */
+  readiness: ReadinessMap;
   currentUser: User;
   onComplete: () => void;
   onClose: () => void;
@@ -26,42 +32,76 @@ interface BulkSignOffModalProps {
 
 type ModalStep = 'technician' | 'customer';
 
-/** Returns true if a job has an after photo uploaded */
-const hasAfterPhoto = (job: Job) =>
-  job.media?.some((m) => m.category === 'after') ?? false;
+interface PerJobResult {
+  job_id: string;
+  ok: boolean;
+  blocker: string | null;
+}
+
+const isReady = (readiness: ReadinessMap, jobId: string) =>
+  readiness.get(jobId)?.canComplete === true;
 
 /**
- * Two-step modal for bulk signing jobs at a site.
- * Step 1: Technician swipe signature (only jobs with after photos are selectable)
- * Step 2: Customer swipe signature
- * On completion: transitions all signed jobs to AWAITING_FINALIZATION automatically.
+ * Bulk sign-off modal driven by an atomic completion RPC.
+ *
+ * Step 1 (technician): tech selects jobs to sign and completes a swipe-to-sign
+ * gesture. Skipped automatically when every job in the working set already
+ * has a tech signature (recovery case).
+ *
+ * Step 2 (customer): customer name + IC + swipe.
+ *
+ * Submit: single call to `rpc_bulk_complete_jobs` which per job locks the
+ * row, pre-validates via the shared trigger helper, and atomically writes
+ * both signatures and the AWAITING_FINALIZATION status. Failed jobs do NOT
+ * leave behind partial signature writes. Partial failures keep the modal
+ * open with the per-job blocker visible so the tech knows what to fix.
  */
 export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
   siteGroup,
+  readiness,
   currentUser,
   onComplete,
   onClose,
 }) => {
-  const [step, setStep] = useState<ModalStep>('technician');
-
-  // Pre-select only eligible jobs (no tech signature + has after photo)
-  const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(
-    new Set(
-      siteGroup.jobs
-        .filter((job) => !job.technician_signature && hasAfterPhoto(job))
-        .map((job) => job.job_id)
-    )
+  // Working set: jobs missing a customer signature. Three sub-buckets:
+  //   - eligibleJobs:           ready (per readiness) AND tech sig pending → step 1 candidates
+  //   - techAlreadySignedJobs:  ready AND tech sig already present → recovery cohort
+  //   - blockedJobs:            NOT ready (per readiness) → render with specific blocker text
+  const customerUnsignedJobs = siteGroup.jobs.filter((job) => !job.customer_signature);
+  const eligibleJobs = customerUnsignedJobs.filter(
+    (job) => !job.technician_signature && isReady(readiness, job.job_id)
   );
-  const [techSigned, setTechSigned] = useState(false);
+  const techAlreadySignedJobs = customerUnsignedJobs.filter(
+    (job) => job.technician_signature && isReady(readiness, job.job_id)
+  );
+  const blockedJobs = customerUnsignedJobs.filter(
+    (job) => !isReady(readiness, job.job_id)
+  );
+
+  // Skip step 1 entirely if every signable job in the batch is already tech-signed.
+  const skipTechStep = eligibleJobs.length === 0 && techAlreadySignedJobs.length > 0;
+
+  const [step, setStep] = useState<ModalStep>(skipTechStep ? 'customer' : 'technician');
+  const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(
+    new Set([
+      ...eligibleJobs.map((j) => j.job_id),
+      ...techAlreadySignedJobs.map((j) => j.job_id),
+    ])
+  );
+  const [techSigned, setTechSigned] = useState(skipTechStep);
+  const [techSignedAt, setTechSignedAt] = useState<string | null>(
+    skipTechStep ? new Date().toISOString() : null
+  );
   const [customerName, setCustomerName] = useState('');
   const [icNumber, setIcNumber] = useState('');
   const [customerSigned, setCustomerSigned] = useState(false);
+  const [customerSignedAt, setCustomerSignedAt] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Jobs missing tech signature, split into eligible/blocked
-  const unsignedJobs = siteGroup.jobs.filter((job) => !job.technician_signature);
-  const eligibleJobs = unsignedJobs.filter(hasAfterPhoto);
-  const blockedJobs = unsignedJobs.filter((job) => !hasAfterPhoto(job));
+  // Populated after submit. When non-null, modal renders the per-job result
+  // panel and stays open. Successes get filtered out of the working set on
+  // the next render via the parent's refresh; failures show the blocker text
+  // so the tech can go fix the underlying issue and retry.
+  const [submitResults, setSubmitResults] = useState<PerJobResult[] | null>(null);
 
   const toggleJobSelection = (jobId: string) => {
     setSelectedJobIds((prev) => {
@@ -70,6 +110,16 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
       else next.add(jobId);
       return next;
     });
+  };
+
+  const onTechSwipe = () => {
+    setTechSigned(true);
+    setTechSignedAt(new Date().toISOString());
+  };
+
+  const onCustomerSwipe = () => {
+    setCustomerSigned(true);
+    setCustomerSignedAt(new Date().toISOString());
   };
 
   const handleTechNext = () => {
@@ -85,11 +135,16 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
   };
 
   const handleBack = () => {
+    if (skipTechStep) {
+      onClose();
+      return;
+    }
     setStep('technician');
     setCustomerSigned(false);
+    setCustomerSignedAt(null);
   };
 
-  const handleCustomerSubmit = async () => {
+  const handleSubmit = async () => {
     if (!customerSigned) {
       showToast.error('Please complete customer signature');
       return;
@@ -104,47 +159,43 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
     }
 
     setIsSubmitting(true);
+    setSubmitResults(null);
     try {
-      const jobIdsArray = Array.from(selectedJobIds) as string[];
+      const results = await bulkCompleteJobs({
+        jobIds: Array.from(selectedJobIds),
+        techName: currentUser.name,
+        techSignedAt: techSignedAt ?? new Date().toISOString(),
+        customerName: customerName.trim(),
+        customerIc: icNumber.trim(),
+        customerSignedAt: customerSignedAt ?? new Date().toISOString(),
+      });
 
-      // 1. Write technician signature to all selected jobs
-      await bulkSwipeSignJobs(jobIdsArray, 'technician', currentUser.name);
+      const successes = results.filter((r) => r.ok);
+      const failures = results.filter((r) => !r.ok);
 
-      // 2. Write customer signature to all selected jobs
-      await bulkSwipeSignJobs(
-        jobIdsArray,
-        'customer',
-        customerName.trim(),
-        icNumber.trim()
-      );
-
-      // 3. Transition each job to AWAITING_FINALIZATION now that both
-      //    signatures are present and hourmeter was set at job start.
-      //    Run in parallel; log individual failures without blocking the rest.
-      const statusResults = await Promise.allSettled(
-        jobIdsArray.map((jobId) =>
-          updateJobStatus(
-            jobId,
-            JobStatus.AWAITING_FINALIZATION,
-            currentUser.user_id,
-            currentUser.name
-          )
-        )
-      );
-
-      const statusFailed = statusResults.filter((r) => r.status === 'rejected').length;
-      if (statusFailed > 0) {
-        showToast.warning(
-          `Signed ${jobIdsArray.length} job${jobIdsArray.length > 1 ? 's' : ''}`,
-          `${statusFailed} job${statusFailed > 1 ? 's' : ''} could not auto-complete — check hourmeter`
-        );
-      } else {
+      if (failures.length === 0) {
         showToast.success(
-          `${jobIdsArray.length} job${jobIdsArray.length > 1 ? 's' : ''} signed & completed`
+          `${successes.length} job${successes.length > 1 ? 's' : ''} signed & completed`
         );
+        onComplete();
+        return;
       }
 
-      onComplete();
+      // Partial — keep modal open so the tech can read the per-job blockers.
+      // The successful jobs already transitioned, so the parent will refresh
+      // them out of the working set on next banner re-fetch.
+      setSubmitResults(results);
+      if (successes.length > 0) {
+        showToast.warning(
+          `${successes.length} signed, ${failures.length} blocked`,
+          'See per-job reasons below — fix on the job page, then retry.'
+        );
+      } else {
+        showToast.error(
+          'No jobs signed',
+          'See per-job reasons below — fix on the job page, then retry.'
+        );
+      }
     } catch (error) {
       showToast.error(
         error instanceof Error ? error.message : 'Failed to sign jobs'
@@ -153,6 +204,60 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  // Render the per-job result panel once we have submitResults.
+  if (submitResults) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="p-6 border-b border-[var(--border)]">
+            <h2 className="text-xl font-semibold text-[var(--text)] mb-1">
+              Bulk Sign Off — Result
+            </h2>
+            <p className="text-sm text-[var(--text-muted)]">
+              {submitResults.filter((r) => r.ok).length} of {submitResults.length} job{submitResults.length > 1 ? 's' : ''} completed.
+            </p>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6 space-y-2">
+            {submitResults.map((r) => {
+              const job = siteGroup.jobs.find((j) => j.job_id === r.job_id);
+              const label = job ? `Job #${job.job_number}` : `Job ${r.job_id.slice(0, 8)}`;
+              return (
+                <div
+                  key={r.job_id}
+                  className={`flex items-start gap-3 p-3 rounded-lg border ${
+                    r.ok
+                      ? 'bg-[var(--success-bg)] border-[var(--success)]/30'
+                      : 'bg-[var(--warning-bg)] border-[var(--warning)]/30'
+                  }`}
+                >
+                  {r.ok ? (
+                    <CheckCircle2 className="w-5 h-5 mt-0.5 text-[var(--success)] shrink-0" />
+                  ) : (
+                    <XCircle className="w-5 h-5 mt-0.5 text-[var(--warning)] shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-[var(--text)]">{label}</div>
+                    <div className="text-xs text-[var(--text-muted)] mt-0.5">
+                      {r.ok ? 'Signed and moved to Awaiting Finalization.' : r.blocker}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="p-6 border-t border-[var(--border)] flex gap-3">
+            <button
+              onClick={onComplete}
+              className="flex-1 px-4 py-2.5 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:bg-[var(--accent)]/90 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -166,7 +271,7 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
           <p className="text-sm text-[var(--text-muted)]">{siteGroup.siteAddress}</p>
           <div className="mt-3 flex items-center gap-2">
             <div className={`px-3 py-1 rounded-full text-xs font-medium ${step === 'technician' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--success)] text-white'}`}>
-              1. Technician
+              {skipTechStep ? '✓ Technician' : '1. Technician'}
             </div>
             <div className="flex-1 h-px bg-[var(--border)]" />
             <div className={`px-3 py-1 rounded-full text-xs font-medium ${step === 'customer' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-subtle)] text-[var(--text-muted)]'}`}>
@@ -184,10 +289,15 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
               {/* Eligible jobs */}
               <div>
                 <h3 className="text-sm font-medium text-[var(--text)] mb-3">
-                  Select Jobs to Sign ({selectedJobIds.size} of {eligibleJobs.length} selected)
+                  Select Jobs to Sign ({selectedJobIds.size} of {eligibleJobs.length + techAlreadySignedJobs.length} selected)
                 </h3>
-                {eligibleJobs.length === 0 && blockedJobs.length === 0 && (
+                {eligibleJobs.length === 0 && blockedJobs.length === 0 && techAlreadySignedJobs.length === 0 && (
                   <p className="text-sm text-[var(--text-muted)]">No unsigned jobs to show.</p>
+                )}
+                {techAlreadySignedJobs.length > 0 && (
+                  <p className="text-xs text-[var(--text-muted)] mb-2">
+                    {techAlreadySignedJobs.length} job{techAlreadySignedJobs.length > 1 ? 's' : ''} already signed by you — customer signature will be applied.
+                  </p>
                 )}
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {eligibleJobs.map((job) => (
@@ -214,32 +324,40 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
                 </div>
               </div>
 
-              {/* Blocked jobs — missing after photo */}
+              {/* Blocked jobs — render the SPECIFIC blocker reason from readiness */}
               {blockedJobs.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle className="w-4 h-4 text-[var(--warning)]" />
                     <h3 className="text-sm font-medium text-[var(--warning)]">
-                      Cannot sign yet — missing after photo
+                      Cannot sign yet — fix on job page first
                     </h3>
                   </div>
                   <div className="space-y-2">
-                    {blockedJobs.map((job) => (
-                      <div
-                        key={job.job_id}
-                        className="flex items-center gap-3 p-3 bg-[var(--warning-bg)] border border-[var(--warning)]/30 rounded-lg opacity-70"
-                      >
-                        <input type="checkbox" disabled className="w-4 h-4 rounded opacity-40" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-[var(--text)]">
-                            Job #{job.job_number}
-                          </div>
-                          <div className="text-xs text-[var(--warning)] truncate">
-                            {job.forklift?.model || 'N/A'} · {job.forklift?.serial_number || job.forklift?.forklift_no || 'N/A'} — upload after photo first
+                    {blockedJobs.map((job) => {
+                      const blocker = readiness.get(job.job_id)?.blocker
+                        ?? 'Job not ready for completion.';
+                      // Trigger messages start with "Cannot complete job: " — strip
+                      // for cleaner inline display.
+                      const reason = blocker.replace(/^Cannot complete job:\s*/, '');
+                      return (
+                        <div
+                          key={job.job_id}
+                          className="flex items-start gap-3 p-3 bg-[var(--warning-bg)] border border-[var(--warning)]/30 rounded-lg opacity-90"
+                        >
+                          <input type="checkbox" disabled className="w-4 h-4 rounded opacity-40 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-[var(--text)]">
+                              Job #{job.job_number}
+                            </div>
+                            <div className="text-xs text-[var(--text-muted)] truncate">
+                              {job.forklift?.model || 'N/A'} · {job.forklift?.serial_number || job.forklift?.forklift_no || 'N/A'}
+                            </div>
+                            <div className="text-xs text-[var(--warning)] mt-1">{reason}</div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -251,7 +369,7 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
                   I certify that the selected jobs have been completed according to standards.
                 </p>
                 <SwipeToSign
-                  onSign={() => setTechSigned(true)}
+                  onSign={onTechSwipe}
                   signed={techSigned}
                   label="Swipe to Sign"
                 />
@@ -316,7 +434,7 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
                   <p className="text-xs text-[var(--warning)] mb-2">Fill in name and IC number to sign</p>
                 )}
                 <SwipeToSign
-                  onSign={() => setCustomerSigned(true)}
+                  onSign={onCustomerSwipe}
                   signed={customerSigned}
                   label="Swipe to Confirm"
                   disabled={!customerName.trim() || !icNumber.trim()}
@@ -351,10 +469,10 @@ export const BulkSignOffModal: React.FC<BulkSignOffModalProps> = ({
                 disabled={isSubmitting}
                 className="flex-1 px-4 py-2.5 border border-[var(--border)] rounded-lg text-sm font-medium text-[var(--text)] hover:bg-[var(--bg)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Back
+                {skipTechStep ? 'Cancel' : 'Back'}
               </button>
               <button
-                onClick={handleCustomerSubmit}
+                onClick={handleSubmit}
                 disabled={isSubmitting || !customerSigned || !customerName.trim() || !icNumber.trim()}
                 className="flex-1 px-4 py-2.5 bg-[var(--success)] text-white rounded-lg text-sm font-medium hover:bg-[var(--success)]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >

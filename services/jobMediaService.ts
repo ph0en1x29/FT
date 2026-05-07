@@ -274,8 +274,34 @@ export const swipeSignJob = async (
 };
 
 /**
+ * Returns the subset of given job_ids that already have at least one
+ * media row with category='after'. Used by the bulk sign-off banner to
+ * gate which jobs are eligible without dragging media into JOB_SELECT.BOARD.
+ */
+export const getAfterPhotoJobIds = async (
+  jobIds: string[]
+): Promise<Set<string>> => {
+  if (jobIds.length === 0) return new Set();
+
+  const { data, error } = await supabase
+    .from('job_media')
+    .select('job_id')
+    .in('job_id', jobIds)
+    .eq('category', 'after');
+
+  if (error) throw new Error(error.message);
+
+  return new Set((data ?? []).map((row: { job_id: string }) => row.job_id));
+};
+
+/**
  * Bulk sign multiple jobs with swipe-based signature (no image upload)
- * Applies the same signature entry to all jobs in the array
+ * Applies the same signature entry to all jobs in the array.
+ *
+ * Idempotency: when type='technician', skips jobs whose technician_signature
+ * is already populated — preserves the original signed_at audit trail when a
+ * tech bulk-signs after having signed individually. Customer sigs always
+ * write (re-entry typically captures a different customer name/IC).
  */
 export const bulkSwipeSignJobs = async (
   jobIds: string[],
@@ -296,11 +322,18 @@ export const bulkSwipeSignJobs = async (
   const timestampField = type === 'technician' ? 'technician_signature_at' : 'customer_signature_at';
 
   const updatePromises = jobIds.map(async (jobId) => {
-    // Update job
-    const { data, error } = await supabase
+    // Update job. For technician sigs only, gate on `technician_signature IS NULL`
+    // so a re-entry doesn't clobber the existing audit trail.
+    let updateQuery = supabase
       .from('jobs')
       .update({ [field]: signatureEntry })
-      .eq('job_id', jobId)
+      .eq('job_id', jobId);
+
+    if (type === 'technician') {
+      updateQuery = updateQuery.is('technician_signature', null);
+    }
+
+    const { data, error } = await updateQuery
       .select(`
         *,
         customer:customers(*),
@@ -309,9 +342,15 @@ export const bulkSwipeSignJobs = async (
         media:job_media!job_media_job_id_fkey(*),
         extra_charges:extra_charges(*)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw new Error(`Failed to sign job ${jobId}: ${error.message}`);
+
+    // `data` is null when the technician_signature guard matched zero rows
+    // (i.e. the job was already tech-signed). That's a no-op, not an error.
+    if (!data) {
+      return null;
+    }
 
     // Update job_service_records
     const { error: serviceRecordError } = await supabase
@@ -337,7 +376,8 @@ export const bulkSwipeSignJobs = async (
     return data as Job;
   });
 
-  return await Promise.all(updatePromises);
+  const results = await Promise.all(updatePromises);
+  return results.filter((job): job is Job => job !== null);
 };
 
 export const deleteMedia = async (jobId: string, mediaId: string): Promise<Job> => {
