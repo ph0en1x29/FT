@@ -182,7 +182,20 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
     fetchJobs();
   }, [fetchJobs]);
 
-  // Real-time subscription for job changes — stable deps via ref
+  // Real-time subscription for job changes — stable deps via ref.
+  // For technicians we narrow the postgres_changes filter to their own primary
+  // assigned jobs — without this, every UPDATE/INSERT across the entire 800+
+  // job fleet pushes a WebSocket message to every connected tech (admins
+  // editing other techs' jobs, status flips, etc.). Helper-job updates are
+  // covered by the separate `job_assignments` channel below: when a helper
+  // assignment for this user changes, we full-refetch the job list, which
+  // pulls in fresh helper-job rows. Admin/supervisor/store roles keep the
+  // unfiltered firehose so they continue to see fleet-wide activity in the
+  // QuickStats counts and cross-tech assignment toasts.
+  const techJobFilter = displayRole === UserRole.TECHNICIAN
+    ? `assigned_technician_id=eq.${currentUser.user_id}`
+    : undefined;
+
   useEffect(() => {
     const channel = supabase
       .channel('job-board-realtime')
@@ -192,6 +205,7 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
           event: 'UPDATE',
           schema: 'public',
           table: 'jobs',
+          ...(techJobFilter ? { filter: techJobFilter } : {}),
         },
         (payload) => {
           const updatedJob = payload.new as Job;
@@ -257,6 +271,7 @@ export function useJobData({ currentUser, displayRole }: UseJobDataProps): UseJo
           event: 'INSERT',
           schema: 'public',
           table: 'jobs',
+          ...(techJobFilter ? { filter: techJobFilter } : {}),
         },
         (payload) => {
           const newJob = payload.new as Job;

@@ -114,12 +114,13 @@ const InventoryPageMain: React.FC<InventoryPageProps> = ({ currentUser }) => {
     setSearchParams(nextParams);
   };
 
-  // Load parts when parts tab is active
-  useEffect(() => {
-    if (activeTab === 'parts') {
-      loadParts();
-    }
-  }, [activeTab, loadParts]);
+  // Tab navigation no longer blanket-invalidates inventory caches on every
+  // switch back to "parts" — react-query's staleTime gating already handles
+  // refetching stale data when the user returns. Switching vanstock → parts
+  // used to throw away cached stats / categories / part-codes for no reason,
+  // forcing 4 redundant fetches. The `enabled: activeTab === 'parts'` flag on
+  // the inner queries is the real lever — they pause when off-tab and resume
+  // when re-entered, with normal staleness semantics.
 
   useEffect(() => {
     if (activeTab !== 'parts') return;

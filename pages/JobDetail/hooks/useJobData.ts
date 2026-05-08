@@ -138,11 +138,14 @@ export const useJobData = ({ jobId, currentUserId, currentUserRole, state }: Use
     onRequestsUpdated: useCallback(() => loadRequestsRef.current(), []),
   });
 
-  // Initial data load - only run once when jobId changes
+  // Initial data load - only run once when jobId changes.
+  // loadVanStock() is intentionally NOT called here: loadJob's parallel fan-out
+  // already fetches the van stock for technicians (see Promise.all above), so a
+  // separate call would duplicate the request on every JobDetail open. The
+  // standalone helper is still exported for post-mutation refresh paths.
   useEffect(() => {
     loadJob();
     loadRequests();
-    loadVanStock();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]); // Only depend on jobId, not the callbacks
 

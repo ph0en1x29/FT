@@ -13,6 +13,9 @@ interface PartsSectionProps {
   roleFlags: RoleFlags;
   statusFlags: StatusFlags;
   partOptions: ComboboxOption[];
+  /** Server-side parts search — fires on each keystroke (debounced inside Combobox). */
+  onPartSearch?: (query: string) => void;
+  isSearchingParts?: boolean;
   selectedPartId: string;
   selectedPartPrice: string;
   addPartQuantity?: string;
@@ -66,6 +69,8 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
   roleFlags,
   statusFlags,
   partOptions,
+  onPartSearch,
+  isSearchingParts,
   selectedPartId,
   selectedPartPrice,
   addPartQuantity,
@@ -485,6 +490,8 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
               <Combobox
                 options={partOptions}
                 value={selectedPartId}
+                onSearch={onPartSearch}
+                isSearching={isSearchingParts}
                 onChange={(val) => {
                   onSelectedPartIdChange(val);
                   const part = partOptions.find(p => p.id === val);

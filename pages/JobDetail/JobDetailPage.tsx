@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle,ArrowLeft,Camera,ClipboardList,Clock,FileText,ImageIcon,Package,ShieldCheck } from 'lucide-react';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate,useParams } from 'react-router-dom';
 import { ComboboxOption } from '../../components/Combobox';
 import ServiceUpgradeModal from '../../components/ServiceUpgradeModal';
 import { SkeletonJobDetail } from '../../components/Skeleton';
 import { useDevModeContext } from '../../contexts/DevModeContext';
-import { usePartsForList,useTechnicians } from '../../hooks/useQueryHooks';
+import { useSearchParts,useTechnicians } from '../../hooks/useQueryHooks';
 import { getCustomerContacts,getCustomerSites } from '../../services/customerService';
 import { HourmeterFlagReason,Job,JobRequest,JobStatus,MANDATORY_CHECKLIST_ITEMS,normalizeChecklistState,Part,User } from '../../types';
 import { CustomerContact,CustomerSite } from '../../types/customer.types';
@@ -69,21 +69,32 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
   const { job, setJob, loading } = state;
 
   // Cached data
-  const { data: cachedParts = [] } = usePartsForList();
+  // Parts: server-side search (replaces the 3,306-row preload that fired on
+  // every JobDetail open). The Combobox calls `searchParts` on each keystroke
+  // (debounced 250ms in Combobox itself); results stay in `searchedParts`. We
+  // also keep a snapshot of the most-recently-picked Part so its is_liquid
+  // flag and Combobox label remain stable when the user types a new query
+  // that filters it out of the latest results.
+  const { parts: searchedParts, isSearching: isSearchingParts, search: searchParts } = useSearchParts(50);
+  const [selectedPartSnapshot, setSelectedPartSnapshot] = useState<Part | null>(null);
   const { data: cachedTechnicians = [] } = useTechnicians();
-  const parts = cachedParts as unknown as Part[];
   const technicians = cachedTechnicians as User[];
 
-  // Fetch PIC and Site for this job's customer
+  // Fetch PIC and Site for this job's customer — only when the job actually has
+  // one set. Most jobs leave contact_id / site_id null, so gating on those skips
+  // two redundant queries on every JobDetail open. Cached 5 min since contacts
+  // and sites change rarely.
   const { data: customerContacts = [] } = useQuery({
     queryKey: ['customer-contacts', job?.customer_id],
     queryFn: () => getCustomerContacts(job!.customer_id),
-    enabled: !!job?.customer_id,
+    enabled: !!job?.customer_id && !!job?.contact_id,
+    staleTime: 5 * 60 * 1000,
   });
   const { data: customerSites = [] } = useQuery({
     queryKey: ['customer-sites', job?.customer_id],
     queryFn: () => getCustomerSites(job!.customer_id),
-    enabled: !!job?.customer_id,
+    enabled: !!job?.customer_id && !!job?.site_id,
+    staleTime: 5 * 60 * 1000,
   });
   const jobContact = customerContacts.find((c: CustomerContact) => c.contact_id === job?.contact_id);
   const jobSite = customerSites.find((s: CustomerSite) => s.site_id === job?.site_id);
@@ -140,24 +151,49 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
     state.showReconciliationModal || state.showReportOptionsModal || (state.serviceUpgradePrompt?.show ?? false);
 
   // Options for comboboxes — memoized so memoized children don't re-render on every parent state tick.
+  // Parts options come from the server-side search results, with the
+  // most-recently-picked part prepended so the Combobox can render its label
+  // even after a fresh search filters it out.
   const partOptions: ComboboxOption[] = useMemo(
-    () => parts.map(p => {
-      const stock = p.stock_quantity ?? 0;
-      const stockLabel = stock === 0 ? '⛔ OOS' : stock <= 5 ? `⚠️ ${stock}` : `${stock}`;
-      return {
-        id: p.part_id, label: p.part_name,
-        subLabel: roleFlags.canViewPricing
-          ? `${p.part_code} · RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} · Stock: ${stockLabel}`
-          : `${p.part_code} · Stock: ${stockLabel}`
-      };
-    }),
-    [parts, roleFlags.canViewPricing],
+    () => {
+      const seen = new Set<string>();
+      const ordered: Part[] = [];
+      if (selectedPartSnapshot) {
+        ordered.push(selectedPartSnapshot);
+        seen.add(selectedPartSnapshot.part_id);
+      }
+      for (const p of searchedParts) {
+        if (!seen.has(p.part_id)) { ordered.push(p); seen.add(p.part_id); }
+      }
+      return ordered.map(p => {
+        const stock = p.stock_quantity ?? 0;
+        const stockLabel = stock === 0 ? '⛔ OOS' : stock <= 5 ? `⚠️ ${stock}` : `${stock}`;
+        return {
+          id: p.part_id, label: p.part_name,
+          subLabel: roleFlags.canViewPricing
+            ? `${p.part_code} · RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} · Stock: ${stockLabel}`
+            : `${p.part_code} · Stock: ${stockLabel}`
+        };
+      });
+    },
+    [searchedParts, selectedPartSnapshot, roleFlags.canViewPricing],
   );
   const techOptions: ComboboxOption[] = useMemo(
     () => technicians.map(t => ({ id: t.user_id, label: t.name, subLabel: t.email })),
     [technicians],
   );
-  const selectedPartIsLiquid = parts.find(p => p.part_id === state.selectedPartId)?.is_liquid ?? false;
+  // When the user picks a part from the Combobox, snapshot the full row so
+  // is_liquid, sell_price, etc. stay correct even after they type a new query
+  // that filters it out of `searchedParts`. Wraps the bare setSelectedPartId
+  // setter from useJobDetailState.
+  const handleSelectedPartIdChange = useCallback((id: string) => {
+    state.setSelectedPartId(id);
+    if (!id) { setSelectedPartSnapshot(null); return; }
+    const found = searchedParts.find(p => p.part_id === id)
+      ?? (selectedPartSnapshot?.part_id === id ? selectedPartSnapshot : null);
+    if (found) setSelectedPartSnapshot(found);
+  }, [searchedParts, selectedPartSnapshot, state]);
+  const selectedPartIsLiquid = selectedPartSnapshot?.is_liquid ?? false;
 
   if (loading) return (
     <div className="max-w-7xl mx-auto p-6 fade-in">
@@ -286,10 +322,11 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
             summary={job.parts_used && job.parts_used.length > 0 ? `${job.parts_used.length} part${job.parts_used.length !== 1 ? 's' : ''} used` : 'No parts used'}
           >
           <PartsSection job={job} roleFlags={roleFlags} statusFlags={statusFlags} partOptions={partOptions}
+            onPartSearch={searchParts} isSearchingParts={isSearchingParts}
             selectedPartId={state.selectedPartId} selectedPartPrice={state.selectedPartPrice}
             addPartQuantity={state.addPartQuantity} onAddPartQuantityChange={state.setAddPartQuantity}
             editingPartId={state.editingPartId} editingPrice={state.editingPrice} noPartsUsed={state.noPartsUsed}
-            onSelectedPartIdChange={state.setSelectedPartId} onSelectedPartPriceChange={state.setSelectedPartPrice}
+            onSelectedPartIdChange={handleSelectedPartIdChange} onSelectedPartPriceChange={state.setSelectedPartPrice}
             onAddPart={actions.handleAddPart} onStartEditPrice={actions.handleStartEditPartPrice}
             onSavePartPrice={actions.handleSavePartPrice} onCancelEdit={actions.handleCancelPartEdit}
             onRemovePart={actions.handleRemovePart} onEditingPriceChange={state.setEditingPrice}
@@ -479,13 +516,18 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         onReject={actions.handleRejectRequest}
         onClose={() => { state.setShowApprovalModal(false); state.setApprovalRequest(null); }}
       />
-      <BulkApproveRequestsModal
-        show={state.showBulkApproveModal}
-        requests={state.bulkApproveRequests as JobRequest[]}
-        submitting={state.submittingApproval}
-        onApproveAll={actions.handleBulkApproveRequests}
-        onClose={() => { state.setShowBulkApproveModal(false); state.setBulkApproveRequests([]); }}
-      />
+      {/* Conditionally rendered so its `usePartsForList` (used by the
+          fuzzy-match auto-suggest) only fires when an admin actually opens the
+          modal, not on every JobDetail mount. */}
+      {state.showBulkApproveModal && (
+        <BulkApproveRequestsModal
+          show={state.showBulkApproveModal}
+          requests={state.bulkApproveRequests as JobRequest[]}
+          submitting={state.submittingApproval}
+          onApproveAll={actions.handleBulkApproveRequests}
+          onClose={() => { state.setShowBulkApproveModal(false); state.setBulkApproveRequests([]); }}
+        />
+      )}
       <HelperModal
         show={state.showAssignHelperModal}
         techOptions={techOptions}

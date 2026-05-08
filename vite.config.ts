@@ -32,14 +32,13 @@ export default defineConfig(({ mode }) => {
             skipWaiting: true,
             clientsClaim: true,
             runtimeCaching: [
-              {
-                urlPattern: /supabase\.co/,
-                handler: 'NetworkFirst',
-                options: {
-                  cacheName: 'api-cache',
-                  expiration: { maxAgeSeconds: 86400 },
-                },
-              },
+              // NOTE: previously cached supabase.co with NetworkFirst (24h TTL).
+              // Removed 2026-05-08: real-time SaaS gets near-zero benefit from a
+              // 24h API cache (NetworkFirst always tries network first; cache
+              // only helps when offline, which this app has no UX for anyway),
+              // while every API call paid SW marshaling overhead and showed up
+              // as a "duplicate fetch" in DevTools Network tab. Fonts only
+              // (genuinely cacheable) below.
               {
                 urlPattern: /\.(woff2|woff|ttf)/,
                 handler: 'CacheFirst',
