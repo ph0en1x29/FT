@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-05-08] — Van Stock: 4 more technician vans seeded (SHYAN / LUN / YUAN / SYAHRIL)
+
+Shin handed over the latest namelist roster pic (WhatsApp 2026-05-07) plus the next batch of per-technician xlsx van-stock checklists. Four plates were highlighted as new on the roster — BEH CHOON SHYAN / VLG 6232, LEE KAI LUN / BRL 3628, LIM KHER YUAN / BRK 9093, MUHAMMAD SYAHRIL BIN BAHARUDDIN / VCG 9318 — these are technicians already on the system but without a `van_stocks` row, so the Van Stock screen showed them as "no van assigned". Each had a fresh audit-checked xlsx from late April / early May. The other 13 xlsx files in the same drop refresh existing vans whose `van_stocks` rows have been touched in production this week (`updated_at` between 2026-05-04 and 2026-05-08, indicating real consumption / replenishment) — those were intentionally left untouched per scope decision so live quantities aren't reverted to audit baselines.
+
+After this batch, 17 of 18 active technicians have van_stocks. EU SENG CHEONG (tech9) remains intentionally without a van — namelist confirms he has no plate.
+
+### Added
+
+**Migration `20260508_van_stock_4_more_vans_shyan_lun_yuan_syahril.sql`.** Single BEGIN/COMMIT seeds 4 new `van_stocks` rows (one per new technician, `is_active=true`, `van_status='active'`, `max_items` set to actual unique-part count per van) and 339 `van_stock_items` rows total — 89 SHYAN / 106 LUN / 42 YUAN / 102 SYAHRIL. Items inherit `min_quantity=1`, `max_quantity=5`, `is_core_item=true` matching the precedent from the 2026-05-06 KIM/FADHIL import. Post-apply assertion verifies exact total and per-van breakdown via a `jsonb_object_agg` NOTICE — `{"BRK 9093": 42, "BRL 3628": 106, "VCG 9318": 102, "VLG 6232": 89}`. `created_by` set to admin1@example.com (Admin One) to mirror the previous import's import-actor convention.
+
+**Whitespace-tolerant code resolution.** 185 unique normalized codes across the 4 vans, all matched `parts.part_code` after stripping whitespace. One xlsx row had `'23303-64010 B'` (with internal space) which the existing `'23303-64010B'` row covers — same FUEL FILTER 1182B @ NISSIN, same RM 10.50 cost. Resolved at parse time via `regexp_replace(upper(part_code), '\s+', '', 'g')` lookup, so no duplicate part was created. Zero new rows in `parts` from this import.
+
+**SYAHRIL in-file deduplication.** SYAHRIL's checklist (VCG 9318) had 2 row dupes — S-00554 GAS CHAMBER IMPCO and 62002042 REMA 80 - MALE 25MM, each listed twice with `qty=1` on consecutive rows (likely re-counted at audit time and entered twice rather than summed). Consolidated to `qty=2` each at parse time to satisfy `UNIQUE(van_stock_id, part_id)`. Net unique parts in VCG 9318 = 102 from 104 spreadsheet rows. Verified post-apply: both rows show qty=2 in van_stock_items.
+
+### Notes
+
+**Liquid routing fired automatically.** 17 liquid parts across the 4 vans (S-01044 / S-01223 / S-01918 / S-01925, plus S-02488 in BRL 3628). The pre-existing trigger `trg_route_liquid_to_bulk_quantity` (added in `20260504_van_stock_liquid_routing_guard.sql`) intercepted each insert and routed `quantity` into `bulk_quantity` with the original column zeroed — verified post-apply that all 17 read `quantity=0, bulk_quantity=<value>` correctly. The migration writes plain `quantity` and lets the trigger handle liquids, matching the pattern from previous van-stock seed migrations.
+
+**Existing 13 vans deliberately untouched.** The full xlsx drop included refresh checklists for BASRI, BON, FIRDAUS, HAFIZ, HAN, HASRUL, HISHAM, ONG, SHEN, P.SIANG, SYUKRI, KIM, and FADHIL. All have `updated_at` between 2026-05-04 and 2026-05-08 in van_stock_items, indicating real consumption since their original audit — overwriting from xlsx baselines would erase that. If a refresh of those vans is wanted later, it should be done as a per-van diff (insert-missing-only or per-tech reconciliation), not a blanket overwrite.
+
 ## [2026-05-07 — evening] — Bulk sign-off: atomic completion RPC, readiness pre-check, fleet-wide stuck-state recovery
 
 Reported by multiple technicians after the morning fix shipped: "even after filling all the requirements we cant do the bulk sign". Live audit found 16 In-Progress jobs across 6+ technicians (BEH CHOON SHYAN ×14, GOH YUEH HAN ×7, others) with both signatures already written but stuck at status='In Progress' — meaning the morning fix addressed the photo-gate bug but a separate, deeper class of bug had also been hitting techs all along: the modal optimistically wrote signatures, then attempted the AWAITING_FINALIZATION transition, and the trigger rejected on completion gates beyond the signatures (missing checklist, missing service notes, parts not recorded, approved spare-part not acknowledged, etc.). The modal swallowed the specific rejection reason and showed a misleading generic "could not auto-complete — check hourmeter" toast, leaving signatures persisted but jobs frozen.
