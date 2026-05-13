@@ -1,5 +1,11 @@
 # Changelog
 
+## [2026-05-13] — Data correction: revert Metrod BYO forklifts to Acwer fleet
+
+### Data Correction
+
+**Three Metrod forklifts reverted from customer-owned (BYO) to Acwer fleet assets.** Client reported that units (A1836)-CP1-24307, 37229, and 37778 were incorrectly listed as "Customer-owned forklifts under Acwer service" on the Metrod M55 customer profile. These were registered via the "Register customer-owned forklift" button during testing/initial data setup in mid-April 2026 and never reverted. Updated `ownership` from `customer` → `company`, `ownership_type` from `external` → `fleet`, cleared `acquisition_source` (was `new_byo`). `current_customer_id` remains on Metrod M55 — these are Acwer assets assigned to the customer location. No service contracts or active rentals were linked to these units. Migration `20260513_revert_metrod_byo_to_fleet.sql`.
+
 ## [2026-05-13] — Fix: Transfer job orphan clone + Customer profile KPI gap
 
 Two production bugs resolved — one high-severity data integrity issue (job transfer leaving orphan clones) and one medium-severity display issue (customer profile KPI strip not reflecting service contracts).
