@@ -1,5 +1,39 @@
 # Changelog
 
+## [2026-05-13 — late evening] — Supabase linter WARN sweep: search_path, bucket listing, anon EXECUTE
+
+Continued the linter cleanup after the three ERROR fixes. Two migrations clear the high-value WARN findings.
+
+### Security
+
+**All 34 project-owned public functions now have a pinned `search_path`.** The linter's `function_search_path_mutable` finding flags functions where `search_path` is determined at call time, letting an attacker hijack name resolution by creating a same-named object in a schema they control. Pinned `search_path = public, pg_temp` on every project-owned `public` function via `ALTER FUNCTION … SET search_path = …`. The migration filters out extension-provided functions (vector, pg_trgm) via `pg_depend` so only our own code is touched. Post-apply: 0 mutable functions remaining. Migration `20260513_supabase_linter_warnings_pass1.sql`.
+
+**Public bucket listing restricted to `authenticated`.** `job-photos` and `signatures` buckets are intentionally public (so we can share photo/signature URLs to customers via direct CDN links). But the SELECT policies on `storage.objects` were assigned to role `public` — letting anyone enumerate the file inventory via the listing API even without logging in. Public-bucket CDN URLs bypass RLS by design, so direct downloads of known URLs still work for unauthenticated viewers; only the bulk listing operation now requires authentication. Same migration.
+
+**67 SECURITY DEFINER functions in `public` no longer callable by `anon`.** The linter's `anon_security_definer_function_executable` finding (~64 functions) was actually understated — Postgres grants EXECUTE to PUBLIC by default, and `anon` inherits from PUBLIC, so a naïve `REVOKE EXECUTE … FROM anon` is a no-op. The migration `REVOKE EXECUTE … FROM PUBLIC, anon` and re-grants `EXECUTE … TO authenticated, service_role` on every public SECURITY DEFINER function. Verified the legitimate signup path (`prepare_user_creation` / `complete_user_creation` in `userService.createUser`) is called by authenticated admins, not anon, so no flow breaks. Post-apply: 0 anon-callable; 67 authenticated-callable. Migration `20260513_supabase_linter_warnings_pass2.sql`.
+
+### Notes — findings intentionally deferred
+
+- **`authenticated_security_definer_function_executable`** (~70 functions). Most of these are admin operations that signed-in users with the right role legitimately call — the linter is asking for explicit intent rather than flagging a real risk. In-function role checks already gate. A blanket revoke would break the app. Will revisit per-function in a future pass.
+- **`extension_in_public`** (pg_trgm, vector). Moving extensions to a dedicated schema risks breaking every function that references their operators/types. Defer until a careful audit.
+- **`auth_leaked_password_protection`**. Supabase Dashboard setting (Authentication → Settings → "Leaked Password Protection"). Enable manually — no SQL.
+
+## [2026-05-13 — evening] — Supabase linter security fixes (recurring class)
+
+Three ERROR-level findings from the Supabase database linter, flagged by the client after recent DB work, resolved without changing client read paths.
+
+### Security
+
+**Two views switched from SECURITY DEFINER to SECURITY INVOKER.** `public.v_forklift_service_predictions` (used by the Service Due tab, Serviced Externals tab, fleet prediction service) and `public.parts_liquid_price_drift` (liquid-inventory price-drift audit) were both created by the `postgres` superuser, which gives them SECURITY DEFINER semantics — they run with the creator's privileges, bypassing the querying user's RLS policies. Applied `ALTER VIEW ... SET (security_invoker = true)` to both (Postgres 15+ feature). Authenticated reads continue to return the same row counts (1,395 + 4) because the underlying `forklifts` and `parts` tables already have RLS policies permitting `authenticated` reads.
+
+**RLS enabled on `public.forklift_history`.** The append-only forklift audit-log table was in the public schema with RLS disabled and CRUD grants for `anon` and `authenticated`. Enabled RLS and added a `forklift_history_read_authenticated` SELECT policy (`USING true` for `authenticated`). No write policies were added because all five writer RPCs (`acwer_auto_flip_external_dormant`, `acwer_edit_ownership_details`, `acwer_reverse_sale_to_fleet`, `acwer_transfer_between_customers`, `acwer_transition_fleet_to_customer`) are `SECURITY DEFINER` and bypass RLS. Direct bare PATCH/POST against `forklift_history` from authenticated users is now correctly rejected — the audit-log invariant the table was always meant to enforce.
+
+### Notes
+
+Recurring pattern: when new views or audit tables are added in future migrations, default to creating them with `WITH (security_invoker = true)` and `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` from the start. The linter findings recurring after DB work are a signal that these defaults aren't in our migration template yet.
+
+Verification ran the post-apply DO block plus a `SET LOCAL ROLE authenticated` smoke test confirming all three sources return their pre-fix row counts (1395 / 4 / 12). Migration: `20260513_supabase_linter_security_fixes.sql`.
+
 ## [2026-05-13 — late afternoon] — Review-driven hardening: job_number collision fix, tightened transfer guard, rollback correctness, perf
 
 Six findings from a four-reviewer audit pass were resolved in this commit, including one production blocker (caught by a user report mid-review).
