@@ -1,8 +1,8 @@
-[2026-05-13 02:10] [Opus] fix: revert Metrod BYO ownership to Acwer fleet — supabase/migrations/20260513_revert_metrod_byo_to_fleet.sql
-  - Client report (Metrod Malaysia): 3 forklifts ((A1836)-CP1-24307, 37229, 37778) incorrectly listed as "Customer-owned (BYO)" in the Serviced Externals section. Client requested reversal to Acwer assets.
-  - Root cause: units were registered via the "Register customer-owned forklift" button on the customer profile page during testing/data setup (created_at 2026-04-13/14) and never reverted. No service contracts or active rentals linked.
-  - Fix: updated all 3 forklifts in live DB — ownership 'customer'→'company', ownership_type 'external'→'fleet', acquisition_source 'new_byo'→NULL. current_customer_id unchanged (stays on Metrod M55). Migration SQL recorded for audit trail.
-  - Verification: all 3 now show ownership='company', type='fleet'. Customer-owned forklifts count on Metrod M55 = 0. Serviced Externals section will no longer display these units.
+[2026-05-13 02:10] [Opus] fix: revert ALL BYO ownership to Acwer fleet (DB-wide) — supabase/migrations/20260513_revert_metrod_byo_to_fleet.sql
+  - Client report: "Please help reverse all units currently listed as Customer-owned (BYO) back to Acwer assets." Scope: entire database, not just Metrod.
+  - Root cause: 60 forklifts across 43 customers were registered via the "Register customer-owned forklift" (BYO) button during testing/data setup (created between 2026-04-07 and 2026-05-11) and never reverted. Acquisition sources: 52 'new_byo', 8 NULL.
+  - Fix: blanket UPDATE in live DB — all 60 forklifts reverted: ownership 'customer'→'company', ownership_type 'external'→'fleet', acquisition_source→NULL. current_customer_id unchanged for all (Acwer assets stay assigned to their customers). Migration SQL recorded for audit trail.
+  - Verification: 0 customer-owned forklifts remain in DB. Total company-owned: 1,394. "Serviced Externals" section now empty/hidden on all customer profiles.
 
 [2026-05-13 01:35] [Opus] fix: transfer job orphan clone + customer profile KPI gap — services/jobTransferService.ts, supabase/migrations/20260513_transfer_status_and_permission_fix.sql, pages/CustomerProfile/hooks/useCustomerData.ts, pages/CustomerProfile/components/CustomerKPIStrip.tsx, pages/CustomerProfile/types.ts, tsconfig.json
   - Client report #1 (admin_service user, 2026-05-11): Transfer of JOB-260511-034 from Beh Choon Shen to Lim Kher Yuan via Transfer Job (Clone) modal failed mid-flow. Clone JOB-260511-034-D was created but the parent status update to 'Incomplete - Reassigned' was rejected by the DB trigger: "Only admin or supervisor can move jobs backward. User role: admin_service". Orphan clone left in DB; parent job still shows original assignment.

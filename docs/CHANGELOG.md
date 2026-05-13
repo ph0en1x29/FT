@@ -1,10 +1,10 @@
 # Changelog
 
-## [2026-05-13] — Data correction: revert Metrod BYO forklifts to Acwer fleet
+## [2026-05-13] — Data correction: revert ALL BYO forklifts to Acwer fleet (DB-wide)
 
 ### Data Correction
 
-**Three Metrod forklifts reverted from customer-owned (BYO) to Acwer fleet assets.** Client reported that units (A1836)-CP1-24307, 37229, and 37778 were incorrectly listed as "Customer-owned forklifts under Acwer service" on the Metrod M55 customer profile. These were registered via the "Register customer-owned forklift" button during testing/initial data setup in mid-April 2026 and never reverted. Updated `ownership` from `customer` → `company`, `ownership_type` from `external` → `fleet`, cleared `acquisition_source` (was `new_byo`). `current_customer_id` remains on Metrod M55 — these are Acwer assets assigned to the customer location. No service contracts or active rentals were linked to these units. Migration `20260513_revert_metrod_byo_to_fleet.sql`.
+**All 60 customer-owned (BYO) forklifts across 43 customers reverted to Acwer fleet assets.** Client reported that all units listed as "Customer-owned forklifts under Acwer service" on customer profiles were incorrectly classified — the ownership was toggled during testing/initial data setup (created between 2026-04-07 and 2026-05-11) and never reverted. Blanket update: `ownership` from `customer` → `company`, `ownership_type` from `external` → `fleet`, cleared `acquisition_source`. `current_customer_id` unchanged for all units — they remain assigned to their respective customer locations as Acwer-owned equipment. The "Customer-owned forklifts under Acwer service" section is now empty/hidden on all customer profiles. Migration `20260513_revert_metrod_byo_to_fleet.sql`.
 
 ## [2026-05-13] — Fix: Transfer job orphan clone + Customer profile KPI gap
 
