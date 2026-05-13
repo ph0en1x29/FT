@@ -2,24 +2,38 @@
 import {
   AlertOctagon,
   AlertTriangle,
+  CalendarPlus,
   CheckCircle,
   ChevronRight,
   Clock,
   Info,
   Loader2,
+  MapPin,
   Minus,
   Play,
   TrendingDown,
   TrendingUp
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { getFleetServiceOverview, getForkliftDailyUsage } from '../../../services/serviceTrackingService';
+import { supabase } from '../../../services/supabaseClient';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { DailyUsageResult, FleetServiceOverview, UserRole } from '../../../types';
 import { ForkliftDue, TabProps } from '../types';
+
+/**
+ * Service Due tab column visibility flags. Columns hidden by default per
+ * 2026-05-13 spec (less clutter, room for Site Location column). Power users
+ * can flip these to re-enable individual columns until a UI toggle ships.
+ */
+const COLUMN_VISIBILITY = {
+  type: false,
+  lastServiced: false,
+  progress: false,
+};
 
 const VALID_FILTERS = ['all', 'overdue', 'due_soon', 'job_created', 'stale'] as const;
 type FilterType = typeof VALID_FILTERS[number];
@@ -45,12 +59,14 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
   const [dueForklifts, setDueForklifts] = useState<ForkliftDue[]>([]);
   const [fleetOverview, setFleetOverview] = useState<FleetServiceOverview[]>([]);
   const [dailyUsage, setDailyUsage] = useState<Record<string, DailyUsageResult>>({});
+  const [siteByForkliftId, setSiteByForkliftId] = useState<Record<string, { site: string | null; current_site_id: string | null }>>({});
   const [filter, setFilter] = useState<FilterType>(initialFilter);
   const [ownershipFilter, setOwnershipFilter] = useState<OwnershipFilter>('all');
+  const [siteFilter, setSiteFilter] = useState<string>('all');
   const [timeWindow, setTimeWindow] = useState<number>(30);
   const [running, setRunning] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'urgency' | 'name' | 'hours'>('urgency');
+  const [sortBy, setSortBy] = useState<'urgency' | 'name' | 'hours' | 'site'>('urgency');
 
   const { displayRole } = useDevModeContext();
 
@@ -76,11 +92,31 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
       setDueForklifts(forklifts);
       setFleetOverview(overview);
       loadDailyUsage(overview.map(f => f.forklift_id));
+      loadSiteData([...new Set([...forklifts.map((f: ForkliftDue) => f.forklift_id), ...overview.map(o => o.forklift_id)])]);
     } catch (_e) {
       showToast.error('Failed to load service due data');
     } finally {
       setLoading(false);
     }
+  };
+
+  /**
+   * Hydrate site_name + current_site_id for the displayed forklifts. The
+   * prediction view and fleet overview view don't expose these fields, so we
+   * fetch them directly from the forklifts table (2026-05-13).
+   */
+  const loadSiteData = async (forkliftIds: string[]) => {
+    if (forkliftIds.length === 0) return;
+    const { data, error } = await supabase
+      .from('forklifts')
+      .select('forklift_id, site, current_site_id')
+      .in('forklift_id', forkliftIds);
+    if (error || !data) return;
+    const map: Record<string, { site: string | null; current_site_id: string | null }> = {};
+    data.forEach((r: { forklift_id: string; site: string | null; current_site_id: string | null }) => {
+      map[r.forklift_id] = { site: r.site, current_site_id: r.current_site_id };
+    });
+    setSiteByForkliftId(map);
   };
   
   const loadDailyUsage = async (forkliftIds: string[]) => {
@@ -149,6 +185,8 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
         }))
     : [];
 
+  const getSite = (forkliftId: string): string | null => siteByForkliftId[forkliftId]?.site ?? null;
+
   const filteredForklifts = (filter === 'stale' ? staleAsDueForklifts : dueForklifts
     .filter(f => {
       if (filter === 'overdue') return f.is_overdue;
@@ -165,12 +203,27 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
       if (ownershipFilter === 'no_contract') return f.service_responsibility === 'chargeable_external';
       return true;
     })
+    .filter(f => {
+      if (siteFilter === 'all') return true;
+      if (siteFilter === '__unassigned__') return !getSite(f.forklift_id);
+      return getSite(f.forklift_id) === siteFilter;
+    })
     .sort((a, b) => {
       if (sortBy === 'urgency') return getUrgencyScore(a) - getUrgencyScore(b);
       if (sortBy === 'name') return `${a.make} ${a.model}`.localeCompare(`${b.make} ${b.model}`);
       if (sortBy === 'hours') return (a.hourmeter || 0) - (b.hourmeter || 0);
+      if (sortBy === 'site') return (getSite(a.forklift_id) ?? '￿').localeCompare(getSite(b.forklift_id) ?? '￿');
       return 0;
     });
+
+  // Unique site names from currently-loaded forklifts, for the filter dropdown.
+  const siteOptions = useMemo(() => {
+    const set = new Set<string>();
+    Object.values(siteByForkliftId).forEach(v => {
+      if (v.site && v.site.trim()) set.add(v.site);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [siteByForkliftId]);
 
   const stats = {
     overdue: dueForklifts.filter(f => f.is_overdue).length,
@@ -313,13 +366,13 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
           <span className="text-slate-300">|</span>
           <div className="flex items-center gap-1 text-xs text-slate-500">
             <span>Sort:</span>
-            {(['urgency', 'name', 'hours'] as const).map(s => (
+            {(['urgency', 'name', 'hours', 'site'] as const).map(s => (
               <button
                 key={s}
                 onClick={() => setSortBy(s)}
                 className={`px-2 py-1 rounded ${sortBy === s ? 'bg-blue-100 text-blue-700 font-medium' : 'hover:bg-slate-100'}`}
               >
-                {s === 'urgency' ? '⚡ Urgency' : s === 'name' ? 'A-Z' : '🕐 Hours'}
+                {s === 'urgency' ? '⚡ Urgency' : s === 'name' ? 'A-Z' : s === 'hours' ? '🕐 Hours' : '📍 Site'}
               </button>
             ))}
           </div>
@@ -336,6 +389,22 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
                 {o === 'all' ? 'All' : o === 'fleet' ? '🚚 Fleet' : o === 'amc' ? '🛡️ AMC' : '💵 No contract'}
               </button>
             ))}
+          </div>
+          <span className="text-slate-300">|</span>
+          <div className="flex items-center gap-1 text-xs text-slate-500">
+            <MapPin className="w-3 h-3" />
+            <span>Site:</span>
+            <select
+              value={siteFilter}
+              onChange={(e) => setSiteFilter(e.target.value)}
+              className="px-2 py-1 rounded border border-slate-200 bg-white text-xs text-slate-700 focus:border-blue-400 focus:outline-none max-w-[180px]"
+            >
+              <option value="all">All Sites</option>
+              <option value="__unassigned__">— Unassigned —</option>
+              {siteOptions.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -368,15 +437,22 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
       ) : (
         <div className="card-theme rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px]">
+            <table className="w-full min-w-[800px]">
               <thead className="bg-theme-surface-2 border-b border-theme">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Forklift</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Last Serviced</th>
+                  {COLUMN_VISIBILITY.type && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Type</th>
+                  )}
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Site Location</th>
+                  {COLUMN_VISIBILITY.lastServiced && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Last Serviced</th>
+                  )}
                   <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Next Target</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Current</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Progress</th>
+                  {COLUMN_VISIBILITY.progress && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Progress</th>
+                  )}
                   <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Daily Usage</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Est. Service Date</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase">Status</th>
@@ -405,21 +481,35 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
                           <p className="text-xs text-slate-500 font-mono">{forklift.serial_number}</p>
                         </div>
                       </td>
+                      {COLUMN_VISIBILITY.type && (
+                        <td className="px-4 py-3">
+                          <span className="text-sm">{forklift.type}</span>
+                        </td>
+                      )}
                       <td className="px-4 py-3">
-                        <span className="text-sm">{forklift.type}</span>
+                        {getSite(forklift.forklift_id) ? (
+                          <div className="flex items-center gap-1 text-sm text-slate-700">
+                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span className="truncate max-w-[160px]" title={getSite(forklift.forklift_id) ?? ''}>{getSite(forklift.forklift_id)}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm">
-                          {overview?.last_serviced_hourmeter != null && overview.last_serviced_hourmeter > 0 ? (
-                            <p>{overview.last_serviced_hourmeter.toLocaleString()} hrs</p>
-                          ) : (
-                            <div className="flex items-center gap-1 text-slate-400" title="No service record. Update via Edit Forklift or Forklift Profile.">
-                              <span>No record</span>
-                              <Info className="w-3 h-3" />
-                            </div>
-                          )}
-                        </div>
-                      </td>
+                      {COLUMN_VISIBILITY.lastServiced && (
+                        <td className="px-4 py-3">
+                          <div className="text-sm">
+                            {overview?.last_serviced_hourmeter != null && overview.last_serviced_hourmeter > 0 ? (
+                              <p>{overview.last_serviced_hourmeter.toLocaleString()} hrs</p>
+                            ) : (
+                              <div className="flex items-center gap-1 text-slate-400" title="No service record. Update via Edit Forklift or Forklift Profile.">
+                                <span>No record</span>
+                                <Info className="w-3 h-3" />
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      )}
                       <td className="px-4 py-3">
                         <div className="text-sm">
                           {overview?.next_target_service_hour != null ? (
@@ -443,32 +533,34 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
                         </div>
                       </td>
                       {/* Progress bar */}
-                      <td className="px-4 py-3">
-                        {progress !== null ? (
-                          <div className="w-24">
-                            <div className="flex items-center justify-between text-xs mb-1">
-                              <span className={`font-medium ${progress >= 100 ? 'text-red-600' : progress >= 80 ? 'text-amber-600' : 'text-slate-600'}`}>
-                                {Math.round(Math.min(progress, 100))}%
-                              </span>
-                              {hoursRemaining !== null && (
-                                <span className={`${hoursRemaining <= 0 ? 'text-red-500' : 'text-slate-400'}`}>
-                                  {hoursRemaining <= 0 ? `${Math.abs(hoursRemaining)}↑` : `${hoursRemaining}h`}
+                      {COLUMN_VISIBILITY.progress && (
+                        <td className="px-4 py-3">
+                          {progress !== null ? (
+                            <div className="w-24">
+                              <div className="flex items-center justify-between text-xs mb-1">
+                                <span className={`font-medium ${progress >= 100 ? 'text-red-600' : progress >= 80 ? 'text-amber-600' : 'text-slate-600'}`}>
+                                  {Math.round(Math.min(progress, 100))}%
                                 </span>
-                              )}
+                                {hoursRemaining !== null && (
+                                  <span className={`${hoursRemaining <= 0 ? 'text-red-500' : 'text-slate-400'}`}>
+                                    {hoursRemaining <= 0 ? `${Math.abs(hoursRemaining)}↑` : `${hoursRemaining}h`}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all ${
+                                    progress >= 100 ? 'bg-red-500' : progress >= 80 ? 'bg-amber-500' : progress >= 50 ? 'bg-blue-500' : 'bg-green-500'
+                                  }`}
+                                  style={{ width: `${Math.min(progress, 100)}%` }}
+                                />
+                              </div>
                             </div>
-                            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${
-                                  progress >= 100 ? 'bg-red-500' : progress >= 80 ? 'bg-amber-500' : progress >= 50 ? 'bg-blue-500' : 'bg-green-500'
-                                }`}
-                                style={{ width: `${Math.min(progress, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
-                        )}
-                      </td>
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-4 py-3">
                         <div className="text-sm flex items-center gap-1">
                           {usage?.avg_daily_hours != null ? (
@@ -548,12 +640,35 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => navigate(`/forklifts/${forklift.forklift_id}`)}
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1 ml-auto"
-                        >
-                          View <ChevronRight className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          {forklift.has_open_job ? (
+                            <span
+                              className="text-xs font-medium text-emerald-600 px-2 py-1 rounded inline-flex items-center gap-1 opacity-70 cursor-not-allowed"
+                              title="A job already exists for this forklift"
+                            >
+                              <CheckCircle className="w-3 h-3" /> Scheduled
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                const params = new URLSearchParams();
+                                if (forklift.current_customer_id) params.set('customer_id', forklift.current_customer_id);
+                                params.set('forklift_id', forklift.forklift_id);
+                                navigate(`/jobs/new?${params.toString()}`);
+                              }}
+                              className="text-xs font-medium text-blue-600 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50 inline-flex items-center gap-1"
+                              title="Create a service job for this forklift"
+                            >
+                              <CalendarPlus className="w-3 h-3" /> Schedule Service
+                            </button>
+                          )}
+                          <button
+                            onClick={() => navigate(`/forklifts/${forklift.forklift_id}`)}
+                            className="text-xs font-medium text-slate-500 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-100 inline-flex items-center gap-1"
+                          >
+                            View <ChevronRight className="w-3 h-3" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

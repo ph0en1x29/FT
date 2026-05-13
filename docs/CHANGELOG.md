@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-05-13] — Service Due tab: Site Location filter, Schedule Service action, simplified columns
+
+### Added
+
+**Site Location filter dropdown on the Service Due tab.** Operations coordinators planning route-based service runs can now narrow the 307-unit Service Due list to a single physical site (e.g., "BANTING - OLAK LEMPIT", "SEPANG - KLIA"). Options are derived from the `forklifts.site` column of currently-displayed rows — the same source already shown on customer profile Sites sections. Includes an "All Sites" default and an "— Unassigned —" option for the ~150 units without a site set. The filter composes with the existing Window / Sort / Ownership / status-card filters. A new "📍 Site" sort option also joins the existing Urgency / A-Z / Hours sort modes for manual location grouping.
+
+**Site Location column in the Service Due table.** Renders between Forklift and Next Target columns with a MapPin icon and truncate-with-tooltip for long site names. Sortable A–Z via the new Site sort option.
+
+**"Schedule Service" action per row.** Same per-row action that exists on the Serviced Externals tab now appears in Service Due. Clicking navigates to `/jobs/new?customer_id=...&forklift_id=...` — the same Create Job route, pre-populated with the unit's customer and forklift. Rows where a service job already exists (`has_open_job = true`) instead show a disabled "✓ Scheduled" pill with a tooltip, preventing duplicate job creation.
+
+### Changed
+
+**Type, Progress, and Last Serviced columns hidden by default on Service Due.** These were the lowest-information columns in the table when sized for dispatch planning; hiding them creates room for the new Site Location column without overflowing the layout. Implementation uses a `COLUMN_VISIBILITY` config flag at the top of `ServiceDueTab.tsx` — all three flags default to `false`, but power users (or a future toggle UI) can flip individual flags back to `true` without removing the underlying rendering code. The table `min-w` was reduced from 900px → 800px to match the new column count.
+
+### Notes
+
+No database migration required — the `forklifts.site` denormalized text column is already populated for 1,239 of 1,394 active forklifts (89%). The remaining 155 will show "—" / "Unassigned" until their site is set on the forklift profile page. The underlying `v_forklift_service_predictions` and `fleet_service_overview` views don't expose site fields, so the component hydrates site data via a single batched query against the `forklifts` table after the main load — the same client-side enrichment pattern already used for daily-usage data on this tab.
+
+No regression on Serviced Externals, Fleet, Hourmeter Review, or Service Intervals tabs. The "Run Service Check" admin action and all existing urgency / contract / window / sort filters continue to compose with the new Site filter.
+
 ## [2026-05-13] — Data correction: revert ALL BYO forklifts to Acwer fleet (DB-wide)
 
 ### Data Correction

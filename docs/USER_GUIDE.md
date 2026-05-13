@@ -944,6 +944,12 @@ Configure service intervals per forklift type:
 - Sends notifications to supervisors
 - Runs automatically at 8:00 AM daily
 
+**Dispatch planning tools (UPDATED 2026-05-13):**
+- **Site Location filter** — narrow the list to one physical site for route-based service runs. Includes "All Sites" default and "— Unassigned —" for forklifts without a site set.
+- **Site sort** — sort A–Z by site name to group units by location.
+- **Schedule Service action** — per-row button that creates a new service job pre-populated with the unit's customer and forklift. Rows where a service job already exists show "✓ Scheduled" instead to prevent duplicates.
+- **Simplified columns** — Type, Progress, and Last Serviced columns are hidden by default to make room for Site Location and keep the dispatch view focused. (Power users can re-enable individual columns via the `COLUMN_VISIBILITY` config flag in `ServiceDueTab.tsx` until a UI toggle ships.)
+
 #### Hourmeter Review Tab
 Audit trail for all hourmeter readings with anomaly detection.
 

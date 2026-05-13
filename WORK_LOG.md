@@ -1,3 +1,24 @@
+[2026-05-13 02:50] [Opus] feat: Service Due tab — Site Location filter + column, Schedule Service action, hide Type/Progress/Last Serviced — pages/ForkliftsTabs/components/ServiceDueTab.tsx, pages/ForkliftsTabs/types.ts
+  - Client request (Operations Team): make the Service Due tab a practical dispatch-planning tool. Add site-location filtering, port the Schedule Service action from Serviced Externals, and reduce visual clutter by hiding 3 less-critical columns.
+  - Approach:
+    * Extended `ForkliftDue` type with `site_name` and `current_site_id` (hydrated client-side; the underlying `v_forklift_service_predictions` and `fleet_service_overview` views don't expose site fields).
+    * Added `loadSiteData()` helper in `ServiceDueTab.tsx` that runs after `loadData()` and fetches `forklift_id, site, current_site_id` from the forklifts table for the union of returned forklift_ids. Results stored in `siteByForkliftId` state map (same pattern as the existing `dailyUsage` enrichment).
+    * Site filter dropdown placed after Ownership filter, before Run Service Check. Options derived via `useMemo` from distinct non-empty site names; includes "All Sites" default and "— Unassigned —" option for forklifts without a site.
+    * Site sort option added to the Sort tab group (`urgency | name | hours | site`); sort uses `localeCompare`, with empty sites sorted to the end.
+    * Site Location column rendered after Forklift (since Type is hidden), with MapPin icon and truncate-with-title for long names.
+    * Schedule Service action in the row-action cell: `<CalendarPlus> Schedule Service` button when no open job, navigating to `/jobs/new?customer_id=X&forklift_id=Y` (same pattern as `ExternalFleetTab.tsx:314`). Disabled "✓ Scheduled" pill when `has_open_job` is true, with tooltip explaining a job already exists.
+    * Type, Progress, Last Serviced columns wrapped in `COLUMN_VISIBILITY` config-flag conditionals (all default false). Power users can flip individual flags until a runtime toggle UI ships — per spec.
+    * Reduced table `min-w` from 900px → 800px (net -2 columns visible).
+  - Scope notes:
+    * No DB migration needed — the `forklifts.site` text column is already populated (1239/1394 forklifts have a site assigned).
+    * No URL-param sync for siteFilter — matches the existing pattern for ownershipFilter and sortBy (session-only state).
+    * Serviced Externals, Fleet, and Hourmeter Review tabs untouched.
+  - Verification:
+    * `npm run typecheck` clean.
+    * `npm run build` succeeds; bundle within budget.
+    * `npm run test:unit` 48/48 pass.
+    * ESLint clean on changed files.
+
 [2026-05-13 02:10] [Opus] fix: revert ALL BYO ownership to Acwer fleet (DB-wide) — supabase/migrations/20260513_revert_metrod_byo_to_fleet.sql
   - Client report: "Please help reverse all units currently listed as Customer-owned (BYO) back to Acwer assets." Scope: entire database, not just Metrod.
   - Root cause: 60 forklifts across 43 customers were registered via the "Register customer-owned forklift" (BYO) button during testing/data setup (created between 2026-04-07 and 2026-05-11) and never reverted. Acquisition sources: 52 'new_byo', 8 NULL.
