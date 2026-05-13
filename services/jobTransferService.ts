@@ -14,11 +14,12 @@
  * be visibly closed and the receiving tech should start from a fresh timer).
  *
  * Atomicity caveat: this performs 5 sequential supabase-js calls. There is
- * no client-side transaction in @supabase/supabase-js. If the parent status
- * update (step 5) fails after the clone INSERT (step 3), the rollback logic
- * deletes the clone's media rows and then the clone itself. If the rollback
- * also fails (network, RLS), both errors are surfaced so the admin knows
- * manual cleanup is needed.
+ * no client-side transaction in @supabase/supabase-js. If step 4 (media
+ * copy) or step 5 (parent update) fails after the clone INSERT (step 3),
+ * the rollback logic deletes the clone's media rows and then the clone
+ * itself. Supabase delete errors are explicitly captured ({ error }) so
+ * silent RLS / FK failures surface to the admin with a "manual cleanup
+ * required" message.
  */
 
 import type { Job } from '../types';
@@ -144,32 +145,34 @@ export async function transferJobToTechnician(
   }
   const clone = cloneRow as Job;
 
-  // ── Helper: roll back the clone if any post-INSERT step fails. ──
+  // ── Helper: build the rollback Error if any post-INSERT step fails. ──
   // Deletes media first (FK: job_media.job_id → jobs.job_id), then the row.
-  const rollbackClone = async (reason: string): Promise<never> => {
-    try {
-      await supabase.from('job_media').delete().eq('job_id', clone.job_id);
-      await supabase.from('jobs').delete().eq('job_id', clone.job_id);
-    } catch (rollbackErr) {
+  // Supabase-js does NOT throw on RLS denial / FK errors — it returns
+  // { error }, so we capture both delete results explicitly.
+  // Returns the Error so the caller can use `throw await rollbackClone(...)`
+  // — TypeScript then narrows control flow correctly past the throw.
+  const rollbackClone = async (reason: string): Promise<Error> => {
+    const { error: mediaErr } = await supabase.from('job_media').delete().eq('job_id', clone.job_id);
+    const { error: jobErr } = await supabase.from('jobs').delete().eq('job_id', clone.job_id);
+    if (mediaErr || jobErr) {
+      const detail = [mediaErr?.message, jobErr?.message].filter(Boolean).join(' / ');
       console.error(
-        `[jobTransferService] Rollback of orphan clone ${clone.job_id} (${cloneJobNumber}) failed: ${(rollbackErr as Error).message}. Manual cleanup required.`,
+        `[jobTransferService] Rollback of orphan clone ${clone.job_id} (${cloneJobNumber}) failed: ${detail}. Manual cleanup required.`,
       );
-      throw new Error(
-        `${reason} Additionally, rollback of clone ${cloneJobNumber} failed: ${(rollbackErr as Error).message}. ` +
+      return new Error(
+        `${reason} Additionally, rollback of clone ${cloneJobNumber} failed: ${detail}. ` +
         `Manual deletion of ${cloneJobNumber} is required.`,
-        { cause: rollbackErr },
+        { cause: mediaErr ?? jobErr },
       );
     }
-    throw new Error(
-      `${reason} Clone ${cloneJobNumber} has been cleaned up automatically.`,
-    );
+    return new Error(`${reason} Clone ${cloneJobNumber} has been cleaned up automatically.`);
   };
 
   // ── 4. Copy media rows from parent to clone ────────────────
   try {
     await copyMediaToClone(parentRow.job_id, clone.job_id);
   } catch (mediaCopyErr) {
-    await rollbackClone(
+    throw await rollbackClone(
       `Transfer failed — media copy failed: ${(mediaCopyErr as Error).message}.`,
     );
   }
@@ -198,7 +201,7 @@ export async function transferJobToTechnician(
     `)
     .single();
   if (updateErr || !parentUpdated) {
-    await rollbackClone(
+    throw await rollbackClone(
       `Transfer failed — parent update error: ${updateErr?.message ?? 'unknown'}.`,
     );
   }

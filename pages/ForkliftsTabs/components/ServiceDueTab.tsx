@@ -14,7 +14,7 @@ import {
   TrendingDown,
   TrendingUp
 } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDevModeContext } from '../../../contexts/DevModeContext';
 import { getFleetServiceOverview, getForkliftDailyUsage } from '../../../services/serviceTrackingService';
@@ -68,6 +68,10 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
   const [lastResult, setLastResult] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'urgency' | 'name' | 'hours' | 'site'>('urgency');
 
+  // Guards against stale loadSiteData responses overwriting newer ones if the
+  // user changes timeWindow rapidly.
+  const siteLoadIdRef = useRef(0);
+
   const { displayRole } = useDevModeContext();
 
   const isAdmin = [
@@ -91,8 +95,13 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
       ]);
       setDueForklifts(forklifts);
       setFleetOverview(overview);
+      const ids = [...new Set([
+        ...forklifts.map((f: ForkliftDue) => f.forklift_id),
+        ...overview.map(o => o.forklift_id),
+      ])];
+      // Fire-and-forget — both helpers self-cancel via their request-id refs.
       loadDailyUsage(overview.map(f => f.forklift_id));
-      loadSiteData([...new Set([...forklifts.map((f: ForkliftDue) => f.forklift_id), ...overview.map(o => o.forklift_id)])]);
+      loadSiteData(ids);
     } catch (_e) {
       showToast.error('Failed to load service due data');
     } finally {
@@ -104,13 +113,20 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
    * Hydrate site_name + current_site_id for the displayed forklifts. The
    * prediction view and fleet overview view don't expose these fields, so we
    * fetch them directly from the forklifts table (2026-05-13).
+   * Stale-response guarded via siteLoadIdRef so rapid timeWindow changes
+   * don't overwrite a newer response with an older one.
    */
   const loadSiteData = async (forkliftIds: string[]) => {
-    if (forkliftIds.length === 0) return;
+    if (forkliftIds.length === 0) {
+      setSiteByForkliftId({});
+      return;
+    }
+    const myId = ++siteLoadIdRef.current;
     const { data, error } = await supabase
       .from('forklifts')
       .select('forklift_id, site, current_site_id')
       .in('forklift_id', forkliftIds);
+    if (myId !== siteLoadIdRef.current) return; // stale — newer request in flight
     if (error || !data) return;
     const map: Record<string, { site: string | null; current_site_id: string | null }> = {};
     data.forEach((r: { forklift_id: string; site: string | null; current_site_id: string | null }) => {
@@ -149,11 +165,20 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
     }
   };
 
+  // O(1) lookup map for fleetOverview rows, keyed by forklift_id. Built once
+  // per fleetOverview change to avoid O(n) .find() inside the sort comparator
+  // (which would make sorting O(n² log n) for hundreds of rows).
+  const overviewById = useMemo(() => {
+    const m = new Map<string, FleetServiceOverview>();
+    fleetOverview.forEach(o => m.set(o.forklift_id, o));
+    return m;
+  }, [fleetOverview]);
+
   // Sort helper — urgency score (lower = more urgent)
   const getUrgencyScore = (f: ForkliftDue): number => {
     if (f.is_overdue) return 0;
     if (f.has_open_job) return 2;
-    const overview = fleetOverview.find(o => o.forklift_id === f.forklift_id);
+    const overview = overviewById.get(f.forklift_id);
     if (overview?.is_stale_data) return 3;
     const hoursRemaining = overview?.next_target_service_hour != null && f.hourmeter != null
       ? overview.next_target_service_hour - f.hourmeter
@@ -187,34 +212,44 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
 
   const getSite = (forkliftId: string): string | null => siteByForkliftId[forkliftId]?.site ?? null;
 
-  const filteredForklifts = (filter === 'stale' ? staleAsDueForklifts : dueForklifts
-    .filter(f => {
-      if (filter === 'overdue') return f.is_overdue;
-      if (filter === 'due_soon') return !f.is_overdue && !f.has_open_job;
-      if (filter === 'job_created') return f.has_open_job;
-      return true;
-    }))
-    .filter(f => {
-      // Ownership filter — sourced from v_forklift_service_predictions.
-      // Falls back to "show all" for stale/legacy rows that lack the field.
-      if (ownershipFilter === 'all') return true;
-      if (ownershipFilter === 'fleet') return f.ownership === 'company' || f.service_responsibility === 'fleet';
-      if (ownershipFilter === 'amc') return f.service_responsibility === 'amc';
-      if (ownershipFilter === 'no_contract') return f.service_responsibility === 'chargeable_external';
-      return true;
-    })
-    .filter(f => {
-      if (siteFilter === 'all') return true;
-      if (siteFilter === '__unassigned__') return !getSite(f.forklift_id);
-      return getSite(f.forklift_id) === siteFilter;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'urgency') return getUrgencyScore(a) - getUrgencyScore(b);
-      if (sortBy === 'name') return `${a.make} ${a.model}`.localeCompare(`${b.make} ${b.model}`);
-      if (sortBy === 'hours') return (a.hourmeter || 0) - (b.hourmeter || 0);
-      if (sortBy === 'site') return (getSite(a.forklift_id) ?? '￿').localeCompare(getSite(b.forklift_id) ?? '￿');
-      return 0;
-    });
+  // Memoize the filter+sort pipeline so it doesn't re-run on every render.
+  // Without this, hundreds of forklifts × full-chain recomputation per
+  // unrelated render becomes noticeable.
+  const filteredForklifts = useMemo(() => {
+    const base = filter === 'stale'
+      ? staleAsDueForklifts
+      : dueForklifts.filter(f => {
+          if (filter === 'overdue') return f.is_overdue;
+          if (filter === 'due_soon') return !f.is_overdue && !f.has_open_job;
+          if (filter === 'job_created') return f.has_open_job;
+          return true;
+        });
+    return base
+      .filter(f => {
+        if (ownershipFilter === 'all') return true;
+        if (ownershipFilter === 'fleet') return f.ownership === 'company' || f.service_responsibility === 'fleet';
+        if (ownershipFilter === 'amc') return f.service_responsibility === 'amc';
+        if (ownershipFilter === 'no_contract') return f.service_responsibility === 'chargeable_external';
+        return true;
+      })
+      .filter(f => {
+        if (siteFilter === 'all') return true;
+        if (siteFilter === '__unassigned__') return !getSite(f.forklift_id);
+        return getSite(f.forklift_id) === siteFilter;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'urgency') return getUrgencyScore(a) - getUrgencyScore(b);
+        if (sortBy === 'name') return `${a.make} ${a.model}`.localeCompare(`${b.make} ${b.model}`);
+        if (sortBy === 'hours') return (a.hourmeter || 0) - (b.hourmeter || 0);
+        if (sortBy === 'site') {
+          // Sort empty sites to the end via a high-codepoint sentinel.
+          const SENTINEL = '￿';
+          return (getSite(a.forklift_id) ?? SENTINEL).localeCompare(getSite(b.forklift_id) ?? SENTINEL);
+        }
+        return 0;
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, dueForklifts, staleAsDueForklifts, ownershipFilter, siteFilter, sortBy, siteByForkliftId, overviewById]);
 
   // Unique site names from currently-loaded forklifts, for the filter dropdown.
   const siteOptions = useMemo(() => {
@@ -232,7 +267,7 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
     stale: fleetOverview.filter(f => f.is_stale_data).length,
   };
   
-  const getOverview = (forkliftId: string) => fleetOverview.find(o => o.forklift_id === forkliftId);
+  const getOverview = (forkliftId: string) => overviewById.get(forkliftId);
   
   const TrendIcon = ({ trend }: { trend?: string }) => {
     if (trend === 'increasing') return <TrendingUp className="w-3 h-3 text-red-500" />;

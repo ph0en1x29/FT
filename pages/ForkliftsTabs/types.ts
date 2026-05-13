@@ -45,11 +45,6 @@ export interface ForkliftDue {
   ownership?: 'company' | 'customer';
   /** From v_forklift_service_predictions (added 2026-05-06). */
   service_responsibility?: 'fleet' | 'amc' | 'chargeable_external' | 'unmanaged';
-  /** Physical site name (denormalized on forklifts.site). Hydrated client-side
-   *  in ServiceDueTab (added 2026-05-13). */
-  site_name?: string | null;
-  /** FK to customer_sites (added 2026-05-13). */
-  current_site_id?: string | null;
 }
 
 export type TabType = 'dashboard' | 'fleet' | 'intervals' | 'service-due' | 'serviced-externals' | 'hourmeter';

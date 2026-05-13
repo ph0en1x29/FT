@@ -1,5 +1,31 @@
 # Changelog
 
+## [2026-05-13 — late afternoon] — Review-driven hardening: job_number collision fix, tightened transfer guard, rollback correctness, perf
+
+Six findings from a four-reviewer audit pass were resolved in this commit, including one production blocker (caught by a user report mid-review).
+
+### Fixes
+
+**Production blocker — job creation failing with "duplicate key value violates unique constraint jobs_job_number_key".** The `generate_job_number()` trigger generated daily sequences as `COUNT(*) + 1` of jobs created today. Earlier this session, deleting orphan clone JOB-260511-034-D (created_at on 2026-05-13) dropped today's count from 44 → 43. The trigger then proposed JOB-260513-044 for the next insert — which still existed under another row — causing every subsequent job creation to fail with the UNIQUE violation. Rewrote the trigger to use `COALESCE(MAX(CAST(SPLIT_PART(job_number, '-', 3) AS INTEGER)), 0) + 1` against today's prefix only, with a regex filter to exclude suffixed clones (`JOB-YYMMDD-NNN-B`/`-C`/...) which follow a separate numbering scheme and must not influence the main sequence. Now deletes never break the sequence — MAX is a watermark, not a count. Migration `20260513_fix_job_number_generation.sql`, applied to live DB. The pre-existing concurrent-insert race remains as a known limitation (documented in the original `20260407_shorten_job_number_format.sql`); a proper sequence-table or advisory-lock approach is queued for a future refactor.
+
+**Security — transfer guard tightened to prevent privilege escalation via PostgREST.** The first iteration of the transfer guard added in `20260513_transfer_status_and_permission_fix.sql` fired whenever `NEW.status = 'Incomplete - Reassigned' AND OLD.status != 'Incomplete - Reassigned'`, checking only the user role. It did NOT restrict OLD.status, and did NOT require the reassignment metadata to be present. A multi-reviewer debate confirmed an authenticated `admin_service` user could issue a bare PostgREST PATCH (`PATCH /rest/v1/jobs?job_id=eq.X { "status": "Incomplete - Reassigned" }`) against ANY job — including Completed, Disputed, Cancelled — silently flipping it to Incomplete-Reassigned with no audit trail. Migration `20260513_tighten_transfer_guard.sql` adds two restrictions: (1) `OLD.status IN ('Assigned', 'In Progress', 'Incomplete - Continuing', 'Pending Parts')` — only non-terminal states can be transferred; (2) `NEW.reassigned_by_id IS NOT NULL AND NEW.reassigned_at IS NOT NULL` — bare status updates without the audit metadata are rejected. Mirrors the existing technician-rejection whitelist's metadata-presence pattern. Applied to live DB and verified.
+
+**Rollback correctness in `jobTransferService`.** `rollbackClone` was typed `Promise<never>` but call sites used `await rollbackClone(...)` without `throw` — TypeScript did not narrow `parentUpdated` past null, hidden only by an `as Job` cast at the return site. Additionally, the two `supabase.delete()` calls inside the rollback didn't destructure `{ error }`, so RLS denials or FK constraint failures would silently "succeed" and never trigger the rollback-failure path. Refactored: `rollbackClone` now returns `Promise<Error>` and call sites use `throw await rollbackClone(...)` for proper control-flow narrowing. Both delete calls explicitly capture `{ error: mediaErr }` / `{ error: jobErr }` and combine them into the surfaced message if either fails.
+
+### Performance
+
+**`ServiceDueTab.filteredForklifts` memoized.** Previously recomputed every render with `fleetOverview.find()` inside the sort comparator — O(n² log n) for hundreds of rows. Wrapped in `useMemo` with proper dependency array, and built an `overviewById = useMemo(new Map(...))` for O(1) lookups in `getUrgencyScore` and `getOverview`.
+
+**`useCustomerData` parallelized.** Four sequential awaits (customer / jobs / rentals / contracts) collapsed into a single `Promise.all`. Roughly 4× wall-clock improvement on cold customer-profile loads.
+
+### Polish
+
+**`loadSiteData` race condition fixed.** The site-data fetch was fire-and-forget — rapid `timeWindow` changes could let an older response overwrite a newer one. Added a `siteLoadIdRef` counter; only the latest request applies.
+
+**Contract `today` normalized to midnight.** The contract activity filter compared `new Date()` (with time-of-day) against `start_date` (YYYY-MM-DD). A contract starting today could be filtered out late in the day. Now `today.setHours(0, 0, 0, 0)` for date-only semantics.
+
+**Removed unused `site_name`/`current_site_id` from `ForkliftDue` type.** The component uses a separate `siteByForkliftId` map rather than mutating prediction rows; the unused fields invited confusion about the data source.
+
 ## [2026-05-13] — Service Due tab: Site Location filter, Schedule Service action, simplified columns
 
 ### Added

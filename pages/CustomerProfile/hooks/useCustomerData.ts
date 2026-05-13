@@ -40,22 +40,22 @@ export function useCustomerData(customerId: string | undefined): UseCustomerData
 
   const loadCustomerData = useCallback(async () => {
     if (!customerId) return;
-    
+
     setLoading(true);
     try {
-      const foundCustomer = await MockDb.getCustomerById(customerId);
+      // Fetch all customer-scoped data in parallel — previously 4 sequential
+      // awaits (~4× wall-clock on cold load).
+      const [foundCustomer, customerJobs, customerRentals, customerContracts] = await Promise.all([
+        MockDb.getCustomerById(customerId),
+        MockDb.getCustomerJobsWithCancelled(customerId),
+        MockDb.getCustomerRentals(customerId),
+        getContractsForCustomer(customerId),
+      ]);
       setCustomer(foundCustomer);
-
-      // Get jobs including cancelled ones
-      const customerJobs = await MockDb.getCustomerJobsWithCancelled(customerId);
-      setJobs(customerJobs.sort((a: ForkliftServiceEntry, b: ForkliftServiceEntry) => 
+      setJobs(customerJobs.sort((a: ForkliftServiceEntry, b: ForkliftServiceEntry) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       ));
-
-      const customerRentals = await MockDb.getCustomerRentals(customerId);
       setRentals(customerRentals);
-
-      const customerContracts = await getContractsForCustomer(customerId);
       setContracts(customerContracts);
     } catch (_error) {
       showToast.error('Failed to load customer profile');
@@ -136,7 +136,11 @@ export function useCustomerData(customerId: string | undefined): UseCustomerData
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3) as [string, number][];
 
+    // Normalize to midnight local time so YYYY-MM-DD comparisons are
+    // date-only (avoids edge case where a contract starting today is filtered
+    // out late in the day).
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const activeContractsCount = contracts.filter(c => {
       if (!c.is_active) return false;
       const start = new Date(c.start_date);
