@@ -13,12 +13,12 @@
  * Use this for KPI-aware reassignment (when the outgoing tech's labor should
  * be visibly closed and the receiving tech should start from a fresh timer).
  *
- * Atomicity caveat: this performs 5 sequential supabase-js calls. If a step
- * after the clone INSERT fails, you may end up with a clone that lacks media
- * or notes. There is no client-side transaction in @supabase/supabase-js.
- * The clone INSERT is the irreversible commit point — failures after that
- * surface to the caller but the clone is left in place for manual
- * reconciliation.
+ * Atomicity caveat: this performs 5 sequential supabase-js calls. There is
+ * no client-side transaction in @supabase/supabase-js. If the parent status
+ * update (step 5) fails after the clone INSERT (step 3), the rollback logic
+ * deletes the clone's media rows and then the clone itself. If the rollback
+ * also fails (network, RLS), both errors are surfaced so the admin knows
+ * manual cleanup is needed.
  */
 
 import type { Job } from '../types';
@@ -171,7 +171,25 @@ export async function transferJobToTechnician(
     `)
     .single();
   if (updateErr || !parentUpdated) {
-    throw new Error(`Transfer half-done — clone created (${cloneJobNumber}) but parent update failed: ${updateErr?.message ?? 'unknown'}`);
+    // Rollback: clean up the orphan clone + any media rows copied to it.
+    // Delete media first (FK constraint: job_media.job_id → jobs.job_id).
+    try {
+      await supabase.from('job_media').delete().eq('job_id', clone.job_id);
+      await supabase.from('jobs').delete().eq('job_id', clone.job_id);
+    } catch (rollbackErr) {
+      // Surface both errors so the admin knows manual cleanup is needed.
+      console.error(
+        `[jobTransferService] Rollback of orphan clone ${clone.job_id} (${cloneJobNumber}) failed: ${(rollbackErr as Error).message}. Manual cleanup required.`,
+      );
+      throw new Error(
+        `Transfer failed — parent update error: ${updateErr?.message ?? 'unknown'}. ` +
+        `Additionally, rollback of clone ${cloneJobNumber} failed: ${(rollbackErr as Error).message}. ` +
+        `Manual deletion of ${cloneJobNumber} is required.`,
+      );
+    }
+    throw new Error(
+      `Transfer failed — ${updateErr?.message ?? 'unknown error'}. Clone ${cloneJobNumber} has been cleaned up automatically.`,
+    );
   }
 
   // ── 6. End any active job_assignments on the parent. We don't throw on

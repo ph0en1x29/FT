@@ -32,6 +32,8 @@
     "supabase/functions",
     "node_modules",
     "dist",
-    "tests"
+    "tests",
+    "**/* 2.*",
+    "**/* 2/**"
   ]
 }

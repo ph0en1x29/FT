@@ -2820,7 +2820,7 @@ Checks if the current user is assigned to the specified job.
 ---
 
 #### `get_status_order(status_val TEXT)`
-Returns numeric order for job status comparison.
+Returns numeric order for job status comparison. **(UPDATED 2026-05-13)**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -2828,7 +2828,7 @@ Returns numeric order for job status comparison.
 
 | Returns | Description |
 |---------|-------------|
-| INTEGER | 0=New, 1=Assigned, 2=In Progress/Incomplete - Continuing, 3=Awaiting Finalization, 4=Completed |
+| INTEGER | -1=Cancelled, 0=New, 1=Assigned, 2=In Progress/Incomplete - Continuing/Incomplete - Reassigned/Pending Parts, 3=Awaiting Finalization, 4=Completed/Completed Awaiting Acknowledgement, 5=Disputed, -99=unknown |
 
 ---
 
@@ -3066,7 +3066,7 @@ Scheduled via pg_cron at 8:00 AM MYT daily.
 
 | Function | Trigger | Description |
 |----------|---------|-------------|
-| `validate_job_status_transition()` | `trg_validate_status_transition` ON jobs | Enforces sequential workflow and role-based status transitions. **(UPDATED 2026-04-07)** Whitelists one backward transition: a technician rejecting their own currently-assigned job (`Assigned` → `New` when `technician_rejected_at IS NOT NULL`) |
+| `validate_job_status_transition()` | `trg_validate_status_transition` ON jobs | Enforces sequential workflow and role-based status transitions. **(UPDATED 2026-05-13)** Two scoped backward-transition whitelists: (1) technician rejecting own job (`Assigned` → `New` when `technician_rejected_at IS NOT NULL`); (2) transfer guard — `admin`/`supervisor`/`admin_service` can set `Incomplete - Reassigned` (early-return before forward/backward checks) |
 | `set_technician_response_deadline()` | `trg_set_response_deadline` BEFORE INSERT OR UPDATE OF assigned_at ON jobs | **(NEW 2026-04-07)** Auto-populates `technician_response_deadline` to `assigned_at + 15 minutes` whenever `assigned_at` is written. Resets `last_response_alert_at` and `response_alert_count` on a fresh assignment |
 | `clear_scheduled_reminder_on_date_change()` | `trg_clear_scheduled_reminder_on_date_change` BEFORE UPDATE OF scheduled_date ON jobs | **(NEW 2026-04-10)** Resets `scheduled_reminder_sent_at` to NULL whenever `scheduled_date` is rewritten, so rescheduling a job automatically re-arms the 7:30 AM MYT reminder for the new date |
 | `send_scheduled_job_reminders()` | Called from `run_escalation_checks()` every 5 minutes | **(NEW 2026-04-10)** Selects `status IN ('New','Assigned')` jobs where `scheduled_date <= NOW()` AND `scheduled_reminder_sent_at IS NULL` AND `assigned_technician_id IS NOT NULL`, inserts a `scheduled_job` notification for the assigned technician, stamps `scheduled_reminder_sent_at = NOW()`. 24-hour lookback prevents burst-firing historical rows on cold start |

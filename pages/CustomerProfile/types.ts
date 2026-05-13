@@ -23,6 +23,7 @@ export interface CustomerStats {
   totalRevenue: number;
   avgResponseTime: number;
   activeRentalsCount: number;
+  activeContractsCount: number;
   completedJobsCount: number;
   avgJobValue: number;
   topIssues: [string, number][];
@@ -42,6 +43,7 @@ export interface CustomerHeaderProps {
 export interface CustomerKPIStripProps {
   totalJobs: number;
   activeRentalsCount: number;
+  activeContractsCount: number;
   totalServiceRevenue: number;
   totalRentalRevenue: number;
   totalRevenue: number;

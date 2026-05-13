@@ -1,7 +1,8 @@
 import { useCallback,useEffect,useMemo,useState } from 'react';
+import { getContractsForCustomer } from '../../../services/serviceContractService';
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
-import { Customer,ExtraCharge,Forklift,ForkliftRental,ForkliftServiceEntry,JobPartUsed } from '../../../types';
+import { Customer,ExtraCharge,Forklift,ForkliftRental,ForkliftServiceEntry,JobPartUsed,ServiceContract } from '../../../types';
 import { CustomerStats } from '../types';
 
 interface UseCustomerDataResult {
@@ -33,6 +34,7 @@ export function useCustomerData(customerId: string | undefined): UseCustomerData
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [jobs, setJobs] = useState<ForkliftServiceEntry[]>([]);
   const [rentals, setRentals] = useState<ForkliftRental[]>([]);
+  const [contracts, setContracts] = useState<ServiceContract[]>([]);
   const [availableForklifts, setAvailableForklifts] = useState<Forklift[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +54,9 @@ export function useCustomerData(customerId: string | undefined): UseCustomerData
 
       const customerRentals = await MockDb.getCustomerRentals(customerId);
       setRentals(customerRentals);
+
+      const customerContracts = await getContractsForCustomer(customerId);
+      setContracts(customerContracts);
     } catch (_error) {
       showToast.error('Failed to load customer profile');
     } finally {
@@ -131,6 +136,14 @@ export function useCustomerData(customerId: string | undefined): UseCustomerData
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3) as [string, number][];
 
+    const today = new Date();
+    const activeContractsCount = contracts.filter(c => {
+      if (!c.is_active) return false;
+      const end = new Date(c.end_date);
+      const start = new Date(c.start_date);
+      return start <= today && end >= today;
+    }).length;
+
     return {
       totalJobs,
       totalServiceRevenue,
@@ -138,11 +151,12 @@ export function useCustomerData(customerId: string | undefined): UseCustomerData
       totalRevenue,
       avgResponseTime,
       activeRentalsCount: activeRentals.length,
+      activeContractsCount,
       completedJobsCount: completedJobs.length,
       avgJobValue: totalJobs > 0 ? Math.round(totalServiceRevenue / totalJobs) : 0,
       topIssues,
     };
-  }, [activeJobs, rentals, activeRentals, completedJobs]);
+  }, [activeJobs, rentals, activeRentals, completedJobs, contracts]);
 
   return {
     customer,

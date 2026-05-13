@@ -1,5 +1,27 @@
 # Changelog
 
+## [2026-05-13] — Fix: Transfer job orphan clone + Customer profile KPI gap
+
+Two production bugs resolved — one high-severity data integrity issue (job transfer leaving orphan clones) and one medium-severity display issue (customer profile KPI strip not reflecting service contracts).
+
+### Fixes
+
+**Transfer Job (Clone) no longer leaves orphan clones on permission failure.** When an `admin_service` user (service coordinator) attempted to transfer a job via the Transfer Job modal, the clone was successfully created but the parent status update to "Incomplete - Reassigned" failed because: (1) the status wasn't registered in `get_status_order()` (returned -1, classified as backward), (2) `admin_service` wasn't in the backward-transition whitelist, and (3) the `jobs_status_check` CHECK constraint didn't include the status. The clone INSERT happened before the parent UPDATE with no rollback, leaving an orphan job in the database. Fixed in two layers:
+
+*DB layer* — Migration `20260513_transfer_status_and_permission_fix.sql` widens the CHECK constraint to include all 11 valid statuses (was missing `Incomplete - Reassigned`, `Pending Parts`, `Completed Awaiting Acknowledgement`, `Disputed`, `Cancelled`). Registers all statuses in `get_status_order()` with appropriate indices — `Incomplete - Reassigned` is at index 2 (lateral peer to "In Progress"), matching the existing `Incomplete - Continuing` pattern. Adds a scoped transfer guard in `validate_job_status_transition` that allows `admin`, `supervisor`, and `admin_service` to set "Incomplete - Reassigned" — placed before the forward/backward index checks so it early-returns cleanly, following the same pattern as the existing technician-rejection whitelist. Unknown statuses now return -99 instead of -1 for safer fallback behavior.
+
+*Client layer* — `services/jobTransferService.ts` now rolls back the orphan clone if the parent update fails: deletes `job_media` rows first (FK constraint), then the clone row. If the rollback itself fails (network, RLS), both errors are surfaced so the admin knows manual cleanup is needed.
+
+**Customer profile KPI strip now reflects service contracts alongside rentals.** The "Active Rentals" metric only counted `forklift_rentals` (Acwer-owned units rented to customers). Customer-owned forklifts under service contracts — visible in the "Customer-owned forklifts under Acwer service" section on the same page — had no representation in the KPI strip. For customers like Metrod (3 active serviced forklifts, 0 rentals), the strip showed "Active Rentals: 0" and "Rental Revenue: RM0", making it appear there was no ongoing relationship. Fixed by fetching active service contracts (via the existing `getContractsForCustomer()`) and repurposing the "Active Rentals" card into "Active Agreements" — shows the combined count of rentals + contracts with a subtitle breakdown (e.g., "1 rental · 2 contracts"). The "Rental Revenue" card now includes a "from forklift rentals" subtitle to clarify what it measures. The 5-card grid layout is unchanged.
+
+### Notes
+
+The backward-transition whitelist in the trigger (`admin`/`supervisor` only for generic backward moves) is intentionally NOT broadened to include `admin_service`. The transfer guard is scoped exclusively to the `Incomplete - Reassigned` transition — `admin_service` still cannot perform arbitrary backward status corrections (e.g., moving a completed job back to In Progress). This follows the principle of least privilege.
+
+The five previously-missing statuses (`Cancelled`, `Completed Awaiting Acknowledgement`, `Disputed`, `Pending Parts`, `Incomplete - Reassigned`) were all absent from both `jobs_status_check` and `get_status_order()`. The transfer bug surfaced first because transfers are the most common operation that uses `Incomplete - Reassigned`, but the same class of bug (CHECK violation or trigger misclassification) would have hit any flow using the other four statuses. This migration registers them all to close the gap permanently.
+
+Service contracts in the current schema don't store monetary values (contract_value, monthly_amount, etc. — planned for Phase 4). The KPI strip therefore shows a count, not a revenue figure, for contracts. When Phase 4 adds contract pricing, the "Active Agreements" card is already in place for a future revenue integration.
+
 ## [2026-05-08 — evening] — Performance: cut JobDetail / Fleet / Inventory lag
 
 Reported by Jay: Fleet, JobDetail, and Inventory pages all feel laggy; suspected Chrome prefetch issue. Investigation ruled out Chrome prefetch entirely — the production HTML emits no `<link rel="prefetch">` tags, no Speculation Rules, just 4 standard `<link rel="modulepreload">` directives for the React/Supabase/icons vendor chunks. What was being misread as "Chrome prefetch" in DevTools turned out to be the PWA service worker intercepting every supabase.co request via `NetworkFirst` runtime caching, which surfaces in the Network tab as a `serviceworker`-initiated entry next to the page's own `fetch` entry — looks like a duplicate, but it's one underlying roundtrip with extra SW marshaling overhead. Real bottlenecks were elsewhere; six were addressed in this pass.

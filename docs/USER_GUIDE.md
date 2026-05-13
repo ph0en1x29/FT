@@ -214,7 +214,7 @@ In Progress ──▶ ┌──────────────────�
 | **Completed** | Invoice finalized, record locked | - | Admin only (with override) |
 | **Completed Awaiting Ack** | Work done, customer couldn't sign on-site | Customer (acknowledge), System (auto-complete) | Admin |
 | **Incomplete - Continuing** | Multi-day job, technician will resume | Technician (resume) | Admin |
-| **Incomplete - Reassigned** | Job reassigned to different technician | New Technician | Admin |
+| **Incomplete - Reassigned** | Job reassigned to different technician | New Technician | Admin, Supervisor, Service Coordinator **(UPDATED 2026-05-13)** |
 | **Disputed** | Customer disputed the completion | Admin (resolve) | - |
 
 ---
