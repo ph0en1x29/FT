@@ -144,8 +144,35 @@ export async function transferJobToTechnician(
   }
   const clone = cloneRow as Job;
 
+  // ── Helper: roll back the clone if any post-INSERT step fails. ──
+  // Deletes media first (FK: job_media.job_id → jobs.job_id), then the row.
+  const rollbackClone = async (reason: string): Promise<never> => {
+    try {
+      await supabase.from('job_media').delete().eq('job_id', clone.job_id);
+      await supabase.from('jobs').delete().eq('job_id', clone.job_id);
+    } catch (rollbackErr) {
+      console.error(
+        `[jobTransferService] Rollback of orphan clone ${clone.job_id} (${cloneJobNumber}) failed: ${(rollbackErr as Error).message}. Manual cleanup required.`,
+      );
+      throw new Error(
+        `${reason} Additionally, rollback of clone ${cloneJobNumber} failed: ${(rollbackErr as Error).message}. ` +
+        `Manual deletion of ${cloneJobNumber} is required.`,
+        { cause: rollbackErr },
+      );
+    }
+    throw new Error(
+      `${reason} Clone ${cloneJobNumber} has been cleaned up automatically.`,
+    );
+  };
+
   // ── 4. Copy media rows from parent to clone ────────────────
-  await copyMediaToClone(parentRow.job_id, clone.job_id);
+  try {
+    await copyMediaToClone(parentRow.job_id, clone.job_id);
+  } catch (mediaCopyErr) {
+    await rollbackClone(
+      `Transfer failed — media copy failed: ${(mediaCopyErr as Error).message}.`,
+    );
+  }
 
   // ── 5. Mark the parent transferred + record override pts ──
   const transferReasonNote = `Transferred to ${toTechnicianName} (clone ${cloneJobNumber}): ${reason}`;
@@ -171,24 +198,8 @@ export async function transferJobToTechnician(
     `)
     .single();
   if (updateErr || !parentUpdated) {
-    // Rollback: clean up the orphan clone + any media rows copied to it.
-    // Delete media first (FK constraint: job_media.job_id → jobs.job_id).
-    try {
-      await supabase.from('job_media').delete().eq('job_id', clone.job_id);
-      await supabase.from('jobs').delete().eq('job_id', clone.job_id);
-    } catch (rollbackErr) {
-      // Surface both errors so the admin knows manual cleanup is needed.
-      console.error(
-        `[jobTransferService] Rollback of orphan clone ${clone.job_id} (${cloneJobNumber}) failed: ${(rollbackErr as Error).message}. Manual cleanup required.`,
-      );
-      throw new Error(
-        `Transfer failed — parent update error: ${updateErr?.message ?? 'unknown'}. ` +
-        `Additionally, rollback of clone ${cloneJobNumber} failed: ${(rollbackErr as Error).message}. ` +
-        `Manual deletion of ${cloneJobNumber} is required.`,
-      );
-    }
-    throw new Error(
-      `Transfer failed — ${updateErr?.message ?? 'unknown error'}. Clone ${cloneJobNumber} has been cleaned up automatically.`,
+    await rollbackClone(
+      `Transfer failed — parent update error: ${updateErr?.message ?? 'unknown'}.`,
     );
   }
 

@@ -139,9 +139,11 @@ export function useCustomerData(customerId: string | undefined): UseCustomerData
     const today = new Date();
     const activeContractsCount = contracts.filter(c => {
       if (!c.is_active) return false;
-      const end = new Date(c.end_date);
       const start = new Date(c.start_date);
-      return start <= today && end >= today;
+      if (start > today) return false;
+      // Open-ended contracts (no end_date) are treated as perpetually active
+      if (!c.end_date) return true;
+      return new Date(c.end_date) >= today;
     }).length;
 
     return {
