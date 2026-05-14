@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-05-14] — Forklift Profile edit now writes to forklifts.site + BYO editable from customer profile
+
+### Fixes
+
+**Forklift Profile page edits now persist to `forklifts.site` instead of the deprecated `.location` column.** Reported via "PAI TO PAI TO" — edits to the Location field on the Forklift Profile page were not appearing in the Service Due tab's Site Location column. Investigation found a silent column-mismatch bug: `ForkliftProfilePage.handleSubmitForklift` mapped `forkliftFormData.site` to `location` (deprecated alias) before sending the update, while every read path (Service Due tab, `ServicedExternalsSection`, customer profile) reads from `forklifts.site`. Edits from the Fleet tab's modal (which uses `useFleetManagement` and writes `site` directly) were correctly persisting; edits from the Forklift Profile page silently disappeared into a column nothing reads. Confirmed in live DB before fix: 1,356 forklifts have `site` set, 0 have `location` set — the `location` column was effectively orphaned and any edit that landed there was invisible to users. Fixed by reading `forklift.site || forklift.location || ''` on modal open (legacy fallback for any pre-bug data) and writing only the form's `site` field on submit.
+
+### Added
+
+**Inline edit on BYO forklift rows in the customer profile.** The "Customer-owned forklifts under Acwer service" section was read-only — clicking a row navigated to the forklift profile page where edits had to happen. Added a pencil icon next to each row that opens the same `AddEditForkliftModal` the Fleet tab uses. Pre-populates with the unit's current values, saves via `updateForklift`, and reloads the section list on success. The row meta line now also shows the unit's site value so admins can see at a glance what's set without opening the modal. The row container converted from a single `<button>` to a `<div>` housing two buttons (navigate + edit) so the affordances don't nest. Ownership and acquisition-source transitions still require the dedicated admin modals — only the editable forklift fields (make, model, hourmeter, site, status, etc.) change inline.
+
 ## [2026-05-13 — late evening] — Supabase linter WARN sweep: search_path, bucket listing, anon EXECUTE
 
 Continued the linter cleanup after the three ERROR fixes. Two migrations clear the high-value WARN findings.

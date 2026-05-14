@@ -120,7 +120,11 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
       last_service_date: forklift.last_service_date || '',
       year: forklift.year || null,
       capacity_kg: forklift.capacity_kg || 0,
-      site: forklift.location || '',
+      // Read the current site name. forklift.location is the deprecated
+      // column that some older edits wrote to; fall back to it so legacy
+      // values don't disappear when the modal opens. (Service Due tab and
+      // the customer profile both read forklifts.site, not .location.)
+      site: forklift.site || forklift.location || '',
       status: forklift.status,
       notes: forklift.notes || '',
     });
@@ -131,10 +135,11 @@ export const ForkliftProfilePage: React.FC<ForkliftProfilePageProps> = ({ curren
     e.preventDefault();
     if (!forklift) return;
     try {
-      await MockDb.updateForklift(forklift.forklift_id, {
-        ...forkliftFormData,
-        location: forkliftFormData.site,
-      });
+      // Persist to forklifts.site (the active column the Service Due tab,
+      // ServicedExternalsSection, and customer profile all read from).
+      // location was the deprecated alias — writing only `site` keeps the
+      // single source of truth.
+      await MockDb.updateForklift(forklift.forklift_id, forkliftFormData);
       setShowEditForkliftModal(false);
       await reload();
       import('../../services/toastService').then(m => m.showToast.success('Forklift updated successfully'));
