@@ -254,12 +254,18 @@ export const useJobPartsHandlers = ({
       }
       if (updatedJob) setJob({ ...updatedJob });
 
-      // Check if low stock — auto-create replenishment alert
-      const newQty = item.quantity - qtyToUse;
+      // Check if low stock — auto-create replenishment alert.
+      // Liquid-aware: bare i.quantity is 0 for liquids by the route-trigger
+      // contract, which made every liquid SKU look "low" and triggered a
+      // replen request on every liquid usage. Use getVanStockAvailableQty
+      // which prefers trigger-maintained effective_quantity (containers ×
+      // size + bulk), and project the JUST-deducted item's post-use qty.
+      const itemOnHand = getVanStockAvailableQty(item);
+      const newQty = itemOnHand - qtyToUse;
       if (newQty <= item.min_quantity && state.vanStock) {
         const lowItems = (state.vanStock.items || []).filter(i => {
-          const qty = i.item_id === item.item_id ? newQty : i.quantity;
-          return qty <= i.min_quantity;
+          const onHand = i.item_id === item.item_id ? newQty : getVanStockAvailableQty(i);
+          return onHand <= i.min_quantity;
         });
         if (lowItems.length > 0) {
           try {
@@ -267,13 +273,16 @@ export const useJobPartsHandlers = ({
               state.vanStock.van_stock_id,
               currentUserId,
               currentUserName,
-              lowItems.map(i => ({
-                vanStockItemId: i.item_id,
-                partId: i.part_id,
-                partName: i.part?.part_name || 'Unknown',
-                partCode: i.part?.part_code || '',
-                quantityRequested: i.max_quantity - (i.item_id === item.item_id ? newQty : i.quantity),
-              })),
+              lowItems.map(i => {
+                const onHand = i.item_id === item.item_id ? newQty : getVanStockAvailableQty(i);
+                return {
+                  vanStockItemId: i.item_id,
+                  partId: i.part_id,
+                  partName: i.part?.part_name || 'Unknown',
+                  partCode: i.part?.part_code || '',
+                  quantityRequested: Math.max(0, i.max_quantity - onHand),
+                };
+              }),
               'low_stock',
               job.job_id,
               `Auto-triggered: low stock after job usage`

@@ -21,6 +21,7 @@ import { supabase } from '../../../../services/supabaseClient';
 import { returnPartToStore, transferPartToVan } from '../../../../services/inventoryService';
 import { showToast } from '../../../../services/toastService';
 import { VanStock, VanStockItem } from '../../../../types';
+import { getVanStockAvailableQty } from '../../../../utils/vanStock';
 
 type TransferMode = 'in' | 'out';
 
@@ -123,10 +124,9 @@ export function TransferPartModal({
 
   // For liquid van_stock_items the qty lives in bulk_quantity (the
   // route_liquid_to_bulk_quantity trigger zeros out .quantity on insert).
-  // effective_quantity is the view-computed total when present.
-  const vanQty = vanStockItem
-    ? Number(vanStockItem.effective_quantity ?? vanStockItem.bulk_quantity ?? vanStockItem.quantity ?? 0)
-    : 0;
+  // getVanStockAvailableQty prefers effective_quantity (trigger-maintained),
+  // falls back to containers × size + bulk for liquids, .quantity for solids.
+  const vanQty = vanStockItem ? getVanStockAvailableQty(vanStockItem) : 0;
   const unitLabel = isLiquid ? (baseUnit || 'L') : (baseUnit || '');
   const qtyNumber = Number(quantity);
   const isValidQuantity = Number.isFinite(qtyNumber) && qtyNumber > 0;

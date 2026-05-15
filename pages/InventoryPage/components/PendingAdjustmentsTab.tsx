@@ -75,7 +75,11 @@ const PendingAdjustmentsTab: React.FC<PendingAdjustmentsTabProps> = ({ currentUs
       if (partErr) throw partErr;
 
       let updatePartErr;
-      if (partData?.is_liquid !== false) {
+      // Treat is_liquid IS NULL as solid, matching the symmetric RPCs
+      // (rpc_transfer_part_to_van / rpc_return_part_to_store use
+      // COALESCE(is_liquid, FALSE)). The previous `!== false` branch
+      // wrongly routed NULL-flagged parts to the liquid bulk_quantity column.
+      if (partData?.is_liquid === true) {
         const currentBulk = partData?.bulk_quantity ?? 0;
         const newBulk = Math.max(0, currentBulk + adj.bulk_qty_change);
         ({ error: updatePartErr } = await supabase

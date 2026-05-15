@@ -1,12 +1,16 @@
 import { AlertTriangle,CheckCircle,TrendingDown } from 'lucide-react';
 import { VanStockItem } from '../../../types';
+import { getVanStockAvailableQty } from '../../../utils/vanStock';
 
 interface StockItemCardProps {
   item: VanStockItem;
 }
 
+// effective_quantity (trigger-maintained) is the source of truth for both
+// liquids and solids. Fallback inside getVanStockAvailableQty handles legacy
+// rows: liquids use containers × size + bulk; solids use .quantity.
 function getStockStatusBadge(item: VanStockItem) {
-  const effectiveQty = (item.container_quantity || 0) + (item.bulk_quantity || 0) || item.quantity;
+  const effectiveQty = getVanStockAvailableQty(item);
   if (effectiveQty === 0) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
@@ -29,7 +33,7 @@ function getStockStatusBadge(item: VanStockItem) {
 }
 
 function getQuantityBarColor(item: VanStockItem) {
-  const effectiveQty = (item.container_quantity || 0) + (item.bulk_quantity || 0) || item.quantity;
+  const effectiveQty = getVanStockAvailableQty(item);
   const percent = (effectiveQty / item.max_quantity) * 100;
   if (effectiveQty === 0) return 'bg-red-500';
   if (percent <= 25) return 'bg-amber-500';
@@ -63,7 +67,7 @@ export function StockItemCard({ item }: StockItemCardProps) {
         <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
           <div
             className={`h-full ${getQuantityBarColor(item)} transition-all duration-300`}
-            style={{ width: `${Math.min(100, (((item.container_quantity || 0) + (item.bulk_quantity || 0) || item.quantity) / item.max_quantity) * 100)}%` }}
+            style={{ width: `${Math.min(100, (getVanStockAvailableQty(item) / item.max_quantity) * 100)}%` }}
           />
         </div>
       </div>

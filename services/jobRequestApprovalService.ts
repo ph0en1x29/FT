@@ -47,11 +47,24 @@ export const approveSparePartRequest = async (
 
     // Validate stock for all items upfront — single .in() query replaces
     // the previous per-part select().single() loop.
-    type PartInfo = { part_id: string; part_name: string; sell_price: number; cost_price: number; stock_quantity: number };
+    // Liquid-aware: for liquid parts `stock_quantity` is 0 by convention;
+    // real available stock is `container_quantity × container_size + bulk_quantity`.
+    // Previously every liquid request was silently rejected here.
+    type PartInfo = {
+      part_id: string;
+      part_name: string;
+      sell_price: number;
+      cost_price: number;
+      stock_quantity: number;
+      is_liquid: boolean | null;
+      container_quantity: number | null;
+      container_size: number | null;
+      bulk_quantity: number | null;
+    };
     const partIds = items.map(i => i.partId);
     const { data: partsData, error: partsError } = await supabase
       .from('parts')
-      .select('part_id, part_name, sell_price, cost_price, stock_quantity')
+      .select('part_id, part_name, sell_price, cost_price, stock_quantity, is_liquid, container_quantity, container_size, bulk_quantity')
       .in('part_id', partIds);
     if (partsError || !partsData) return false;
 
@@ -62,7 +75,10 @@ export const approveSparePartRequest = async (
     for (const item of items) {
       const part = partInfoMap[item.partId];
       if (!part) return false; // part doesn't exist
-      if (part.stock_quantity < item.quantity) return false; // insufficient stock
+      const available = part.is_liquid
+        ? (Number(part.container_quantity ?? 0) * Number(part.container_size ?? 0)) + Number(part.bulk_quantity ?? 0)
+        : Number(part.stock_quantity ?? 0);
+      if (available < item.quantity) return false; // insufficient stock
     }
 
     // ATOMIC stock reservation — reserve all, rollback on any failure

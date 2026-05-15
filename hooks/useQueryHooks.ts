@@ -285,6 +285,7 @@ export const useInvalidateQueries = () => {
     invalidateVanStock: () => queryClient.invalidateQueries({ queryKey: ['vanStocks'] }),
     invalidateVanStockTech: (userId: string) => queryClient.invalidateQueries({ queryKey: queryKeys.vanStockTech(userId) }),
     invalidateReplenishments: () => queryClient.invalidateQueries({ queryKey: ['replenishments'] }),
+    invalidateParts: () => queryClient.invalidateQueries({ queryKey: ['parts'] }),
     invalidateAll: () => queryClient.invalidateQueries(),
   };
 };

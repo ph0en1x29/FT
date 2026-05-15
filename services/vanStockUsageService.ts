@@ -44,14 +44,31 @@ export const useVanStockPart = async (
   usedByName: string,
   requiresApproval: boolean = false
 ): Promise<VanStockUsage> => {
+  // Liquid-aware fetch: for liquid items, .quantity is 0 by the
+  // route-trigger contract; real on-hand is effective_quantity
+  // (containers × size + bulk). Use that for the availability check so
+  // liquids aren't always rejected as "insufficient" here.
   const { data: item, error: itemError } = await supabase
     .from('van_stock_items')
-    .select('quantity')
+    .select('quantity, container_quantity, bulk_quantity, effective_quantity, part:parts(is_liquid, container_size)')
     .eq('item_id', vanStockItemId)
     .single();
 
   if (itemError) throw new Error(itemError.message);
-  if (!item || item.quantity < quantityUsed) {
+  const itemAny = item as unknown as {
+    quantity?: number | null;
+    container_quantity?: number | null;
+    bulk_quantity?: number | null;
+    effective_quantity?: number | null;
+    part?: { is_liquid?: boolean | null; container_size?: number | null } | null;
+  } | null;
+  const isLiquid = !!itemAny?.part?.is_liquid;
+  const onHand = itemAny?.effective_quantity != null
+    ? Number(itemAny.effective_quantity)
+    : isLiquid
+      ? (Number(itemAny?.container_quantity ?? 0) * Number(itemAny?.part?.container_size ?? 0)) + Number(itemAny?.bulk_quantity ?? 0)
+      : Number(itemAny?.quantity ?? 0);
+  if (onHand < quantityUsed) {
     throw new Error('Insufficient Van Stock quantity');
   }
 
@@ -71,13 +88,26 @@ export const useVanStockPart = async (
 
   if (usageError) throw new Error(usageError.message);
 
+  // Liquid-aware decrement: for liquid items the .quantity is held at 0
+  // by trg_route_liquid_to_bulk_quantity; the real on-hand lives in
+  // bulk_quantity (or split across containers). Decrement bulk_quantity for
+  // simple cases; if bulk is insufficient and we have containers, the
+  // caller should use the atomic rpc_use_van_stock_part instead — this
+  // legacy path only handles bulk-only liquids cleanly.
+  const updatePayload = isLiquid
+    ? {
+        bulk_quantity: Math.max(0, Number(itemAny?.bulk_quantity ?? 0) - quantityUsed),
+        last_used_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+    : {
+        quantity: Number(itemAny?.quantity ?? 0) - quantityUsed,
+        last_used_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
   const { error: updateError } = await supabase
     .from('van_stock_items')
-    .update({
-      quantity: item.quantity - quantityUsed,
-      last_used_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq('item_id', vanStockItemId);
 
   if (updateError) throw new Error(updateError.message);
@@ -99,9 +129,13 @@ export const useVanStockPart = async (
       van_stock_item_id: vanStockItemId,
       performed_by: usedById,
       performed_by_name: usedByName,
-      notes: `Used ${quantityUsed} from van stock (non-liquid)`,
-      van_container_qty_after: item.quantity - quantityUsed,
-      van_bulk_qty_after: 0,
+      notes: `Used ${quantityUsed} from van stock`,
+      van_container_qty_after: isLiquid
+        ? Number(itemAny?.container_quantity ?? 0)
+        : Number(itemAny?.quantity ?? 0) - quantityUsed,
+      van_bulk_qty_after: isLiquid
+        ? Math.max(0, Number(itemAny?.bulk_quantity ?? 0) - quantityUsed)
+        : 0,
     }).then(({ error: mvErr }) => {
       if (mvErr) console.warn('Movement log failed:', mvErr.message);
     });
@@ -167,19 +201,34 @@ export const rejectVanStockUsage = async (
 
   if (usageError) throw new Error(usageError.message);
 
-  const { data: item } = await supabase
+  // Liquid-aware refund: for liquids the .quantity column is 0 by the
+  // route-trigger contract; the real bucket is bulk_quantity. Crediting
+  // back .quantity for a liquid usage would corrupt the row and the
+  // refund would be invisible.
+  const { data: rejItem } = await supabase
     .from('van_stock_items')
-    .select('quantity')
+    .select('quantity, bulk_quantity, part:parts(is_liquid)')
     .eq('item_id', usage.van_stock_item_id)
     .single();
 
-  if (item) {
+  if (rejItem) {
+    const rejAny = rejItem as unknown as {
+      quantity?: number | null;
+      bulk_quantity?: number | null;
+      part?: { is_liquid?: boolean | null } | null;
+    };
+    const refundUpdate = rejAny.part?.is_liquid
+      ? {
+          bulk_quantity: Number(rejAny.bulk_quantity ?? 0) + Number(usage.quantity_used),
+          updated_at: new Date().toISOString(),
+        }
+      : {
+          quantity: Number(rejAny.quantity ?? 0) + Number(usage.quantity_used),
+          updated_at: new Date().toISOString(),
+        };
     await supabase
       .from('van_stock_items')
-      .update({
-        quantity: item.quantity + usage.quantity_used,
-        updated_at: new Date().toISOString(),
-      })
+      .update(refundUpdate)
       .eq('item_id', usage.van_stock_item_id);
   }
 

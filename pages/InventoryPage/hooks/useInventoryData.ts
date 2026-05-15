@@ -299,22 +299,29 @@ export function useInventoryData(currentUser: User, options: UseInventoryDataOpt
       });
       const headers = ['Part Code', 'Part Name', 'Category', 'Cost Price', 'Sell Price', 'Stock Qty', 'Min Stock', 'Stock Value (Cost)', 'Stock Value (Sell)', 'Low Stock', 'Warranty (months)', 'Supplier', 'Location', 'Unit', 'Last Updated By', 'Updated At'];
       const rows = rowsSource.map(p => {
-        const isLow = p.stock_quantity <= (p.min_stock_level || 0) && (p.min_stock_level || 0) > 0;
+        // Liquid-aware effective qty: for liquids, the real on-hand is
+        // container_quantity × container_size + bulk_quantity (stock_quantity
+        // is 0 by convention). Without this branch every liquid SKU exported
+        // as 0 stock, 0 value, flagged "Low Stock = YES".
+        const effectiveQty = p.is_liquid
+          ? ((p.container_quantity ?? 0) * (p.container_size ?? 0)) + (p.bulk_quantity ?? 0)
+          : (p.stock_quantity ?? 0);
+        const isLow = effectiveQty <= (p.min_stock_level || 0) && (p.min_stock_level || 0) > 0;
         return [
           p.part_code,
           p.part_name,
           p.category,
           p.cost_price,
           p.sell_price,
-          p.stock_quantity,
+          effectiveQty,
           p.min_stock_level || 10,
-          (p.stock_quantity * (p.cost_price ?? 0)).toFixed(2),
-          (p.stock_quantity * (p.sell_price ?? 0)).toFixed(2),
+          (effectiveQty * (p.cost_price ?? 0)).toFixed(2),
+          (effectiveQty * (p.sell_price ?? 0)).toFixed(2),
           isLow ? 'YES' : '',
           p.warranty_months,
           p.supplier || '',
           p.location || '',
-          p.unit || 'pcs',
+          p.unit || (p.is_liquid ? 'L' : 'pcs'),
           p.last_updated_by_name || '',
           p.updated_at || '',
         ];

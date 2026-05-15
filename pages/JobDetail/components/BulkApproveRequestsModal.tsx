@@ -34,11 +34,13 @@ function findBestPartMatch(description: string, parts: Part[]): Part | null {
   let bestScore = 0;
 
   for (const part of parts) {
-    // Skip out-of-stock. Liquids hold real stock in container_quantity + bulk_quantity
-    // (stock_quantity is 0 by design), so use the liquid totals when applicable.
+    // Skip out-of-stock. For liquids the real total is
+    // container_quantity × container_size + bulk_quantity. The previous
+    // additive `containers + bulk` missed the × container_size factor,
+    // so a 15-drum 18L SKU registered as totalStock=15 instead of 270.
     const totalStock = part.is_liquid
-      ? (part.container_quantity || 0) + (part.bulk_quantity || 0)
-      : (part.stock_quantity || 0);
+      ? (Number(part.container_quantity || 0) * Number(part.container_size || 0)) + Number(part.bulk_quantity || 0)
+      : Number(part.stock_quantity || 0);
     if (totalStock <= 0) continue;
     const partLower = part.part_name.toLowerCase();
     
@@ -95,12 +97,26 @@ export const BulkApproveRequestsModal: React.FC<BulkApproveRequestsModalProps> =
         merged.push(p); seenIds.add(p.part_id);
       }
     }
-    return merged.map(p => ({
-      id: p.part_id,
-      label: p.part_name,
-      subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
-    }));
+    return merged.map(p => {
+      const stock = p.is_liquid
+        ? (Number(p.container_quantity ?? 0) * Number(p.container_size ?? 0)) + Number(p.bulk_quantity ?? 0)
+        : Number(p.stock_quantity ?? 0);
+      const unit = p.is_liquid ? (p.base_unit || 'L') : '';
+      return {
+        id: p.part_id,
+        label: p.part_name,
+        subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${stock}${unit}`,
+      };
+    });
   }, [searchedParts, parts, items]);
+
+  // Liquid-aware stock helper for inline cap + display.
+  const partStock = (p: typeof parts[number] | undefined) => {
+    if (!p) return 0;
+    return p.is_liquid
+      ? (Number(p.container_quantity ?? 0) * Number(p.container_size ?? 0)) + Number(p.bulk_quantity ?? 0)
+      : Number(p.stock_quantity ?? 0);
+  };
 
   // Auto-match on open
   useEffect(() => {
@@ -214,7 +230,7 @@ export const BulkApproveRequestsModal: React.FC<BulkApproveRequestsModalProps> =
                       <input
                         type="number"
                         min={1}
-                        max={selectedPart?.stock_quantity || 999}
+                        max={partStock(selectedPart) || 999}
                         value={item.quantity}
                         onChange={(e) => updateItem(idx, { quantity: Math.max(1, parseInt(e.target.value) || 1) })}
                         className="w-16 px-2 py-1.5 text-sm border border-[var(--border)] rounded-lg text-center bg-[var(--surface)]"
@@ -225,7 +241,7 @@ export const BulkApproveRequestsModal: React.FC<BulkApproveRequestsModalProps> =
                     {item.partId ? (
                       <div className="flex items-center gap-1 text-xs text-green-600">
                         <Check className="w-3 h-3" />
-                        {selectedPart?.part_name} — RM{(selectedPart?.sell_price ?? selectedPart?.cost_price)?.toFixed(2) ?? '0.00'} (Stock: {selectedPart?.stock_quantity})
+                        {selectedPart?.part_name} — RM{(selectedPart?.sell_price ?? selectedPart?.cost_price)?.toFixed(2) ?? '0.00'} (Stock: {partStock(selectedPart)}{selectedPart?.is_liquid ? (selectedPart?.base_unit || 'L') : ''})
                       </div>
                     ) : (
                       <div className="flex items-center gap-1 text-xs text-amber-600">

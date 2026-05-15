@@ -166,8 +166,13 @@ const JobDetailPage: React.FC<JobDetailProps> = ({ currentUser }) => {
         if (!seen.has(p.part_id)) { ordered.push(p); seen.add(p.part_id); }
       }
       return ordered.map(p => {
-        const stock = p.stock_quantity ?? 0;
-        const stockLabel = stock === 0 ? '⛔ OOS' : stock <= 5 ? `⚠️ ${stock}` : `${stock}`;
+        // Liquid-aware stock display: liquids hold stock in containers + bulk.
+        // Previously every liquid SKU showed "⛔ OOS" because stock_quantity=0.
+        const stock = p.is_liquid
+          ? (Number(p.container_quantity ?? 0) * Number(p.container_size ?? 0)) + Number(p.bulk_quantity ?? 0)
+          : Number(p.stock_quantity ?? 0);
+        const unit = p.is_liquid ? (p.base_unit || 'L') : '';
+        const stockLabel = stock === 0 ? '⛔ OOS' : stock <= 5 ? `⚠️ ${stock}${unit}` : `${stock}${unit}`;
         return {
           id: p.part_id, label: p.part_name,
           subLabel: roleFlags.canViewPricing

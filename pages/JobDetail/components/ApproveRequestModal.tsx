@@ -36,11 +36,18 @@ export const ApproveRequestModal: React.FC<ApproveRequestModalProps> = ({
 
   const { parts, isSearching, search } = useSearchParts(30);
 
-  const partOptions: ComboboxOption[] = parts.map(p => ({
-    id: p.part_id,
-    label: p.part_name,
-    subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
-  }));
+  const partOptions: ComboboxOption[] = parts.map(p => {
+    // Liquid-aware stock display: liquids hold stock in containers + bulk.
+    const stock = p.is_liquid
+      ? (Number(p.container_quantity ?? 0) * Number(p.container_size ?? 0)) + Number(p.bulk_quantity ?? 0)
+      : Number(p.stock_quantity ?? 0);
+    const unit = p.is_liquid ? (p.base_unit || 'L') : '';
+    return {
+      id: p.part_id,
+      label: p.part_name,
+      subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${stock}${unit}`,
+    };
+  });
 
   if (!show || !request) return null;
 

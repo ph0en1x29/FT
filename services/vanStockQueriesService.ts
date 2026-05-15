@@ -17,7 +17,7 @@ export const getAllVanStocks = async (): Promise<VanStock[]> => {
         van_stock_id, van_code, van_plate, technician_id, is_active, van_status, max_items, last_audit_at, created_at,
         technician:users!technician_id(name),
         items:van_stock_items(
-          item_id, part_id, quantity, container_quantity, bulk_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
+          item_id, part_id, quantity, container_quantity, bulk_quantity, effective_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
           part:parts(part_id, part_name, part_code, cost_price, sell_price, is_liquid, base_unit, container_unit, container_size, avg_cost_per_liter, last_purchase_cost_per_liter)
         )
       `)
@@ -46,7 +46,7 @@ export const getVanStockByTechnician = async (technicianId: string): Promise<Van
         van_stock_id, van_code, van_plate, technician_id, is_active, van_status, max_items, last_audit_at, created_at,
         technician:users!technician_id(name),
         items:van_stock_items(
-          item_id, part_id, quantity, container_quantity, bulk_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
+          item_id, part_id, quantity, container_quantity, bulk_quantity, effective_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
           part:parts(part_id, part_name, part_code, cost_price, sell_price, is_liquid, base_unit, container_unit, container_size, avg_cost_per_liter, last_purchase_cost_per_liter)
         )
       `)
@@ -117,7 +117,7 @@ export const getVanStockById = async (vanStockId: string): Promise<VanStock | nu
         van_stock_id, van_code, van_plate, technician_id, is_active, van_status, max_items, last_audit_at, created_at,
         technician:users!technician_id(name),
         items:van_stock_items(
-          item_id, part_id, quantity, container_quantity, bulk_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
+          item_id, part_id, quantity, container_quantity, bulk_quantity, effective_quantity, min_quantity, max_quantity, last_replenished_at, last_used_at,
           part:parts(part_id, part_name, part_code, cost_price, sell_price, is_liquid, base_unit, container_unit, container_size, avg_cost_per_liter, last_purchase_cost_per_liter)
         )
       `)
@@ -149,7 +149,13 @@ export const getLowStockItems = async (technicianId: string): Promise<VanStockIt
 
     if (!vanStock?.items) return [];
 
-    return (vanStock.items as VanStockItemRow[]).filter((item) => item.quantity <= item.min_quantity) as VanStockItem[];
+    // Use effective_quantity (containers × size + bulk) for liquids; falls
+    // back to .quantity for non-liquids when effective_quantity is missing.
+    return (vanStock.items as VanStockItemRow[]).filter((item) => {
+      const eff = (item as { effective_quantity?: number | null }).effective_quantity;
+      const qty = eff != null ? Number(eff) : Number(item.quantity ?? 0);
+      return qty <= item.min_quantity;
+    }) as VanStockItem[];
   } catch (_e) {
     return [];
   }
@@ -159,11 +165,14 @@ export const getGlobalLowStockCount = async (): Promise<number> => {
   try {
     const { data } = await supabase
       .from('van_stock_items')
-      .select('quantity, min_quantity');
+      .select('quantity, effective_quantity, min_quantity');
     return (data || []).filter((item) => {
       const min = item.min_quantity;
-      const quantity = item.quantity;
-      return min > 0 && quantity < min;
+      // effective_quantity (maintained by trg_set_van_stock_effective_quantity)
+      // is the right value for both liquids (containers×size + bulk) and
+      // solids. Falls back to .quantity for legacy rows.
+      const qty = item.effective_quantity != null ? Number(item.effective_quantity) : Number(item.quantity ?? 0);
+      return min > 0 && qty < min;
     }).length;
   } catch {
     return 0;

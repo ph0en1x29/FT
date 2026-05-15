@@ -52,11 +52,19 @@ export function useStoreQueueController(currentUser: User) {
       }
     }
 
-    return merged.map(p => ({
-      id: p.part_id,
-      label: p.part_name,
-      subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${p.stock_quantity}`,
-    }));
+    return merged.map(p => {
+      // Liquid-aware stock display: liquid parts hold real stock in
+      // containers × size + bulk; stock_quantity is 0 by convention.
+      const stock = p.is_liquid
+        ? (Number(p.container_quantity ?? 0) * Number(p.container_size ?? 0)) + Number(p.bulk_quantity ?? 0)
+        : Number(p.stock_quantity ?? 0);
+      const unit = p.is_liquid ? (p.base_unit || 'L') : '';
+      return {
+        id: p.part_id,
+        label: p.part_name,
+        subLabel: `RM${(p.sell_price ?? p.cost_price)?.toFixed(2) ?? '0.00'} | Stock: ${stock}${unit}`,
+      };
+    });
   }, [searchedParts, parts, inlineState]);
 
   const loadQueue = useCallback(async () => {

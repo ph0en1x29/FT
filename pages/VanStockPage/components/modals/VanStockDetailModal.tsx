@@ -21,6 +21,7 @@ import { computeVanStockItemValue, getVanStockItemUnitPrice, transferToVan, retu
 import { showToast } from '../../../../services/toastService';
 import { VanStock,VanStockItem } from '../../../../types';
 import { getLowStockItems,getStockStatusColor } from '../../hooks/useVanStockData';
+import { getVanStockAvailableQty } from '../../../../utils/vanStock';
 import { VanHistoryTab } from '../VanHistoryTab';
 import { TransferPartModal } from './TransferPartModal';
 
@@ -265,7 +266,7 @@ export function VanStockDetailModal({
                     <td className="p-3 text-center font-semibold">
                       {item.part?.is_liquid ? (
                         <div>
-                          {(((item.container_quantity || 0) * (item.part?.container_size || 1)) + (item.bulk_quantity || 0)).toFixed(1)} {item.part?.base_unit || 'L'}
+                          {getVanStockAvailableQty(item).toFixed(1)} {item.part?.base_unit || 'L'}
                         </div>
                       ) : item.quantity}
                     </td>
@@ -451,9 +452,7 @@ export function VanStockDetailModal({
 function StockStatusBadge({ item }: { item: VanStockItem }) {
   const colorClass = getStockStatusColor(item);
 
-  const effectiveQty = item.part?.is_liquid
-    ? ((item.container_quantity || 0) * (item.part?.container_size || 1)) + (item.bulk_quantity || 0)
-    : (item.quantity || 0);
+  const effectiveQty = getVanStockAvailableQty(item);
   if (effectiveQty === 0) {
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>

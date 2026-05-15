@@ -350,19 +350,33 @@ const StoreAdminDashboard: React.FC<StoreAdminDashboardProps> = ({
           </div>
 
           <div className="mt-4 space-y-2">
-            {lowStockPreview.map(part => (
-              <div key={part.part_id} className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)' }}>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{part.part_name}</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {part.stock_quantity} left • min {(part.min_stock_level || 0).toLocaleString()}
-                  </p>
+            {lowStockPreview.map(part => {
+              // Liquid-aware on-hand: liquids hold stock in containers + bulk
+              // (stock_quantity is 0 by convention).
+              const partAny = part as unknown as {
+                is_liquid?: boolean | null;
+                container_quantity?: number | null;
+                container_size?: number | null;
+                bulk_quantity?: number | null;
+                stock_quantity?: number | null;
+              };
+              const onHand = partAny.is_liquid
+                ? (Number(partAny.container_quantity ?? 0) * Number(partAny.container_size ?? 0)) + Number(partAny.bulk_quantity ?? 0)
+                : Number(partAny.stock_quantity ?? 0);
+              return (
+                <div key={part.part_id} className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: 'var(--surface-2)' }}>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>{part.part_name}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {onHand} left • min {(part.min_stock_level || 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <span className="rounded-full px-2 py-1 text-[10px] font-semibold" style={{ background: colors.red.bg, color: colors.red.text }}>
+                    {onHand === 0 ? 'OOS' : 'LOW'}
+                  </span>
                 </div>
-                <span className="rounded-full px-2 py-1 text-[10px] font-semibold" style={{ background: colors.red.bg, color: colors.red.text }}>
-                  {part.stock_quantity === 0 ? 'OOS' : 'LOW'}
-                </span>
-              </div>
-            ))}
+              );
+            })}
             {lowStockPreview.length === 0 && (
               <div className="rounded-2xl px-4 py-6 text-center" style={{ background: 'var(--surface-2)' }}>
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8" style={{ color: colors.green.text, opacity: 0.65 }} />

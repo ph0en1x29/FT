@@ -66,12 +66,21 @@ export const addPartToJob = async (
   // Technicians are blocked if insufficient stock — UNLESS it's coming from
   // van stock (already deducted from van), in which case the catalog stock
   // check is moot.
+  //
+  // Liquid-aware: for liquid parts stock_quantity is 0 by convention; the
+  // real available stock is `container_quantity × container_size + bulk_quantity`.
+  // The old check `part.stock_quantity < quantity` rejected every liquid
+  // add-part attempt by a technician, even when the warehouse had stock.
   if (
     actorRole !== UserRole.ADMIN &&
-    !vanStockOptions?.fromVanStock &&
-    part.stock_quantity < quantity
+    !vanStockOptions?.fromVanStock
   ) {
-    throw new Error('Insufficient stock');
+    const available = part.is_liquid
+      ? (Number(part.container_quantity ?? 0) * Number(part.container_size ?? 0)) + Number(part.bulk_quantity ?? 0)
+      : Number(part.stock_quantity ?? 0);
+    if (available < quantity) {
+      throw new Error('Insufficient stock');
+    }
   }
 
   const { error: insertError } = await supabase
@@ -367,16 +376,22 @@ export const removePartFromJob = async (jobId: string, jobPartId: string, actorR
     .single();
 
   if (jobPart && (actorRole === UserRole.ADMIN || actorRole === UserRole.TECHNICIAN)) {
+    // Liquid-aware restore: for liquid parts stock_quantity is 0 by
+    // convention; real stock lives in bulk_quantity. Previously a liquid
+    // part removal silently lost the liters from inventory.
     const { data: part } = await supabase
       .from('parts')
-      .select('stock_quantity')
+      .select('stock_quantity, is_liquid, bulk_quantity')
       .eq('part_id', jobPart.part_id)
       .single();
 
     if (part) {
+      const update = part.is_liquid
+        ? { bulk_quantity: Number(part.bulk_quantity ?? 0) + Number(jobPart.quantity) }
+        : { stock_quantity: Number(part.stock_quantity ?? 0) + Number(jobPart.quantity) };
       const { error: stockError } = await supabase
         .from('parts')
-        .update({ stock_quantity: part.stock_quantity + jobPart.quantity })
+        .update(update)
         .eq('part_id', jobPart.part_id);
       if (stockError) {
         console.warn('Removed part, but stock restore failed (RLS?):', stockError.message);

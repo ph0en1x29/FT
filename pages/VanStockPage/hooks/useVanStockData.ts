@@ -5,6 +5,7 @@
 import { useMemo,useState } from 'react';
 import { useAllVanStocks,useReplenishmentsPending } from '../../../hooks/useQueryHooks';
 import { User,UserRole,VanStockItem } from '../../../types';
+import { getVanStockAvailableQty } from '../../../utils/vanStock';
 import { FilterType,VanStockStats } from '../types';
 
 interface UseVanStockDataProps {
@@ -43,7 +44,16 @@ export function useVanStockData({ currentUser }: UseVanStockDataProps) {
     const totalItems = vanStocks.reduce((sum, vs) => sum + (vs.items?.length || 0), 0);
     const totalValue = vanStocks.reduce((sum, vs) => sum + (vs.total_value || 0), 0);
     const lowStockCount = vanStocks.reduce((sum, vs) => {
-      const lowItems = vs.items?.filter(item => item.quantity <= item.min_quantity) || [];
+      // Liquid-aware low-stock: use trigger-maintained effective_quantity
+      // when present (containers × size + bulk); falls back to .quantity
+      // for non-liquid items / legacy rows. The bare `item.quantity` check
+      // was a false positive for every liquid SKU (quantity = 0 by the
+      // route-trigger contract).
+      const lowItems = vs.items?.filter(item => {
+        const eff = (item as { effective_quantity?: number | null }).effective_quantity;
+        const qty = eff != null ? Number(eff) : Number(item.quantity ?? 0);
+        return qty <= item.min_quantity;
+      }) || [];
       return sum + lowItems.length;
     }, 0);
     const pendingAudits = vanStocks.filter(vs => {
@@ -84,7 +94,14 @@ export function useVanStockData({ currentUser }: UseVanStockDataProps) {
 
     if (filterType === 'low_stock') {
       result = result.filter(vs => {
-        const lowItems = vs.items?.filter(item => item.quantity <= item.min_quantity) || [];
+        // Liquid-aware low-stock filter (was bare item.quantity, which is 0
+        // for liquids by the route-trigger contract — every liquid van would
+        // false-positive into low_stock).
+        const lowItems = vs.items?.filter(item => {
+          const eff = (item as { effective_quantity?: number | null }).effective_quantity;
+          const qty = eff != null ? Number(eff) : Number(item.quantity ?? 0);
+          return qty <= item.min_quantity;
+        }) || [];
         return lowItems.length > 0;
       });
     } else if (filterType === 'pending_audit') {
@@ -116,18 +133,28 @@ export function useVanStockData({ currentUser }: UseVanStockDataProps) {
 }
 
 /**
- * Helper function to get low stock items
+ * Helper function to get low stock items.
+ * Liquid-aware: uses trigger-maintained effective_quantity (containers ×
+ * size + bulk) when present; falls back to .quantity for solids.
  */
 export function getLowStockItems(items: VanStockItem[] | undefined): VanStockItem[] {
   if (!items) return [];
-  return items.filter(item => item.quantity <= item.min_quantity);
+  return items.filter(item => {
+    const eff = (item as { effective_quantity?: number | null }).effective_quantity;
+    const qty = eff != null ? Number(eff) : Number(item.quantity ?? 0);
+    return qty <= item.min_quantity;
+  });
 }
 
 /**
- * Helper function to get stock status color
+ * Helper function to get stock status color.
+ * Liquid-aware via getVanStockAvailableQty: the old additive formula
+ * `containers + bulk + quantity` was wrong for liquids (treated a 5-drum
+ * van as quantity=5 instead of 5 × container_size). Liquid SKUs were
+ * appearing as "out of stock" red when fully stocked.
  */
 export function getStockStatusColor(item: VanStockItem): string {
-  const effectiveQty = (item.container_quantity || 0) + (item.bulk_quantity || 0) + (item.quantity || 0);
+  const effectiveQty = getVanStockAvailableQty(item);
   if (effectiveQty === 0) return 'text-red-600 bg-red-50';
   if (effectiveQty <= item.min_quantity) return 'text-amber-600 bg-amber-50';
   return 'text-green-600 bg-green-50';

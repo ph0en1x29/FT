@@ -44,7 +44,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
     loadData,
   } = useVanStockData({ currentUser });
 
-  const { invalidateVanStock, invalidateReplenishments } = useInvalidateQueries();
+  const { invalidateVanStock, invalidateReplenishments, invalidateParts } = useInvalidateQueries();
 
   // Selected van stock for modals
   const [selectedVanStock, setSelectedVanStock] = useState<VanStock | null>(null);
@@ -432,7 +432,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
           filteredCount={filteredVanStocks.length}
           totalCount={vanStocks.length}
           isAdmin={isAdmin}
-          onRefresh={loadData}
+          onRefresh={() => { loadData(); invalidateParts(); }}
           onAssign={handleOpenAssignModal}
         />
       )}
@@ -441,7 +441,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
       {isAdmin && (
         <VanFleetOverview
           currentUser={currentUser}
-          onRefresh={loadData}
+          onRefresh={() => { loadData(); invalidateParts(); }}
         />
       )}
 
@@ -484,7 +484,7 @@ export default function VanStockPageMain({ currentUser, hideHeader = false }: Va
         onDeactivate={() => handleOpenDeleteConfirm('deactivate')}
         onDelete={() => handleOpenDeleteConfirm('delete')}
         onScheduleAudit={handleScheduleAudit}
-        onRefresh={loadData}
+        onRefresh={() => { loadData(); invalidateParts(); }}
         currentUserId={currentUser.user_id}
         currentUserName={currentUser.name}
       />

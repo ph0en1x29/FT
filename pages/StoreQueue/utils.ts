@@ -49,7 +49,13 @@ export function findBestPartMatch(description: string, parts: Part[]): Part | nu
   let bestMatch: Part | null = null;
   let bestScore = 0;
   for (const part of parts) {
-    if (part.stock_quantity <= 0) continue;
+    // Liquid-aware skip: liquid parts have stock_quantity=0 by convention
+    // (real stock = container_quantity × container_size + bulk_quantity).
+    // The bare check skipped every liquid SKU from auto-match.
+    const available = part.is_liquid
+      ? (Number(part.container_quantity ?? 0) * Number(part.container_size ?? 0)) + Number(part.bulk_quantity ?? 0)
+      : Number(part.stock_quantity ?? 0);
+    if (available <= 0) continue;
     const partLower = part.part_name.toLowerCase();
     if (partLower === descLower) return part;
     let score = 0;

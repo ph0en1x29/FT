@@ -1,5 +1,54 @@
 # Changelog
 
+## [2026-05-15 — late] — Comprehensive liquid-blind audit: 4 rounds, 15+ sites cleaned up
+
+After shipping the initial S-01044 transfer fix, a 4-round multi-reviewer audit found the same liquid-blind pattern lurking in 15+ other locations across the codebase. All have been fixed in this pass so liquid SKUs (oils, fluids tracked in containers + bulk_quantity) render and behave correctly everywhere.
+
+### Fixes — DB layer
+
+- `check_job_completion_readiness` restored to `SECURITY INVOKER` (was silently changed to `SECURITY DEFINER` in the earlier readiness fix; round-1 audit caught the unjustified privilege change).
+- `rpc_return_part_to_store` non-liquid branch initializes the audit-column locals so `inventory_movements.van_container_qty_after` / `van_bulk_qty_after` aren't written as NULL (regression vs the legacy RPC behaviour caught by round-1 audit).
+
+### Fixes — Frontend display + state
+
+- `pages/VanStockPage/hooks/useVanStockData.ts`: filter-type 'low_stock', `getLowStockItems`, `getStockStatusColor`, and stats `lowStockCount` now use `getVanStockAvailableQty` (which prefers trigger-maintained `effective_quantity`, falls back to `containers × size + bulk` for liquids and `.quantity` for solids). The bare `.quantity` check was making every liquid SKU falsely "low stock" / "out of stock" / red-badged.
+- `pages/MyVanStock/hooks/useVanStock.ts`: same fix for the tech-facing `lowStock`, `outOfStock`, `lowStockItems` calculations.
+- `pages/MyVanStock/components/StockItemCard.tsx`: status badge + qty progress bar now use the helper. A van with 2×18L drums was showing "2 L" — now correctly shows 36L.
+- `pages/VanStockPage/components/modals/VanStockDetailModal.tsx`: per-row qty display + `StockStatusBadge` use the helper (consistent with trigger-maintained effective_quantity instead of an inline recomputation that could drift).
+- `pages/VanStockPage/components/modals/TransferItemsModal.tsx`: van-to-van transfer display switched to the helper.
+- `components/ReplenishmentRequestModal.tsx`: "Select All Low Stock" init, per-row toggle, `updateQuantity` cap, and "Current: X" display all now read `getVanStockAvailableQty(item)`. Previously a liquid van with 90L on-hand was showing "Current: 0" and pre-requesting the full max (e.g., 200L) instead of a 110L top-up.
+- `pages/JobDetail/components/BulkApproveRequestsModal.tsx`: `findBestPartMatch` totalStock now multiplies containers × size; combobox subLabel, qty input max cap, and inline display all show liquid-aware stock.
+- `pages/JobDetail/components/ApproveRequestModal.tsx`: combobox subLabel liquid-aware.
+- `pages/JobDetail/JobDetailPage.tsx`: part-picker subLabel (combobox) shows liquid totals (was showing "⛔ OOS" for every liquid SKU regardless of actual stock).
+- `pages/StoreQueue/hooks/useStoreQueueController.ts`: combobox subLabel liquid-aware.
+- `pages/StoreQueue/utils.ts`: `findBestPartMatch` no longer skips every liquid part as "stock_quantity ≤ 0" — same fix as the BulkApprove mirror.
+- `components/dashboards/DashboardPreviewV4/components/StoreAdminDashboard.tsx`: low-stock preview shows correct on-hand and OOS/LOW chip for liquids.
+- `pages/InventoryPage/hooks/useInventoryData.ts`: admin "Export Inventory" CSV now reports correct effective quantity, stock value, and low-stock flag for liquid parts; default unit falls back to 'L' instead of 'pcs' for liquids.
+
+### Fixes — Service layer (data integrity)
+
+- `services/jobInvoiceService.ts`:
+  - `addPartToJob`: insufficient-stock validation now branches on `is_liquid`. Previously every technician attempting to add a liquid part to a job was rejected with "Insufficient stock" because `part.stock_quantity` is 0 for liquids by convention.
+  - `removePartFromJob`: restock-on-remove branches on `is_liquid` — liquids restock into `bulk_quantity` instead of silently disappearing into the unused `stock_quantity` column.
+- `services/jobService.ts`: restock-on-job-finalize loop branches on `is_liquid` (same pattern).
+- `services/jobRequestApprovalService.ts`: stock-availability validation branches on `is_liquid`. Previously every liquid spare-part request was silently rejected at the validation step before reservation.
+- `services/vanStockUsageService.ts`: `useVanStockPart` (legacy non-atomic path) now reads `effective_quantity` for the availability check and decrements `bulk_quantity` for liquids. `rejectVanStockUsage` refund-on-reject now credits the correct column for liquids (previously a rejected liquid usage silently lost the liters).
+- `services/vanStockQueriesService.ts`: van-stock SELECT shapes now project `effective_quantity`; low-stock queries use it instead of bare `.quantity`.
+- `pages/JobDetail/hooks/useJobPartsHandlers.ts`: post-van-usage low-stock auto-replen check uses `getVanStockAvailableQty` — previously every liquid usage triggered a false-positive replenishment-request spam because every other liquid item also looked "low" at `quantity = 0`.
+- `pages/InventoryPage/components/PendingAdjustmentsTab.tsx`: `is_liquid === true` (was `!== false` which treated null as liquid; misaligned with the new RPCs which `COALESCE(is_liquid, FALSE)`).
+- `pages/InventoryPage/components/StocktakeTab.tsx`: when approving a liquid stocktake, also zero `container_quantity` so the total formula `containers × size + bulk` doesn't double-count the physical count against any pre-existing container rows.
+
+### Infrastructure
+
+- New `invalidateParts()` helper in `useInvalidateQueries`, wired into all three `onRefresh` paths in `VanStockPageMain` so the `['parts']` React-Query cache refreshes after a van transfer/return. Previously the central PartsTable kept showing pre-transfer numbers until manual refresh.
+- `VanStockItem` type now includes `effective_quantity?: number` (trigger-maintained DB column).
+
+### Verification
+
+- 4 rounds × 3 reviewers each: round 1 (initial reviewers), round 2 (devil's-advocate stress test), round 3 (final-sweep + ship-readiness), round 4 (post-fix verification — found 1 more site in CSV export and fixed it).
+- Live DB walk-through verified for all 5 critical flows (transfer 10L S-01044, return non-liquid, AQUA bulk sign-off, MyVanStock liquid card, replenishment request).
+- typecheck clean, ESLint clean on touched files, 48/48 unit tests pass, build within bundle budget.
+
 ## [2026-05-15] — Liquid-aware van stock transfers + bulk sign-off readiness fix
 
 ### Fixes

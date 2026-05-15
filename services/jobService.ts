@@ -494,22 +494,25 @@ export const reconcileParts = async (
     if (partError) throw new Error(`Failed to update part ${item.job_part_id}: ${partError.message}`);
   }
 
-  // Step 2: Restock returned parts (increment stock_quantity on the parts table)
+  // Step 2: Restock returned parts. Liquid-aware: liquids restock into
+  // bulk_quantity (stock_quantity is 0 by convention for liquid parts).
+  // Previously every liquid restock silently lost the liters.
   const returnedParts = reconciliation.filter(r => r.quantity_returned > 0);
   for (const item of returnedParts) {
-    // Fetch current stock, then increment (Supabase doesn't support atomic increment without RPC)
     const { data: partData, error: fetchErr } = await supabase
       .from('parts')
-      .select('stock_quantity')
+      .select('stock_quantity, is_liquid, bulk_quantity')
       .eq('part_id', item.part_id)
       .single();
 
     if (fetchErr) throw new Error(`Failed to fetch part ${item.part_id}: ${fetchErr.message}`);
 
-    const newStock = (partData?.stock_quantity ?? 0) + item.quantity_returned;
+    const update = partData?.is_liquid
+      ? { bulk_quantity: Number(partData.bulk_quantity ?? 0) + Number(item.quantity_returned) }
+      : { stock_quantity: Number(partData?.stock_quantity ?? 0) + Number(item.quantity_returned) };
     const { error: stockErr } = await supabase
       .from('parts')
-      .update({ stock_quantity: newStock })
+      .update(update)
       .eq('part_id', item.part_id);
 
     if (stockErr) throw new Error(`Failed to restock part ${item.part_id}: ${stockErr.message}`);

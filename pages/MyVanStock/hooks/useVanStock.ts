@@ -4,6 +4,7 @@ import { useVanStockByTechnician,useReplenishmentsByTech,queryKeys } from '../..
 import { SupabaseDb as MockDb } from '../../../services/supabaseService';
 import { showToast } from '../../../services/toastService';
 import { VanStockUsage } from '../../../types';
+import { getVanStockAvailableQty } from '../../../utils/vanStock';
 import { useEffect } from 'react';
 
 interface UseVanStockParams {
@@ -58,10 +59,15 @@ export function useVanStock({ userId }: UseVanStockParams) {
       return { totalItems: 0, lowStock: 0, outOfStock: 0, totalValue: 0 };
     }
     const items = vanStock.items;
+    // Liquid-aware: bare item.quantity is 0 for liquid SKUs by the route-
+    // trigger contract. Use effective_quantity (containers × size + bulk).
     return {
       totalItems: items.length,
-      lowStock: items.filter(item => item.quantity > 0 && item.quantity <= item.min_quantity).length,
-      outOfStock: items.filter(item => item.quantity === 0).length,
+      lowStock: items.filter(item => {
+        const qty = getVanStockAvailableQty(item);
+        return qty > 0 && qty <= item.min_quantity;
+      }).length,
+      outOfStock: items.filter(item => getVanStockAvailableQty(item) === 0).length,
       totalValue: vanStock.total_value || 0,
     };
   }, [vanStock]);
@@ -69,7 +75,7 @@ export function useVanStock({ userId }: UseVanStockParams) {
   // Get low stock items for replenishment
   const lowStockItems = useMemo(() => {
     if (!vanStock?.items) return [];
-    return vanStock.items.filter(item => item.quantity <= item.min_quantity);
+    return vanStock.items.filter(item => getVanStockAvailableQty(item) <= item.min_quantity);
   }, [vanStock?.items]);
 
   // Confirm receipt of fulfilled replenishment

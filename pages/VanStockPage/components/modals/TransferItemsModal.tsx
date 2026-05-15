@@ -3,6 +3,7 @@
  */
 import { ArrowRightLeft,X } from 'lucide-react';
 import { VanStock } from '../../../../types';
+import { getVanStockAvailableQty } from '../../../../utils/vanStock';
 
 interface TransferItemsModalProps {
   isOpen: boolean;
@@ -101,7 +102,7 @@ export function TransferItemsModal({
                     </div>
                     <div className="text-sm text-slate-600">
                       {item.part?.is_liquid
-                        ? `${(((item.container_quantity || 0) * (item.part?.container_size || 1)) + (item.bulk_quantity || 0)).toFixed(1)} ${item.part?.base_unit || 'L'}`
+                        ? `${getVanStockAvailableQty(item).toFixed(1)} ${item.part?.base_unit || 'L'}`
                         : `Qty: ${item.quantity}`}
                     </div>
                   </label>

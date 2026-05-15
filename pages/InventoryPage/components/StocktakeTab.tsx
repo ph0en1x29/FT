@@ -179,8 +179,14 @@ const StocktakeTab: React.FC<StocktakeTabProps> = ({ currentUser }) => {
         .eq('stocktake_id', stocktake.stocktake_id);
       if (approveErr) throw approveErr;
 
+      // For liquids, physical_qty is the TOTAL observed liters. Write it
+      // entirely to bulk_quantity and zero container_quantity so the
+      // total formula (containers × size + bulk) doesn't double-count the
+      // physical count against any pre-existing container_quantity rows.
+      // If the admin wants to repackage liters back into sealed containers,
+      // they can do that via Adjust Stock afterwards.
       const partUpdate = stocktake.parts?.is_liquid
-        ? { bulk_quantity: stocktake.physical_qty }
+        ? { bulk_quantity: stocktake.physical_qty, container_quantity: 0 }
         : { stock_quantity: stocktake.physical_qty };
       const { error: partUpdateErr } = await supabase
         .from('parts')

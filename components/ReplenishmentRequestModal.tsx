@@ -13,6 +13,7 @@ import {
 VanStock,
 VanStockItem,
 } from '../types';
+import { getVanStockAvailableQty } from '../utils/vanStock';
 
 interface ReplenishmentRequestModalProps {
   vanStock: VanStock;
@@ -37,11 +38,14 @@ export default function ReplenishmentRequestModal({
 }: ReplenishmentRequestModalProps) {
   const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(() => {
     const initial = new Map<string, SelectedItem>();
-    // Pre-select low stock items with calculated quantity
+    // Pre-select low stock items with calculated quantity.
+    // Liquid-aware: bare item.quantity is 0 for liquids by the route-trigger
+    // contract; use effective on-hand to size the top-up correctly.
     lowStockItems.forEach(item => {
+      const onHand = getVanStockAvailableQty(item);
       initial.set(item.item_id, {
         item,
-        quantityRequested: item.max_quantity - item.quantity,
+        quantityRequested: Math.max(0, item.max_quantity - onHand),
       });
     });
     return initial;
@@ -58,9 +62,10 @@ export default function ReplenishmentRequestModal({
     if (newSelected.has(item.item_id)) {
       newSelected.delete(item.item_id);
     } else {
+      const onHand = getVanStockAvailableQty(item);
       newSelected.set(item.item_id, {
         item,
-        quantityRequested: Math.max(1, item.max_quantity - item.quantity),
+        quantityRequested: Math.max(1, item.max_quantity - onHand),
       });
     }
     setSelectedItems(newSelected);
@@ -71,7 +76,8 @@ export default function ReplenishmentRequestModal({
     const selected = selectedItems.get(itemId);
     if (!selected) return;
 
-    const maxNeeded = selected.item.max_quantity - selected.item.quantity;
+    const onHand = getVanStockAvailableQty(selected.item);
+    const maxNeeded = selected.item.max_quantity - onHand;
     const newQuantity = Math.min(Math.max(1, quantity), maxNeeded);
 
     const newSelected = new Map(selectedItems);
@@ -112,13 +118,17 @@ export default function ReplenishmentRequestModal({
     }
   };
 
-  // Select all low stock items
+  // Select all low stock items.
+  // Liquid-aware: bare item.quantity is 0 for liquid SKUs (route-trigger
+  // contract); use effective_quantity so the requested top-up is sized
+  // against real on-hand liters.
   const selectAllLowStock = () => {
     const newSelected = new Map<string, SelectedItem>();
     lowStockItems.forEach(item => {
+      const onHand = getVanStockAvailableQty(item);
       newSelected.set(item.item_id, {
         item,
-        quantityRequested: item.max_quantity - item.quantity,
+        quantityRequested: Math.max(0, item.max_quantity - onHand),
       });
     });
     setSelectedItems(newSelected);
@@ -171,8 +181,9 @@ export default function ReplenishmentRequestModal({
             {allItems.map((item) => {
               const isSelected = selectedItems.has(item.item_id);
               const selected = selectedItems.get(item.item_id);
-              const isLowStock = item.quantity <= item.min_quantity;
-              const maxNeeded = item.max_quantity - item.quantity;
+              const onHand = getVanStockAvailableQty(item);
+              const isLowStock = onHand <= item.min_quantity;
+              const maxNeeded = Math.max(0, item.max_quantity - onHand);
 
               return (
                 <div
@@ -216,7 +227,7 @@ export default function ReplenishmentRequestModal({
                         )}
                       </div>
                       <div className="text-xs text-slate-500">
-                        {item.part?.part_code} • Current: {item.quantity} / Max: {item.max_quantity}
+                        {item.part?.part_code} • Current: {getVanStockAvailableQty(item)} / Max: {item.max_quantity}
                       </div>
                     </div>
 
