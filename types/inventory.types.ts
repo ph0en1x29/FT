@@ -148,6 +148,10 @@ export interface VanStockItem {
   // Dual-unit tracking
   container_quantity?: number;
   bulk_quantity?: number;
+  /** Computed column on van_stock_items: total in base units
+   *  (container_quantity * container_size + bulk_quantity + quantity).
+   *  Source of truth for "how much is on the van" — use this for display. */
+  effective_quantity?: number;
 
   // Metadata
   created_at: string;

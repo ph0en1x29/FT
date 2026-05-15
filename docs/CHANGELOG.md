@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-05-15] — Liquid-aware van stock transfers + bulk sign-off readiness fix
+
+### Fixes
+
+**Van transfer modal + RPC now correctly handle liquid parts.** Reported via S-01044 (GRANTT ATF DEX-III [18L]): Inventory page showed 270L available, but the "Transfer to Van" modal said 0L. Root cause was a two-layer liquid-blind bug. (1) The modal read `parts.stock_quantity` directly — for liquid parts this is 0 by convention; the actual stock lives in `container_quantity × container_size + bulk_quantity` (15 × 18 + 0 = 270L for S-01044). (2) `rpc_transfer_part_to_van` had the same flaw — it validated only against `stock_quantity` and only decremented that column, so any liquid transfer would either reject as "insufficient stock" or drive `stock_quantity` negative without touching the real values. Fixed in three layers:
+
+- **Modal** (`TransferPartModal.tsx`): now selects `is_liquid, container_quantity, container_size, bulk_quantity, base_unit` and computes the real total. Quantity input uses decimal step for liquids and labels the units (L vs unit). The "out" mode also picks up `effective_quantity` from `van_stock_items` when available.
+- **`rpc_transfer_part_to_van`**: rewritten with container-breaking math. For liquid parts: computes total available liters (`containers × size + bulk`), validates against the request, and decrements by subtracting from bulk_quantity first and opening just enough containers to cover any deficit. Non-liquid path is byte-identical to the old behavior (no regression risk). Audit log writes proper `container_qty_change` and `bulk_qty_change` deltas.
+- **`rpc_return_part_to_store`** (symmetric path, same bug): rewritten to mirror the same liquid-aware decrement on the van side and increment central `parts.bulk_quantity` (loose liters; returned oil from a van stays loose — store admin can re-package via Adjust Stock if needed). Non-liquid path unchanged.
+
+**Bulk sign-off readiness check no longer falsely blocks unsigned jobs.** Reported by AQUASPERSIONS: bulk sign-off modal shows the customer's In-Progress jobs but the checkboxes are disabled — tech can't proceed. Root cause: `check_job_completion_readiness` evaluated the RAW jobs row through the shared `evaluate_job_completion` helper, which has Gates 7 & 8 requiring tech + customer signatures. The bulk-sign modal IS the place where those signatures are captured, so the pre-check was rejecting every unsigned job as "Technician signature is required" — even though `rpc_bulk_complete_jobs` already synthesises post-write signatures before its own evaluation and would accept these jobs just fine. The readiness check (the pre-flight that drives the modal's "selectable vs blocked" buckets) was the only mismatched layer. Rewrote it to synthesise placeholder signatures on the row before calling the evaluator — mirroring exactly what `rpc_bulk_complete_jobs` does. Verified on AQUA's 5 In-Progress jobs: the 2 Checking jobs that were only missing signatures now correctly show `can_complete: true`; the 3 jobs missing recorded parts still block with the legitimate Gate 4 message (those need the tech to record parts on the job page first). The readiness RPC has only one consumer (bulk-sign banner via `SiteSignOffBanner.tsx`), so the semantic change is safe.
+
+### Notes — similar liquid-blind paths NOT touched this pass
+
+Three other places in the codebase read `parts.stock_quantity` directly and would have the same issue for liquid parts. They haven't been reported broken yet, so left untouched to avoid scope creep — will fix when surfaced:
+
+- `services/jobInvoiceService.ts` (finalize_invoice deduction; has a "Fallback to legacy stock_quantity" comment hinting at an in-progress migration)
+- `services/jobRequestApprovalService.ts` (job-request stock validation)
+- `services/jobService.ts` (restock-on-return on completed-job edits)
+
 ## [2026-05-14] — Forklift Profile edit now writes to forklifts.site + BYO editable from customer profile
 
 ### Fixes

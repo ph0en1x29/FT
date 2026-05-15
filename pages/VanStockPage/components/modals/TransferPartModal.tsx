@@ -51,6 +51,8 @@ export function TransferPartModal({
   const [selectedPartId, setSelectedPartId] = useState<string>('');
   const [selectedPartLabel, setSelectedPartLabel] = useState<string>('');
   const [centralStock, setCentralStock] = useState<number | null>(null);
+  const [isLiquid, setIsLiquid] = useState<boolean>(false);
+  const [baseUnit, setBaseUnit] = useState<string>('');
   const [quantity, setQuantity] = useState<string>('');
   const [reason, setReason] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
@@ -68,32 +70,50 @@ export function TransferPartModal({
     } else if (mode === 'out' && vanStockItem) {
       setSelectedPartId(vanStockItem.part_id);
       setSelectedPartLabel(vanStockItem.part?.part_name || '');
+      // For 'out' mode pre-fill liquid metadata from the joined part so the
+      // qty input renders the right unit (L vs unit) without an extra round-trip.
+      setIsLiquid(!!vanStockItem.part?.is_liquid);
+      setBaseUnit(vanStockItem.part?.base_unit || (vanStockItem.part?.is_liquid ? 'L' : ''));
     } else {
       setSelectedPartId('');
       setSelectedPartLabel('');
+      setIsLiquid(false);
+      setBaseUnit('');
     }
   }, [isOpen, mode, vanStockItem]);
 
   // Fetch central stock whenever a part is selected in 'in' mode so we can
   // show the admin how much is actually available before they type a number.
+  // Liquid-aware: for liquid parts, stock_quantity is 0 by convention — actual
+  // stock = container_quantity × container_size + bulk_quantity.
   useEffect(() => {
     if (!isOpen || mode !== 'in' || !selectedPartId) {
       setCentralStock(null);
+      setIsLiquid(false);
+      setBaseUnit('');
       return;
     }
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from('parts')
-        .select('stock_quantity, part_name')
+        .select('stock_quantity, container_quantity, container_size, bulk_quantity, is_liquid, base_unit, part_name')
         .eq('part_id', selectedPartId)
         .single();
       if (cancelled) return;
       if (error || !data) {
         setCentralStock(null);
+        setIsLiquid(false);
+        setBaseUnit('');
         return;
       }
-      setCentralStock(data.stock_quantity ?? 0);
+      const liquid = !!data.is_liquid;
+      const available = liquid
+        ? (Number(data.container_quantity ?? 0) * Number(data.container_size ?? 0)) + Number(data.bulk_quantity ?? 0)
+        : Number(data.stock_quantity ?? 0);
+      setCentralStock(available);
+      setIsLiquid(liquid);
+      setBaseUnit(data.base_unit || (liquid ? 'L' : 'unit'));
       if (data.part_name) setSelectedPartLabel(data.part_name);
     })();
     return () => { cancelled = true; };
@@ -101,7 +121,13 @@ export function TransferPartModal({
 
   if (!isOpen) return null;
 
-  const vanQty = vanStockItem?.quantity ?? 0;
+  // For liquid van_stock_items the qty lives in bulk_quantity (the
+  // route_liquid_to_bulk_quantity trigger zeros out .quantity on insert).
+  // effective_quantity is the view-computed total when present.
+  const vanQty = vanStockItem
+    ? Number(vanStockItem.effective_quantity ?? vanStockItem.bulk_quantity ?? vanStockItem.quantity ?? 0)
+    : 0;
+  const unitLabel = isLiquid ? (baseUnit || 'L') : (baseUnit || '');
   const qtyNumber = Number(quantity);
   const isValidQuantity = Number.isFinite(qtyNumber) && qtyNumber > 0;
   const exceedsAvailable = mode === 'in'
@@ -222,7 +248,7 @@ export function TransferPartModal({
               )}
               {mode === 'out' && (
                 <p className="text-xs text-slate-600 mt-2">
-                  Currently on van: <span className="font-semibold">{vanQty}</span>
+                  Currently on van: <span className="font-semibold">{vanQty}{unitLabel ? ` ${unitLabel}` : ''}</span>
                 </p>
               )}
             </div>
@@ -230,7 +256,7 @@ export function TransferPartModal({
 
           {mode === 'in' && centralStock !== null && (
             <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
-              Central warehouse stock: <span className="font-semibold">{centralStock}</span>
+              Central warehouse stock: <span className="font-semibold">{centralStock}{unitLabel ? ` ${unitLabel}` : ''}</span>
               {centralStock === 0 && (
                 <p className="text-xs text-red-600 mt-1">Out of stock — nothing to transfer.</p>
               )}
@@ -239,7 +265,7 @@ export function TransferPartModal({
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Quantity
+              Quantity{unitLabel ? ` (${unitLabel})` : ''}
               {mode === 'out' && vanQty > 0 && (
                 <span className="text-xs text-slate-500 font-normal ml-2">(max {vanQty})</span>
               )}
@@ -249,21 +275,21 @@ export function TransferPartModal({
             </label>
             <input
               type="number"
-              inputMode="numeric"
-              min="1"
-              step="1"
+              inputMode={isLiquid ? 'decimal' : 'numeric'}
+              min={isLiquid ? '0.001' : '1'}
+              step={isLiquid ? '0.001' : '1'}
               max={mode === 'in' ? centralStock ?? undefined : vanQty}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              placeholder="How many to move?"
+              placeholder={isLiquid ? 'How many liters to move?' : 'How many to move?'}
               autoFocus={mode === 'out' || !!vanStockItem}
             />
             {exceedsAvailable && (
               <p className="text-xs text-red-600 mt-1">
                 {mode === 'in'
-                  ? `Only ${centralStock} available in central stock`
-                  : `Only ${vanQty} on van`}
+                  ? `Only ${centralStock}${unitLabel ? ' ' + unitLabel : ''} available in central stock`
+                  : `Only ${vanQty}${unitLabel ? ' ' + unitLabel : ''} on van`}
               </p>
             )}
           </div>
