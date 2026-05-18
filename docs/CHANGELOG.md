@@ -1,5 +1,19 @@
 # Changelog
 
+## [2026-05-18] — Fix: Service Due Site Location column rendering blank for all rows
+
+Reported by client: SITE LOCATION column on the Service Due board appearing completely blank. Live DB confirmed `forklifts.site` was populated for 97% of rows (1,376 of 1,413). The bug was client-side.
+
+### Fix
+
+`ServiceDueTab.loadSiteData` calls `.in('forklift_id', forkliftIds)` with the union of all forklift IDs from the predictions view + the full fleet overview — ~1,413 UUIDs. Each UUID is 36 chars + 1 separator, so the encoded URL was ~52 KB. PostgREST's typical limit is 8-16 KB; the request was silently failing and the existing `if (error || !data) return;` swallowed the error without logging. The site map stayed empty and every row rendered "—" (perceived as "completely blank" since most rows shared the same fate).
+
+Chunked the `.in()` query into batches of 100 IDs (~3.7 KB per chunk, well under any PostgREST limit). Batches run in parallel via `Promise.all`, results merged into the site map. Per-chunk errors are now `console.error`'d so a recurrence can be diagnosed from the browser console. If every chunk fails, a toast surfaces "Could not load site locations — refresh to retry" instead of leaving the user staring at a silent blank column.
+
+### Notes
+
+The round-1 performance review on 2026-05-13 flagged this exact risk — "PostgREST `.in()` is URL-encoded; for ~300 UUIDs you're approaching the limit; at 500+ you'd risk a 414". The fleet has since grown past 1,400 active forklifts, which pushed the URL well past the threshold. Should have chunked it then; doing it now.
+
 ## [2026-05-17] — 3 client requests: blank qty default, customer active filter, van-stock price fallback
 
 ### Changed

@@ -113,6 +113,14 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
    * Hydrate site_name + current_site_id for the displayed forklifts. The
    * prediction view and fleet overview view don't expose these fields, so we
    * fetch them directly from the forklifts table (2026-05-13).
+   *
+   * Chunking (added 2026-05-18): with the full fleet (~1,400 active forklifts),
+   * a single .in() clause produced a ~52 KB URL — well past PostgREST's
+   * ~8-16 KB limit. Supabase silently returned an error and the column
+   * rendered completely blank. Now batches into 100-ID chunks and runs them
+   * in parallel; merges into the site map. Errors are logged (no more
+   * silent failure) but don't abort the other batches.
+   *
    * Stale-response guarded via siteLoadIdRef so rapid timeWindow changes
    * don't overwrite a newer response with an older one.
    */
@@ -122,16 +130,44 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
       return;
     }
     const myId = ++siteLoadIdRef.current;
-    const { data, error } = await supabase
-      .from('forklifts')
-      .select('forklift_id, site, current_site_id')
-      .in('forklift_id', forkliftIds);
+
+    const CHUNK_SIZE = 100; // ~3.7 KB per chunk URL, well under any PostgREST limit
+    const chunks: string[][] = [];
+    for (let i = 0; i < forkliftIds.length; i += CHUNK_SIZE) {
+      chunks.push(forkliftIds.slice(i, i + CHUNK_SIZE));
+    }
+
+    const responses = await Promise.all(
+      chunks.map(chunk =>
+        supabase
+          .from('forklifts')
+          .select('forklift_id, site, current_site_id')
+          .in('forklift_id', chunk)
+      )
+    );
+
     if (myId !== siteLoadIdRef.current) return; // stale — newer request in flight
-    if (error || !data) return;
+
     const map: Record<string, { site: string | null; current_site_id: string | null }> = {};
-    data.forEach((r: { forklift_id: string; site: string | null; current_site_id: string | null }) => {
-      map[r.forklift_id] = { site: r.site, current_site_id: r.current_site_id };
+    let errorCount = 0;
+    responses.forEach((res, idx) => {
+      if (res.error) {
+        // Log so the silent-failure mode that gave us the original "blank
+        // column" symptom can't recur unnoticed.
+        // eslint-disable-next-line no-console
+        console.error('[ServiceDueTab.loadSiteData] chunk', idx, 'failed:', res.error.message);
+        errorCount += 1;
+        return;
+      }
+      (res.data ?? []).forEach((r: { forklift_id: string; site: string | null; current_site_id: string | null }) => {
+        map[r.forklift_id] = { site: r.site, current_site_id: r.current_site_id };
+      });
     });
+    if (errorCount > 0 && Object.keys(map).length === 0) {
+      // Every chunk failed — surface to the user instead of leaving the
+      // column blank without explanation.
+      showToast.error('Could not load site locations', `${errorCount} of ${chunks.length} batches failed. Refresh to retry.`);
+    }
     setSiteByForkliftId(map);
   };
   
