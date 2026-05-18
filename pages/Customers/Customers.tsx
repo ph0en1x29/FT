@@ -16,6 +16,9 @@ const Customers: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  // Active-state filter — defaults to 'active' to preserve the prior UX.
+  // 'inactive' lets admins find HUP AIK / etc. and reactivate; 'all' shows both.
+  const [activeFilter, setActiveFilter] = useState<'active' | 'inactive' | 'all'>('active');
 
   // Create customer modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -36,15 +39,16 @@ const Customers: React.FC = () => {
     return () => window.clearTimeout(timeout);
   }, [searchQuery]);
 
-  // Reset to page 1 when search changes
+  // Reset to page 1 when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchQuery]);
+  }, [debouncedSearchQuery, activeFilter]);
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['customers', 'page', debouncedSearchQuery, currentPage, PAGE_SIZE],
+    queryKey: ['customers', 'page', debouncedSearchQuery, activeFilter, currentPage, PAGE_SIZE],
     queryFn: () => getCustomersPage({
       searchQuery: debouncedSearchQuery,
+      activeFilter,
       page: currentPage,
       pageSize: PAGE_SIZE,
     }),
@@ -136,6 +140,26 @@ const Customers: React.FC = () => {
             <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
           </div>
         )}
+      </div>
+
+      {/* Status Filter — All / Active / Inactive (added 2026-05-17 per client request).
+          Inactive customers are otherwise invisible in the Console; this lets admins
+          locate them and reactivate without filing a support ticket. */}
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-theme-muted">Status:</span>
+        {(['active', 'inactive', 'all'] as const).map(opt => (
+          <button
+            key={opt}
+            onClick={() => setActiveFilter(opt)}
+            className={`px-3 py-1.5 rounded-full border transition-colors capitalize ${
+              activeFilter === opt
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-theme-surface text-theme-muted border-theme hover:border-blue-300'
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
       </div>
 
       {/* Pagination Controls */}

@@ -48,7 +48,11 @@ export const useJobDetailState = () => {
   const [noteInput, setNoteInput] = useState('');
   const [selectedPartId, setSelectedPartId] = useState('');
   const [selectedPartPrice, setSelectedPartPrice] = useState<string>('');
-  const [addPartQuantity, setAddPartQuantity] = useState('1');
+  // Default to empty so the input is blank when techs first focus it on mobile.
+  // Without this, techs have to tap-select-delete the auto-filled "1" before
+  // typing the real quantity (reported pain point 2026-05-17). The handler
+  // still coerces blank → 1 if nothing is typed, so single-unit usage still works.
+  const [addPartQuantity, setAddPartQuantity] = useState('');
   const [selectedTechId, setSelectedTechId] = useState('');
 
   // Modal visibility states
@@ -176,7 +180,9 @@ export const useJobDetailState = () => {
   const [useFromVanStock, setUseFromVanStock] = useState(false);
   const [vanStock, setVanStock] = useState<VanStock | null>(null);
   const [selectedVanStockItemId, setSelectedVanStockItemId] = useState('');
-  const [vanStockQuantity, setVanStockQuantity] = useState('1');
+  // See note on addPartQuantity above — same mobile tap-tap-tap pain point.
+  // Default blank; handler coerces to 1 if left empty.
+  const [vanStockQuantity, setVanStockQuantity] = useState('');
   const [availableVans, setAvailableVans] = useState<VanStock[]>([]);
 
   // Checklist states

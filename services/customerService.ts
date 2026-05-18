@@ -11,6 +11,12 @@ export interface CustomersPageFilters {
   searchQuery?: string;
   page?: number;
   pageSize?: number;
+  /** Active-state filter for the Customers Console.
+   *  'active'   → only is_active = true (default — preserves legacy behavior)
+   *  'inactive' → only is_active = false (so admins can find + reactivate)
+   *  'all'      → both
+   */
+  activeFilter?: 'active' | 'inactive' | 'all';
 }
 
 export interface CustomersPage {
@@ -20,7 +26,7 @@ export interface CustomersPage {
   pageSize: number;
 }
 
-const CUSTOMERS_SELECT = 'customer_id, name, phone, email, address, notes, contact_person, account_number, registration_no, tax_entity_id, credit_term, agent, phone_secondary';
+const CUSTOMERS_SELECT = 'customer_id, name, phone, email, address, notes, contact_person, account_number, registration_no, tax_entity_id, credit_term, agent, phone_secondary, is_active';
 const CUSTOMERS_PAGE_SIZE = 50;
 
 // Database row types for query results
@@ -144,12 +150,22 @@ export const getCustomersPage = async (filters: CustomersPageFilters = {}): Prom
   const pageSize = Math.max(filters.pageSize || CUSTOMERS_PAGE_SIZE, 1);
   const searchQuery = filters.searchQuery?.trim() || '';
 
+  // Active-state filter: default to 'active' to preserve the legacy default
+  // behaviour (only active customers shown in Customers Console). Pass
+  // 'inactive' or 'all' explicitly to broaden the view.
+  const activeFilter = filters.activeFilter ?? 'active';
+
   let query = supabase
     .from('customers')
     .select(CUSTOMERS_SELECT, { count: 'exact' })
-    .eq('is_active', true)
     .order('name')
     .range((page - 1) * pageSize, (page * pageSize) - 1);
+
+  if (activeFilter === 'active') {
+    query = query.eq('is_active', true);
+  } else if (activeFilter === 'inactive') {
+    query = query.eq('is_active', false);
+  } // else 'all' → no is_active predicate
 
   if (searchQuery) {
     const escaped = searchQuery.replace(/[%_,]/g, '');

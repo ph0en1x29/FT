@@ -135,6 +135,21 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
     }
   };
 
+  // Admin-only "Reactivate" — flips is_active back to true so the customer
+  // reappears in the default Active filter on the Customers Console and in
+  // dropdowns. Surfaced as a button when customer.is_active === false.
+  const handleReactivateCustomer = async () => {
+    if (!customer) return;
+    try {
+      const { updateCustomer } = await import('../../services/customerService');
+      await updateCustomer(customer.customer_id, { is_active: true });
+      await loadCustomerData();
+      showToast.success('Customer reactivated', `${customer.name} is now active again.`);
+    } catch (e) {
+      showToast.error('Failed to reactivate customer: ' + (e as Error).message);
+    }
+  };
+
   if (loading) return <div className="p-8 text-center text-slate-500">Loading customer profile...</div>;
   if (!customer) return <div className="p-8 text-center text-red-500">Customer not found</div>;
 
@@ -149,6 +164,7 @@ const CustomerProfilePage: React.FC<CustomerProfileProps> = ({ currentUser }) =>
         onCreateJob={() => navigate(`/jobs/new?customer_id=${customer.customer_id}`)}
         onEditCustomer={() => setShowEditModal(true)}
         onDeleteCustomer={() => setShowDeleteConfirm(true)}
+        onReactivateCustomer={handleReactivateCustomer}
       />
 
       <CustomerKPIStrip {...stats} />

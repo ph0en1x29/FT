@@ -51,7 +51,8 @@ export const useJobPartsHandlers = ({
       setJob({ ...updated } as Job);
       state.setSelectedPartId('');
       state.setSelectedPartPrice('');
-      state.setAddPartQuantity('1');
+      // Reset to blank (consistent with initial default — mobile tap UX).
+      state.setAddPartQuantity('');
       state.setSellSealed(false);
       // Detect the Path A → Path B auto-flip (Phase 4 enforcement) and surface
       // it to the admin so they know the job's billing class changed.
@@ -293,7 +294,8 @@ export const useJobPartsHandlers = ({
       }
 
       state.setSelectedVanStockItemId('');
-      state.setVanStockQuantity('1');
+      // Reset to blank, consistent with the initial default (mobile tap UX).
+      state.setVanStockQuantity('');
       const unit = item.part?.unit || 'pcs';
       const qtyDisplay = Number.isInteger(qtyToUse) ? qtyToUse.toString() : qtyToUse.toFixed(2);
       showToast.success('Part used from van stock', `${qtyDisplay} ${unit} of ${item.part?.part_name} added to job`);

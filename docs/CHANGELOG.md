@@ -1,5 +1,29 @@
 # Changelog
 
+## [2026-05-17] — 3 client requests: blank qty default, customer active filter, van-stock price fallback
+
+### Changed
+
+**Part quantity inputs on JobDetail now default to blank instead of "1".** Field-reported pain point: on mobile, techs had to tap the field, select the auto-filled "1", and delete it before typing the actual quantity. Often multiple taps just to get into edit mode. Defaulting blank means tap-once-and-type. The `parseFloat('') || 1` fallback at submit time keeps single-unit usage working when the field is left empty. Affected: both the "Add Part" and "Use from Van Stock" qty inputs. Placeholder updated to "Qty (default 1)" so the implicit-1 behavior is documented inline.
+
+### Added
+
+**All / Active / Inactive filter on the Customers Console.** Reported: inactive customers (e.g. HUP AIK TRADING SDN BHD) are still selectable in the New Job dropdown but disappear from the Customers Console entirely — admins had to ask for support to reactivate. Added a pill-button row above the customer grid: All / Active / Inactive. Default is Active (preserves legacy behaviour). Selecting "Inactive" or "All" reveals the customer; the CustomerCard now shows an "Inactive" chip next to the account number for visual distinction. The customer profile page shows an Inactive badge in the header and exposes a **Reactivate** button (admin-only, only when `is_active = false`) that flips `is_active` back to true via `updateCustomer`, reloads the profile, and the customer reappears in the default Active filter / dropdowns. No more support ticket needed.
+
+### Fixes
+
+**Van stock pricing snapshot now falls back to `cost_price` when `sell_price` is NULL.** Reported on BATTERY 105D31L (S-02498): van stock list shows RM 318.25 but the job card pulls the part in at RM 0.00. Root cause: `rpc_use_van_stock_part` snapshotted `sell_price_at_time = COALESCE(v_part.sell_price, 0)`. For S-02498, `sell_price = NULL, cost_price = 318.25` — so the COALESCE returned 0. The legacy `addPartToJob` path in `services/jobInvoiceService.ts` already used the correct `sell_price ?? cost_price ?? 0` fallback chain; this fix aligns the RPC with it. Migration `20260517_van_stock_use_price_fallback.sql` (live). Companion backfill `20260517_backfill_van_stock_zero_prices.sql` lifted 35 historical zero-priced job_parts rows (29 on Completed/invoiced jobs) to `sell_price_at_time = cost_price_at_time` — RM 4,113.57 of cost-basis-floor revenue recovered.
+
+### Notes — known follow-ups
+
+- **Filter persistence**: the Customers Console filter is local component state — switching to "Inactive", navigating into a customer, then hitting Back resets to "Active". For now this is acceptable (admins can re-select); future improvement is to push to URL search params for deep-linking.
+- **Catalog hygiene**: 3,020 parts have `sell_price IS NULL AND cost_price IS NOT NULL`. The RPC fix uses `cost_price` as a zero-margin floor when sell_price is unset; that prevents the RM0 bug but doesn't add markup. Recommended: client populates `parts.sell_price` with cost + markup at the catalog level so future van-stock uses carry proper margin.
+
+### Verification
+
+- 3-reviewer audit caught issues missed in the initial pass: Change 1 had JSX `|| '1'` overrides defeating the state default; Change 2 was missing `is_active` in `CUSTOMERS_SELECT` so the badge couldn't render, plus no Reactivate flow; Change 3 needed the historical backfill. All addressed.
+- typecheck clean, ESLint clean on touched files, 48/48 unit tests pass, build green, live DB confirmed.
+
 ## [2026-05-15 — late] — Comprehensive liquid-blind audit: 4 rounds, 15+ sites cleaned up
 
 After shipping the initial S-01044 transfer fix, a 4-round multi-reviewer audit found the same liquid-blind pattern lurking in 15+ other locations across the codebase. All have been fixed in this pass so liquid SKUs (oils, fluids tracked in containers + bulk_quantity) render and behave correctly everywhere.

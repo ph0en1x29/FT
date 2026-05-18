@@ -38,6 +38,10 @@ export interface CustomerHeaderProps {
   onCreateJob: () => void;
   onEditCustomer: () => void;
   onDeleteCustomer: () => void;
+  /** Admin-only — only invoked when customer.is_active === false (badge shown).
+   *  Flips is_active back to true so the customer reappears in the default
+   *  Active filter and in dropdowns again. */
+  onReactivateCustomer?: () => void;
 }
 
 export interface CustomerKPIStripProps {

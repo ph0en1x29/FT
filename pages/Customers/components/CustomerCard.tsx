@@ -36,6 +36,11 @@ const CustomerCard: React.FC<CustomerCardProps> = ({ customer }) => {
                 {customer.agent}
               </span>
             )}
+            {customer.is_active === false && (
+              <span className="text-xs text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-full border border-slate-300 font-medium">
+                Inactive
+              </span>
+            )}
           </div>
         </div>
         <button

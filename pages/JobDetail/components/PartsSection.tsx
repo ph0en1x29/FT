@@ -437,10 +437,10 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
                         inputMode="decimal"
                         min="0.1"
                         step="any"
-                        value={vanStockQuantity || '1'}
+                        value={vanStockQuantity}
                         onChange={(e) => onVanStockQuantityChange?.(e.target.value)}
                         className="input-premium text-sm w-full text-center"
-                        placeholder="Qty"
+                        placeholder="Qty (default 1)"
                       />
                     </div>
                     <button
@@ -538,10 +538,10 @@ export const PartsSection: React.FC<PartsSectionProps> = ({
                   inputMode="decimal"
                   min="0.1"
                   step="any"
-                  value={addPartQuantity || '1'}
+                  value={addPartQuantity}
                   onChange={(e) => onAddPartQuantityChange?.(e.target.value)}
                   className="input-premium text-sm w-full text-center"
-                  placeholder="Qty"
+                  placeholder="Qty (default 1)"
                 />
               </div>
             )}

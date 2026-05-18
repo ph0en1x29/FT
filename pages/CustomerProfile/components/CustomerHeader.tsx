@@ -1,4 +1,4 @@
-import { ArrowLeft,Briefcase,Edit2,Mail,MapPin,Phone,Trash2,Truck } from 'lucide-react';
+import { ArrowLeft,Briefcase,Edit2,Mail,MapPin,Phone,RotateCcw,Trash2,Truck } from 'lucide-react';
 import React from 'react';
 import { CustomerHeaderProps } from '../types';
 
@@ -11,7 +11,9 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
   onCreateJob,
   onEditCustomer,
   onDeleteCustomer,
+  onReactivateCustomer,
 }) => {
+  const isInactive = customer.is_active === false;
   return (
     <div className="bg-[var(--surface)] rounded-xl shadow-sm p-3 md:p-5 border border-slate-200">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -21,7 +23,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
             <ArrowLeft className="w-5 h-5 text-slate-600" />
           </button>
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-slate-900">{customer.name}</h1>
               {customer.account_number ? (
                 <span className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded font-mono border border-blue-200">
@@ -30,6 +32,11 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
               ) : (
                 <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded font-mono">
                   {customer.customer_id.slice(0, 8)}
+                </span>
+              )}
+              {isInactive && (
+                <span className="text-xs text-slate-700 bg-slate-200 px-2 py-1 rounded-full font-medium border border-slate-300">
+                  Inactive
                 </span>
               )}
             </div>
@@ -89,6 +96,16 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
             <Edit2 className="w-4 h-4" />
             Edit
           </button>
+          {isInactive && isAdmin && onReactivateCustomer && (
+            <button
+              onClick={onReactivateCustomer}
+              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 text-sm font-medium shadow-sm"
+              title="Set is_active = true so this customer reappears in the Active filter and dropdowns"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Reactivate
+            </button>
+          )}
           {isAdmin && (
             <button 
               onClick={onDeleteCustomer}
