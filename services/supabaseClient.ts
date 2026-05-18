@@ -97,6 +97,48 @@ export const isNetworkError = (error: unknown) => {
   return error instanceof TypeError || /Failed to fetch|NetworkError|ERR_CONNECTION_CLOSED|fetch failed/i.test(message);
 };
 
+/**
+ * Runs a Supabase `.in()`-style query in chunks so the encoded URL stays
+ * under PostgREST's typical 8-16 KB limit. Each UUID is ~37 chars including
+ * the separator, so at ~200 UUIDs you're approaching the limit; at ~400+
+ * the request silently fails with `Bad Request`. This helper paginates the
+ * input id list into batches of `chunkSize` (default 100 ≈ 3.7 KB per URL)
+ * and runs them in parallel, then concatenates the rows.
+ *
+ * Usage:
+ *   const rows = await chunkedIn(ids, (chunk) =>
+ *     supabase.from('forklifts').select('forklift_id, site').in('forklift_id', chunk)
+ *   );
+ *
+ * Errors propagate from the first failed chunk. Callers needing graceful
+ * degradation (e.g. ServiceDueTab) can implement their own per-chunk
+ * error handling instead.
+ */
+export const CHUNKED_IN_DEFAULT_SIZE = 100;
+
+export async function chunkedIn<T>(
+  ids: string[],
+  build: (chunk: string[]) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  chunkSize: number = CHUNKED_IN_DEFAULT_SIZE,
+): Promise<T[]> {
+  if (ids.length === 0) return [];
+
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    chunks.push(ids.slice(i, i + chunkSize));
+  }
+
+  const responses = await Promise.all(chunks.map(build));
+  const rows: T[] = [];
+  for (const res of responses) {
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
+    if (res.data) rows.push(...res.data);
+  }
+  return rows;
+}
+
 // =====================
 // STORAGE HELPERS
 // =====================

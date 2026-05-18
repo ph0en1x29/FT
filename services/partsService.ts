@@ -5,7 +5,7 @@
  */
 
 import type { Part } from '../types';
-import { supabase } from './supabaseClient';
+import { chunkedIn, supabase } from './supabaseClient';
 import { isLikelyLiquid } from '../types/inventory.types';
 
 const PARTS_SELECT = 'part_id, part_name, part_code, category, cost_price, sell_price, warranty_months, stock_quantity, last_updated_by, last_updated_by_name, updated_at, min_stock_level, supplier, location, unit, base_unit, container_unit, container_size, container_quantity, bulk_quantity, price_per_base_unit, is_liquid, avg_cost_per_liter, last_purchase_cost_per_liter, is_warranty_excluded';
@@ -78,17 +78,18 @@ const getLowStockPartIds = async (filters: Pick<PartsCatalogFilters, 'searchQuer
 const getPartsByIds = async (partIds: string[]): Promise<Part[]> => {
   if (partIds.length === 0) return [];
 
-  const parts: Part[] = [];
-  for (let index = 0; index < partIds.length; index += BULK_PAGE_SIZE) {
-    const idsChunk = partIds.slice(index, index + BULK_PAGE_SIZE);
-    const { data, error } = await supabase
+  // Previously chunked at BULK_PAGE_SIZE (1000) — that's safe for Supabase
+  // pagination but unsafe for `.in()` URL length (a 1000-UUID .in() encodes
+  // to ~37 KB, well past PostgREST's ~8-16 KB limit, so the request silently
+  // returned Bad Request and dropped that page's rows). Use the shared
+  // chunkedIn helper which defaults to 100 IDs per chunk (~3.7 KB URLs).
+  const parts = await chunkedIn<Part>(
+    partIds,
+    (chunk) => supabase
       .from('parts')
       .select(PARTS_SELECT)
-      .in('part_id', idsChunk);
-
-    if (error) throw new Error(error.message);
-    parts.push(...((data || []) as Part[]));
-  }
+      .in('part_id', chunk),
+  );
 
   return sortParts(parts);
 };

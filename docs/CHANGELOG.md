@@ -1,5 +1,23 @@
 # Changelog
 
+## [2026-05-18 — later] — Shared chunkedIn helper + two more silent `.in()` overflows fixed
+
+A 3-agent review of the Site Location chunking fix uncovered two more production-impacting `.in()` URL overflows that were already silently broken.
+
+### Fixes
+
+**Shared `chunkedIn<T>` helper added to `services/supabaseClient.ts`.** Pages a Supabase `.in()`-style query into 100-ID batches (~3.7 KB per URL, well under PostgREST's ~8-16 KB limit), runs in parallel, concatenates rows. Throws from the first failed chunk so callers fail-loud rather than silently dropping data. Replaces ad-hoc chunking logic in places that need a single throw-on-error semantic.
+
+**`partsService.getPartsByIds` — CRITICAL.** Was chunking at `BULK_PAGE_SIZE = 1000`, which is safe for pagination but unsafe for `.in()` URLs (1,000 UUIDs encode to ~37 KB, past the limit). Low-stock Parts views and CSV exports could silently drop rows when the matched set exceeded ~250. Now uses `chunkedIn` (100/batch).
+
+**`kpiService.loadJobsForPeriod` — HIGH.** Makes three `.in('job_id', jobIds)` calls in parallel (job_status_history + helper assignments + child jobs). April 2026 had 706 completed/transferred jobs in scope; May had 532. Each `.in()` URL was ~26 KB — well past the limit. Monthly KPI recompute (admin People → KPI tab) was returning wrong/zero awards in production. All three calls now go through `chunkedIn`.
+
+**`ServiceDueTab.loadSiteData` — polish from Reviewer 1.** Kept the inline chunking (this consumer needs per-chunk error tolerance — the shared helper's throw-on-first-error semantic doesn't apply). Tightened the user feedback path: a toast now surfaces on ANY chunk failure, not just total failure (partial blank rows are confusing without an explanation). Removed the dead `eslint-disable no-console` directive.
+
+### Deferred
+
+Reviewer 3 also flagged MEDIUM/LOW `.in()` patterns in `customerService.deleteCustomer` (11-step cascade), `escalationService` (SLA scan), and `AdminMapPage` (sites with coords). All currently safe by row count but worth revisiting if those datasets grow past ~200 rows.
+
 ## [2026-05-18] — Fix: Service Due Site Location column rendering blank for all rows
 
 Reported by client: SITE LOCATION column on the Service Due board appearing completely blank. Live DB confirmed `forklifts.site` was populated for 97% of rows (1,376 of 1,413). The bug was client-side.

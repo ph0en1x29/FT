@@ -131,7 +131,13 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
     }
     const myId = ++siteLoadIdRef.current;
 
-    const CHUNK_SIZE = 100; // ~3.7 KB per chunk URL, well under any PostgREST limit
+    // Chunk into 100-ID batches via the shared helper. Each chunk's URL is
+    // ~3.7 KB, well under PostgREST's ~8-16 KB limit. The fleet has ~1,400
+    // active forklifts today; a single .in() was producing a ~52 KB URL
+    // that silently returned Bad Request (root cause of the "blank column"
+    // symptom). Per-chunk errors are surfaced via toast — partial failure
+    // shows what's missing, not a silently incomplete grid.
+    const CHUNK_SIZE = 100;
     const chunks: string[][] = [];
     for (let i = 0; i < forkliftIds.length; i += CHUNK_SIZE) {
       chunks.push(forkliftIds.slice(i, i + CHUNK_SIZE));
@@ -152,9 +158,6 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
     let errorCount = 0;
     responses.forEach((res, idx) => {
       if (res.error) {
-        // Log so the silent-failure mode that gave us the original "blank
-        // column" symptom can't recur unnoticed.
-        // eslint-disable-next-line no-console
         console.error('[ServiceDueTab.loadSiteData] chunk', idx, 'failed:', res.error.message);
         errorCount += 1;
         return;
@@ -163,12 +166,18 @@ const ServiceDueTab: React.FC<TabProps> = ({ currentUser: _currentUser }) => {
         map[r.forklift_id] = { site: r.site, current_site_id: r.current_site_id };
       });
     });
-    if (errorCount > 0 && Object.keys(map).length === 0) {
-      // Every chunk failed — surface to the user instead of leaving the
-      // column blank without explanation.
-      showToast.error('Could not load site locations', `${errorCount} of ${chunks.length} batches failed. Refresh to retry.`);
-    }
     setSiteByForkliftId(map);
+
+    // Surface ANY failure to the user — partial failure leaves some rows
+    // "—" without explanation, which is the same UX confusion as the
+    // original silent-failure bug just smaller-scale.
+    if (errorCount > 0) {
+      const allFailed = Object.keys(map).length === 0;
+      showToast.error(
+        allFailed ? 'Could not load site locations' : 'Some site locations missing',
+        `${errorCount} of ${chunks.length} batches failed. Refresh to retry.`,
+      );
+    }
   };
   
   const loadDailyUsage = async (forkliftIds: string[]) => {

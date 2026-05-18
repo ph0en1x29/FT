@@ -1,3 +1,15 @@
+[2026-05-18 02:15] [Opus] fix: shared chunkedIn helper + two more silent-overflow bugs (partsService + kpiService) — services/supabaseClient.ts, services/partsService.ts, services/kpiService.ts, pages/ForkliftsTabs/components/ServiceDueTab.tsx
+  - 3-agent review of the Site Location chunking fix found 2 more `.in()` overflow bugs already silently broken in production:
+    * CRITICAL — `partsService.getPartsByIds` chunks at `BULK_PAGE_SIZE = 1000`. A 1000-UUID `.in()` URL encodes to ~37 KB, well past PostgREST's ~8-16 KB limit. Low-stock Excel export and stock-filter Parts views silently drop rows when the result set exceeds the URL ceiling.
+    * HIGH — `kpiService.loadJobsForPeriod` makes 3× `.in('job_id', jobIds)` calls in Promise.all. April 2026 had 706 completed jobs; May had 532 — both produce URLs ~26 KB. Monthly KPI recompute (admin People → KPI tab) was returning wrong/zero awards.
+  - Fix: introduced a shared `chunkedIn<T>(ids, build, chunkSize=100)` helper in `services/supabaseClient.ts`. Slices the id list into 100-ID batches (~3.7 KB per URL), runs them in parallel, concatenates rows. Errors throw from the first failed chunk so callers can fail-loud.
+  - Adopted in:
+    * `partsService.getPartsByIds` — no more 1000-ID URL bomb. Low-stock catalog reads are correct again.
+    * `kpiService.loadJobsForPeriod` — all 3 `.in()` calls (job_status_history, job_assignments, child jobs) now paginate. Monthly KPI recompute returns the full job set.
+    * `ServiceDueTab.loadSiteData` — kept inline chunking (also needs per-chunk error tolerance, which the shared throw-on-first-error helper doesn't expose), but applied Reviewer 1's nits: toast on ANY chunk failure (not just total), removed dead eslint-disable comment.
+  - Reviewer 3 also flagged MEDIUM/LOW items for future passes (customerService cascading delete, escalationService, AdminMapPage). Acceptable today; will revisit when those tables grow past ~200 rows.
+  - Verification: typecheck clean, ESLint clean (1 pre-existing max-lines warning), 48/48 unit tests pass.
+
 [2026-05-18 01:50] [Opus] fix: Service Due Site Location column blank — chunk loadSiteData .in() query (PostgREST URL overflow) — pages/ForkliftsTabs/components/ServiceDueTab.tsx
   - Client report: SITE LOCATION column appearing completely blank on Service Due board after recent code rolled out.
   - Investigation: live DB confirmed forklifts.site populated for 1,376 of 1,413 forklifts (97%), RLS permissive (auth.uid() IS NOT NULL), and authenticated reads return data correctly via psql. The bug was client-side.

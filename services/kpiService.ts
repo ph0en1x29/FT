@@ -8,7 +8,7 @@
 //
 // Spec ref: /home/jay/Downloads/KPI_SPEC.md.
 
-import { supabase } from './supabaseClient';
+import { chunkedIn, supabase } from './supabaseClient';
 import {
   awardJobPoints,
   computeAttendance,
@@ -107,31 +107,40 @@ async function loadJobsForPeriod(
     return { jobs: [], history: [], helpers: [], children: [] };
   }
 
-  const [historyRes, helpersRes, childrenRes] = await Promise.all([
-    supabase
-      .from('job_status_history')
-      .select('history_id, job_id, old_status, new_status, changed_by, changed_at, reason')
-      .in('job_id', jobIds),
-    supabase
-      .from('job_assignments')
-      .select('assignment_id, job_id, technician_id, assignment_type, started_at, ended_at, is_active')
-      .in('job_id', jobIds)
-      .eq('assignment_type', 'assistant'),
-    supabase
-      .from('jobs')
-      .select('job_id, parent_job_id, created_at, assigned_technician_id')
-      .in('parent_job_id', jobIds)
-      .is('deleted_at', null),
+  // Each of these `.in('job_id', jobIds)` calls would silently fail past
+  // ~200 jobs in a month (URL > ~8 KB, PostgREST limit). April 2026 had
+  // 706 completed jobs; May had 532 — both well past the failure threshold,
+  // so monthly KPI recompute was producing wrong/zero awards in production.
+  // chunkedIn pages each query into 100-ID batches and concatenates.
+  type ChildRow = { job_id: string; parent_job_id: string | null; created_at: string; assigned_technician_id: string | null };
+  const [history, helpers, children] = await Promise.all([
+    chunkedIn<JobStatusHistoryRow>(jobIds, (chunk) =>
+      supabase
+        .from('job_status_history')
+        .select('history_id, job_id, old_status, new_status, changed_by, changed_at, reason')
+        .in('job_id', chunk),
+    ),
+    chunkedIn<JobAssignmentRow>(jobIds, (chunk) =>
+      supabase
+        .from('job_assignments')
+        .select('assignment_id, job_id, technician_id, assignment_type, started_at, ended_at, is_active')
+        .in('job_id', chunk)
+        .eq('assignment_type', 'assistant'),
+    ),
+    chunkedIn<ChildRow>(jobIds, (chunk) =>
+      supabase
+        .from('jobs')
+        .select('job_id, parent_job_id, created_at, assigned_technician_id')
+        .in('parent_job_id', chunk)
+        .is('deleted_at', null),
+    ),
   ]);
-  if (historyRes.error) throw historyRes.error;
-  if (helpersRes.error) throw helpersRes.error;
-  if (childrenRes.error) throw childrenRes.error;
 
   return {
     jobs,
-    history: (historyRes.data ?? []) as JobStatusHistoryRow[],
-    helpers: (helpersRes.data ?? []) as JobAssignmentRow[],
-    children: (childrenRes.data ?? []).map((c) => ({
+    history,
+    helpers,
+    children: children.map((c) => ({
       job_id: c.job_id,
       parent_job_id: c.parent_job_id as string,
       created_at: c.created_at as string,
